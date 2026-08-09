@@ -2558,3 +2558,816 @@ html.modal-open .calculator-trigger-button {
     height: 48px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   11. 카드 편집 팝업 + 형태 현대화 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   색상 팔레트는 그대로 두고, 여백·모서리·그림자·전환·포커스만 다듬는다.
+   기존 규칙을 수정하지 않고 뒤에서 덮어쓰는 방식이라 되돌리기 쉽다.
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  /* 꾹 누르는 시간 — src/hooks/useLongPress.ts 의 LONG_PRESS_DELAY 와 맞출 것 */
+  --longpress-delay: 500ms;
+
+  /* 모서리 스케일 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  /* 그림자 — 더 넓고 옅게 */
+  --shadow-soft: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px -6px rgba(16, 24, 40, 0.10);
+  --shadow-lift: 0 2px 4px rgba(16, 24, 40, 0.05), 0 10px 24px -10px rgba(16, 24, 40, 0.16);
+  --shadow-modal: 0 24px 48px -12px rgba(16, 24, 40, 0.28);
+
+  /* 전환 */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur: 180ms;
+
+  /* 포커스 링 */
+  --ring: 0 0 0 3px rgba(91, 95, 239, 0.18);
+}
+
+/* ─── 숫자 정렬 ─────────────────────────────────────────────── */
+.amount-text,
+.amount-input,
+.date-badge,
+.edit-field__control input[type="number"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ─── 카드 ──────────────────────────────────────────────────── */
+.card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lift);
+}
+
+/* 꾹 누를 수 있는 카드 */
+.card--pressable {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: pan-y;
+  overflow: hidden;
+}
+
+/* 누르는 동안 — 원래의 "살짝 커지는" 액션 + 상단에 진행 표시 */
+.card--pressable.pressing {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lift);
+}
+
+.card--pressable.pressing::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 2px;
+  width: 0;
+  background: var(--color-primary);
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  animation: longpress-progress var(--longpress-delay) linear forwards;
+}
+
+@keyframes longpress-progress {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+/* 금액은 자체 제스처(마스킹 해제)가 있으므로 커서를 구분해 준다 */
+.card--pressable .amount-text.masked {
+  cursor: ew-resize;
+}
+
+/* ─── 오버레이 ──────────────────────────────────────────────── */
+.popup-overlay {
+  background: rgba(16, 24, 40, 0.45);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  padding: var(--space-4);
+  animation: overlay-in 140ms var(--ease);
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.popup-panel {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  animation: panel-in 180ms var(--ease);
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ─── 편집 팝업 ─────────────────────────────────────────────── */
+.edit-modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 88vh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.edit-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.edit-modal__head-text {
+  min-width: 0;
+}
+
+.edit-modal__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.edit-modal__subtitle {
+  margin: 2px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.edit-modal__close {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.edit-modal__close:hover {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.edit-modal__body {
+  padding: var(--space-4);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.edit-modal__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.edit-modal__foot-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.edit-modal__foot .ui-btn {
+  min-width: 72px;
+}
+
+/* ─── 편집 필드 그리드 ──────────────────────────────────────── */
+.edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.edit-field--wide {
+  grid-column: 1 / -1;
+}
+
+.edit-field__label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-secondary);
+}
+
+.edit-field__control {
+  min-width: 0;
+}
+
+.edit-field__control input {
+  width: 100%;
+  height: 38px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family);
+  color: var(--color-text-primary);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.edit-field__control input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--ring);
+}
+
+/* IN/OUT 칩 — 읽기 전용 표시 (소분류가 결정한다) */
+.inout-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+}
+
+.inout-chip.in {
+  color: var(--color-success-dark);
+  border-color: rgba(0, 199, 190, 0.35);
+  background: rgba(0, 199, 190, 0.08);
+}
+
+.inout-chip.out {
+  color: var(--color-danger-dark);
+  border-color: rgba(255, 92, 87, 0.35);
+  background: rgba(255, 92, 87, 0.08);
+}
+
+/* 장소 행 */
+.edit-place {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.edit-place__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+.edit-place .ui-btn {
+  flex: 0 0 auto;
+}
+
+/* ─── 버튼 · 입력 형태 다듬기 ───────────────────────────────── */
+.ui-btn,
+.filter-btn,
+.delete-btn {
+  border-radius: var(--radius-sm);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+              box-shadow var(--dur) var(--ease), transform 90ms var(--ease);
+}
+
+.ui-btn:active:not(:disabled),
+.filter-btn:active,
+.delete-btn:active {
+  transform: translateY(1px);
+}
+
+.ui-btn:focus-visible,
+.filter-btn:focus-visible,
+.delete-btn:focus-visible,
+.edit-modal__close:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.ui-input:focus,
+.popup-panel input:focus,
+.popup-panel select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--ring);
+}
+
+.ui-input {
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+/* ─── 좁은 화면 ─────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-modal {
+    max-height: 92vh;
+  }
+
+  .edit-modal__foot {
+    flex-wrap: wrap;
+  }
+
+  .edit-modal__foot-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* 움직임 최소화를 선호하는 사용자
+   ─────────────────────────────────────────────────────────────
+   장식적인 등장 애니메이션만 끈다.
+   누름 피드백(2% 확대)과 길게 누르기 진행 표시는 "지금 무슨 일이 일어나는지"
+   를 알려주는 기능적 신호이므로 유지한다.
+   Windows 의 "애니메이션 효과" 를 끄면 이 쿼리가 참이 되므로,
+   여기서 transform 을 죽이면 데스크톱에서 누름 반응이 사라진다. */
+@media (prefers-reduced-motion: reduce) {
+  .popup-overlay,
+  .popup-panel {
+    animation: none !important;
+  }
+
+  .card {
+    transition: none !important;
+  }
+
+  /* 위쪽 Accessibility 절의 `* { animation: none !important }` 를 되돌린다.
+     길게 누르기 진행 표시는 장식이 아니라 "언제 팝업이 열리는지" 를 알려주는
+     기능적 신호라서, 이게 없으면 데스크톱에서 아무 반응 없이 팝업만 튀어나온다. */
+  .card--pressable.pressing::after {
+    animation: longpress-progress var(--longpress-delay) linear forwards !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   12. 밀도 · 정렬 · 통일성 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   · 여백 축소, 컨트롤 두께 통일, 넘침 방지
+   · 모든 페이지가 같은 치수 토큰을 쓰도록 한 곳에서 정의한다
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  /* 컨트롤 높이 — 페이지 불문 이 세 가지만 쓴다 */
+  --control-h: 32px;        /* 기본 입력 · 버튼 · 셀렉트 */
+  --control-h-sm: 28px;     /* 카드 안 보조 버튼 */
+  --control-px: 10px;       /* 좌우 안쪽 여백 */
+
+  /* 카드 밀도 */
+  --card-py: 9px;
+  --card-px: 12px;
+  --row-gap: 5px;
+}
+
+/* ─── 컨트롤 높이 통일 ──────────────────────────────────────── */
+.ui-input,
+select,
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="month"],
+.edit-field__control input,
+.ms-display {
+  height: var(--control-h);
+  min-height: var(--control-h);
+  padding: 0 var(--control-px);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.ui-btn,
+button {
+  height: var(--control-h);
+  min-height: var(--control-h);
+  padding: 0 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.ui-btn.small {
+  height: var(--control-h-sm);
+  min-height: var(--control-h-sm);
+  padding: 0 9px;
+}
+
+.delete-btn {
+  height: var(--control-h-sm);
+  min-height: var(--control-h-sm);
+  padding: 0 10px;
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-sm);
+}
+
+/* 셀렉트 표시부 — 세로 중앙 정렬 + 넘침 처리 */
+.ms-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.ms-value,
+.ms-placeholder {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.ms-dropdown {
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lift);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* ─── 날짜 단 ───────────────────────────────────────────────── */
+.date-group {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto var(--space-3);
+}
+
+.date-group__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0 2px 5px;
+  margin-top: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.date-group:first-child .date-group__head {
+  margin-top: 0;
+}
+
+.date-group__label {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.date-group__count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 단 안에서는 카드 간격을 좁게 */
+.date-group .card {
+  margin-bottom: 6px;
+}
+
+.date-group .card:last-child {
+  margin-bottom: 0;
+}
+
+/* ─── 카드 밀도 · 정렬 ──────────────────────────────────────── */
+.card {
+  padding: var(--card-py) var(--card-px);
+  padding-left: calc(var(--card-px) + 5px);
+  margin-bottom: 6px;
+  overflow: hidden;                 /* 내용이 카드 밖으로 나가지 않도록 */
+}
+
+.card-row,
+.row-category,
+.row-payment {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 22px;
+  padding: 0;
+  margin: 0;
+}
+
+.card-row + .card-row,
+.row-category,
+.row-payment,
+.card-row.row-bottom {
+  margin-top: var(--row-gap);
+}
+
+/* flex 자식이 넘치지 않게 — 이게 없으면 긴 텍스트가 카드를 밀어낸다 */
+.card-row > *,
+.row-category > *,
+.row-payment > * {
+  min-width: 0;
+}
+
+.card-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.card-right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* 한 줄 넘침은 말줄임 */
+.place-text,
+.memo-text,
+.cat-display,
+.pay-method-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.place-text {
+  flex: 1 1 auto;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.row-category .cat-display {
+  flex: 1 1 auto;
+  font-size: var(--font-size-base);
+}
+
+.row-payment {
+  justify-content: space-between;
+}
+
+.row-payment .pay-method-text {
+  flex: 1 1 auto;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* 금액은 항상 오른쪽 정렬 + 크게 — 페이지 불문 동일 */
+.row-payment .amount-text {
+  flex: 0 0 auto;
+  margin-left: auto;
+  text-align: right;
+  font-weight: 700;
+  font-size: var(--font-size-2xl);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.memo-text {
+  flex: 1 1 auto;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* 메모가 비어 있으면 그 줄을 접어 높이를 낭비하지 않는다 */
+.card-row.row-bottom:has(.memo-text:empty) {
+  display: none;
+}
+
+/* ─── 스케줄 카드도 같은 밀도로 ─────────────────────────────── */
+.schedule-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--row-gap);
+}
+
+.schedule-card__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 22px;
+  margin: 0;
+}
+
+.schedule-card__row > * {
+  min-width: 0;
+}
+
+.schedule-card__label {
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  font-weight: 600;
+}
+
+.schedule-card__meta-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-size: var(--font-size-sm);
+}
+
+.schedule-card__date-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.schedule-card__next-run {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── 툴바 — 페이지 간 동일한 모양 ──────────────────────────── */
+.toolbar,
+.scheduled-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.toolbar-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.toolbar .ui-input,
+.toolbar .filter-range-label {
+  width: auto;
+  min-width: 140px;
+  max-width: 220px;
+  flex: 0 1 auto;
+}
+
+.filter-range-label {
+  display: flex;
+  align-items: center;
+  height: var(--control-h);
+  padding: 0 var(--control-px);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── 팝업 안 입력 폭 제한 ──────────────────────────────────── */
+.popup-panel input,
+.popup-panel .ms-wrap {
+  max-width: 100%;
+}
+
+.filter-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+
+.filter-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-col > label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* 편집 팝업 그리드 간격도 촘촘하게 */
+.edit-grid {
+  gap: var(--space-2) var(--space-3);
+}
+
+.edit-modal__body {
+  padding: var(--space-3) var(--space-4);
+}
+
+.edit-modal__head {
+  padding: var(--space-3) var(--space-4);
+}
+
+.edit-modal__foot {
+  padding: var(--space-2) var(--space-4);
+}
+
+.inout-chip {
+  height: var(--control-h);
+  font-size: var(--font-size-xs);
+}
+
+/* ─── 페이지 여백 ───────────────────────────────────────────── */
+.page-title {
+  margin-bottom: var(--space-3);
+}
+
+.card-list {
+  gap: 0;
+}
+
+/* ─── 좁은 화면 ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  :root {
+    --card-px: 10px;
+  }
+
+  .toolbar .ui-input,
+  .toolbar .filter-range-label {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .toolbar-btns {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   13. 날짜 단 집계 표시 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+.date-group__meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.date-group__count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.date-group__sum {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.date-group__sum.plus {
+  color: var(--color-success-dark);
+}
+
+.date-group__sum.minus {
+  color: var(--color-danger-dark);
+}
+
+.date-group__sum.zero {
+  color: var(--color-text-tertiary);
+}
+
+/* 가려진 항목이 섞인 날은 합계도 함께 가린다 */
+.date-group__sum.masked {
+  filter: blur(5px);
+  cursor: not-allowed;
+  user-select: none;
+}

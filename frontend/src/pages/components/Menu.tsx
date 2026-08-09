@@ -55,13 +55,6 @@ export default function Menu() {
               • Scheduled Entries
             </button>
 
-            <button
-              onClick={() => { navigate("/viz"); setOpen(false); }}
-              className="menu-sub-item"
-            >
-              • Viz
-            </button>
-
             {/* Settings 그룹 */}
             <div className="menu-group-title">Settings</div>
 

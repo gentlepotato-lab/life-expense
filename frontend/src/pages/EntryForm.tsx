@@ -31,7 +31,7 @@ const overlayStyle: React.CSSProperties = {
   overflowY: "auto",
   overflowX: "hidden",
   padding: "32px 0",
-  zIndex: 2000,
+  zIndex: 12000, // 편집 팝업(.popup-overlay, 9999) 위에 떠야 한다
   WebkitOverflowScrolling: "touch",
   pointerEvents: "auto",
 };

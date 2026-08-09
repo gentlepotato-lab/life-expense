@@ -1,8 +1,10 @@
 import Menu from "./components/Menu";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "../api/client";
 import SingleSelect from "./components/SingleSelect";
 import CalculatorPopup from "./components/CalculatorPopup";
+import CardEditModal, { EditField } from "./components/CardEditModal";
+import useLongPress from "../hooks/useLongPress";
 
 type CategoryL2Meta = { id: number; name: string; cat1_id?: number; inout?: number | null };
 type CategoryL3Meta = { id: number; name: string; cat2_id?: number };
@@ -210,9 +212,12 @@ export default function ScheduledEntries() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
 
+  // 편집 팝업 상태 — 카드를 꾹 누르면 열린다
+  const [draft, setDraft] = useState<any | null>(null);
+
   // 팝업 열림/닫힘 시 배경 스크롤 제어
   useEffect(() => {
-    if (showForm || calculatorOpen) {
+    if (showForm || calculatorOpen || draft) {
       document.documentElement.classList.add("modal-open");
       // showForm일 때만 pointerEvents 설정 (calculatorOpen은 CalculatorPopup에서 처리)
       if (showForm) {
@@ -227,7 +232,7 @@ export default function ScheduledEntries() {
       document.documentElement.classList.remove("modal-open");
       document.body.style.pointerEvents = "auto";
     };
-  }, [showForm, calculatorOpen]);
+  }, [showForm, calculatorOpen, draft]);
 
   // 휴일 데이터 로드
   useEffect(() => {
@@ -420,47 +425,43 @@ export default function ScheduledEntries() {
     loadSchedules();
   }, []);
 
-  const mutateSchedule = (
-    scheduleId: number,
-    updater: (current: any) => any,
-    markDirty = true
-  ) => {
-    setSchedules((prev) =>
-      prev.map((item) => {
-        if (item.schedule_id !== scheduleId) return item;
-        const next = updater({ ...item });
-        if (!markDirty) {
-          return next;
+  // ------------------------------------
+  // 편집 팝업
+  // ------------------------------------
+
+  const openEditor = useCallback((schedule: any) => {
+    setDraft({ ...schedule });
+  }, []);
+
+  const closeEditor = useCallback(() => {
+    setDraft(null);
+  }, []);
+
+  // 팝업 안 필드 변경
+  const setField = (field: string, value: any) => {
+    setDraft((prev: any) => {
+      if (!prev) return prev;
+      const next = { ...prev, [field]: value };
+
+      // 중분류가 바뀌면 하위 선택 초기화
+      if (field === "cat1_id" && prev.cat1_id !== value) {
+        next.cat2_id = null;
+        next.cat3_id = null;
+      }
+
+      // 소분류 변경 시 IN/OUT 자동 설정 + 세분류 초기화
+      if (field === "cat2_id") {
+        if (prev.cat2_id !== value) next.cat3_id = null;
+        if (value !== null && value !== undefined) {
+          const selectedCat2 = cat2All.find((c) => c.id === Number(value));
+          if (selectedCat2 && selectedCat2.inout !== null && selectedCat2.inout !== undefined) {
+            next.inout = selectedCat2.inout;
+          }
         }
-        return { ...next, __dirty: true };
-      })
-    );
-  };
+      }
 
-  const updateScheduleFields = (
-    scheduleId: number,
-    updates: Partial<any>,
-    markDirty = true
-  ) => {
-    mutateSchedule(
-      scheduleId,
-      (item) => ({
-        ...item,
-        ...updates,
-      }),
-      markDirty
-    );
-  };
-
-  const toggleScheduleEditable = (scheduleId: number) => {
-    mutateSchedule(
-      scheduleId,
-      (item) => ({
-        ...item,
-        editable: !item.editable,
-      }),
-      false
-    );
+      return next;
+    });
   };
 
   // IN/OUT 전환 (소분류 선택 시 자동 설정되므로 비활성화)
@@ -470,69 +471,6 @@ export default function ScheduledEntries() {
   //     inout: item.inout === 1 ? -1 : 1,
   //   }));
   // };
-
-  const handleScheduleDayChange = (scheduleId: number, value: string) => {
-    updateScheduleFields(scheduleId, {
-      day_of_month: value ? Number(value) : null,
-    });
-  };
-
-  const handleScheduleTimeChange = (scheduleId: number, value: string) => {
-    updateScheduleFields(scheduleId, { time: value });
-  };
-
-  const handleScheduleCat1Change = (scheduleId: number, value: string) => {
-    updateScheduleFields(scheduleId, {
-      cat1_id: value ? Number(value) : null,
-      cat2_id: null,
-      cat3_id: null,
-    });
-  };
-
-  const handleScheduleCat2Change = (scheduleId: number, value: string) => {
-    const cat2Id = value ? Number(value) : null;
-    const updates: any = {
-      cat2_id: cat2Id,
-      cat3_id: null,
-    };
-    
-    // 소분류 선택 시 IN/OUT 자동 설정
-    if (cat2Id !== null) {
-      const selectedCat2 = cat2All.find(c => c.id === cat2Id);
-      if (selectedCat2 && selectedCat2.inout !== null) {
-        updates.inout = selectedCat2.inout;
-      }
-    }
-    
-    updateScheduleFields(scheduleId, updates);
-  };
-
-  const handleScheduleCat3Change = (scheduleId: number, value: string) => {
-    updateScheduleFields(scheduleId, {
-      cat3_id: value ? Number(value) : null,
-    });
-  };
-
-  const handleSchedulePayChange = (scheduleId: number, value: string) => {
-    updateScheduleFields(scheduleId, {
-      pay_method: value ? Number(value) : null,
-    });
-  };
-
-  const handleScheduleAmountChange = (scheduleId: number, value: string) => {
-    const amountValue = value === "" ? null : Number(value);
-    updateScheduleFields(scheduleId, { amount: amountValue });
-  };
-
-  const handleScheduleMemoChange = (scheduleId: number, value: string) => {
-    updateScheduleFields(scheduleId, { memo: value });
-  };
-
-  const handleScheduleHolidayChange = (scheduleId: number, value: string) => {
-    updateScheduleFields(scheduleId, { holiday_handling: value });
-  };
-
-  const dirtySchedules = schedules.filter((schedule) => schedule.__dirty);
 
   // Next 날짜 기준으로 정렬된 schedules
   const sortedSchedules = useMemo(() => {
@@ -599,25 +537,19 @@ export default function ScheduledEntries() {
     );
   };
 
-  const handleBulkSave = async () => {
-    if (!dirtySchedules.length) {
-      alert("변경된 스케줄이 없습니다.");
-      return;
-    }
+  // 팝업에서 저장 — 해당 스케줄만 반영한다
+  const saveDraft = async () => {
+    if (!draft) return;
 
-    const invalidSchedule = dirtySchedules.find((schedule) => !validateSchedule(schedule));
-    if (invalidSchedule) {
+    if (!validateSchedule(draft)) {
       alert("모든 필수 항목(일자, 시간, 카테고리, 금액, 결제 수단)을 입력하세요.");
       return;
     }
 
     try {
       setIsSaving(true);
-      await Promise.all(
-        dirtySchedules.map((schedule) =>
-          axios.put(`/scheduled-entries/${schedule.schedule_id}`, buildSchedulePayload(schedule))
-        )
-      );
+      await axios.put(`/scheduled-entries/${draft.schedule_id}`, buildSchedulePayload(draft));
+      closeEditor();
       alert("스케줄이 저장되었습니다.");
       await loadSchedules();
     } catch (err: any) {
@@ -699,6 +631,7 @@ export default function ScheduledEntries() {
 
     try {
       await axios.delete(`/scheduled-entries/${scheduleId}`);
+      closeEditor();
       alert("삭제되었습니다.");
       await loadSchedules();
     } catch (err) {
@@ -719,20 +652,9 @@ export default function ScheduledEntries() {
       <div className="scheduled-toolbar mb-4">
         <button
           onClick={() => setShowForm(!showForm)}
-          className="ui-btn scheduled-toolbar__btn scheduled-toolbar__btn--new"
+          className="ui-btn primary scheduled-toolbar__btn scheduled-toolbar__btn--new"
         >
           [+] 새로운 스케줄
-        </button>
-        <button
-          onClick={handleBulkSave}
-          className="ui-btn primary scheduled-toolbar__btn scheduled-toolbar__btn--save"
-          disabled={isSaving || !dirtySchedules.length}
-        >
-          {isSaving
-            ? "저장 중..."
-            : dirtySchedules.length
-            ? `저장 (${dirtySchedules.length})`
-            : "저장"}
         </button>
       </div>
 
@@ -895,252 +817,139 @@ export default function ScheduledEntries() {
         </div>
       ) : (
         <div className="scheduled-card-list">
-          {sortedSchedules.map((s) => {
-            const isEditing = s.editable;
-            const cat1 = cat1List.find((c) => c.id === s.cat1_id);
-            const cat2Id =
-              s.cat2_id !== null && s.cat2_id !== undefined
-                ? Number(s.cat2_id)
-                : null;
-            const cat3Id =
-              s.cat3_id !== null && s.cat3_id !== undefined
-                ? Number(s.cat3_id)
-                : null;
-            const cat2Name = cat2Id !== null ? cat2Map[cat2Id]?.name : null;
-            const cat3Name = cat3Id !== null ? cat3Map[cat3Id]?.name : null;
-            const pay = payList.find((p) => p.code === String(s.pay_method));
-            const paySelectValue =
-              s.pay_method === null || s.pay_method === undefined
-                ? ""
-                : String(s.pay_method);
-            const holidayLabel =
-              s.holiday_handling === "before"
-                ? "휴일 전"
-                : s.holiday_handling === "after"
-                ? "휴일 후"
-                : "당일";
-            const cat2Options = cat2All.filter((c) => c.cat1_id === s.cat1_id);
-            const cat3Options = cat3All.filter((c) => c.cat2_id === s.cat2_id);
-            const amountDisplay =
-              typeof s.amount === "number" && !Number.isNaN(s.amount)
-                ? s.amount.toLocaleString()
-                : "-";
-            const timeDisplay = s.time || toTimeString(s.hour, s.minute);
-
-            return (
-              <div
-                key={s.schedule_id}
-                className={`card schedule-card ${isEditing ? "editing" : ""}`}
-              >
-                {/* 소분류 선택 시 자동 설정되므로 클릭 이벤트 제거 */}
-                {/* onClick={() => toggleScheduleInOut(s.schedule_id)}
-                title={
-                  s.inout === 1
-                    ? "IN(수입) → OUT으로 전환"
-                    : "OUT(지출) → IN으로 전환"
-                } */}
-                <div
-                  className={`inout-bar ${
-                    s.inout === 1 ? "in-bar" : s.inout === -1 ? "out-bar" : ""
-                  }`}
-                ></div>
-                <div className="schedule-card__body">
-                  <div className="schedule-card__row schedule-card__row--header">
-                    <div className="schedule-card__date-block">
-                      {isEditing ? (
-                        <div className="schedule-card__date-inputs">
-                          <div style={{ flex: 1 }}>
-                            <SingleSelect
-                              options={dayOptions.map(d => ({ value: String(d), label: `${d}일` }))}
-                              selected={String(s.day_of_month ?? "")}
-                              onChange={(value) => handleScheduleDayChange(s.schedule_id, value)}
-                              placeholder="(일)"
-                            />
-                          </div>
-                          <input
-                            type="time"
-                            value={timeDisplay}
-                            onChange={(e) =>
-                              handleScheduleTimeChange(s.schedule_id, e.target.value)
-                            }
-                            step="300"
-                            className="ui-input"
-                            style={{ flex: 1 }}
-                          />
-                        </div>
-                      ) : (
-                        <>
-                          <div className="schedule-card__date-line">
-                            <span className="schedule-card__month">
-                              매월 {s.day_of_month}일
-                            </span>
-                            <span className="schedule-card__time">{timeDisplay}</span>
-                          </div>
-                          {s.day_of_month && timeDisplay && (
-                            <div className="schedule-card__next-run">
-                              Next: {calculateNextRun(s.day_of_month, timeDisplay, s.holiday_handling, holidays)}
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 카테고리 행 */}
-                  <div className="row-category">
-                    {isEditing ? (
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
-                          <SingleSelect
-                            options={cat1List.map(c => ({ value: String(c.id), label: c.name }))}
-                            selected={String(s.cat1_id ?? "")}
-                            onChange={(value) => handleScheduleCat1Change(s.schedule_id, value)}
-                            placeholder="(중분류)"
-                          />
-                        </div>
-                        <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
-                          <SingleSelect
-                            options={cat2Options.map(c => ({ value: String(c.id), label: c.name }))}
-                            selected={String(s.cat2_id ?? "")}
-                            onChange={(value) => handleScheduleCat2Change(s.schedule_id, value)}
-                            placeholder="(소분류)"
-                          />
-                        </div>
-                        <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
-                          <SingleSelect
-                            options={[
-                              { value: "", label: "(세분류)" },
-                              ...cat3Options.map(c => ({ value: String(c.id), label: c.name }))
-                            ]}
-                            selected={String(s.cat3_id ?? "")}
-                            onChange={(value) => handleScheduleCat3Change(s.schedule_id, value)}
-                            placeholder="(세분류)"
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="cat-display">
-                        <span className="cat-text">{cat1?.name || "-"}</span>
-                        <span className="cat-sep"> &gt; </span>
-                        <span className="cat-text">{cat2Name || "-"}</span>
-                        {cat3Name && (
-                          <>
-                            <span className="cat-sep"> &gt; </span>
-                            <span className="cat3-text">{cat3Name}</span>
-                          </>
-                        )}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* 결제 수단 + 금액 행 */}
-                  <div className="row-payment">
-                    {isEditing ? (
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
-                          <SingleSelect
-                            options={payList.map(p => ({ value: p.code, label: p.name }))}
-                            selected={paySelectValue}
-                            onChange={(value) => handleSchedulePayChange(s.schedule_id, value)}
-                            placeholder="(결제 수단)"
-                          />
-                        </div>
-                        <input
-                          type="number"
-                          value={s.amount ?? ""}
-                          onChange={(e) =>
-                            handleScheduleAmountChange(s.schedule_id, e.target.value)
-                          }
-                          className="ui-input schedule-card__amount-input amount-input"
-                          placeholder="금액"
-                          style={{ width: '100px', height: '28px' }}
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <span className="pay-method-text">{pay?.name || "-"}</span>
-                        <span
-                          className={`amount-text ${
-                            s.inout === 1 ? "schedule-card__amount-value--in" : "schedule-card__amount-value--out"
-                          }`}
-                        >
-                          {amountDisplay}
-                        </span>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="schedule-card__row schedule-card__row--meta-single">
-                    {isEditing ? (
-                      <SingleSelect
-                        options={[
-                          { value: "before", label: "휴일 전" },
-                          { value: "on", label: "당일" },
-                          { value: "after", label: "휴일 후" }
-                        ]}
-                        selected={s.holiday_handling}
-                        onChange={(value) => handleScheduleHolidayChange(s.schedule_id, value)}
-                        placeholder="선택"
-                      />
-                    ) : (
-                      <>
-                        <div className="schedule-card__label">휴일 처리</div>
-                        <span className="schedule-card__meta-value">{holidayLabel}</span>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="schedule-card__row schedule-card__row--meta-single">
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={s.memo || ""}
-                        onChange={(e) =>
-                          handleScheduleMemoChange(s.schedule_id, e.target.value)
-                        }
-                        className="ui-input memo-input"
-                        placeholder="메모 입력"
-                      />
-                    ) : (
-                      <>
-                        <div className="schedule-card__label">메모</div>
-                        <span
-                          className={`schedule-card__meta-value ${
-                            s.memo ? "" : "schedule-card__meta-value--placeholder"
-                          }`}
-                        >
-                          {s.memo || "-"}
-                        </span>
-                      </>
-                    )}
-                    <div className="schedule-card__toolbar">
-                      <label className="edit-toggle" title="편집">
-                        <input
-                          type="checkbox"
-                          checked={isEditing}
-                          onChange={() => toggleScheduleEditable(s.schedule_id)}
-                        />
-                        <span className="edit-label">편집</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Edit 모드 전용 버튼 라인 */}
-                  {isEditing && (
-                    <div className="schedule-card__row schedule-card__row--edit-actions">
-                      <button
-                        onClick={() => handleDelete(s.schedule_id)}
-                        className="delete-btn"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {sortedSchedules.map((s) => (
+            <ScheduleCard
+              key={s.schedule_id}
+              s={s}
+              cat1List={cat1List}
+              cat2Map={cat2Map}
+              cat3Map={cat3Map}
+              payList={payList}
+              holidays={holidays}
+              toTimeString={toTimeString}
+              onOpenEditor={openEditor}
+            />
+          ))}
         </div>
+      )}
+
+      {/* 편집 팝업 */}
+      {draft && (
+        <CardEditModal
+          title="스케줄 편집"
+          subtitle={`매월 ${draft.day_of_month ?? "-"}일 ${draft.time || toTimeString(draft.hour, draft.minute)}`}
+          onClose={closeEditor}
+          onSave={saveDraft}
+          onDelete={() => handleDelete(draft.schedule_id)}
+          saveDisabled={isSaving}
+          saveLabel={isSaving ? "저장 중..." : "저장"}
+        >
+          <div className="edit-grid">
+            <EditField label="매월">
+              <SingleSelect
+                options={dayOptions.map((d) => ({ value: String(d), label: `${d}일` }))}
+                selected={String(draft.day_of_month ?? "")}
+                onChange={(value) => setField("day_of_month", value ? Number(value) : null)}
+                placeholder="(일)"
+              />
+            </EditField>
+
+            <EditField label="시간">
+              <input
+                type="time"
+                value={draft.time || toTimeString(draft.hour, draft.minute)}
+                onChange={(e) => setField("time", e.target.value)}
+                step="300"
+              />
+            </EditField>
+
+            <EditField label="휴일 처리">
+              <SingleSelect
+                options={[
+                  { value: "before", label: "휴일 전" },
+                  { value: "on", label: "당일" },
+                  { value: "after", label: "휴일 후" },
+                ]}
+                selected={draft.holiday_handling}
+                onChange={(value) => setField("holiday_handling", value)}
+                placeholder="선택"
+              />
+            </EditField>
+
+            <EditField label="IN/OUT">
+              <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
+                {draft.inout === 1 ? "IN (+)" : draft.inout === -1 ? "OUT (−)" : "—"}
+              </span>
+            </EditField>
+
+            <EditField label="중분류">
+              <SingleSelect
+                options={cat1List.map((c) => ({ value: String(c.id), label: c.name }))}
+                selected={String(draft.cat1_id ?? "")}
+                onChange={(value) => setField("cat1_id", value ? Number(value) : null)}
+                placeholder="(중분류)"
+              />
+            </EditField>
+
+            <EditField label="소분류">
+              <SingleSelect
+                options={cat2All
+                  .filter((c) => c.cat1_id === draft.cat1_id)
+                  .map((c) => ({ value: String(c.id), label: c.name }))}
+                selected={String(draft.cat2_id ?? "")}
+                onChange={(value) => setField("cat2_id", value ? Number(value) : null)}
+                placeholder="(소분류)"
+              />
+            </EditField>
+
+            <EditField label="세분류">
+              <SingleSelect
+                options={[
+                  { value: "", label: "(세분류)" },
+                  ...cat3All
+                    .filter((c) => c.cat2_id === draft.cat2_id)
+                    .map((c) => ({ value: String(c.id), label: c.name })),
+                ]}
+                selected={String(draft.cat3_id ?? "")}
+                onChange={(value) => setField("cat3_id", value ? Number(value) : null)}
+                placeholder="(세분류)"
+              />
+            </EditField>
+
+            <EditField label="결제 수단">
+              <SingleSelect
+                options={payList.map((p) => ({ value: p.code, label: p.name }))}
+                selected={
+                  draft.pay_method === null || draft.pay_method === undefined
+                    ? ""
+                    : String(draft.pay_method)
+                }
+                onChange={(value) => setField("pay_method", value ? Number(value) : null)}
+                placeholder="(결제 수단)"
+              />
+            </EditField>
+
+            <EditField label="금액">
+              <input
+                type="number"
+                value={draft.amount ?? ""}
+                onChange={(e) => setField("amount", e.target.value === "" ? null : Number(e.target.value))}
+                className="amount-input"
+                placeholder="금액"
+              />
+            </EditField>
+
+            <EditField label="메모" wide>
+              <input
+                type="text"
+                value={draft.memo || ""}
+                onChange={(e) => setField("memo", e.target.value)}
+                className="memo-input"
+                placeholder="메모 입력"
+              />
+            </EditField>
+          </div>
+        </CardEditModal>
       )}
       <button
         className="calculator-trigger-button"
@@ -1152,6 +961,114 @@ export default function ScheduledEntries() {
       {calculatorOpen && (
         <CalculatorPopup onClose={() => setCalculatorOpen(false)} />
       )}
+    </div>
+  );
+}
+
+// ------------------------------------
+// 스케줄 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다
+// ------------------------------------
+function ScheduleCard({
+  s,
+  cat1List,
+  cat2Map,
+  cat3Map,
+  payList,
+  holidays,
+  toTimeString,
+  onOpenEditor,
+}: {
+  s: any;
+  cat1List: { id: number; name: string }[];
+  cat2Map: Record<number, CategoryL2Meta>;
+  cat3Map: Record<number, CategoryL3Meta>;
+  payList: { code: string; name: string }[];
+  holidays: Holiday[];
+  toTimeString: (hour?: number, minute?: number) => string;
+  onOpenEditor: (schedule: any) => void;
+}) {
+  const openEditor = useCallback(() => onOpenEditor(s), [onOpenEditor, s]);
+  const { pressing, handlers } = useLongPress(openEditor);
+
+  const cat1 = cat1List.find((c) => c.id === s.cat1_id);
+  const cat2Id = s.cat2_id !== null && s.cat2_id !== undefined ? Number(s.cat2_id) : null;
+  const cat3Id = s.cat3_id !== null && s.cat3_id !== undefined ? Number(s.cat3_id) : null;
+  const cat2Name = cat2Id !== null ? cat2Map[cat2Id]?.name : null;
+  const cat3Name = cat3Id !== null ? cat3Map[cat3Id]?.name : null;
+  const pay = payList.find((p) => p.code === String(s.pay_method));
+  const holidayLabel =
+    s.holiday_handling === "before" ? "휴일 전" : s.holiday_handling === "after" ? "휴일 후" : "당일";
+  const amountDisplay =
+    typeof s.amount === "number" && !Number.isNaN(s.amount) ? s.amount.toLocaleString() : "-";
+  const timeDisplay = s.time || toTimeString(s.hour, s.minute);
+
+  return (
+    <div
+      className={`card schedule-card card--pressable ${pressing ? "pressing" : ""}`}
+      {...handlers}
+      title="꾹 눌러서 편집"
+    >
+      <div
+        className={`inout-bar ${s.inout === 1 ? "in-bar" : s.inout === -1 ? "out-bar" : ""}`}
+      ></div>
+      <div className="schedule-card__body">
+        <div className="schedule-card__row schedule-card__row--header">
+          <div className="schedule-card__date-block">
+            <div className="schedule-card__date-line">
+              <span className="schedule-card__month">매월 {s.day_of_month}일</span>
+              <span className="schedule-card__time">{timeDisplay}</span>
+            </div>
+            {s.day_of_month && timeDisplay && (
+              <div className="schedule-card__next-run">
+                Next: {calculateNextRun(s.day_of_month, timeDisplay, s.holiday_handling, holidays)}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 카테고리 행 */}
+        <div className="row-category">
+          <span className="cat-display">
+            <span className="cat-text">{cat1?.name || "-"}</span>
+            <span className="cat-sep"> &gt; </span>
+            <span className="cat-text">{cat2Name || "-"}</span>
+            {cat3Name && (
+              <>
+                <span className="cat-sep"> &gt; </span>
+                <span className="cat3-text">{cat3Name}</span>
+              </>
+            )}
+          </span>
+        </div>
+
+        {/* 결제 수단 + 금액 행 */}
+        <div className="row-payment">
+          <span className="pay-method-text">{pay?.name || "-"}</span>
+          <span
+            className={`amount-text ${
+              s.inout === 1 ? "schedule-card__amount-value--in" : "schedule-card__amount-value--out"
+            }`}
+          >
+            {amountDisplay}
+          </span>
+        </div>
+
+        <div className="schedule-card__row schedule-card__row--meta-single">
+          <div className="schedule-card__label">휴일 처리</div>
+          <span className="schedule-card__meta-value">{holidayLabel}</span>
+        </div>
+
+        <div className="schedule-card__row schedule-card__row--meta-single">
+          <div className="schedule-card__label">메모</div>
+          <span
+            className={`schedule-card__meta-value ${
+              s.memo ? "" : "schedule-card__meta-value--placeholder"
+            }`}
+          >
+            {s.memo || "-"}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

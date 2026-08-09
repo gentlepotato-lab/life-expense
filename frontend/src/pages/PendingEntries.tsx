@@ -5,6 +5,10 @@ import { PlacePicker } from "./EntryForm";
 import MultiSelect from "./components/MultiSelect";
 import SingleSelect from "./components/SingleSelect";
 import CalculatorPopup from "./components/CalculatorPopup";
+import CardEditModal, { EditField } from "./components/CardEditModal";
+import { groupByDate } from "../utils/dateGroup";
+import DateGroupHeader from "./components/DateGroupHeader";
+import useLongPress from "../hooks/useLongPress";
 
 export default function PendingEntries() {
   const [rows, setRows] = useState<any[]>([]);
@@ -26,7 +30,9 @@ export default function PendingEntries() {
     memo: "",
   });
 
-  const [activePlaceEdit, setActivePlaceEdit] = useState<number | null>(null);
+  // 편집 팝업 상태 — 카드를 꾹 누르면 열린다
+  const [draft, setDraft] = useState<any | null>(null);
+  const [placePickerOpen, setPlacePickerOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
 
   useEffect(() => {
@@ -43,14 +49,14 @@ export default function PendingEntries() {
     );
   }, []);
 
-  // 필터 열렸을 때 뒤 화면 스크롤/인터랙션 막기
+  // 팝업 열렸을 때 뒤 화면 스크롤/인터랙션 막기
   useEffect(() => {
-    if (filterOpen || calculatorOpen) {
+    if (filterOpen || calculatorOpen || draft || placePickerOpen) {
       document.documentElement.classList.add("modal-open");
     } else {
       document.documentElement.classList.remove("modal-open");
     }
-  }, [filterOpen, calculatorOpen]);
+  }, [filterOpen, calculatorOpen, draft, placePickerOpen]);
 
   // Pending 데이터 전체 조회 → sended = FALSE
   const loadData = async () => {
@@ -75,35 +81,42 @@ export default function PendingEntries() {
     loadData();
   }, []);
 
-  // 필드 변경 핸들러
-  const handleChange = (id: number, field: string, value: any) => {
-    setRows((prev) =>
-      prev.map((r) => {
-        if (r.entry_id !== id) return r;
-        const updated = { ...r, [field]: value, __dirty: true };
-        
-        // 소분류 변경 시 IN/OUT 자동 설정
-        if (field === "cat2_id") {
-          const selectedCat2 = cat2List.find(c => c.id === value);
-          if (selectedCat2 && selectedCat2.inout !== null && selectedCat2.inout !== undefined) {
-            updated.inout = selectedCat2.inout;
-          }
-        }
-        
-        return updated;
-      })
-    );
-  };
+  // ------------------------------------
+  // 편집 팝업
+  // ------------------------------------
 
-  // 편집 토글
-  const toggleEditable = (id: number) => {
-    setRows((prev) =>
-      prev.map((r) =>
-        r.entry_id === id
-          ? { ...r, editable: !r.editable, __dirty: false }
-          : r
-      )
-    );
+  const openEditor = useCallback((row: any) => {
+    setDraft({ ...row });
+  }, []);
+
+  const closeEditor = useCallback(() => {
+    setDraft(null);
+    setPlacePickerOpen(false);
+  }, []);
+
+  // 팝업 안 필드 변경
+  const setField = (field: string, value: any) => {
+    setDraft((prev: any) => {
+      if (!prev) return prev;
+      const next = { ...prev, [field]: value };
+
+      // 소분류 변경 시 IN/OUT 자동 설정
+      if (field === "cat2_id") {
+        const selectedCat2 = cat2List.find(c => c.id === value);
+        if (selectedCat2 && selectedCat2.inout !== null && selectedCat2.inout !== undefined) {
+          next.inout = selectedCat2.inout;
+        }
+        if (prev.cat2_id !== value) next.cat3_id = null;
+      }
+
+      // 중분류가 바뀌면 하위 선택 초기화
+      if (field === "cat1_id" && prev.cat1_id !== value) {
+        next.cat2_id = null;
+        next.cat3_id = null;
+      }
+
+      return next;
+    });
   };
 
   // IN/OUT 전환 (소분류 선택 시 자동 설정되므로 비활성화)
@@ -121,58 +134,51 @@ export default function PendingEntries() {
   //   );
   // };
 
- // 변경 건수 계산
-  const dirtyCount = useMemo(() => {
-    return rows.filter(r => r.__dirty).length;
-  }, [rows]);
+  // 팝업에서 저장 — 해당 건만 반영한다
+  const saveDraft = async () => {
+    if (!draft) return;
 
- const saveData = async () => {
-   const updated = rows.filter(r => r.__dirty);
-   if (!updated.length) {
-     alert("변경된 내용이 없습니다만...?");
-     return;
-   }
+    // 서버가 받아야 하는 형태로 정제 — API 는 배열을 받으므로 1건짜리 배열로 보낸다
+    const clean = [{
+      entry_id: draft.entry_id,
+      tx_date: draft.tx_date?.substring(0, 10),
+      cat1_id: draft.cat1_id ?? null,
+      cat2_id: draft.cat2_id ?? null,
+      cat3_id: draft.cat3_id ?? null,
+      inout: draft.inout,
+      amount: Number(draft.amount),
+      pay_method: draft.pay_method ?? null,
+      memo: draft.memo ?? null,
 
-   // 서버가 받아야 하는 형태로 정제
-   const clean = updated.map(r => ({
-     entry_id: r.entry_id,
-     tx_date: r.tx_date?.substring(0, 10),
-     cat1_id: r.cat1_id ?? null,
-     cat2_id: r.cat2_id ?? null,
-     cat3_id: r.cat3_id ?? null,
-     inout: r.inout,
-     amount: Number(r.amount),
-     pay_method: r.pay_method ?? null,
-     memo: r.memo ?? null,
+      place_id: draft.place_id ?? null,
+      place_name: draft.place_name ?? null,
+      place_lat: draft.place_lat ?? null,
+      place_lng: draft.place_lng ?? null,
+      kakao_id: draft.kakao_id ?? null,
+      address_name: draft.address_name ?? null,
+      road_address_name: draft.road_address_name ?? null,
+      phone: draft.phone ?? null,
+      category_name: draft.category_name ?? null,
+      category_group_code: draft.category_group_code ?? null,
+      category_group_name: draft.category_group_name ?? null,
+      place_url: draft.place_url ?? null,
+    }];
 
-     place_id: r.place_id ?? null,
-     place_name: r.place_name ?? null,
-     place_lat: r.place_lat ?? null,
-     place_lng: r.place_lng ?? null,
-     kakao_id: r.kakao_id ?? null,
-     address_name: r.address_name ?? null,
-     road_address_name: r.road_address_name ?? null,
-     phone: r.phone ?? null,
-     category_name: r.category_name ?? null,
-     category_group_code: r.category_group_code ?? null,
-     category_group_name: r.category_group_name ?? null,
-     place_url: r.place_url ?? null,
-   }));
+    try {
+      await api.put("/pending-entries/bulk", clean);
+      closeEditor();
+      alert("저장 완료-!! ;-)");
+      await loadData();
 
-  try {
-   await api.put("/pending-entries/bulk", clean);
-    alert("저장 완료-!! ;-)");
-    await loadData();
-    
-    // 필터가 활성화되어 있으면 다시 적용
-    if (isFilterActive) {
-      applyFilter();
+      // 필터가 활성화되어 있으면 다시 적용
+      if (isFilterActive) {
+        applyFilter();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("저장 중 오류가 발생했습니다.");
     }
-  } catch (err) {
-    console.error(err);
-    alert("저장 중 오류가 발생했습니다.");
-  }
-};
+  };
 
   const deletePending = async (id: number) => {
     if (!window.confirm("정말 제거하시겠습니까?")) return;
@@ -180,6 +186,7 @@ export default function PendingEntries() {
     try {
       await api.delete(`/pending-entries/${id}`);
       setRows(prev => prev.filter(r => r.entry_id !== id));
+      closeEditor();
       alert("제거 완료-!! ;-)");
     } catch (err) {
       console.error(err);
@@ -559,6 +566,13 @@ export default function PendingEntries() {
     );
   }, [filter]);
 
+  // 날짜별 단 — 들어온 순서를 그대로 보존한다.
+  // 소분류에 blur 가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
+  const dateGroups = useMemo(
+    () => groupByDate(rows, (r: any) => cat2List.find((c) => c.id === r.cat2_id)?.blur === 1),
+    [rows, cat2List]
+  );
+
   // 클라이언트 사이드 필터 적용
   const applyFilter = () => {
     let filtered = [...allRows];
@@ -648,243 +662,134 @@ export default function PendingEntries() {
 
             <button
               onClick={sendAllEntries}
-              className="ui-btn"
+              className="ui-btn primary"
             >
               모두 전송
-            </button>
-
-            <button 
-              onClick={saveData} 
-              className="ui-btn primary"
-              disabled={dirtyCount === 0}
-            >
-              저장 {dirtyCount > 0 ? `(${dirtyCount})` : ''}
             </button>
           </div>
         </div>
       </div>
 
-      {/* 카드 리스트 */}
+      {/* 카드 리스트 — 날짜별 단으로 묶어서 표시 */}
       <div className="card-list">
-        {rows.map((row) => {
-          const cat1Name =
-            cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
-
-          const isBlur = (() => {
-            const c2meta = cat2List.find((c) => c.id === row.cat2_id);
-            return c2meta?.blur === 1;
-          })();
-
-          const formattedDate = row.tx_date
-            ? new Date(row.tx_date).toLocaleDateString("ko-KR", {
-                year: "numeric",
-                month: "numeric",
-                day: "numeric",
-              })
-            : "--/--";
-
-          const payName =
-            payList.find((p) => String(p.code) === String(row.pay_method))
-              ?.name ?? "";
-
-          return (
-            <article
-              key={row.entry_id}
-              className={`card ${row.editable ? "editing" : ""} ${
-                row.__dirty ? "__dirty" : ""
-              }`}
-            >
-              {/* IN/OUT 색상 바 */}
-              {/* 소분류 선택 시 자동 설정되므로 클릭 이벤트 제거 */}
-              {/* onClick={() => toggleInOut(row.entry_id)}
-              title={
-                row.inout === 1
-                  ? "IN(수입) → OUT으로 전환"
-                  : "OUT(지출) → IN으로 전환"
-              } */}
-              <div
-                className={`inout-bar ${
-                  row.inout === 1 ? "in-bar" : row.inout === -1 ? "out-bar" : ""
-                }`}
-              ></div>
-
-              {/* 1행: 날짜 / 장소 / Send 버튼 */}
-              <div className="card-row row-top">
-                <div className="card-left">
-                  {row.editable ? (
-                    <input
-                      type="date"
-                      value={row.tx_date ? row.tx_date.substring(0, 10) : ""}
-                      onChange={(e) =>
-                        handleChange(row.entry_id, "tx_date", e.target.value)
-                      }
-                      className="date-input"
-                    />
-                  ) : (
-                    <span className="date-badge">{formattedDate}</span>
-                  )}
-                </div>
-                <div className="card-right place-right">
-                  <span className="place-text">
-                    📍 {row.place_name || "—"}
-                  </span>
-                  <button
-                    className="ui-btn small"
-                    onClick={() => sendOne(row)}
-                  >
-                    전송
-                  </button>
-                </div>
-              </div>
-
-              {/* 2행: 카테고리 */}
-              <div className="row-category">
-                {row.editable ? (
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
-                      <SingleSelect
-                        options={cat1List.map(c => ({ value: String(c.id), label: c.name }))}
-                        selected={row.cat1_id ? String(row.cat1_id) : ""}
-                        onChange={(value) => handleChange(row.entry_id, "cat1_id", value ? Number(value) : null)}
-                        placeholder="(중분류)"
-                      />
-                    </div>
-
-                    <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
-                      <SingleSelect
-                        options={cat2List
-                          .filter((c) => c.cat1_id === row.cat1_id)
-                          .map(c => ({ value: String(c.id), label: c.name }))}
-                        selected={row.cat2_id ? String(row.cat2_id) : ""}
-                        onChange={(value) => handleChange(row.entry_id, "cat2_id", value ? Number(value) : null)}
-                        placeholder="(소분류)"
-                      />
-                    </div>
-
-                    <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
-                      <SingleSelect
-                        options={cat3List
-                          .filter((c) => c.cat2_id === row.cat2_id)
-                          .map(c => ({ value: String(c.id), label: c.name }))}
-                        selected={row.cat3_id ? String(row.cat3_id) : ""}
-                        onChange={(value) => handleChange(row.entry_id, "cat3_id", value ? Number(value) : null)}
-                        placeholder="(세분류)"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <span className="cat-display">
-                    <span className="cat-text">{cat1Name}</span>
-                    <span className="cat-sep"> &gt; </span>
-                    <span className="cat-text">
-                      {cat2List.find((c) => c.id === row.cat2_id)?.name ??
-                        "—"}
-                    </span>
-                    {row.cat3_id && (
-                      <>
-                        <span className="cat-sep"> &gt; </span>
-                        <span className="cat3-text">
-                          {cat3List.find((c) => c.id === row.cat3_id)?.name ??
-                            "—"}
-                        </span>
-                      </>
-                    )}
-                  </span>
-                )}
-              </div>
-
-              {/* 3행: 결제 수단 + 금액 */}
-              <div className="row-payment">
-                {row.editable ? (
-                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
-                      <SingleSelect
-                        options={payList.map(p => ({ value: p.code, label: p.name }))}
-                        selected={row.pay_method || ""}
-                        onChange={(value) => handleChange(row.entry_id, "pay_method", value)}
-                        placeholder="(결제 수단)"
-                      />
-                    </div>
-                    <input
-                      type="number"
-                      value={row.amount ?? ""}
-                      onChange={(e) =>
-                        handleChange(
-                          row.entry_id,
-                          "amount",
-                          Number(e.target.value)
-                        )
-                      }
-                      className="amount-input"
-                      style={{ width: '100px', height: '28px' }}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <span className="pay-method-text">{payName}</span>
-                    <span
-                      className={`amount-text ${
-                        isBlur && !row.reveal_amount ? "masked" : "revealed"
-                      }`}
-                      onMouseDown={(e) => isBlur && startReveal(row.entry_id, e)}
-                      onTouchStart={(e) => isBlur && startReveal(row.entry_id, e)}
-                    >
-                      {typeof row.amount === "number"
-                        ? row.amount.toLocaleString("ko-KR")
-                        : ""}
-                    </span>
-                  </>
-                )}
-              </div>
-
-              {/* 3행: 메모 / Edit 토글 */}
-              <div className="card-row row-bottom">
-                <div className="card-left">
-                  {row.editable ? (
-                    <input
-                      type="text"
-                      value={row.memo || ""}
-                      onChange={(e) =>
-                        handleChange(row.entry_id, "memo", e.target.value)
-                      }
-                      className="memo-input"
-                    />
-                  ) : (
-                    <span className="memo-text">{row.memo || " "}</span>
-                  )}
-                </div>
-                <div className="card-right">
-                  <label className="edit-toggle">
-                    <input
-                      type="checkbox"
-                      checked={row.editable}
-                      onChange={() => toggleEditable(row.entry_id)}
-                    />
-                    <span className="edit-label">편집</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Edit 모드 전용: 장소 편집 버튼 */}
-              {row.editable && (
-                <div className="card-row row-edit-actions">
-                  <button className="ui-btn edit-location-btn"
-                    onClick={() => setActivePlaceEdit(row.entry_id)}
-                  >
-                    장소/가게 편집
-                  </button>
-
-                  <button className="delete-btn"
-                    onClick={() => deletePending(row.entry_id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              )}
-            </article>
-          );
-        })}
+        {dateGroups.map((group) => (
+          <section key={group.date || "no-date"} className="date-group">
+            <DateGroupHeader label={group.label} summary={group.summary} />
+            {group.items.map((row: any) => (
+              <PendingCard
+                key={row.entry_id}
+                row={row}
+                cat1List={cat1List}
+                cat2List={cat2List}
+                cat3List={cat3List}
+                payList={payList}
+                onOpenEditor={openEditor}
+                onStartReveal={startReveal}
+                onSend={sendOne}
+              />
+            ))}
+          </section>
+        ))}
       </div>
+
+
+      {/* 편집 팝업 */}
+      {draft && (
+        <CardEditModal
+          title="미확정 내역 편집"
+          subtitle={draft.tx_date ? new Date(draft.tx_date).toLocaleDateString("ko-KR") : undefined}
+          onClose={closeEditor}
+          onSave={saveDraft}
+          onDelete={() => deletePending(draft.entry_id)}
+        >
+          <div className="edit-grid">
+            <EditField label="날짜">
+              <input
+                type="date"
+                value={draft.tx_date ? draft.tx_date.substring(0, 10) : ""}
+                onChange={(e) => setField("tx_date", e.target.value)}
+              />
+            </EditField>
+
+            <EditField label="IN/OUT">
+              <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
+                {draft.inout === 1 ? "IN (+)" : draft.inout === -1 ? "OUT (−)" : "—"}
+              </span>
+            </EditField>
+
+            <EditField label="중분류">
+              <SingleSelect
+                options={cat1List.map(c => ({ value: String(c.id), label: c.name }))}
+                selected={draft.cat1_id ? String(draft.cat1_id) : ""}
+                onChange={(value) => setField("cat1_id", value ? Number(value) : null)}
+                placeholder="(중분류)"
+              />
+            </EditField>
+
+            <EditField label="소분류">
+              <SingleSelect
+                options={cat2List
+                  .filter((c) => c.cat1_id === draft.cat1_id)
+                  .map(c => ({ value: String(c.id), label: c.name }))}
+                selected={draft.cat2_id ? String(draft.cat2_id) : ""}
+                onChange={(value) => setField("cat2_id", value ? Number(value) : null)}
+                placeholder="(소분류)"
+              />
+            </EditField>
+
+            <EditField label="세분류">
+              <SingleSelect
+                options={cat3List
+                  .filter((c) => c.cat2_id === draft.cat2_id)
+                  .map(c => ({ value: String(c.id), label: c.name }))}
+                selected={draft.cat3_id ? String(draft.cat3_id) : ""}
+                onChange={(value) => setField("cat3_id", value ? Number(value) : null)}
+                placeholder="(세분류)"
+              />
+            </EditField>
+
+            <EditField label="결제 수단">
+              <SingleSelect
+                options={payList.map(p => ({ value: p.code, label: p.name }))}
+                selected={draft.pay_method || ""}
+                onChange={(value) => setField("pay_method", value)}
+                placeholder="(결제 수단)"
+              />
+            </EditField>
+
+            <EditField label="금액">
+              <input
+                type="number"
+                value={draft.amount ?? ""}
+                onChange={(e) => setField("amount", e.target.value === "" ? "" : Number(e.target.value))}
+                className="amount-input"
+              />
+            </EditField>
+
+            <EditField label="장소/가게" wide>
+              <div className="edit-place">
+                <span className="edit-place__name">📍 {draft.place_name || "—"}</span>
+                <button
+                  type="button"
+                  className="ui-btn edit-location-btn"
+                  onClick={() => setPlacePickerOpen(true)}
+                >
+                  장소/가게 편집
+                </button>
+              </div>
+            </EditField>
+
+            <EditField label="메모" wide>
+              <input
+                type="text"
+                value={draft.memo || ""}
+                onChange={(e) => setField("memo", e.target.value)}
+                className="memo-input"
+              />
+            </EditField>
+          </div>
+        </CardEditModal>
+      )}
 
       {/* 필터 팝업 */}
       {filterOpen && (
@@ -1010,64 +915,69 @@ export default function PendingEntries() {
       )}
 
       {/* 장소 선택 팝업 */}
-      {activePlaceEdit !== null && (
+      {placePickerOpen && draft && (
         <PlacePicker
           onSelect={async (place) => {
-            if (activePlaceEdit === null) return;
-
             // ① 이미 DB에 저장된 장소인 경우 → place_id 존재
             if (place.place_id) {
-              handleChange(activePlaceEdit, "place_id", place.place_id);
-              handleChange(activePlaceEdit, "place_name", place.place_name);
-              handleChange(activePlaceEdit, "place_lat", place.lat);
-              handleChange(activePlaceEdit, "place_lng", place.lng);
-
-              handleChange(activePlaceEdit, "kakao_id", place.kakao_id);
-              handleChange(activePlaceEdit, "address_name", place.address_name);
-              handleChange(activePlaceEdit, "road_address_name", place.road_address_name);
-              handleChange(activePlaceEdit, "phone", place.phone);
-              handleChange(activePlaceEdit, "category_name", place.category_name);
-              handleChange(activePlaceEdit, "category_group_code", place.category_group_code);
-              handleChange(activePlaceEdit, "category_group_name", place.category_group_name);
-              handleChange(activePlaceEdit, "place_url", place.place_url);
-
-              setActivePlaceEdit(null);
+              setDraft((prev: any) => prev && ({
+                ...prev,
+                place_id: place.place_id,
+                place_name: place.place_name,
+                place_lat: place.lat,
+                place_lng: place.lng,
+                kakao_id: place.kakao_id,
+                address_name: place.address_name,
+                road_address_name: place.road_address_name,
+                phone: place.phone,
+                category_name: place.category_name,
+                category_group_code: place.category_group_code,
+                category_group_name: place.category_group_name,
+                place_url: place.place_url,
+              }));
+              setPlacePickerOpen(false);
               return;
             }
 
             // ② kakao_id만 있고 place_id는 없는 경우 → DB에 있는지 확인
             if (place.kakao_id) {
-              const res = await api.get("/places/exists-by-kakao", {
+              // 라우터가 /api/places 에 마운트되어 있다 (backend/app/main.py)
+              const res = await api.get("/api/places/exists-by-kakao", {
                 params: { kakao_id: place.kakao_id },
               });
 
               if (res.data?.place_id) {
-                handleChange(activePlaceEdit, "place_id", res.data.place_id);
-                handleChange(activePlaceEdit, "place_name", place.place_name);
-                handleChange(activePlaceEdit, "kakao_id", place.kakao_id);
-                setActivePlaceEdit(null);
+                setDraft((prev: any) => prev && ({
+                  ...prev,
+                  place_id: res.data.place_id,
+                  place_name: place.place_name,
+                  kakao_id: place.kakao_id,
+                }));
+                setPlacePickerOpen(false);
                 return;
               }
             }
 
-            // ③ 완전 신규 kakao 장소 → 일단 Pending row에 전체 메타 세팅
-            handleChange(activePlaceEdit, "place_id", null);
-            handleChange(activePlaceEdit, "place_name", place.place_name);
-            handleChange(activePlaceEdit, "place_lat", place.lat);
-            handleChange(activePlaceEdit, "place_lng", place.lng);
+            // ③ 완전 신규 kakao 장소 → 일단 draft에 전체 메타 세팅
+            setDraft((prev: any) => prev && ({
+              ...prev,
+              place_id: null,
+              place_name: place.place_name,
+              place_lat: place.lat,
+              place_lng: place.lng,
+              kakao_id: place.kakao_id,
+              address_name: place.address_name,
+              road_address_name: place.road_address_name,
+              phone: place.phone,
+              category_name: place.category_name,
+              category_group_code: place.category_group_code,
+              category_group_name: place.category_group_name,
+              place_url: place.place_url,
+            }));
 
-            handleChange(activePlaceEdit, "kakao_id", place.kakao_id);
-            handleChange(activePlaceEdit, "address_name", place.address_name);
-            handleChange(activePlaceEdit, "road_address_name", place.road_address_name);
-            handleChange(activePlaceEdit, "phone", place.phone);
-            handleChange(activePlaceEdit, "category_name", place.category_name);
-            handleChange(activePlaceEdit, "category_group_code", place.category_group_code);
-            handleChange(activePlaceEdit, "category_group_name", place.category_group_name);
-            handleChange(activePlaceEdit, "place_url", place.place_url);
-
-            setActivePlaceEdit(null);
+            setPlacePickerOpen(false);
           }}
-          onClose={() => setActivePlaceEdit(null)}
+          onClose={() => setPlacePickerOpen(false)}
         />
       )}
       <button
@@ -1081,5 +991,105 @@ export default function PendingEntries() {
         <CalculatorPopup onClose={() => setCalculatorOpen(false)} />
       )}
     </div>
+  );
+}
+
+// ------------------------------------
+// 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다
+// ------------------------------------
+function PendingCard({
+  row,
+  cat1List,
+  cat2List,
+  cat3List,
+  payList,
+  onOpenEditor,
+  onStartReveal,
+  onSend,
+}: {
+  row: any;
+  cat1List: { id: number; name: string }[];
+  cat2List: { id: number; name: string; cat1_id: number; blur?: number; inout?: number | null }[];
+  cat3List: { id: number; name: string; cat2_id: number }[];
+  payList: { code: string; name: string }[];
+  onOpenEditor: (row: any) => void;
+  onStartReveal: (id: number, e: any) => void;
+  onSend: (row: any) => void;
+}) {
+  const openEditor = useCallback(() => onOpenEditor(row), [onOpenEditor, row]);
+  const { pressing, handlers } = useLongPress(openEditor);
+
+  const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
+  const isBlur = cat2List.find((c) => c.id === row.cat2_id)?.blur === 1;
+
+  const payName =
+    payList.find((p) => String(p.code) === String(row.pay_method))?.name ?? "";
+
+  return (
+    <article
+      className={`card card--pressable ${pressing ? "pressing" : ""}`}
+      {...handlers}
+      title="꾹 눌러서 편집"
+    >
+      {/* IN/OUT 색상 바 */}
+      <div
+        className={`inout-bar ${
+          row.inout === 1 ? "in-bar" : row.inout === -1 ? "out-bar" : ""
+        }`}
+      ></div>
+
+      {/* 1행: 장소 / Send 버튼 ── 날짜는 상단 날짜 단에서 표시한다 */}
+      <div className="card-row row-top">
+        <div className="card-left">
+          <span className="place-text">📍 {row.place_name || "—"}</span>
+        </div>
+        <div className="card-right">
+          <button className="ui-btn small" onClick={() => onSend(row)}>
+            전송
+          </button>
+        </div>
+      </div>
+
+      {/* 2행: 카테고리 */}
+      <div className="row-category">
+        <span className="cat-display">
+          <span className="cat-text">{cat1Name}</span>
+          <span className="cat-sep"> &gt; </span>
+          <span className="cat-text">
+            {cat2List.find((c) => c.id === row.cat2_id)?.name ?? "—"}
+          </span>
+          {row.cat3_id && (
+            <>
+              <span className="cat-sep"> &gt; </span>
+              <span className="cat3-text">
+                {cat3List.find((c) => c.id === row.cat3_id)?.name ?? "—"}
+              </span>
+            </>
+          )}
+        </span>
+      </div>
+
+      {/* 3행: 결제 수단 + 금액 */}
+      <div className="row-payment">
+        <span className="pay-method-text">{payName}</span>
+        <span
+          className={`amount-text ${isBlur && !row.reveal_amount ? "masked" : "revealed"}`}
+          data-no-longpress
+          onMouseDown={(e) => isBlur && onStartReveal(row.entry_id, e)}
+          onTouchStart={(e) => isBlur && onStartReveal(row.entry_id, e)}
+        >
+          {typeof row.amount === "number"
+            ? row.amount.toLocaleString("ko-KR")
+            : ""}
+        </span>
+      </div>
+
+      {/* 4행: 메모 */}
+      <div className="card-row row-bottom">
+        <div className="card-left">
+          <span className="memo-text">{row.memo || " "}</span>
+        </div>
+      </div>
+    </article>
   );
 }
