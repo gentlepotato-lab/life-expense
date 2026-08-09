@@ -1,0 +1,133 @@
+# Python 가상환경
+venv/
+env/
+ENV/
+.venv/
+
+!.venv_expense/
+
+# 인증서 및 보안 파일
+certs/
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# Node.js (프로젝트 루트에 있을 경우)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 빌드 결과물
+dist/
+build/
+*.tsbuildinfo
+# *.ini  ← TO-BE: alembic.ini 까지 무시되어 비활성화
+
+# 환경 변수 파일
+.env
+.env.local
+.env.*.local
+*.env
+.env*
+..env*
+
+# IDE 및 에디터
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# 로그 파일
+*.log
+logs/
+
+# 임시 파일
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+
+# OS 파일
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 압축 파일 (필요시 주석 해제)
+*.zip
+*.tar.gz
+*.rar
+
+# Docker 관련 파일
+# Docker 설정 및 실행 파일
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+*.bat
+
+# Docker 볼륨 및 데이터
+**/volumes/
+docker-volumes/
+
+# Docker 빌드 캐시
+.docker/
+
+# Docker 문서
+README-Docker.md
+
+# 배포 스크립트
+deploy-*.bat
+build-*.bat
+start-*.bat
+stop-*.bat
+# ─────────────────────────────────────────────
+# TO-BE 보완 (2026-08-09)
+# ─────────────────────────────────────────────
+
+# 런타임 산출물
+.api.pid
+
+# 설정 예시 파일은 추적한다 (실제 .env 는 위에서 계속 무시됨)
+!.env.example
+!**/.env.example

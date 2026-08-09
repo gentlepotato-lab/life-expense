@@ -1,0 +1,193 @@
+from app.deps import Base
+from sqlalchemy import Column, Integer, String, Numeric, Date, ForeignKey, SmallInteger, TIMESTAMP, func, UniqueConstraint, DateTime
+from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.sql import func
+
+# Base = declarative_base()
+
+class CategoryL1(Base):
+    __tablename__ = "categories_lvl1"
+    cat1_id = Column(Integer, primary_key=True)
+    cat1_name = Column(String, unique=True, nullable=False)
+    sort_order = Column(Integer, default=0, nullable=True)
+
+class CategoryL2(Base):
+    __tablename__ = "categories_lvl2"
+    cat2_id = Column(Integer, primary_key=True)
+    cat2_name = Column(String, nullable=False)
+    cat1_id = Column(Integer, ForeignKey("categories_lvl1.cat1_id"), nullable=False)
+    # cat1_name = Column(String, nullable=False)
+    sort_order = Column(Integer, default=0, nullable=True)
+    blur_flag = Column(SmallInteger, default=0, nullable=False)
+    inout = Column(SmallInteger, nullable=True)
+
+class CategoryL3(Base):
+    __tablename__ = "categories_lvl3"
+    cat3_id = Column(Integer, primary_key=True)
+    cat3_name = Column(String, nullable=False)
+    cat2_id = Column(Integer, ForeignKey("categories_lvl2.cat2_id"), nullable=False)
+    sort_order = Column(Integer, default=0, nullable=True)
+
+class PaymentMethod(Base):
+    __tablename__ = "payment_methods"
+    method_id = Column(Integer, primary_key=True, autoincrement=True)
+    method_name = Column(String, nullable=False, unique=True)
+    sort_order = Column(Integer, default=0, nullable=True)
+
+class Entry(Base):
+    __tablename__ = "entries"
+    entry_id = Column(Integer, primary_key=True, autoincrement=True)
+    tx_date = Column(Date, nullable=False)
+    cat1_id = Column(Integer, ForeignKey("categories_lvl1.cat1_id"))
+    cat2_id = Column(Integer, ForeignKey("categories_lvl2.cat2_id"))
+    inout = Column(SmallInteger, nullable=False)
+    amount = Column(Numeric(14,2), nullable=False)
+    pay_method = Column(Integer, ForeignKey("payment_methods.method_id"))
+    memo = Column(String)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    # updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    cat3_id = Column(Integer, ForeignKey("categories_lvl3.cat3_id"), nullable=True)
+    # place_name = Column(String, nullable=True)
+    # place_lat = Column(Numeric(10,6), nullable=True)
+    # place_lng = Column(Numeric(10,6), nullable=True)
+    place_id = Column(Integer, ForeignKey("places.place_id"), nullable=True)
+    place = relationship("Place", back_populates="entries")
+
+    def to_dict(self):
+        return {
+            "entry_id": self.entry_id,
+            "tx_date": str(self.tx_date),
+            "cat1_id": self.cat1_id,
+            "cat2_id": self.cat2_id,
+            "inout": self.inout,
+            "amount": float(self.amount),
+            "pay_method": self.pay_method,
+            "memo": self.memo,
+        }
+
+class Place(Base):
+    __tablename__ = "places"
+    __table_args__ = (
+        UniqueConstraint("lat", "lng", name="uniq_place_lat_lng"),
+    )
+
+    place_id = Column(Integer, primary_key=True, autoincrement=True)
+    place_name = Column(String, nullable=False)
+
+    kakao_id = Column(String, nullable=True)
+    category_l1 = Column(String, nullable=True)
+    category_l2 = Column(String, nullable=True)
+    category_l3 = Column(String, nullable=True)
+    category_group_code = Column(String, nullable=True)
+    category_group_name = Column(String, nullable=True)
+
+    phone = Column(String, nullable=True)
+    address_name = Column(String, nullable=True)
+    road_address_name = Column(String, nullable=True)
+    place_url = Column(String, nullable=True)
+
+    city = Column(String, nullable=True)
+    district = Column(String, nullable=True)
+    town = Column(String, nullable=True)
+
+    lat = Column(Numeric(10,6), nullable=True)
+    lng = Column(Numeric(10,6), nullable=True)
+
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    entries = relationship("Entry", back_populates="place")
+
+class PendingEntry(Base):
+    __tablename__ = "pending_entries"
+
+    entry_id = Column(Integer, primary_key=True, autoincrement=True)
+    tx_date = Column(Date, nullable=False)
+    cat1_id = Column(Integer, nullable=True)
+    cat2_id = Column(Integer, nullable=True)
+    cat3_id = Column(Integer, nullable=True)
+    inout = Column(SmallInteger, nullable=False)
+    amount = Column(Numeric(14,2), nullable=False)
+    pay_method = Column(Integer, nullable=True)
+    memo = Column(String, nullable=True)
+
+    place_id = Column(Integer, ForeignKey("places.place_id"), nullable=True)
+
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    sended = Column(Integer, default=0, nullable=False)
+
+    def to_dict(self):
+        return {
+            "entry_id": self.entry_id,
+            "tx_date": str(self.tx_date),
+            "cat1_id": self.cat1_id,
+            "cat2_id": self.cat2_id,
+            "cat3_id": self.cat3_id,
+            "inout": self.inout,
+            "amount": float(self.amount),
+            "pay_method": self.pay_method,
+            "memo": self.memo,
+
+            "place_id": self.place_id,
+            "place_name": self.place_name,
+            "kakao_id": self.kakao_id,
+            "address_name": self.address_name,
+            "road_address_name": self.road_address_name,
+            "phone": self.phone,
+            "category_name": self.category_name,
+            "category_group_code": self.category_group_code,
+            "category_group_name": self.category_group_name,
+            "place_url": self.place_url,
+            "place_lat": self.place_lat,
+            "place_lng": self.place_lng,
+
+            "sended": self.sended,
+        }
+
+class Holiday(Base):
+    __tablename__ = "holidays"
+
+    dt = Column(Date, primary_key=True)
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
+    day = Column(Integer, nullable=False)
+    weekday = Column(Integer, nullable=False)
+
+    # 0/1 ?? ??? > ?? ?? true?? 1
+    is_holiday = Column(Integer, nullable=False, default=0)
+
+    holiday_name = Column(String, nullable=True)
+
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+class ScheduledEntry(Base):
+    __tablename__ = "scheduled_entries"
+
+    schedule_id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # 스케줄 설정
+    day_of_month = Column(Integer, nullable=False)  # 매월 몇 일 (1-31)
+    hour = Column(Integer, nullable=False)  # 몇 시 (0-23)
+    minute = Column(Integer, nullable=False)  # 몇 분 (0-59)
+    
+    # 휴일 처리 옵션: 'before', 'on', 'after'
+    holiday_handling = Column(String, nullable=False, default='on')
+    
+    # 다음 실행 일시
+    next_run_at = Column(DateTime, nullable=True)
+    
+    # 지출 내역 정보
+    cat1_id = Column(Integer, ForeignKey("categories_lvl1.cat1_id"), nullable=True)
+    cat2_id = Column(Integer, ForeignKey("categories_lvl2.cat2_id"), nullable=True)
+    cat3_id = Column(Integer, ForeignKey("categories_lvl3.cat3_id"), nullable=True)
+    inout = Column(SmallInteger, nullable=False)
+    amount = Column(Numeric(14,2), nullable=False)
+    pay_method = Column(Integer, ForeignKey("payment_methods.method_id"), nullable=True)
+    memo = Column(String, nullable=True)
+    place_id = Column(Integer, ForeignKey("places.place_id"), nullable=True)
+    
+    # 활성화 여부
+    is_active = Column(SmallInteger, default=1, nullable=False)    # 1: 활성, 0: 비활성
+    
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

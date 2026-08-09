@@ -1,0 +1,2560 @@
+/* ═══════════════════════════════════════════════════════════════
+   Expense Management System - Clean & Practical Design
+   ════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────
+   1. CSS Variables
+────────────────────────────────────────────── */
+:root {
+  /* Colors */
+  --color-primary: #5B5FEF;
+  --color-primary-dark: #4548D6;
+  --color-primary-light: #E8E9FD;
+  --color-success: #00C7BE;
+  --color-success-dark: #00A89F;
+  --color-danger: #FF5C57;
+  --color-danger-dark: #E64842;
+  
+  /* Neutrals */
+  --color-bg: #F8F9FA;
+  --color-surface: #FFFFFF;
+  --color-border: #E9ECEF;
+  
+  /* Text */
+  --color-text-primary: #212529;
+  --color-text-secondary: #6C757D;
+  --color-text-tertiary: #ADB5BD;
+  
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Noto Sans KR", sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 28px;
+  
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  
+  /* Radius */
+  --radius: 10px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* ─────────────────────────────────────────────
+   2. Base
+────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: 1.4;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ─────────────────────────────────────────────
+   3. Layout
+────────────────────────────────────────────── */
+.page-wrap {
+  width: 100vw;
+  max-width: 100vw;
+  min-height: 100vh;
+  padding: var(--space-4) var(--space-3);
+  background: var(--color-bg);
+}
+
+.page-title {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: var(--space-4);
+  letter-spacing: -0.02em;
+}
+
+/* ─────────────────────────────────────────────
+   4. Form Elements
+────────────────────────────────────────────── */
+.entry-card-form {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--space-4);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--space-3);
+}
+
+.form-row input,
+.form-row select {
+  height: 36px;
+  padding: 0 10px;
+}
+
+.form-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.form-label.required::before {
+  content: "*";
+  color: var(--color-danger);
+  margin-right: var(--space-1);
+}
+
+.ui-input,
+select,
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="month"],
+input[type="file"] {
+  width: 100%;
+  padding: 0 10px;
+  height: 36px;
+  font-size: var(--font-size-base);
+  font-family: var(--font-family);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  transition: all 0.2s;
+}
+
+.ui-input:focus,
+select:focus,
+input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+/* ─────────────────────────────────────────────
+   5. Buttons
+────────────────────────────────────────────── */
+.ui-btn,
+button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 14px;
+  height: 36px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  font-family: var(--font-family);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.ui-btn:hover,
+button:hover {
+  background: var(--color-bg);
+  border-color: var(--color-primary);
+}
+
+.ui-btn.primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border: none;
+  color: white;
+}
+
+.ui-btn.primary:hover {
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+}
+
+.ui-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ui-btn.small {
+  padding: 0 10px;
+  height: 32px;
+  font-size: var(--font-size-xs);
+}
+
+.ui-btn.long {
+  min-width: 120px;
+}
+
+.delete-btn {
+  padding: 0 8px;
+  height: 18px; /* 32px → 26px로 축소 */
+  font-size: 11px; /* 더 작게 */
+  font-weight: 600;
+  border-radius: 4px; /* 작게 */
+  background: var(--color-danger);
+  border: none;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.delete-btn:hover {
+  background: var(--color-danger-dark);
+}
+
+/* ─────────────────────────────────────────────
+   6. Card System
+────────────────────────────────────────────── */
+.card {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  padding-left: calc(var(--space-4) + 5px);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+  margin-bottom: var(--space-3);
+  width: 100%;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* 카드 클릭 효과 - 살짝 커지기 */
+.card:active:not(.editing):not(.entry-card-form) {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-md);
+}
+
+/* Edit 모드 - box-shadow로 변경 → 막대 붕 뜨지 않도록 */
+.card.editing {
+  background: #FAFBFC;
+  box-shadow: 0 0 0 2px var(--color-primary), 0 0 0 5px var(--color-primary-light);
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* IN/OUT Bar - 왼쪽에 여백 없이 배치 */
+.inout-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 5px;
+  height: 100%;
+  border-radius: var(--radius) 0 0 var(--radius);
+  cursor: pointer;
+  transition: width 0.2s;
+  z-index: 1;
+}
+
+.inout-bar:hover {
+  width: 7px;
+}
+
+.in-bar {
+  background: linear-gradient(180deg, var(--color-success) 0%, var(--color-success-dark) 100%);
+}
+
+.out-bar {
+  background: linear-gradient(180deg, var(--color-danger) 0%, var(--color-danger-dark) 100%);
+}
+
+/* Card Rows */
+.card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.card-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.row-top,
+.row-middle,
+.row-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.row-middle {
+  align-items: center;
+}
+
+.row-bottom {
+  margin-bottom: 0;
+}
+
+.card-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.card-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 카테고리 행 - 왼쪽 정렬 */
+.row-category {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--space-2);
+}
+
+/* 결제 수단/금액 행 - 오른쪽 정렬 */
+.row-payment {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-2);
+}
+
+/* Edit 모드에서 카테고리 입력 칸 한 행으로 */
+.card.editing .row-category {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+/* Edit 모드에서 결제수단+금액 세로 */
+.card.editing .row-payment {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.row-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ─────────────────────────────────────────────
+   7. Typography
+────────────────────────────────────────────── */
+.date-badge {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.date-input {
+  font-size: var(--font-size-base);
+  padding: 0 10px;
+  height: 36px;
+  width: auto; /* 또는 특정 크기 */
+  max-width: 150px; /* 선택사항 */
+}
+
+/* 카테고리 통일 */
+.cat-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-text,
+.cat3-text {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.cat-sep {
+  color: var(--color-text-tertiary);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.pay-method-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* 금액 - 색상 적용 */
+.amount-text {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  text-align: right;
+  letter-spacing: -0.02em;
+}
+
+.card .amount-text {
+  color: var(--color-text-primary);
+}
+
+.card:has(.in-bar) .amount-text {
+  color: var(--color-success);
+}
+
+.card:has(.out-bar) .amount-text {
+  color: var(--color-danger);
+}
+
+.amount-input {
+  font-size: var(--font-size-sm); /* lg → sm */
+  font-weight: 700;
+  text-align: right;
+  padding: 0 8px;
+  height: 28px !important;
+  width: 90px;
+  max-width: 90px;
+  flex-shrink: 0;
+}
+
+.memo-text,
+.memo-input {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.memo-input {
+  padding: 0 8px;
+  height: 28px;
+}
+
+.place-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.place-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Blur */
+.amount-text.masked {
+  filter: blur(6px);
+  cursor: ew-resize;
+}
+
+.amount-text.revealed {
+  filter: none;
+}
+
+/* Edit mode - 카테고리 입력 칸 */
+.card.editing select,
+.card.editing input[type="date"],
+.card.editing input[type="text"],
+.card.editing input[type="number"] {
+  padding: 4px 8px;
+  font-size: var(--font-size-sm);
+}
+
+.select-inline {
+  padding: 0 8px;
+  height: 28px;
+  font-size: var(--font-size-sm);
+  max-width: 85px;
+  min-width: 75px;
+  flex-shrink: 0;
+}
+
+.ml-2 {
+  margin-left: 0;
+}
+
+.pay-select {
+  max-width: 85px;
+  padding: 0 8px;
+  height: 28px;
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────
+   8. Edit Toggle
+────────────────────────────────────────────── */
+.edit-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.edit-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.edit-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* ─────────────────────────────────────────────
+   9. Toolbar
+────────────────────────────────────────────── */
+.toolbar-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto var(--space-3);
+  padding: 8px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+  min-height: 52px;
+}
+
+.toolbar-left {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+}
+
+.toolbar-left input[type="month"] {
+  height: 36px;
+  padding: 0 10px;
+}
+
+.toolbar > input[type="month"],
+.toolbar > .filter-range-label {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 160px;
+}
+
+.toolbar-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.toolbar-btns .ui-btn {
+  height: 36px;
+}
+
+.filter-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 12px
+}
+
+.filter-range-label {
+  padding: 0 12px;
+  height: 36px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.import-btn {
+  min-width: 100px;
+  height: 36px;
+  padding: 0 14px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─────────────────────────────────────────────
+   10. Modal/Popup
+────────────────────────────────────────────── */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+.popup-panel {
+  background: var(--color-surface);
+  padding: var(--space-2);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+}
+
+.popup-panel h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+html.modal-open {
+  overflow: hidden;
+}
+
+html.modal-open body {
+  overflow: hidden;
+  touch-action: none;
+}
+
+.filter-row {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.filter-col {
+  flex: 1;
+  display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-col label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: none;
+}
+
+.btn-row {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-0);
+}
+
+.btn-row .ui-btn {
+  flex: 1;
+}
+
+.popup-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-top: var(--space-3);
+  margin-bottom: 6px;
+}
+
+.popup-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.popup-item {
+  padding: 10px;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.popup-item:last-child {
+  border-bottom: none;
+}
+
+.popup-item:hover {
+  background: var(--color-bg);
+}
+
+.popup-selected {
+  background: var(--color-primary-light);
+}
+
+.popup-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+.popup-empty {
+  text-align: center;
+  padding: var(--space-4);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+/* ─────────────────────────────────────────────
+   11. Menu - 왼쪽 딱 붙여서 정렬
+────────────────────────────────────────────── */
+.menu-button {
+  position: fixed;
+  top: var(--space-4);
+  left: var(--space-4);
+  width: 44px;
+  height: 44px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-button:hover {
+  background: var(--color-bg);
+}
+
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: flex-start;
+  z-index: 999;
+  backdrop-filter: blur(4px);
+}
+
+.menu-panel {
+  width: 260px;
+  background: var(--color-surface);
+  padding: var(--space-5) 0;
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: slideIn 0.25s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.menu-title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+  padding: 0 var(--space-3);
+}
+
+.menu-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  text-transform: none;
+  letter-spacing: 0.1em;
+  margin-top: var(--space-3);
+  margin-bottom: 6px;
+  padding-left: var(--space-3);
+}
+
+.menu-sub-item {
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 10px var(--space-3);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  border-radius: 0;
+}
+
+.menu-sub-item:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.menu-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-3) var(--space-3);
+}
+
+.menu-close {
+  background: var(--color-danger);
+  color: white;
+  border: none;
+  padding: 10px;
+  font-weight: 600;
+  margin: var(--space-3) var(--space-3) 0;
+  border-radius: var(--radius);
+}
+
+.menu-close:hover {
+  background: var(--color-danger-dark);
+}
+
+html.modal-open .menu-button {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+
+/* ─────────────────────────────────────────────
+   12. MultiSelect
+────────────────────────────────────────────── */
+.ms-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.ms-display {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  cursor: pointer;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.ms-display:hover {
+  border-color: var(--color-primary);
+}
+
+.ms-placeholder {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-base);
+}
+
+.ui-input::placeholder {
+  color: var(--color-text-tertiary);
+  opacity: 1;
+}
+
+.ms-value {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+.ms-dropdown {
+  position: fixed;
+  top: auto;
+  left: auto;
+  width: auto;
+  min-width: 220px;
+  max-width: 90vw;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+}
+
+.ms-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-base) !important;
+  color: var(--color-text-primary) !important;
+  font-weight: 400 !important;
+  min-height: 40px;
+  line-height: 1.4;
+}
+
+.ms-option:last-child {
+  border-bottom: none;
+}
+
+.ms-option:hover {
+  background: var(--color-bg);
+}
+
+.ms-option-selected {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.ms-option input[type="checkbox"],
+.ms-option input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────────
+   13. CategoriesSetting
+────────────────────────────────────────────── */
+.cat-card .inout-select-wrap {
+  width: 70px;
+  margin-right: 0px;
+}
+
+.cat-card .inout-select-wrap .ms-display {
+  min-height: 16px;
+  padding: 0px 8px;
+}
+
+.cat-toolbar {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: var(--space-3);
+}
+
+.cat-toolbar-btns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 760px;
+}
+
+.cat-select {
+  width: 100%;
+  padding: 0 10px;
+  height: 36px;
+}
+
+/* 중/소/세분류 편집 입력 창 - 통일된 스타일 */
+.cat1-input,
+.cat2-input,
+.cat3-input {
+  flex: 1;
+  padding: 0 10px;
+  height: 20px;
+  min-width: 0;
+  font-size: var(--font-size-base);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.cat23-input-row {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+/* Add, Edit 버튼 좌우 배치 */
+.cat-toolbar-btns .btn-row {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.cat-toolbar-btns .btn-row .ui-btn {
+  flex: 1;
+}
+
+.cat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0;
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  padding-right: var(--space-2);
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  box-shadow: var(--shadow-sm);
+}
+
+.cat-group {
+  padding: var(--space-0) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cat-group:last-child {
+  border-bottom: none;
+}
+
+/* SortableItem wrapper - 항상 동일한 최소 높이 유지 */
+.cat-group > div {
+  display: flex;
+  align-items: center;
+  min-height: 40px; /* 최소 높이 축소 */
+  padding: 2px 0; /* 상하 여백 최소화 */
+}
+
+/* Edit 모드 OFF일 때 drag-handle 자리 확보 */
+.cat-group > div:not(:has(.drag-handle))::before {
+  content: "";
+  display: inline-block;
+  width: 34px;
+  flex-shrink: 0;
+}
+
+/* drag-handle 스타일 */
+.cat-group > div .drag-handle,
+div:has(> .pm-item) .drag-handle {
+  width: 34px;
+  flex-shrink: 0;
+  text-align: center;
+  touch-action: none; /* 모바일 터치 드래그 활성화 */
+}
+
+/* 중분류 */
+.cat1-name {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  padding: 6px 0; /* 상하 padding 고정 */
+  cursor: pointer;
+  flex: 1;
+  line-height: 1.4;
+}
+
+/* 소분류 wrapper - 항상 동일한 최소 높이 유지 */
+div:has(> .cat2-header-row) {
+  display: flex;
+  align-items: center;
+  margin-left: 0px; /* 들여쓰기 */
+  margin-top: 4px;
+  min-height: 40px; /* 최소 높이 축소 */
+}
+
+div:has(> .cat2-header-row):first-of-type {
+  margin-top: 12px; /* 첫 번째 소분류는 중분류와 간격 더 넓게 */
+}
+
+/* Edit 모드 OFF일 때 drag-handle 자리 확보 */
+div:has(> .cat2-header-row):not(:has(.drag-handle))::before {
+  content: "";
+  display: inline-block;
+  width: 34px;
+  flex-shrink: 0;
+}
+
+/* drag-handle 스타일 */
+div:has(> .cat2-header-row) .drag-handle {
+  width: 34px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+/* 소분류 행 */
+.cat2-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 8px;
+  background: #F0F1F2;
+  border-radius: 6px;
+  flex: 1;
+  min-height: 36px;
+}
+
+.cat2-name {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  padding: 0;
+  cursor: pointer;
+  flex: 1;
+  line-height: 1.4;
+}
+
+/* 세분류 */
+.cat3-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2) 0;
+  margin: 0;
+  width: 100%;
+}
+
+/* 세분류 wrapper - 항상 동일한 최소 높이 유지 */
+.cat3-list > div {
+  display: flex;
+  align-items: center;
+  margin-left: 0px;
+  min-height: 40px;
+}
+
+/* Edit 모드 OFF일 때 drag-handle 자리 확보 */
+.cat3-list > div:not(:has(.drag-handle))::before {
+  content: "";
+  display: inline-block;
+  width: 34px;
+  flex-shrink: 0;
+}
+
+/* drag-handle 스타일 */
+.cat3-list > div .drag-handle {
+  width: 34px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.cat3-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 8px;
+  background: var(--color-bg);
+  border-radius: 6px;
+  flex: 1;
+  min-height: 36px;
+}
+
+.cat3-name {
+  font-size: var(--font-size-lg);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: 0;
+  cursor: pointer;
+  flex: 1;
+  line-height: 1.4;
+}
+
+.drag-handle {
+  font-size: 20px;
+  color: var(--color-text-tertiary);
+  cursor: grab;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px; /* 최소 클릭 영역 확보 */
+  padding: 4px 8px; /* 클릭 영역 확대 */
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.blur-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.blur-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+}
+
+.cat2-header-row .delete-btn,
+.cat3-row .delete-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.btn-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.btn-row .ui-btn {
+  flex: 1;
+}
+
+/* ─────────────────────────────────────────────
+   14. PaymentMethodsSetting
+────────────────────────────────────────────── */
+.pm-toolbar-row {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto var(--space-0);
+}
+
+.pm-toolbar-row > input {
+  flex: 1;
+  padding: 8px 10px;
+}
+
+.pm-toolbar-row > button {
+  flex: 0 0 auto;
+}
+
+/* PaymentMethods wrapper - Categories 중분류와 동일하게 */
+div:has(> .pm-item) {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 2px 0;
+}
+
+/* Edit 모드 OFF일 때 drag-handle 자리 확보 - Categories와 동일 */
+div:has(> .pm-item):not(:has(.drag-handle))::before {
+  content: "";
+  display: inline-block;
+  width: 34px;
+  flex-shrink: 0;
+}
+
+/* drag-handle 스타일 - Categories와 동일 */
+div:has(> .pm-item) .drag-handle {
+  width: 34px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.pm-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px 0px;
+  border-bottom: 1px solid var(--color-border);
+  flex: 1;
+  min-height: 36px;
+}
+
+.pm-item:last-child {
+  border-bottom: none;
+}
+
+/* PaymentMethods 항목 이름 스타일 - Categories .cat1-name과 동일하게 */
+.pm-item .cat1-name {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  padding: 6px 0;
+  cursor: pointer;
+  flex: 1;
+  line-height: 1.4;
+}
+
+.pm-item .delete-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────
+   15. ScheduledEntries
+────────────────────────────────────────────── */
+.scheduled-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto var(--space-3);
+  padding: 8px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+  min-height: 52px;
+}
+
+.scheduled-toolbar__btn {
+  flex: 1;
+  padding: 0 14px;
+  height: 36px;
+}
+
+.scheduled-toolbar__btn--new {
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+.scheduled-toolbar__btn--new:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.scheduled-toolbar__btn--save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.scheduled-entry-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  align-items: start;
+  margin-bottom: var(--space-4);
+}
+
+.scheduled-entry-form > button[type="submit"] {
+  grid-column: 1 / -1;
+}
+
+.scheduled-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.schedule-card {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  padding-left: calc(var(--space-4) + 5px);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+  margin-bottom: var(--space-3);
+}
+
+.schedule-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* 스케줄 카드 클릭 효과 - 살짝 커지기 */
+.schedule-card:active:not(.editing) {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-md);
+}
+
+.schedule-card.editing {
+  box-shadow: 0 0 0 2px var(--color-primary), 0 0 0 5px var(--color-primary-light);
+}
+
+.schedule-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0);
+}
+
+.schedule-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.schedule-card__row--header {
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-2);
+}
+
+.schedule-card__row--details {
+  align-items: center;
+}
+
+.schedule-card__label {
+  display: none;
+}
+
+.schedule-card__row--meta-single {
+  justify-content: flex-start; /* space-between 무효화 */
+  gap: 6px; /* 라벨과 값 사이 간격 */
+  flex-wrap: nowrap; /* 한 줄 유지 */
+}
+
+.schedule-card__row--meta-single .schedule-card__label {
+  display: inline;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-right: 6px;
+}
+
+.schedule-card.editing .schedule-card__row--meta-single .memo-input {
+  flex: 1; /* 가능한 공간 차지 */
+  min-width: 0; /* 축소 가능하게 */
+  max-width: 100%; /* 너무 길어지지 않게 */
+}
+
+.schedule-card.editing .schedule-card__row--meta-single .schedule-card__toolbar {
+  flex-shrink: 0; /* 편집 버튼은 축소되지 않게 */
+  margin-left: var(--space-2); /* 간격 유지 */
+}
+
+/* 휴일 처리 select 크기 조정 */
+.schedule-card__row--meta-single .ms-display {
+  max-width: 90px;
+  width: auto;
+  height: 28px;
+  padding: 0 8px;
+  font-size: var(--font-size-sm);
+}
+
+.schedule-card__row--edit-actions {
+  justify-content: flex-end;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-2);
+}
+
+.schedule-card__date-line {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.schedule-card__month {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.schedule-card__time {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-family: "Courier New", monospace;
+}
+
+.schedule-card__next-run {
+  font-size: var(--font-size-xs);
+  color: #898989;
+  font-weight: 600;
+  margin-top: 4px;
+  font-family: "Courier New", monospace;
+}
+
+.schedule-card__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.schedule-card__stack--category {
+  flex: 1;
+}
+
+.schedule-card__stack--amount {
+  align-items: flex-end;
+}
+
+/* ScheduledEntries는 Edit 모드에서도 좌우 배치 */
+.schedule-card.editing .row-payment {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-card.editing .schedule-card__stack--amount {
+    flex-direction: column;
+  align-items: flex-end;
+    gap: 4px;
+}
+
+.schedule-card__value {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+}
+
+.schedule-card__amount-pill {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.schedule-card__pay {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.schedule-card__amount-value {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+}
+
+.schedule-card__amount-value--in {
+  color: var(--color-success);
+}
+
+.schedule-card__amount-value--out {
+  color: var(--color-danger);
+}
+
+.schedule-card__select-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.schedule-card.editing .schedule-card__cat-select,
+.schedule-card.editing .schedule-card__pay-select {
+  max-width: 100px;
+  padding: 0 8px;
+  height: 28px;
+  font-size: var(--font-size-sm);
+}
+
+.schedule-card.editing .schedule-card__amount-input {
+  width: 100px;
+  padding: 0 8px;
+  height: 28px;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* ScheduledEntries 편집 모드 - SingleSelect 스타일 */
+.schedule-card.editing .row-category .ms-display,
+.schedule-card.editing .row-payment .ms-display {
+  height: 28px;
+  padding: 0 8px;
+  font-size: var(--font-size-sm);
+  min-height: 28px;
+}
+
+.schedule-card.editing .row-category .ms-value,
+.schedule-card.editing .row-payment .ms-value,
+.schedule-card.editing .row-category .ms-placeholder,
+.schedule-card.editing .row-payment .ms-placeholder {
+  font-size: var(--font-size-sm);
+}
+
+/* EntriesGrid & PendingEntries 편집 모드 - SingleSelect 스타일 */
+.card .row-category .ms-display,
+.card .row-payment .ms-display {
+  height: 28px;
+  padding: 0 8px;
+  font-size: var(--font-size-sm);
+  min-height: 28px;
+}
+
+.card .row-category .ms-value,
+.card .row-payment .ms-value,
+.card .row-category .ms-placeholder,
+.card .row-payment .ms-placeholder {
+  font-size: var(--font-size-sm);
+}
+
+.schedule-card__date-inputs {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.schedule-card__toolbar {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.schedule-card__meta-value {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─────────────────────────────────────────────
+   16. Utility
+────────────────────────────────────────────── */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.gap-2 { gap: var(--space-2); }
+.mb-4 { margin-bottom: var(--space-2); }
+.w-full { width: 100%; }
+.text-center { text-align: center; }
+
+/* ─────────────────────────────────────────────
+   17. Responsive
+────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page-wrap {
+    padding: var(--space-3) var(--space-2);
+  }
+  
+  .page-title {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--space-3);
+  }
+  
+  .card {
+    padding: var(--space-2) var(--space-3);
+    padding-left: calc(var(--space-3) + 4px);
+  }
+  
+  .scheduled-entry-form {
+    grid-template-columns: 1fr;
+  }
+  
+  .cat23-input-row {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .toolbar-btns {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .amount-text {
+    font-size: var(--font-size-xl);
+  }
+  
+  .card.editing .row-middle .card-left {
+    flex-wrap: wrap;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   18. Accessibility
+────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 중분류 Delete 버튼만 선택 */
+.cat-group > div > div:has(.cat1-name) .delete-btn {
+  margin-left: auto;
+  margin-right: 7.5px;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────
+   19. Calculator
+────────────────────────────────────────────── */
+.calculator-page .calculator-container {
+  width: 380px;
+  height: 740px;
+  margin: 0 auto;
+  background: #DFDFDF;
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow: hidden;
+}
+
+.calculator-page .calculator-buttons-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.calculator-page .calculator-display-wrapper {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: var(--space-4) var(--space-3);
+  height: 110px;
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  box-sizing: border-box;
+}
+
+.calculator-page .calculator-expression {
+  font-size: var(--font-size-base);
+  color: rgba(255, 255, 255, 0.6);
+  text-align: right;
+  min-height: 20px;
+  margin-bottom: var(--space-1);
+  word-break: break-all;
+  overflow-wrap: break-word;
+  flex-shrink: 0;
+}
+
+.calculator-page .calculator-display {
+  width: 100%;
+  padding: var(--space-2) 0;
+  background: transparent;
+  border: none;
+  font-size: 40px;
+  font-weight: 700;
+  color: white;
+  text-align: right;
+  outline: none;
+  min-height: 50px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  word-break: break-all;
+}
+
+.calculator-page .calculator-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.calculator-page .calculator-display-wrapper {
+  flex-shrink: 0;
+}
+
+.calculator-page .calculator-row--top {
+  padding-top: 16px;
+}
+
+.calculator-page .calculator-row--bottom {
+  padding-bottom: 16px;
+}
+
+.calculator-button {
+  border: none;
+  padding: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family);
+  user-select: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.calculator-page .calculator-button {
+  width: 100%;
+  height: 60px;
+  border: none;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.calculator-page .calculator-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.calculator-page .calculator-button:active,
+.calculator-page .calculator-button--pressed {
+  transform: translateY(0) scale(0.96);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s ease;
+}
+
+/* 숫자 버튼 */
+.calculator-page .calculator-button--number {
+  background: #ffffff;
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.calculator-page .calculator-button--number:hover {
+  background: #f0f0f0;
+}
+
+/* 연산자 버튼 */
+.calculator-page .calculator-button--operator {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 700;
+}
+
+.calculator-page .calculator-button--operator:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+/* 등호 버튼 */
+.calculator-page .calculator-button--equals {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  font-weight: 700;
+}
+
+.calculator-page .calculator-button--equals:hover {
+  background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+  box-shadow: 0 4px 16px rgba(245, 87, 108, 0.4);
+}
+
+/* 함수 버튼 (√, x², 1/x, %, 괄호) */
+.calculator-page .calculator-button--function {
+  background: #e9ecef;
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.calculator-page .calculator-button--function:hover {
+  background: #dee2e6;
+}
+
+/* Clear 버튼 */
+.calculator-page .calculator-button--clear {
+  background: #ff6b6b;
+  color: white;
+  font-weight: 700;
+}
+
+.calculator-page .calculator-button--clear:hover {
+  background: #ff5252;
+  box-shadow: 0 4px 16px rgba(255, 107, 107, 0.4);
+}
+
+/* Backspace 버튼 */
+.calculator-page .calculator-button--backspace {
+  background: #ffa726;
+  color: white;
+  font-weight: 700;
+}
+
+.calculator-page .calculator-button--backspace:hover {
+  background: #ff9800;
+  box-shadow: 0 4px 16px rgba(255, 167, 38, 0.4);
+}
+
+
+.calculator-history {
+  margin-top: var(--space-2);
+  background: var(--color-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  flex-shrink: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.calculator-page .calculator-history {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-3);
+}
+
+.calculator-page .calculator-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.calculator-page .calculator-history-header:hover {
+  background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+}
+
+.calculator-page .calculator-history-title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.calculator-page .calculator-history-toggle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.calculator-page .calculator-history-toggle--open {
+  transform: rotate(180deg);
+}
+
+.calculator-history-list-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-2) var(--space-3);
+  max-height: 200px;
+}
+
+.calculator-page .calculator-history-list-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.calculator-page .calculator-history-list-wrapper::-webkit-scrollbar-track {
+  background: var(--color-bg);
+  border-radius: 3px;
+}
+
+.calculator-page .calculator-history-list-wrapper::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+.calculator-page .calculator-history-list-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+.calculator-page .calculator-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.calculator-page .calculator-history-item {
+  padding: var(--space-2) var(--space-2);
+  background: var(--color-surface);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.calculator-page .calculator-history-item:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.calculator-page .calculator-history-expression {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+
+.calculator-page .calculator-history-result {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.calculator-page .calculator-history-empty {
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+/* Calculator 페이지 전용 미디어 쿼리 */
+@media (max-width: 480px) {
+  .calculator-page {
+    padding: var(--space-2);
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .calculator-page-title {
+    display: block;
+    margin-bottom: var(--space-2);
+    padding: var(--space-2) 0;
+    font-size: var(--font-size-2xl);
+  }
+
+  .calculator-page .calculator-container {
+    width: calc(100vw - 16px);
+    height: calc(100vh - 80px);
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 80px);
+    border-radius: 16px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .calculator-page .calculator-display-wrapper {
+    padding: var(--space-3) var(--space-2);
+    height: 90px;
+    box-sizing: border-box;
+  }
+
+  .calculator-page .calculator-display {
+    font-size: 36px;
+    min-height: 50px;
+    word-break: break-all;
+    overflow-wrap: break-word;
+  }
+
+  .calculator-page .calculator-expression {
+    font-size: var(--font-size-sm);
+    word-break: break-all;
+    overflow-wrap: break-word;
+  }
+
+  .calculator-page .calculator-row {
+    gap: 6px;
+    padding: 0;
+  }
+
+  .calculator-page .calculator-row--top {
+    padding-top: 12px;
+  }
+
+  .calculator-page .calculator-row--bottom {
+    padding-bottom: 12px;
+  }
+
+  .calculator-page .calculator-button {
+    font-size: 20px;
+    height: 52px;
+    border-radius: 10px;
+  }
+
+  .calculator-page .calculator-history {
+    margin-top: var(--space-3);
+    box-sizing: border-box;
+  }
+
+  .calculator-page .calculator-history-list-wrapper {
+    max-height: 200px;
+  }
+}
+
+@media (max-width: 360px) {
+  .calculator-page .calculator-display {
+    font-size: 28px;
+  }
+
+  .calculator-page .calculator-button {
+    font-size: 20px;
+    height: 48px;
+  }
+}
+
+/* Calculator 페이지 전용 미디어 쿼리 - Menu 버튼 */
+@media (max-width: 480px) {
+  .calculator-page .menu-button {
+    top: var(--space-2);
+    left: var(--space-2);
+    z-index: 1001;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   20. Calculator Popup & Trigger Button
+────────────────────────────────────────────── */
+/* 계산기 트리거 버튼 (오른쪽 고정) */
+.calculator-trigger-button {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  padding: 8px 12px;
+  height: auto;
+  min-width: 60px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  z-index: 2001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+.calculator-trigger-button:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: scale(1.02);
+}
+
+.calculator-trigger-button:active {
+  transform: scale(0.98);
+}
+
+html.modal-open .calculator-trigger-button {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 계산기 팝업 오버레이 */
+.calculator-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  backdrop-filter: blur(2px);
+}
+
+/* 계산기 팝업 콘텐츠 */
+.calculator-popup-content {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  opacity: 0.95;
+  backdrop-filter: blur(10px);
+}
+
+.calculator-popup-content .calculator-container {
+  width: 380px;
+  height: 740px;
+  margin: 0;
+  background: #DFDFDF;
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow: hidden;
+}
+
+.calculator-popup-content .calculator-display-wrapper {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: var(--space-4) var(--space-3);
+  height: 110px;
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  box-sizing: border-box;
+}
+
+.calculator-popup-content .calculator-expression {
+  font-size: var(--font-size-base);
+  color: rgba(255, 255, 255, 0.6);
+  text-align: right;
+  min-height: 20px;
+  margin-bottom: var(--space-1);
+  word-break: break-all;
+  overflow-wrap: break-word;
+  flex-shrink: 0;
+}
+
+.calculator-popup-content .calculator-display {
+  width: 100%;
+  padding: var(--space-2) 0;
+  background: transparent;
+  border: none;
+  font-size: 40px;
+  font-weight: 700;
+  color: white;
+  text-align: right;
+  outline: none;
+  min-height: 50px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  word-break: break-all;
+}
+
+.calculator-popup-content .calculator-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.calculator-popup-content .calculator-row--top {
+  padding-top: 16px;
+}
+
+.calculator-popup-content .calculator-row--bottom {
+  padding-bottom: 16px;
+}
+
+.calculator-popup-content .calculator-button {
+  width: 100%;
+  height: 60px;
+  border: none;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.calculator-popup-content .calculator-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.calculator-popup-content .calculator-button:active,
+.calculator-popup-content .calculator-button--pressed {
+  transform: translateY(0) scale(0.96);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s ease;
+}
+
+.calculator-popup-content .calculator-button--number {
+  background: #ffffff;
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.calculator-popup-content .calculator-button--number:hover {
+  background: #f0f0f0;
+}
+
+.calculator-popup-content .calculator-button--operator {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 700;
+}
+
+.calculator-popup-content .calculator-button--operator:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+.calculator-popup-content .calculator-button--equals {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  font-weight: 700;
+}
+
+.calculator-popup-content .calculator-button--equals:hover {
+  background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+  box-shadow: 0 4px 16px rgba(245, 87, 108, 0.4);
+}
+
+.calculator-popup-content .calculator-button--function {
+  background: #e9ecef;
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.calculator-popup-content .calculator-button--function:hover {
+  background: #dee2e6;
+}
+
+.calculator-popup-content .calculator-button--clear {
+  background: #ff6b6b;
+  color: white;
+  font-weight: 700;
+}
+
+.calculator-popup-content .calculator-button--clear:hover {
+  background: #ff5252;
+  box-shadow: 0 4px 16px rgba(255, 107, 107, 0.4);
+}
+
+.calculator-popup-content .calculator-button--backspace {
+  background: #ffa726;
+  color: white;
+  font-weight: 700;
+}
+
+.calculator-popup-content .calculator-button--backspace:hover {
+  background: #ff9800;
+  box-shadow: 0 4px 16px rgba(255, 167, 38, 0.4);
+}
+
+.calculator-popup-content .calculator-history {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-3);
+}
+
+.calculator-popup-content .calculator-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.calculator-popup-content .calculator-history-header:hover {
+  background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+}
+
+.calculator-popup-content .calculator-history-title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.calculator-popup-content .calculator-history-toggle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.calculator-popup-content .calculator-history-toggle--open {
+  transform: rotate(180deg);
+}
+
+.calculator-popup-content .calculator-history-list-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  max-height: 200px;
+}
+
+.calculator-popup-content .calculator-history-list-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.calculator-popup-content .calculator-history-list-wrapper::-webkit-scrollbar-track {
+  background: var(--color-bg);
+  border-radius: 3px;
+}
+
+.calculator-popup-content .calculator-history-list-wrapper::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+.calculator-popup-content .calculator-history-list-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+.calculator-popup-content .calculator-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.calculator-popup-content .calculator-history-item {
+  padding: var(--space-2) var(--space-2);
+  background: var(--color-surface);
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  user-select: none;
+}
+
+.calculator-popup-content .calculator-history-item:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.calculator-popup-content .calculator-history-expression {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+
+.calculator-popup-content .calculator-history-result {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.calculator-popup-content .calculator-history-empty {
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .calculator-popup-overlay {
+    padding: var(--space-2);
+  }
+
+  .calculator-popup-content .calculator-container {
+    width: calc(100vw - 16px);
+    height: calc(100vh - 80px);
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 80px);
+    padding: var(--space-3);
+  }
+
+  .calculator-popup-content .calculator-display-wrapper {
+    padding: var(--space-3) var(--space-2);
+    height: 90px;
+  }
+
+  .calculator-popup-content .calculator-display {
+    font-size: 36px;
+    min-height: 50px;
+  }
+
+  .calculator-popup-content .calculator-expression {
+    font-size: var(--font-size-sm);
+  }
+
+  .calculator-popup-content .calculator-row {
+    gap: 6px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .calculator-popup-content .calculator-row--top {
+    padding-top: 12px;
+  }
+
+  .calculator-popup-content .calculator-row--bottom {
+    padding-bottom: 12px;
+  }
+
+  .calculator-popup-content .calculator-button {
+    font-size: 20px;
+    height: 52px;
+    border-radius: 10px;
+  }
+
+  .calculator-trigger-button {
+    top: var(--space-2);
+    right: var(--space-2);
+    padding: 6px 10px;
+    min-width: 50px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 360px) {
+  .calculator-popup-content .calculator-display {
+    font-size: 28px;
+  }
+
+  .calculator-popup-content .calculator-button {
+    font-size: 20px;
+    height: 48px;
+  }
+}

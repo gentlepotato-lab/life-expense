@@ -1,0 +1,1157 @@
+import Menu from "./components/Menu";
+import { useEffect, useState, useMemo } from "react";
+import axios from "../api/client";
+import SingleSelect from "./components/SingleSelect";
+import CalculatorPopup from "./components/CalculatorPopup";
+
+type CategoryL2Meta = { id: number; name: string; cat1_id?: number; inout?: number | null };
+type CategoryL3Meta = { id: number; name: string; cat2_id?: number };
+
+interface Holiday {
+  dt: string;
+  is_holiday: number;
+}
+
+// Date를 YYYY-MM-DD 문자열로 변환 (로컬 시간대 기준)
+function formatDateLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// 휴일이 아닌 가장 가까운 날짜 찾기 (Backend 로직과 동일)
+function findNearestNonHoliday(
+  targetDate: Date,
+  holidayHandling: string,
+  holidays: Holiday[]
+): Date {
+  // holidays 데이터가 없으면 그대로 반환
+  if (holidays.length === 0) {
+    console.warn('⚠️ Holidays data not loaded yet');
+    return targetDate;
+  }
+
+  // UTC가 아닌 로컬 시간대 기준으로 날짜 문자열 생성
+  const dateStr = formatDateLocal(targetDate);
+  const holiday = holidays.find(h => h.dt === dateStr);
+  
+  console.log(`🔍 Checking ${dateStr}:`, {
+    targetDate: targetDate.toString(),
+    found: !!holiday,
+    is_holiday: holiday?.is_holiday,
+    holidayHandling,
+    totalHolidays: holidays.length
+  });
+  
+  // 휴일 여부 확인: holiday가 없거나 is_holiday === 0이면 평일
+  const isHoliday = holiday && holiday.is_holiday === 1;
+  
+  if (!isHoliday) {
+    // 평일이면 그대로 반환
+    console.log(`✅ ${dateStr} is a weekday (not a holiday)`);
+    return targetDate;
+  }
+  
+  console.log(`🚫 ${dateStr} is a holiday, finding nearest non-holiday...`);
+  
+  // 휴일인 경우
+  if (holidayHandling === 'on') {
+    // 당일 처리 (휴일이어도 그대로)
+    return targetDate;
+  } else if (holidayHandling === 'before') {
+    // 휴일 전 가장 가까운 평일 찾기
+    let current = new Date(targetDate);
+    for (let i = 0; i < 30; i++) {
+      current.setDate(current.getDate() - 1);
+      const currentStr = formatDateLocal(current);
+      const h = holidays.find(hol => hol.dt === currentStr);
+      console.log(`  Checking before: ${currentStr}, found: ${!!h}, is_holiday: ${h?.is_holiday}`);
+      // h가 있고 is_holiday === 0이면 평일
+      if (h && h.is_holiday === 0) {
+        console.log(`  ✅ Found weekday: ${currentStr}`);
+        return current;
+      }
+    }
+    console.warn(`  ⚠️ Could not find weekday before ${dateStr}`);
+    return targetDate; // 못 찾으면 원래 날짜 반환
+  } else { // 'after'
+    // 휴일 후 가장 가까운 평일 찾기
+    let current = new Date(targetDate);
+    for (let i = 0; i < 30; i++) {
+      current.setDate(current.getDate() + 1);
+      const currentStr = formatDateLocal(current);
+      const h = holidays.find(hol => hol.dt === currentStr);
+      console.log(`  Checking after: ${currentStr}, found: ${!!h}, is_holiday: ${h?.is_holiday}`);
+      // h가 있고 is_holiday === 0이면 평일
+      if (h && h.is_holiday === 0) {
+        console.log(`  ✅ Found weekday: ${currentStr}`);
+        return current;
+      }
+    }
+    console.warn(`  ⚠️ Could not find weekday after ${dateStr}`);
+    return targetDate; // 못 찾으면 원래 날짜 반환
+  }
+}
+
+// 다음 실행 예정일 계산 함수 (holiday_handling 반영)
+function calculateNextRun(
+  dayOfMonth: number,
+  time: string,
+  holidayHandling: string,
+  holidays: Holiday[]
+): string {
+  const now = new Date();
+  const [hours, minutes] = time.split(":").map(Number);
+  
+  console.log(`\n📅 calculateNextRun START: day=${dayOfMonth}, time=${time}, handling=${holidayHandling}`);
+  console.log(`⏰ Current time: ${now.toString()}`);
+  
+  // 이번 달 예정일
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, hours, minutes);
+  
+  // 다음 달 예정일
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth, hours, minutes);
+  
+  console.log(`📌 thisMonth: ${thisMonth.toString()}, thisMonth > now: ${thisMonth > now}`);
+  console.log(`📌 nextMonth: ${nextMonth.toString()}`);
+  
+  // 이번 달 예정일이 아직 지나지 않았으면 이번 달, 지났으면 다음 달
+  let targetDate = thisMonth > now ? thisMonth : nextMonth;
+  console.log(`🎯 Initial targetDate: ${targetDate.toString()}`);
+  
+  // holiday_handling 적용
+  const beforeHoliday = new Date(targetDate);
+  targetDate = findNearestNonHoliday(targetDate, holidayHandling, holidays);
+  console.log(`🏖️ After holiday handling: ${beforeHoliday.toString()} → ${targetDate.toString()}`);
+  
+  // 휴일 처리 후 날짜가 현재 시간보다 과거가 되었다면 다음 달로 이동
+  if (targetDate <= now) {
+    console.log(`⚠️ targetDate is in the past, moving to next month...`);
+    // 다음 달 예정일을 다시 계산
+    const nextMonthBase = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth, hours, minutes);
+    console.log(`📌 nextMonthBase: ${nextMonthBase.toString()}`);
+    targetDate = findNearestNonHoliday(nextMonthBase, holidayHandling, holidays);
+    console.log(`🎯 Final targetDate after next month: ${targetDate.toString()}`);
+  }
+  
+  // 포맷: 2025-12-10 10:00 a.m.
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, "0");
+  const day = String(targetDate.getDate()).padStart(2, "0");
+  const hour = targetDate.getHours();
+  const minute = String(targetDate.getMinutes()).padStart(2, "0");
+  const ampm = hour >= 12 ? "p.m." : "a.m.";
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  
+  const result = `${year}-${month}-${day} ${displayHour}:${minute} ${ampm}`;
+  console.log(`✅ calculateNextRun RESULT: ${result}\n`);
+  
+  return result;
+}
+
+// 다음 실행 예정일을 Date 객체로 반환 (정렬용)
+function calculateNextRunDate(
+  dayOfMonth: number,
+  time: string,
+  holidayHandling: string,
+  holidays: Holiday[]
+): Date {
+  const now = new Date();
+  const [hours, minutes] = time.split(":").map(Number);
+  
+  // 이번 달 예정일
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, hours, minutes);
+  
+  // 다음 달 예정일
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth, hours, minutes);
+  
+  // 이번 달 예정일이 아직 지나지 않았으면 이번 달, 지났으면 다음 달
+  let targetDate = thisMonth > now ? thisMonth : nextMonth;
+  
+  // holiday_handling 적용
+  targetDate = findNearestNonHoliday(targetDate, holidayHandling, holidays);
+  
+  // 휴일 처리 후 날짜가 현재 시간보다 과거가 되었다면 다음 달로 이동
+  if (targetDate <= now) {
+    const nextMonthBase = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth, hours, minutes);
+    targetDate = findNearestNonHoliday(nextMonthBase, holidayHandling, holidays);
+  }
+  
+  return targetDate;
+}
+
+export default function ScheduledEntries() {
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);  // 폼 표시 여부
+  const [form, setForm] = useState({
+    day_of_month: "",
+    time: "",
+    holiday_handling: "on",
+    cat1_id: "",
+    cat2_id: "",
+    cat3_id: "",
+    inout: "-1",
+    amount: "",
+    pay_method: "",
+    memo: "",
+    place_id: "",
+  });
+
+  const [cat1List, setCat1List] = useState<{ id: number; name: string }[]>([]);
+  const [cat2List, setCat2List] = useState<{ id: number; name: string; inout: number | null }[]>([]);
+  const [cat3List, setCat3List] = useState<{ id: number; name: string }[]>([]);
+  const [cat2All, setCat2All] = useState<CategoryL2Meta[]>([]);
+  const [cat3All, setCat3All] = useState<CategoryL3Meta[]>([]);
+  const [payList, setPayList] = useState<{ code: string; name: string }[]>([]);
+  const [cat2Map, setCat2Map] = useState<Record<number, CategoryL2Meta>>({});
+  const [cat3Map, setCat3Map] = useState<Record<number, CategoryL3Meta>>({});
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
+
+  // 팝업 열림/닫힘 시 배경 스크롤 제어
+  useEffect(() => {
+    if (showForm || calculatorOpen) {
+      document.documentElement.classList.add("modal-open");
+      // showForm일 때만 pointerEvents 설정 (calculatorOpen은 CalculatorPopup에서 처리)
+      if (showForm) {
+        document.body.style.pointerEvents = "none";
+      }
+    } else {
+      document.documentElement.classList.remove("modal-open");
+      document.body.style.pointerEvents = "auto";
+    }
+
+    return () => {
+      document.documentElement.classList.remove("modal-open");
+      document.body.style.pointerEvents = "auto";
+    };
+  }, [showForm, calculatorOpen]);
+
+  // 휴일 데이터 로드
+  useEffect(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+    const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+
+    console.log(`\n📅 ========== LOADING HOLIDAYS ==========`);
+    console.log(`📅 Requesting: ${currentYear}-${String(currentMonth).padStart(2, '0')} and ${nextYear}-${String(nextMonth).padStart(2, '0')}`);
+
+    // 이번 달과 다음 달의 휴일 데이터 가져오기
+    Promise.all([
+      axios.get(`/holidays?year=${currentYear}&month=${currentMonth}`),
+      axios.get(`/holidays?year=${nextYear}&month=${nextMonth}`)
+    ]).then(([current, next]) => {
+      const allHolidays = [...current.data, ...next.data];
+      console.log(`✅ Loaded holidays: ${allHolidays.length} records total`);
+      console.log(`  - ${currentYear}-${String(currentMonth).padStart(2, '0')}: ${current.data.length} records`);
+      console.log(`  - ${nextYear}-${String(nextMonth).padStart(2, '0')}: ${next.data.length} records`);
+      
+      // 12월 13, 14, 15일 데이터 상세 확인
+      ['2025-12-12', '2025-12-13', '2025-12-14', '2025-12-15'].forEach(dt => {
+        const h = allHolidays.find((item: any) => item.dt === dt);
+        if (h) {
+          console.log(`  📆 ${dt}: is_holiday=${h.is_holiday}, weekday=${h.weekday}, name=${h.holiday_name || 'none'}`);
+        } else {
+          console.warn(`  ⚠️ ${dt}: NOT FOUND`);
+        }
+      });
+      
+      // 1월 13일도 확인
+      const jan13 = allHolidays.find((h: any) => h.dt === '2026-01-13');
+      if (jan13) {
+        console.log(`  📆 2026-01-13: is_holiday=${jan13.is_holiday}, weekday=${jan13.weekday}`);
+      }
+      
+      console.log(`========================================\n`);
+      
+      setHolidays(allHolidays);
+    }).catch(err => {
+      console.error("❌ 휴일 데이터 로드 실패:", err);
+    });
+  }, []);
+
+  // 메타데이터 로드
+  useEffect(() => {
+    axios.get("/meta/categories/lvl1")
+      .then((res) => {
+        setCat1List(Array.isArray(res.data) ? res.data : []);
+      })
+      .catch((err) => {
+        console.error("카테고리 로드 실패...\n", err);
+        setCat1List([]);
+      });
+    
+    axios.get("/meta/payment-methods/list")
+      .then((res) => {
+        const data = Array.isArray(res.data) ? res.data : [];
+        setPayList(
+          data.map((p: any) => ({
+            code: String(p.method_id),
+            name: p.method_name,
+          }))
+        );
+      })
+      .catch((err) => {
+        console.error("결제 수단 로드 실패...\n", err);
+        setPayList([]);
+      });
+
+    axios
+      .get("/meta/categories/lvl2")
+      .then((res) => {
+        const data = Array.isArray(res.data) ? res.data : [];
+        setCat2All(data);
+        const map = data.reduce((acc, item) => {
+          if (typeof item?.id === "number") {
+            acc[item.id] = {
+              id: item.id,
+              name: item.name,
+              cat1_id: item.cat1_id,
+              inout: item.inout ?? null,
+            };
+          }
+          return acc;
+        }, {} as Record<number, CategoryL2Meta>);
+        setCat2Map(map);
+      })
+      .catch((err) => {
+        console.error("전체 소분류 로드 실패...\n", err);
+        setCat2Map({});
+      });
+
+    axios
+      .get("/meta/categories/lvl3")
+      .then((res) => {
+        const data = Array.isArray(res.data) ? res.data : [];
+        setCat3All(data);
+        const map = data.reduce((acc, item) => {
+          if (typeof item?.id === "number") {
+            acc[item.id] = {
+              id: item.id,
+              name: item.name,
+              cat2_id: item.cat2_id,
+            };
+          }
+          return acc;
+        }, {} as Record<number, CategoryL3Meta>);
+        setCat3Map(map);
+      })
+      .catch((err) => {
+        console.error("전체 세분류 로드 실패...\n", err);
+        setCat3Map({});
+      });
+  }, []);
+
+  // 소분류 로드
+  useEffect(() => {
+    if (!form.cat1_id) {
+      setCat2List([]);
+      return;
+    }
+    axios
+      .get("/meta/categories/lvl2", { params: { cat1_id: form.cat1_id } })
+      .then((res) => {
+        setCat2List(Array.isArray(res.data) ? res.data : []);
+      })
+      .catch((err) => {
+        console.error("소분류 로드 실패...\n", err);
+        setCat2List([]);
+      });
+  }, [form.cat1_id]);
+
+  // 소분류 선택 시 IN/OUT 자동 설정
+  useEffect(() => {
+    if (form.cat2_id) {
+      const selectedCat2 = cat2List.find(c => String(c.id) === form.cat2_id);
+      if (selectedCat2 && selectedCat2.inout !== null) {
+        setForm(f => ({ ...f, inout: String(selectedCat2.inout) }));
+      }
+    }
+  }, [form.cat2_id, cat2List]);
+
+  // 세분류 로드
+  useEffect(() => {
+    if (!form.cat2_id) {
+      setCat3List([]);
+      setForm((f) => ({ ...f, cat3_id: "" }));
+      return;
+    }
+    axios
+      .get("/meta/categories/lvl3", { params: { cat2_id: form.cat2_id } })
+      .then((res) => {
+        setCat3List(Array.isArray(res.data) ? res.data : []);
+      })
+      .catch((err) => {
+        console.error("세분류 로드 실패...\n", err);
+        setCat3List([]);
+      });
+  }, [form.cat2_id]);
+
+  const toTimeString = (hour?: number, minute?: number) => {
+    if (typeof hour !== "number" || typeof minute !== "number") return "00:00";
+    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  };
+
+  const decorateSchedule = (item: any) => ({
+    ...item,
+    time: toTimeString(item.hour, item.minute),
+    memo: item.memo || "",
+    editable: false,
+    __dirty: false,
+  });
+
+  // 스케줄 목록 로드
+  const loadSchedules = async () => {
+    try {
+      const res = await axios.get("/scheduled-entries");
+      const data = Array.isArray(res.data) ? res.data : [];
+      setSchedules(data.map(decorateSchedule));
+    } catch (err) {
+      console.error("스케줄 로드 실패...\n:", err);
+      setSchedules([]);
+    }
+  };
+
+  useEffect(() => {
+    loadSchedules();
+  }, []);
+
+  const mutateSchedule = (
+    scheduleId: number,
+    updater: (current: any) => any,
+    markDirty = true
+  ) => {
+    setSchedules((prev) =>
+      prev.map((item) => {
+        if (item.schedule_id !== scheduleId) return item;
+        const next = updater({ ...item });
+        if (!markDirty) {
+          return next;
+        }
+        return { ...next, __dirty: true };
+      })
+    );
+  };
+
+  const updateScheduleFields = (
+    scheduleId: number,
+    updates: Partial<any>,
+    markDirty = true
+  ) => {
+    mutateSchedule(
+      scheduleId,
+      (item) => ({
+        ...item,
+        ...updates,
+      }),
+      markDirty
+    );
+  };
+
+  const toggleScheduleEditable = (scheduleId: number) => {
+    mutateSchedule(
+      scheduleId,
+      (item) => ({
+        ...item,
+        editable: !item.editable,
+      }),
+      false
+    );
+  };
+
+  // IN/OUT 전환 (소분류 선택 시 자동 설정되므로 비활성화)
+  // const toggleScheduleInOut = (scheduleId: number) => {
+  //   mutateSchedule(scheduleId, (item) => ({
+  //     ...item,
+  //     inout: item.inout === 1 ? -1 : 1,
+  //   }));
+  // };
+
+  const handleScheduleDayChange = (scheduleId: number, value: string) => {
+    updateScheduleFields(scheduleId, {
+      day_of_month: value ? Number(value) : null,
+    });
+  };
+
+  const handleScheduleTimeChange = (scheduleId: number, value: string) => {
+    updateScheduleFields(scheduleId, { time: value });
+  };
+
+  const handleScheduleCat1Change = (scheduleId: number, value: string) => {
+    updateScheduleFields(scheduleId, {
+      cat1_id: value ? Number(value) : null,
+      cat2_id: null,
+      cat3_id: null,
+    });
+  };
+
+  const handleScheduleCat2Change = (scheduleId: number, value: string) => {
+    const cat2Id = value ? Number(value) : null;
+    const updates: any = {
+      cat2_id: cat2Id,
+      cat3_id: null,
+    };
+    
+    // 소분류 선택 시 IN/OUT 자동 설정
+    if (cat2Id !== null) {
+      const selectedCat2 = cat2All.find(c => c.id === cat2Id);
+      if (selectedCat2 && selectedCat2.inout !== null) {
+        updates.inout = selectedCat2.inout;
+      }
+    }
+    
+    updateScheduleFields(scheduleId, updates);
+  };
+
+  const handleScheduleCat3Change = (scheduleId: number, value: string) => {
+    updateScheduleFields(scheduleId, {
+      cat3_id: value ? Number(value) : null,
+    });
+  };
+
+  const handleSchedulePayChange = (scheduleId: number, value: string) => {
+    updateScheduleFields(scheduleId, {
+      pay_method: value ? Number(value) : null,
+    });
+  };
+
+  const handleScheduleAmountChange = (scheduleId: number, value: string) => {
+    const amountValue = value === "" ? null : Number(value);
+    updateScheduleFields(scheduleId, { amount: amountValue });
+  };
+
+  const handleScheduleMemoChange = (scheduleId: number, value: string) => {
+    updateScheduleFields(scheduleId, { memo: value });
+  };
+
+  const handleScheduleHolidayChange = (scheduleId: number, value: string) => {
+    updateScheduleFields(scheduleId, { holiday_handling: value });
+  };
+
+  const dirtySchedules = schedules.filter((schedule) => schedule.__dirty);
+
+  // Next 날짜 기준으로 정렬된 schedules
+  const sortedSchedules = useMemo(() => {
+    if (schedules.length === 0 || holidays.length === 0) {
+      return schedules;
+    }
+
+    return [...schedules].sort((a, b) => {
+      const timeA = a.time || toTimeString(a.hour, a.minute);
+      const timeB = b.time || toTimeString(b.hour, b.minute);
+      
+      // day_of_month와 time이 없으면 맨 뒤로
+      if (!a.day_of_month || !timeA) return 1;
+      if (!b.day_of_month || !timeB) return -1;
+
+      try {
+        const dateA = calculateNextRunDate(
+          a.day_of_month,
+          timeA,
+          a.holiday_handling || "on",
+          holidays
+        );
+        const dateB = calculateNextRunDate(
+          b.day_of_month,
+          timeB,
+          b.holiday_handling || "on",
+          holidays
+        );
+        return dateA.getTime() - dateB.getTime();
+      } catch (err) {
+        console.error("정렬 중 오류:", err);
+        return 0;
+      }
+    });
+  }, [schedules, holidays]);
+
+  const buildSchedulePayload = (schedule: any) => {
+    const [hour, minute] = (schedule.time || "00:00").split(":").map(Number);
+
+    return {
+      day_of_month: Number(schedule.day_of_month),
+      hour,
+      minute,
+      holiday_handling: schedule.holiday_handling,
+      cat1_id: Number(schedule.cat1_id),
+      cat2_id: Number(schedule.cat2_id),
+      cat3_id: schedule.cat3_id ? Number(schedule.cat3_id) : null,
+      inout: Number(schedule.inout),
+      amount: Number(schedule.amount),
+      pay_method: schedule.pay_method ? Number(schedule.pay_method) : null,
+      memo: schedule.memo ? schedule.memo : null,
+      place_id: schedule.place_id ? Number(schedule.place_id) : null,
+    };
+  };
+
+  const validateSchedule = (schedule: any) => {
+    return (
+      schedule.day_of_month &&
+      schedule.time &&
+      schedule.cat1_id &&
+      schedule.cat2_id &&
+      schedule.amount != null && schedule.amount !== '' &&
+      schedule.pay_method
+    );
+  };
+
+  const handleBulkSave = async () => {
+    if (!dirtySchedules.length) {
+      alert("변경된 스케줄이 없습니다.");
+      return;
+    }
+
+    const invalidSchedule = dirtySchedules.find((schedule) => !validateSchedule(schedule));
+    if (invalidSchedule) {
+      alert("모든 필수 항목(일자, 시간, 카테고리, 금액, 결제 수단)을 입력하세요.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await Promise.all(
+        dirtySchedules.map((schedule) =>
+          axios.put(`/scheduled-entries/${schedule.schedule_id}`, buildSchedulePayload(schedule))
+        )
+      );
+      alert("스케줄이 저장되었습니다.");
+      await loadSchedules();
+    } catch (err: any) {
+      console.error(err);
+      alert("저장 중 오류가 발생했습니다.\n" + (err.response?.data?.detail || err.message));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (
+      !form.day_of_month ||
+      !form.time ||
+      !form.cat1_id ||
+      !form.cat2_id ||
+      form.amount == null || form.amount === '' ||
+      !form.pay_method
+    ) {
+      alert("필수 항목을 모두 입력하세요~");
+      return;
+    }
+
+    // time 문자열을 시/분으로 분리 (HH:MM → hour, minute)
+    const [hour, minute] = form.time.split(":").map(Number);
+
+    try {
+      await axios.post("/scheduled-entries", {
+        day_of_month: Number(form.day_of_month),
+        hour: hour,
+        minute: minute,
+        holiday_handling: form.holiday_handling,
+        cat1_id: Number(form.cat1_id),
+        cat2_id: Number(form.cat2_id),
+        cat3_id: form.cat3_id ? Number(form.cat3_id) : null,
+        inout: Number(form.inout),
+        amount: Number(form.amount),
+        pay_method: form.pay_method ? Number(form.pay_method) : null,
+        memo: form.memo || null,
+        place_id: form.place_id ? Number(form.place_id) : null,
+        is_active: 1,
+      });
+
+      alert("스케줄이 등록되었습니다.");
+      loadSchedules();
+
+      // 폼 초기화 및 숨기기
+      setForm({
+        day_of_month: "",
+        time: "",
+        holiday_handling: "on",
+        cat1_id: "",
+        cat2_id: "",
+        cat3_id: "",
+        inout: "-1",
+        amount: "",
+        pay_method: "",
+        memo: "",
+        place_id: "",
+      });
+      setCat2List([]);
+      setShowForm(false);
+    } catch (err: any) {
+      console.error(err);
+      alert("등록 중 오류가 발생했습니다.\n" + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleDelete = async (scheduleId: number) => {
+    if (!confirm("이 스케줄을 삭제하시겠습니까?")) return;
+
+    try {
+      await axios.delete(`/scheduled-entries/${scheduleId}`);
+      alert("삭제되었습니다.");
+      await loadSchedules();
+    } catch (err) {
+      console.error(err);
+      alert("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 일 선택 옵션 생성 (1-31)
+  const dayOptions = Array.from({ length: 31 }, (_, i) => i + 1);
+
+  return (
+    <div className="page-wrap">
+      <Menu />
+      <h1 className="page-title">Scheduled Entries</h1>
+
+      {/* New & Save 툴바 */}
+      <div className="scheduled-toolbar mb-4">
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="ui-btn scheduled-toolbar__btn scheduled-toolbar__btn--new"
+        >
+          [+] 새로운 스케줄
+        </button>
+        <button
+          onClick={handleBulkSave}
+          className="ui-btn primary scheduled-toolbar__btn scheduled-toolbar__btn--save"
+          disabled={isSaving || !dirtySchedules.length}
+        >
+          {isSaving
+            ? "저장 중..."
+            : dirtySchedules.length
+            ? `저장 (${dirtySchedules.length})`
+            : "저장"}
+        </button>
+      </div>
+
+      {/* 등록 폼 팝업 */}
+      {showForm && (
+        <div className="popup-overlay" onClick={() => {
+          setShowForm(false);
+          // 폼 닫을 때 초기화
+          setForm({
+            day_of_month: "",
+            time: "",
+            holiday_handling: "on",
+            cat1_id: "",
+            cat2_id: "",
+            cat3_id: "",
+            inout: "-1",
+            amount: "",
+            pay_method: "",
+            memo: "",
+            place_id: "",
+          });
+          setCat2List([]);
+        }}>
+          <div className="popup-panel" onClick={(e) => e.stopPropagation()}>
+            <h3>스케줄</h3>
+            
+            <form onSubmit={handleSubmit}>
+              {/* 매월 일 + 시간 */}
+              <div className="flex gap-2" style={{marginBottom: '6px', marginTop: '4px'}}>
+                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
+                  <label className="form-label required">매월</label>
+                  <SingleSelect
+                    options={dayOptions.map(d => ({ value: String(d), label: `${d}일` }))}
+                    selected={form.day_of_month}
+                    onChange={(value) => setForm({ ...form, day_of_month: value })}
+                    placeholder="(일)"
+                  />
+                </div>
+                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
+                  <label className="form-label required">시간</label>
+                  <input
+                    type="time"
+                    name="time"
+                    value={form.time}
+                    onChange={handleChange}
+                    className="ui-input"
+                    step="300"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* 휴일 처리 | 중분류 */}
+              <div className="flex gap-2" style={{marginBottom: '6px'}}>
+                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
+                  <label className="form-label required">휴일 처리</label>
+                  <SingleSelect
+                    options={[
+                      { value: "before", label: "휴일 전" },
+                      { value: "on", label: "당일" },
+                      { value: "after", label: "휴일 후" }
+                    ]}
+                    selected={form.holiday_handling}
+                    onChange={(value) => setForm({ ...form, holiday_handling: value as "before" | "on" | "after" })}
+                    placeholder="선택"
+                  />
+                </div>
+                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
+                  <label className="form-label required">중분류</label>
+                  <SingleSelect
+                    options={cat1List.map(c => ({ value: String(c.id), label: c.name }))}
+                    selected={form.cat1_id}
+                    onChange={(value) => setForm({ ...form, cat1_id: value })}
+                    placeholder="(중분류)"
+                  />
+                </div>
+              </div>
+
+              {/* 소분류 | 세분류 */}
+              <div className="flex gap-2" style={{marginBottom: '6px'}}>
+                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
+                  <label className="form-label required">소분류</label>
+                  <SingleSelect
+                    options={cat2List.map(c => ({ value: String(c.id), label: c.name }))}
+                    selected={form.cat2_id}
+                    onChange={(value) => setForm({ ...form, cat2_id: value })}
+                    placeholder="(소분류)"
+                  />
+                </div>
+                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
+                  <label className="form-label">세분류</label>
+                  <SingleSelect
+                    options={cat3List.map(c => ({ value: String(c.id), label: c.name }))}
+                    selected={form.cat3_id}
+                    onChange={(value) => setForm({ ...form, cat3_id: value })}
+                    placeholder="(세분류)"
+                  />
+                </div>
+              </div>
+
+              {/* IN/OUT | 결제 수단 */}
+              <div className="flex gap-2" style={{marginBottom: '6px'}}>
+                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
+                  <label className="form-label required">IN/OUT</label>
+                  <div className="ui-input" style={{ display: 'flex', alignItems: 'center', padding: '0 10px', height: '36px', background: 'var(--color-bg)', cursor: 'not-allowed' }}>
+                    {form.inout === "1" ? "IN(+)" : form.inout === "-1" ? "OUT(-)" : "—"}
+                  </div>
+                </div>
+                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
+                  <label className="form-label required">결제 수단</label>
+                  <SingleSelect
+                    options={payList.map(p => ({ value: p.code, label: p.name }))}
+                    selected={form.pay_method}
+                    onChange={(value) => setForm({ ...form, pay_method: value })}
+                    placeholder="(결제 수단)"
+                  />
+                </div>
+              </div>
+
+              {/* 금액 */}
+              <div className="form-row" style={{marginBottom: '16px'}}>
+                <label className="form-label required">금액</label>
+                <input
+                  type="number"
+                  name="amount"
+                  value={form.amount}
+                  onChange={handleChange}
+                  className="ui-input"
+                  required
+                  placeholder="(금액)"
+                />
+              </div>
+
+              {/* 메모 */}
+              <div className="form-row" style={{marginBottom: '16px'}}>
+                <label className="form-label">메모</label>
+                <input
+                  type="text"
+                  name="memo"
+                  value={form.memo}
+                  onChange={handleChange}
+                  className="ui-input"
+                  placeholder="(메모)"
+                />
+              </div>
+
+              <button type="submit" className="ui-btn primary w-full">
+                등록
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 등록된 스케줄 목록 */}
+      {schedules.length === 0 ? (
+        <div className="card text-center py-12">
+          <p className="text-gray-500 mb-2">등록된 스케줄이 없습니다.</p>
+          <p className="text-sm text-gray-400">위의 "[+] 새로운 스케줄" 버튼을 눌러 스케줄을 등록하세요.</p>
+        </div>
+      ) : (
+        <div className="scheduled-card-list">
+          {sortedSchedules.map((s) => {
+            const isEditing = s.editable;
+            const cat1 = cat1List.find((c) => c.id === s.cat1_id);
+            const cat2Id =
+              s.cat2_id !== null && s.cat2_id !== undefined
+                ? Number(s.cat2_id)
+                : null;
+            const cat3Id =
+              s.cat3_id !== null && s.cat3_id !== undefined
+                ? Number(s.cat3_id)
+                : null;
+            const cat2Name = cat2Id !== null ? cat2Map[cat2Id]?.name : null;
+            const cat3Name = cat3Id !== null ? cat3Map[cat3Id]?.name : null;
+            const pay = payList.find((p) => p.code === String(s.pay_method));
+            const paySelectValue =
+              s.pay_method === null || s.pay_method === undefined
+                ? ""
+                : String(s.pay_method);
+            const holidayLabel =
+              s.holiday_handling === "before"
+                ? "휴일 전"
+                : s.holiday_handling === "after"
+                ? "휴일 후"
+                : "당일";
+            const cat2Options = cat2All.filter((c) => c.cat1_id === s.cat1_id);
+            const cat3Options = cat3All.filter((c) => c.cat2_id === s.cat2_id);
+            const amountDisplay =
+              typeof s.amount === "number" && !Number.isNaN(s.amount)
+                ? s.amount.toLocaleString()
+                : "-";
+            const timeDisplay = s.time || toTimeString(s.hour, s.minute);
+
+            return (
+              <div
+                key={s.schedule_id}
+                className={`card schedule-card ${isEditing ? "editing" : ""}`}
+              >
+                {/* 소분류 선택 시 자동 설정되므로 클릭 이벤트 제거 */}
+                {/* onClick={() => toggleScheduleInOut(s.schedule_id)}
+                title={
+                  s.inout === 1
+                    ? "IN(수입) → OUT으로 전환"
+                    : "OUT(지출) → IN으로 전환"
+                } */}
+                <div
+                  className={`inout-bar ${
+                    s.inout === 1 ? "in-bar" : s.inout === -1 ? "out-bar" : ""
+                  }`}
+                ></div>
+                <div className="schedule-card__body">
+                  <div className="schedule-card__row schedule-card__row--header">
+                    <div className="schedule-card__date-block">
+                      {isEditing ? (
+                        <div className="schedule-card__date-inputs">
+                          <div style={{ flex: 1 }}>
+                            <SingleSelect
+                              options={dayOptions.map(d => ({ value: String(d), label: `${d}일` }))}
+                              selected={String(s.day_of_month ?? "")}
+                              onChange={(value) => handleScheduleDayChange(s.schedule_id, value)}
+                              placeholder="(일)"
+                            />
+                          </div>
+                          <input
+                            type="time"
+                            value={timeDisplay}
+                            onChange={(e) =>
+                              handleScheduleTimeChange(s.schedule_id, e.target.value)
+                            }
+                            step="300"
+                            className="ui-input"
+                            style={{ flex: 1 }}
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div className="schedule-card__date-line">
+                            <span className="schedule-card__month">
+                              매월 {s.day_of_month}일
+                            </span>
+                            <span className="schedule-card__time">{timeDisplay}</span>
+                          </div>
+                          {s.day_of_month && timeDisplay && (
+                            <div className="schedule-card__next-run">
+                              Next: {calculateNextRun(s.day_of_month, timeDisplay, s.holiday_handling, holidays)}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 카테고리 행 */}
+                  <div className="row-category">
+                    {isEditing ? (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
+                          <SingleSelect
+                            options={cat1List.map(c => ({ value: String(c.id), label: c.name }))}
+                            selected={String(s.cat1_id ?? "")}
+                            onChange={(value) => handleScheduleCat1Change(s.schedule_id, value)}
+                            placeholder="(중분류)"
+                          />
+                        </div>
+                        <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
+                          <SingleSelect
+                            options={cat2Options.map(c => ({ value: String(c.id), label: c.name }))}
+                            selected={String(s.cat2_id ?? "")}
+                            onChange={(value) => handleScheduleCat2Change(s.schedule_id, value)}
+                            placeholder="(소분류)"
+                          />
+                        </div>
+                        <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
+                          <SingleSelect
+                            options={[
+                              { value: "", label: "(세분류)" },
+                              ...cat3Options.map(c => ({ value: String(c.id), label: c.name }))
+                            ]}
+                            selected={String(s.cat3_id ?? "")}
+                            onChange={(value) => handleScheduleCat3Change(s.schedule_id, value)}
+                            placeholder="(세분류)"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="cat-display">
+                        <span className="cat-text">{cat1?.name || "-"}</span>
+                        <span className="cat-sep"> &gt; </span>
+                        <span className="cat-text">{cat2Name || "-"}</span>
+                        {cat3Name && (
+                          <>
+                            <span className="cat-sep"> &gt; </span>
+                            <span className="cat3-text">{cat3Name}</span>
+                          </>
+                        )}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 결제 수단 + 금액 행 */}
+                  <div className="row-payment">
+                    {isEditing ? (
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ flex: '1 1 auto', minWidth: '80px', maxWidth: '120px' }}>
+                          <SingleSelect
+                            options={payList.map(p => ({ value: p.code, label: p.name }))}
+                            selected={paySelectValue}
+                            onChange={(value) => handleSchedulePayChange(s.schedule_id, value)}
+                            placeholder="(결제 수단)"
+                          />
+                        </div>
+                        <input
+                          type="number"
+                          value={s.amount ?? ""}
+                          onChange={(e) =>
+                            handleScheduleAmountChange(s.schedule_id, e.target.value)
+                          }
+                          className="ui-input schedule-card__amount-input amount-input"
+                          placeholder="금액"
+                          style={{ width: '100px', height: '28px' }}
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <span className="pay-method-text">{pay?.name || "-"}</span>
+                        <span
+                          className={`amount-text ${
+                            s.inout === 1 ? "schedule-card__amount-value--in" : "schedule-card__amount-value--out"
+                          }`}
+                        >
+                          {amountDisplay}
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="schedule-card__row schedule-card__row--meta-single">
+                    {isEditing ? (
+                      <SingleSelect
+                        options={[
+                          { value: "before", label: "휴일 전" },
+                          { value: "on", label: "당일" },
+                          { value: "after", label: "휴일 후" }
+                        ]}
+                        selected={s.holiday_handling}
+                        onChange={(value) => handleScheduleHolidayChange(s.schedule_id, value)}
+                        placeholder="선택"
+                      />
+                    ) : (
+                      <>
+                        <div className="schedule-card__label">휴일 처리</div>
+                        <span className="schedule-card__meta-value">{holidayLabel}</span>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="schedule-card__row schedule-card__row--meta-single">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={s.memo || ""}
+                        onChange={(e) =>
+                          handleScheduleMemoChange(s.schedule_id, e.target.value)
+                        }
+                        className="ui-input memo-input"
+                        placeholder="메모 입력"
+                      />
+                    ) : (
+                      <>
+                        <div className="schedule-card__label">메모</div>
+                        <span
+                          className={`schedule-card__meta-value ${
+                            s.memo ? "" : "schedule-card__meta-value--placeholder"
+                          }`}
+                        >
+                          {s.memo || "-"}
+                        </span>
+                      </>
+                    )}
+                    <div className="schedule-card__toolbar">
+                      <label className="edit-toggle" title="편집">
+                        <input
+                          type="checkbox"
+                          checked={isEditing}
+                          onChange={() => toggleScheduleEditable(s.schedule_id)}
+                        />
+                        <span className="edit-label">편집</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Edit 모드 전용 버튼 라인 */}
+                  {isEditing && (
+                    <div className="schedule-card__row schedule-card__row--edit-actions">
+                      <button
+                        onClick={() => handleDelete(s.schedule_id)}
+                        className="delete-btn"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <button
+        className="calculator-trigger-button"
+        onClick={() => setCalculatorOpen(!calculatorOpen)}
+        aria-label="Calculator"
+      >
+        계산기
+      </button>
+      {calculatorOpen && (
+        <CalculatorPopup onClose={() => setCalculatorOpen(false)} />
+      )}
+    </div>
+  );
+}
