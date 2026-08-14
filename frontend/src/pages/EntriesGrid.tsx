@@ -6,7 +6,9 @@ import { PlacePicker } from "./EntryForm";
 import MultiSelect from "./components/MultiSelect";
 import SingleSelect from "./components/SingleSelect";
 import CalculatorPopup from "./components/CalculatorPopup";
-import CardEditModal, { EditField } from "./components/CardEditModal";
+import CardEditModal, { EditField, EditDivider } from "./components/CardEditModal";
+import SplitEditor from "./components/SplitEditor";
+import type { SplitDraft } from "./components/SplitEditor";
 import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
 import useLongPress from "../hooks/useLongPress";
@@ -26,6 +28,7 @@ export default function EntriesGrid() {
 
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다
   const [draft, setDraft] = useState<any | null>(null);
+  const [splits, setSplits] = useState<SplitDraft[]>([]);
   const [placePickerOpen, setPlacePickerOpen] = useState(false);
 
   const [filterOpen, setFilterOpen] = useState(false);
@@ -86,10 +89,27 @@ export default function EntriesGrid() {
 
   const openEditor = useCallback((row: any) => {
     setDraft({ ...row });
+    // 분할은 목록 조회에 합계만 실려 오므로, 편집할 때 상세를 따로 가져온다
+    setSplits([]);
+    if (row.split_count > 0) {
+      axios
+        .get(`/entries/${row.entry_id}/splits`)
+        .then((r) =>
+          setSplits(
+            r.data.map((s: SplitDraft) => ({
+              amount: s.amount,
+              counterpart_id: s.counterpart_id,
+              memo: s.memo,
+            }))
+          )
+        )
+        .catch(() => setSplits([]));
+    }
   }, []);
 
   const closeEditor = useCallback(() => {
     setDraft(null);
+    setSplits([]);
     setPlacePickerOpen(false);
   }, []);
 
@@ -129,6 +149,20 @@ export default function EntriesGrid() {
       return;
     }
 
+    // 분할 검증 — 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다
+    const cleanSplits = splits.filter(
+      (s) => s.amount !== "" && Number(s.amount) > 0
+    );
+    if (cleanSplits.length !== splits.length && splits.some((s) => s.amount === "" || Number(s.amount) <= 0)) {
+      alert("분할 금액은 0보다 커야 합니다.");
+      return;
+    }
+    const splitSum = cleanSplits.reduce((s, r) => s + Number(r.amount), 0);
+    if (splitSum > Number(draft.amount)) {
+      alert("분할 합계가 결제 금액을 초과합니다.");
+      return;
+    }
+
     // 정제(clean) payload 생성 — API 는 배열을 받으므로 1건짜리 배열로 보낸다
     const clean = [{
       entry_id: draft.entry_id,
@@ -158,6 +192,8 @@ export default function EntriesGrid() {
 
     try {
       await axios.put("/entries/bulk", clean);
+      // 분할은 별도 엔드포인트다. 비어 있어도 보내야 기존 분할이 지워진다.
+      await axios.put(`/entries/${draft.entry_id}/splits`, cleanSplits);
       closeEditor();
       alert("저장 완료-!! ;-)");
       await reload();
@@ -714,6 +750,18 @@ export default function EntriesGrid() {
               />
             </EditField>
           </div>
+
+          {/* 금액 쪼개기 — 지출일 때만 의미가 있다 */}
+          {draft.inout === -1 && (
+            <>
+              <EditDivider />
+              <SplitEditor
+                grossAmount={Number(draft.amount) || 0}
+                value={splits}
+                onChange={setSplits}
+              />
+            </>
+          )}
         </CardEditModal>
       )}
 
@@ -938,6 +986,10 @@ function EntryCard({
   const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
   const isBlur = cat2List.find(c => c.id === row.cat2_id)?.blur === 1;
 
+  // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount 다.
+  const hasSplit = (row.split_count ?? 0) > 0;
+  const shownAmount = hasSplit ? row.net_amount : row.amount;
+
   return (
     <article
       className={`card card--pressable ${pressing ? "pressing" : ""}`}
@@ -984,15 +1036,28 @@ function EntryCard({
         <span className="pay-method-text">
           {payList.find((p) => p.code === row.pay_method)?.name ?? ""}
         </span>
-        <span
-          className={`amount-text ${isBlur && !row.reveal_amount ? "masked" : "revealed"}`}
-          data-no-longpress
-          onMouseDown={(e) => isBlur && onStartReveal(row.entry_id, e)}
-          onTouchStart={(e) => isBlur && onStartReveal(row.entry_id, e)}
-        >
-          {typeof row.amount === "number"
-            ? row.amount.toLocaleString("ko-KR")
-            : ""}
+
+        {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다 */}
+        <span className="amount-stack">
+          {hasSplit && (
+            <span
+              className={`amount-split ${isBlur && !row.reveal_amount ? "masked" : "revealed"}`}
+            >
+              {row.amount.toLocaleString("ko-KR")}
+              <span className="amount-split__op"> − </span>
+              {row.split_amount.toLocaleString("ko-KR")}
+            </span>
+          )}
+          <span
+            className={`amount-text ${isBlur && !row.reveal_amount ? "masked" : "revealed"}`}
+            data-no-longpress
+            onMouseDown={(e) => isBlur && onStartReveal(row.entry_id, e)}
+            onTouchStart={(e) => isBlur && onStartReveal(row.entry_id, e)}
+          >
+            {typeof shownAmount === "number"
+              ? shownAmount.toLocaleString("ko-KR")
+              : ""}
+          </span>
         </span>
       </div>
 

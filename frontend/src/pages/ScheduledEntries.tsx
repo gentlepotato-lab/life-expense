@@ -3,7 +3,9 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "../api/client";
 import SingleSelect from "./components/SingleSelect";
 import CalculatorPopup from "./components/CalculatorPopup";
-import CardEditModal, { EditField } from "./components/CardEditModal";
+import CardEditModal, { EditField, EditDivider } from "./components/CardEditModal";
+import SplitEditor from "./components/SplitEditor";
+import type { SplitDraft } from "./components/SplitEditor";
 import { PlacePicker } from "./EntryForm";
 import useLongPress from "../hooks/useLongPress";
 
@@ -215,6 +217,7 @@ export default function ScheduledEntries() {
 
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다
   const [draft, setDraft] = useState<any | null>(null);
+  const [splits, setSplits] = useState<SplitDraft[]>([]);
 
   // 장소 선택 — 편집 팝업(draft)과 신규 등록 폼(form) 중 어디에 반영할지
   const [placePickerFor, setPlacePickerFor] = useState<"draft" | "form" | null>(null);
@@ -465,10 +468,27 @@ export default function ScheduledEntries() {
   const openEditor = useCallback((schedule: any) => {
     setDraft({ ...schedule });
     setDraftPlace(null);          // 이번 편집에서 새로 고른 장소만 추적한다
+    // 분할은 목록 조회에 합계만 실려 오므로, 편집할 때 상세를 따로 가져온다
+    setSplits([]);
+    if (schedule.split_count > 0) {
+      axios
+        .get(`/scheduled-entries/${schedule.schedule_id}/splits`)
+        .then((r) =>
+          setSplits(
+            r.data.map((x: SplitDraft) => ({
+              amount: x.amount,
+              counterpart_id: x.counterpart_id,
+              memo: x.memo,
+            }))
+          )
+        )
+        .catch(() => setSplits([]));
+    }
   }, []);
 
   const closeEditor = useCallback(() => {
     setDraft(null);
+    setSplits([]);
     setDraftPlace(null);
     setPlacePickerFor(null);
   }, []);
@@ -582,6 +602,20 @@ export default function ScheduledEntries() {
       return;
     }
 
+    // 분할 검증 — 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다
+    const cleanSplits = splits.filter(
+      (x) => x.amount !== "" && Number(x.amount) > 0
+    );
+    if (splits.some((x) => x.amount === "" || Number(x.amount) <= 0)) {
+      alert("분할 금액은 0보다 커야 합니다.");
+      return;
+    }
+    const splitSum = cleanSplits.reduce((a, r) => a + Number(r.amount), 0);
+    if (splitSum > Number(draft.amount)) {
+      alert("분할 합계가 결제 금액을 초과합니다.");
+      return;
+    }
+
     try {
       setIsSaving(true);
       const placeId = await ensurePlaceId(draftPlace, draft.place_id);
@@ -589,6 +623,8 @@ export default function ScheduledEntries() {
         ...buildSchedulePayload(draft),
         place_id: placeId,
       });
+      // 분할은 별도 엔드포인트다. 비어 있어도 보내야 기존 분할이 지워진다.
+      await axios.put(`/scheduled-entries/${draft.schedule_id}/splits`, cleanSplits);
       closeEditor();
       alert("스케줄이 저장되었습니다.");
       await loadSchedules();
@@ -1032,6 +1068,19 @@ export default function ScheduledEntries() {
               />
             </EditField>
           </div>
+
+          {/* 금액 쪼개기 — 지출일 때만 의미가 있다.
+              여기에 걸어 둔 분할은 스케줄이 돌 때마다 Pending 으로 따라간다. */}
+          {Number(draft.inout) === -1 && (
+            <>
+              <EditDivider />
+              <SplitEditor
+                grossAmount={Number(draft.amount) || 0}
+                value={splits}
+                onChange={setSplits}
+              />
+            </>
+          )}
         </CardEditModal>
       )}
       <button
@@ -1106,8 +1155,13 @@ function ScheduleCard({
   const pay = payList.find((p) => p.code === String(s.pay_method));
   const holidayLabel =
     s.holiday_handling === "before" ? "휴일 전" : s.holiday_handling === "after" ? "휴일 후" : "당일";
+  // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount 다.
+  const hasSplit = (s.split_count ?? 0) > 0;
+  const shownAmount = hasSplit ? s.net_amount : s.amount;
   const amountDisplay =
-    typeof s.amount === "number" && !Number.isNaN(s.amount) ? s.amount.toLocaleString() : "-";
+    typeof shownAmount === "number" && !Number.isNaN(shownAmount)
+      ? shownAmount.toLocaleString()
+      : "-";
   const timeDisplay = s.time || toTimeString(s.hour, s.minute);
 
   return (
@@ -1152,12 +1206,23 @@ function ScheduleCard({
         {/* 결제 수단 + 금액 행 */}
         <div className="row-payment">
           <span className="pay-method-text">{pay?.name || "-"}</span>
-          <span
-            className={`amount-text ${
-              s.inout === 1 ? "schedule-card__amount-value--in" : "schedule-card__amount-value--out"
-            }`}
-          >
-            {amountDisplay}
+
+          {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다 */}
+          <span className="amount-stack">
+            {hasSplit && (
+              <span className="amount-split">
+                {s.amount.toLocaleString()}
+                <span className="amount-split__op"> − </span>
+                {s.split_amount.toLocaleString()}
+              </span>
+            )}
+            <span
+              className={`amount-text ${
+                s.inout === 1 ? "schedule-card__amount-value--in" : "schedule-card__amount-value--out"
+              }`}
+            >
+              {amountDisplay}
+            </span>
           </span>
         </div>
 

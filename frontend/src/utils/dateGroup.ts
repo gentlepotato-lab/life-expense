@@ -36,6 +36,12 @@ export function formatDateLabel(date: string): string {
 type Summarizable = {
   inout?: number | null;
   amount?: number | null;
+  /**
+   * 금액 쪼개기를 반영한 실지출. 돌려받은 몫은 내 지출이 아니므로
+   * 날짜 합계는 이 값이 있으면 이 값을 쓴다.
+   * 분할을 쓰지 않는 화면(Pending 등)에는 없으므로 amount 로 떨어진다.
+   */
+  net_amount?: number | null;
 };
 
 function summarize<T extends Summarizable>(
@@ -47,7 +53,8 @@ function summarize<T extends Summarizable>(
   let hasMasked = false;
 
   for (const item of items) {
-    const amount = typeof item.amount === "number" ? item.amount : Number(item.amount);
+    const raw = item.net_amount ?? item.amount;
+    const amount = typeof raw === "number" ? raw : Number(raw);
     if (!Number.isFinite(amount)) continue;
 
     if (isMasked?.(item)) hasMasked = true;

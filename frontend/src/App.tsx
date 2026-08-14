@@ -5,6 +5,7 @@ import PendingEntries from "./pages/PendingEntries";
 import ScheduledEntries from "./pages/ScheduledEntries";
 import CategoriesSetting from "./pages/CategoriesSetting";
 import PaymentMethodsSetting from "./pages/PaymentMethodsSetting";
+import CounterpartsSetting from "./pages/CounterpartsSetting";
 import Calculator from "./pages/Calculator";
 
 function App() {
@@ -24,6 +25,8 @@ function App() {
         <Route path="/categories" element={<CategoriesSetting />} />
         {/* Payment Methods 페이지: /app/payment-methods */}
         <Route path="/payment-methods" element={<PaymentMethodsSetting />} />
+        {/* Counterparts 페이지: /app/counterparts — 금액 쪼개기의 상대 목록 */}
+        <Route path="/counterparts" element={<CounterpartsSetting />} />
         {/* Calculator 페이지: /app/calculator */}
         <Route path="/calculator" element={<Calculator />} />
         {/* 존재하지 않는 경로 → 기본 페이지로 */}

@@ -4096,3 +4096,729 @@ button {
   min-height: 0;
   margin: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   19. 금액 쪼개기 — 분할 편집기 · 카드 표시 · 상대 목록 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 카드 금액 — 쪼갠 건은 원래 결제액을 위에 작게 ────────── */
+/* 금액 칸이 두 줄이 되므로 오른쪽 정렬 책임을 스택으로 옮긴다.
+   .row-payment .amount-text 의 margin-left:auto 는 그대로 두어도
+   스택 안에서는 효과가 없다(부모가 flex-end 로 세운다). */
+.amount-stack {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  min-width: 0;
+}
+
+.amount-split {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.amount-split__op {
+  display: inline-block;
+}
+
+.amount-split.masked {
+  filter: blur(5px);
+}
+
+/* ─── 팝업 안 분할 편집기 ─────────────────────────────────────
+   본문(.edit-grid)과 같은 12칸 · 같은 간격 · 같은 컨트롤 높이를 쓴다.
+   그래야 상대/금액/메모가 위쪽 중분류/소분류/세분류와 열이 맞는다. */
+
+/* 그리드 밖(본문 직계)에 놓인 구분선은 절을 가르는 역할이므로 여백을 준다.
+   그리드 안에서 쓰이는 .edit-divider 의 margin 2px 는 그대로 둔다. */
+.edit-modal__body > .edit-divider {
+  margin: 11px 0 9px;
+}
+
+.split-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.split-editor__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: var(--control-h-sm);
+}
+
+/* 팝업의 다른 라벨(.edit-field__label)과 같은 급으로 보이게 */
+.split-editor__title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  line-height: 1.2;
+}
+
+.split-editor__head .ui-btn {
+  height: var(--control-h-sm);
+  min-height: var(--control-h-sm);
+  padding: 0 10px;
+  flex: 0 0 auto;
+}
+
+.split-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: 7px;
+  row-gap: 5px;
+  align-items: center;
+}
+
+/* 라벨은 한 번만 — 줄마다 반복하면 눈이 어지럽다 */
+.split-grid__label {
+  grid-column: span 4;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.split-cell {
+  grid-column: span 4;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.split-cell > input,
+.split-cell > .ms-wrap,
+.split-cell__new {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.split-cell__new {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.split-cell__new > input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 본문 컨트롤과 높이를 정확히 맞춘다.
+   .amount-input 의 height:28px !important 는 min-height 로 눌러 32px 로 맞춘다
+   (본문 금액 칸도 같은 방식으로 32px 이 된다). */
+.split-cell input,
+.split-cell .ms-display {
+  height: var(--control-h);
+  min-height: var(--control-h);
+  max-height: var(--control-h);
+  box-sizing: border-box;
+}
+
+/* .amount-input 은 폭이 90px 로 고정돼 있다. 칸 안에서는 칸을 채워야 한다 */
+.split-cell > input.amount-input {
+  width: 100%;
+  max-width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+}
+
+.split-cell .ms-wrap {
+  height: var(--control-h);
+}
+
+/* 남은 금액 힌트 — 채우기 버튼 대신 입력칸 위에 겹쳐 둔다.
+   기호로 뜻을 설명할 필요가 없고, 버튼이 없으니 금액 칸이 그만큼 넓어진다. */
+.split-cell--amount {
+  position: relative;
+}
+
+.split-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 var(--control-px, 10px);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: color 0.14s ease;
+}
+
+.split-hint:hover {
+  color: var(--color-primary);
+}
+
+/* 값이 비었을 때만 힌트가 뜨므로, 그 아래 Placeholder 는 감춘다 */
+.split-cell--amount > input.amount-input::placeholder {
+  color: transparent;
+}
+
+/* 보조 버튼 — 정사각형이라 칸 폭을 거의 먹지 않는다 */
+.split-icon-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.split-icon-btn:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-tertiary);
+}
+
+.split-icon-btn.primary {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.split-icon-btn.primary:hover {
+  background: rgba(91, 95, 239, 0.08);
+}
+
+.split-icon-btn.danger:hover {
+  background: rgba(255, 92, 87, 0.08);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* ─── 합계 줄 ───────────────────────────────────────────────── */
+.split-editor__sum {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(0, 0, 0, 0.03);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.split-editor__term b {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.split-editor__op {
+  color: var(--color-text-tertiary);
+}
+
+.split-editor__net b {
+  color: var(--color-danger);
+}
+
+.split-editor__sum.over .split-editor__net b {
+  color: var(--color-danger);
+  text-decoration: underline wavy;
+}
+
+.split-editor__warn {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+  text-align: right;
+}
+
+/* ─── Counterparts 설정 화면 ──────────────────────────────────
+   PaymentMethods 의 .pm-item 계열을 빌려 쓰면
+   `div:has(> .pm-item)` 같은 규칙에 휘말려 목록이 눕거나 넘친다.
+   전용 클래스로 짜고, 모든 칸에 min-width:0 을 걸어 넘침을 막는다. */
+/* 좌우 여백은 .page-wrap 이 이미 준다. 여기서 또 주면 이중이 된다 */
+.cp-page {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* ─── 툴바 — 목록 범위(왼쪽) · 편집 여부(오른쪽) ────────────── */
+.cp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.cp-toolbar .ui-btn {
+  flex: 0 0 auto;
+  margin-left: auto;
+  height: var(--control-h);
+  min-height: var(--control-h);
+  padding: 0 16px;
+  min-width: 0;
+}
+
+.cp-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cp-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  min-height: 0;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/* ─── 목록 ─────────────────────────────────────────────────── */
+.cp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* 행 높이를 못 박는다 — 편집 모드에 들어가도 위아래가 밀리지 않아야 한다.
+   52px 는 세 경우를 모두 덮는 값이다.
+     · 표시(메모 없음) 30px  · 표시(메모 있음) 33.5px  · 편집 32px
+   여기에 위아래 여백 16px 을 더해도 52px 안에 들어오므로 항상 같은 높이다. */
+.cp-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.cp-card:hover {
+  border-color: #DDE1E6;
+  box-shadow: var(--shadow-md);
+}
+
+.cp-card.inactive {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+/* 이름 첫 글자 — 목록을 훑을 때 눈이 걸리는 지점 */
+.cp-avatar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: var(--color-text-tertiary);
+}
+
+.cp-card__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cp-card__name {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-card__memo {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── 구분 칩 ──────────────────────────────────────────────── */
+.cp-chip {
+  flex: 0 0 auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-secondary);
+}
+
+.cp-chip.muted {
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-tertiary);
+  font-weight: 500;
+}
+
+/* 구분별 색 — 아바타와 칩이 같은 색 계열을 쓴다 */
+.cp-chip.cat-1 { background: rgba(91, 95, 239, 0.12); color: var(--color-primary); }
+.cp-chip.cat-2 { background: rgba(0, 199, 190, 0.14); color: var(--color-success-dark); }
+.cp-chip.cat-3 { background: rgba(255, 149, 0, 0.14); color: #C26A00; }
+.cp-chip.cat-4 { background: rgba(0, 0, 0, 0.05); color: var(--color-text-secondary); }
+
+.cp-avatar.cat-1 { background: var(--color-primary); }
+.cp-avatar.cat-2 { background: var(--color-success); }
+.cp-avatar.cat-3 { background: #FF9500; }
+.cp-avatar.cat-4 { background: #98A2B3; }
+
+/* ─── 편집 모드 ──────────────────────────────────────────────
+   여백을 표시 모드와 똑같이 둔다. 여기서 한 픽셀이라도 달라지면
+   편집 버튼을 누르는 순간 목록 전체가 밀린다. */
+.cp-card.editing {
+  padding: 8px 12px;
+}
+
+/* 이름 · 구분 · 메모 — 폭 비율을 고정해 내용 길이와 무관하게 정렬된다.
+   이름은 짧고, 구분은 "(구분 없음)" 이 들어가야 해서 이름보다 넓다. */
+.cp-card__edit {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 4fr) minmax(0, 6fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.cp-input,
+.cp-input--cat .ms-display {
+  width: 100%;
+  min-width: 0;
+  height: var(--control-h);
+  min-height: var(--control-h);
+  max-height: var(--control-h);
+}
+
+.cp-input--cat {
+  min-width: 0;
+}
+
+.cp-input--cat .ms-wrap {
+  height: var(--control-h);
+}
+
+.cp-remove {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.cp-remove:hover {
+  background: rgba(255, 92, 87, 0.08);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* 감추기 토글 — 켜져 있으면(감춰진 상태) 칩이 채워진다.
+   글자로 두는 편이 기호보다 오해가 없다.
+   "감추기"(3자)와 "감춤"(2자)의 폭이 다르므로 칸을 고정한다.
+   그러지 않으면 토글할 때마다 옆 메모 입력란이 흔들린다. */
+.cp-hide-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  min-width: 48px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.cp-hide-btn:hover {
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.cp-hide-btn.on {
+  border-color: transparent;
+  background: var(--color-text-tertiary);
+  color: #fff;
+}
+
+.cp-hide-btn.on:hover {
+  background: var(--color-text-secondary);
+}
+
+/* ─── 목록 끝의 추가 줄 ──────────────────────────────────────
+   카드와 같은 높이·모서리를 쓰되 점선으로 "아직 비어 있는 자리" 임을
+   나타낸다. 누르면 이 자리에 실제 행이 하나 생긴다. */
+.cp-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.cp-add-row:hover {
+  background: rgba(91, 95, 239, 0.05);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.cp-add-row__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* 아직 저장 전인 행 — 저장을 눌러야 반영된다는 걸 보여 준다 */
+.cp-card.is-new {
+  border-color: var(--color-primary-light);
+  background: rgba(91, 95, 239, 0.03);
+}
+
+.cp-card.is-new .cp-avatar {
+  background: var(--color-border);
+}
+
+/* ─── 빈 목록 ──────────────────────────────────────────────── */
+.cp-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 28px 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.cp-empty span {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* ─── 좁은 화면 ───────────────────────────────────────────────
+   메모를 아랫줄로 내리면 편집 모드만 두 줄이 되어 행 높이가 달라진다.
+   줄을 늘리지 않고 칸을 좁히는 쪽을 택한다. 아바타는 두 모드가 함께
+   줄어들어야 가로 위치도 그대로다. */
+@media (max-width: 520px) {
+  .cp-card__edit {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 4fr) minmax(0, 5fr);
+    gap: 4px;
+  }
+
+  .cp-card {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .cp-card.editing {
+    padding: 8px 10px;
+  }
+
+  .cp-avatar {
+    width: 26px;
+    height: 26px;
+    font-size: var(--font-size-xs);
+  }
+
+  .cp-toolbar .ui-btn {
+    padding: 0 11px;
+  }
+}
+
+
+/* 좁은 화면 — 본문 그리드 간격과 동일하게 좁힌다 */
+@media (max-width: 560px) {
+  .split-grid {
+    column-gap: 6px;
+    row-gap: 5px;
+  }
+}
+
+/* 아주 좁을 때는 본문(span 4 → span 6)과 같은 규칙으로 접는다.
+   메모는 한 줄을 통째로 써서 세 칸이 눌리지 않게 한다. */
+@media (max-width: 380px) {
+  .split-grid__label:nth-of-type(3) {
+    grid-column: span 12;
+  }
+
+  .split-grid__label:nth-of-type(1),
+  .split-grid__label:nth-of-type(2) {
+    grid-column: span 6;
+  }
+
+  .split-cell:nth-of-type(3n + 1),
+  .split-cell:nth-of-type(3n + 2) {
+    grid-column: span 6;
+  }
+
+  .split-cell:nth-of-type(3n) {
+    grid-column: span 12;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   20. 편집 모드 진입 시 위치가 밀리지 않도록 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   실측값(헤드리스 Chrome, 표시 → 편집)
+     · .cat2-header-row  36px → 44px   .inout-select-wrap 32px 때문
+     · .cat3-row         36px → 40px   .delete-btn 28px 때문
+   줄의 안쪽 여유는 36 − 위아래 6px = 24px 이다.
+   여유를 늘리는 대신 컨트롤을 24px 안에 맞춘다. 그래야 표시 모드의
+   생김새가 조금도 바뀌지 않으면서 편집 모드만 들어맞는다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── Categories ────────────────────────────────────────────── */
+.cat2-header-row .delete-btn,
+.cat3-row .delete-btn {
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  padding: 0 8px;
+}
+
+.cat2-header-row .inout-select-wrap,
+.cat2-header-row .inout-select-wrap .ms-wrap,
+.cat2-header-row .inout-select-wrap .ms-display {
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+}
+
+.cat2-header-row .inout-select-wrap .ms-display {
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+/* 손잡이가 줄보다 높으면 그것만으로도 줄이 자란다 */
+.cat-group .drag-handle {
+  height: 24px;
+  min-height: 24px;
+  line-height: 24px;
+}
+
+/* ─── Counterparts — Categories 추가 입력란과 같은 두께로 ─────
+   Categories 의 .cat-input 은 type 속성이 없어 전역 32px 규칙을
+   비껴가면서 21px 로 렌더링된다. 그 두께에 맞추되, 브라우저 기본값에
+   기대지 않도록 여기서는 값을 명시한다. */
+.cp-card__edit .cp-input,
+.cp-card__edit .cp-input--cat .ms-wrap,
+.cp-card__edit .cp-input--cat .ms-display,
+.cp-card .cp-remove {
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+}
+
+.cp-card__edit .cp-input {
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+.cp-card__edit .cp-input--cat .ms-display {
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+.cp-card .cp-remove {
+  width: 22px;
+  font-size: 13px;
+}
+
+/* 감추기 칩도 같은 줄 두께로. 폭은 두 문구 중 긴 쪽에 맞춰 고정한다 */
+.cp-card .cp-hide-btn {
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  width: 48px;
+  min-width: 48px;
+  padding: 0;
+  font-size: var(--font-size-xs);
+}

@@ -338,6 +338,10 @@ def get_entries_by_month(ym: str, db: SessionDep = Depends()):
           SELECT e.*
                  , c3.cat3_name
                  , p.place_name
+                 -- 돌려받은 몫을 뺀 실지출. 정의는 v_entries_net 한 곳에만 둔다
+                 , COALESCE(vn.split_amount, 0) AS split_amount
+                 , COALESCE(vn.net_amount, e.amount) AS net_amount
+                 , COALESCE(vn.split_count, 0) AS split_count
             FROM life_expense.entries e
                      LEFT JOIN
                  life_expense.categories_lvl3 c3
@@ -345,6 +349,9 @@ def get_entries_by_month(ym: str, db: SessionDep = Depends()):
                      LEFT JOIN
                  life_expense.places p
                      ON e.place_id = p.place_id
+                     LEFT JOIN
+                 life_expense.v_entries_net vn
+                     ON vn.entry_id = e.entry_id
            WHERE TO_CHAR(e.tx_date, 'YYYY-MM') = :ym
         ORDER BY e.tx_date DESC, e.entry_id DESC
     """)
@@ -560,6 +567,10 @@ def filter_entries(
         SELECT e.*
                , c3.cat3_name
                , p.place_name
+               -- 돌려받은 몫을 뺀 실지출. 정의는 v_entries_net 한 곳에만 둔다
+               , COALESCE(vn.split_amount, 0) AS split_amount
+               , COALESCE(vn.net_amount, e.amount) AS net_amount
+               , COALESCE(vn.split_count, 0) AS split_count
           FROM life_expense.entries e
                    LEFT JOIN
                life_expense.categories_lvl3 c3
@@ -567,6 +578,9 @@ def filter_entries(
                    LEFT JOIN
                life_expense.places p
                    ON e.place_id = p.place_id
+                   LEFT JOIN
+               life_expense.v_entries_net vn
+                   ON vn.entry_id = e.entry_id
          WHERE 1 = 1
     """
 

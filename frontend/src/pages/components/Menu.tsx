@@ -71,6 +71,13 @@ export default function Menu() {
             >
               • Payment Methods
             </button>
+
+            <button
+              onClick={() => { navigate("/counterparts"); setOpen(false); }}
+              className="menu-sub-item"
+            >
+              • Counterparts
+            </button>
             <hr className="menu-divider" />
             <button onClick={() => setOpen(false)} className="menu-close">닫기</button>
           </div>

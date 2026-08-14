@@ -4,8 +4,12 @@ from sqlalchemy.orm import Session
 from datetime import date, datetime, timedelta
 import calendar
 from app.deps import SessionDep
-from app.models import ScheduledEntry, Holiday, PendingEntry, Place
+from app.models import (
+    ScheduledEntry, Holiday, PendingEntry, Place,
+    ScheduledEntrySplit, PendingEntrySplit,
+)
 from app.schemas import ScheduledEntryIn, ScheduledEntryOut, ScheduledEntryUpdate
+from app.routers.splits import copy_splits
 
 router = APIRouter()
 
@@ -21,9 +25,19 @@ def list_scheduled_entries(db: SessionDep = Depends()):
         for p in db.query(Place).filter(Place.place_id.in_(place_ids)).all():
             place_names[p.place_id] = p.place_name
 
+    # 분할 합계도 한 번에 모은다(스케줄은 건수가 적어 단순 집계로 충분하다)
+    split_agg: dict[int, tuple[float, int]] = {}
+    for s in db.query(ScheduledEntrySplit).all():
+        amt, cnt = split_agg.get(s.schedule_id, (0.0, 0))
+        split_agg[s.schedule_id] = (amt + float(s.amount), cnt + 1)
+
     result = []
     for r in rows:
+        split_amount, split_count = split_agg.get(r.schedule_id, (0.0, 0))
         result.append({
+            "split_amount": split_amount,
+            "net_amount": float(r.amount) - split_amount,
+            "split_count": split_count,
             "schedule_id": r.schedule_id,
             "day_of_month": r.day_of_month,
             "hour": r.hour,
@@ -267,6 +281,9 @@ def process_scheduled_entries(db: Session):
             sended=0,
         )
         db.add(new_pending)
+        db.flush()                  # entry_id 를 받아야 분할을 붙일 수 있다
+        copy_splits(db, ScheduledEntrySplit, "schedule_id", schedule.schedule_id,
+                    PendingEntrySplit, "pending_id", new_pending.entry_id)
         created_count += 1
         
         # 다음 실행 일시 재계산 (한 달 후)

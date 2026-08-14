@@ -191,3 +191,109 @@ class ScheduledEntry(Base):
     
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+class Counterpart(Base):
+    """돈을 돌려준 상대 (사람/조직)"""
+    __tablename__ = "counterparts"
+
+    counterpart_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False, unique=True)
+    category = Column(String(20))          # 가족 / 친구 / 직장 / 기타
+    memo = Column(String(200))
+    sort_order = Column(Integer, nullable=False, default=0)
+    is_active = Column(SmallInteger, nullable=False, default=1)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    def to_dict(self):
+        return {
+            "counterpart_id": self.counterpart_id,
+            "name": self.name,
+            "category": self.category,
+            "memo": self.memo,
+            "sort_order": self.sort_order,
+            "is_active": self.is_active,
+        }
+
+
+class EntrySplit(Base):
+    """
+    지출 한 건에서 돌려받은 몫.
+    entries.amount 는 결제 총액 그대로 두고, 실지출은 amount - SUM(splits) 로 본다.
+    분할은 자기 자신을 다시 쪼갤 수 없으므로 깊이는 항상 1 이다.
+    """
+    __tablename__ = "entry_splits"
+
+    split_id = Column(Integer, primary_key=True, autoincrement=True)
+    entry_id = Column(Integer, ForeignKey("entries.entry_id", ondelete="CASCADE"), nullable=False)
+    amount = Column(Numeric(14, 2), nullable=False)
+    split_type = Column(String(20), nullable=False, default="reimbursed")
+    counterpart_id = Column(Integer, ForeignKey("counterparts.counterpart_id", ondelete="SET NULL"))
+    memo = Column(String(200))
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    def to_dict(self):
+        return {
+            "split_id": self.split_id,
+            "entry_id": self.entry_id,
+            "amount": float(self.amount),
+            "split_type": self.split_type,
+            "counterpart_id": self.counterpart_id,
+            "memo": self.memo,
+        }
+
+
+class PendingEntrySplit(Base):
+    """
+    Pending 단계의 분할. entry_splits 와 같은 모양이다.
+    전송(send)할 때 entry_splits 로 복사된다.
+    """
+    __tablename__ = "pending_entry_splits"
+
+    split_id = Column(Integer, primary_key=True, autoincrement=True)
+    pending_id = Column(Integer, ForeignKey("pending_entries.entry_id", ondelete="CASCADE"), nullable=False)
+    amount = Column(Numeric(14, 2), nullable=False)
+    split_type = Column(String(20), nullable=False, default="reimbursed")
+    counterpart_id = Column(Integer, ForeignKey("counterparts.counterpart_id", ondelete="SET NULL"))
+    memo = Column(String(200))
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    def to_dict(self):
+        return {
+            "split_id": self.split_id,
+            "pending_id": self.pending_id,
+            "amount": float(self.amount),
+            "split_type": self.split_type,
+            "counterpart_id": self.counterpart_id,
+            "memo": self.memo,
+        }
+
+
+class ScheduledEntrySplit(Base):
+    """
+    스케줄에 걸어 두는 분할 템플릿.
+    스케줄러가 PendingEntry 를 만들 때 pending_entry_splits 로 복사된다.
+    매달 나가는 지출의 N빵 설정을 한 번만 해 두면 계속 따라온다.
+    """
+    __tablename__ = "scheduled_entry_splits"
+
+    split_id = Column(Integer, primary_key=True, autoincrement=True)
+    schedule_id = Column(Integer, ForeignKey("scheduled_entries.schedule_id", ondelete="CASCADE"), nullable=False)
+    amount = Column(Numeric(14, 2), nullable=False)
+    split_type = Column(String(20), nullable=False, default="reimbursed")
+    counterpart_id = Column(Integer, ForeignKey("counterparts.counterpart_id", ondelete="SET NULL"))
+    memo = Column(String(200))
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    def to_dict(self):
+        return {
+            "split_id": self.split_id,
+            "schedule_id": self.schedule_id,
+            "amount": float(self.amount),
+            "split_type": self.split_type,
+            "counterpart_id": self.counterpart_id,
+            "memo": self.memo,
+        }

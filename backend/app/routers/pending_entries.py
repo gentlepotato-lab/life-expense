@@ -152,9 +152,14 @@ def list_pending_entries(db: SessionDep = Depends()):
              , pl.category_group_code
              , pl.category_group_name
              , pl.place_url
+             , COALESCE(vn.split_amount, 0) AS split_amount
+             , COALESCE(vn.net_amount, p.amount) AS net_amount
+             , COALESCE(vn.split_count, 0) AS split_count
         FROM life_expense.pending_entries p
         LEFT JOIN life_expense.places pl
                ON p.place_id = pl.place_id
+        LEFT JOIN life_expense.v_pending_entries_net vn
+               ON vn.entry_id = p.entry_id
         WHERE p.sended = 0
         ORDER BY p.tx_date DESC, p.entry_id DESC
     """)
@@ -162,7 +167,14 @@ def list_pending_entries(db: SessionDep = Depends()):
     rows = db.execute(sql).mappings().all()
     return [dict(r) for r in rows]
 
-from app.models import Entry
+from app.models import Entry, EntrySplit, PendingEntrySplit
+from app.routers.splits import copy_splits
+
+
+def _carry_splits(db, pending_id: int, entry_id: int) -> None:
+    """Pending 의 분할을 새로 만든 Entry 로 옮겨 적는다"""
+    copy_splits(db, PendingEntrySplit, "pending_id", pending_id,
+                EntrySplit, "entry_id", entry_id)
 
 @router.post("/send/{entry_id}")
 def send_pending(entry_id: int, db: SessionDep = Depends()):
@@ -184,6 +196,8 @@ def send_pending(entry_id: int, db: SessionDep = Depends()):
     )
 
     db.add(new_entry)
+    db.flush()                      # entry_id 를 받아야 분할을 붙일 수 있다
+    _carry_splits(db, p.entry_id, new_entry.entry_id)
     p.sended = True
     db.commit()
 
@@ -216,6 +230,8 @@ def send_all_pending(db: SessionDep = Depends()):
         )
         
         db.add(new_entry)
+        db.flush()                  # entry_id 를 받아야 분할을 붙일 수 있다
+        _carry_splits(db, p.entry_id, new_entry.entry_id)
         p.sended = True
         sent_count += 1
     
@@ -259,6 +275,8 @@ def send_filtered_pending(payload: SendFilteredRequest, db: SessionDep = Depends
         )
         
         db.add(new_entry)
+        db.flush()                  # entry_id 를 받아야 분할을 붙일 수 있다
+        _carry_splits(db, p.entry_id, new_entry.entry_id)
         p.sended = True
         sent_count += 1
     

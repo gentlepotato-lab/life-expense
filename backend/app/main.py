@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 load_dotenv()
 
-from app.routers import entries, meta, places, payment_methods, pending_entries, holidays, scheduled_entries, superset
+from app.routers import entries, meta, places, payment_methods, pending_entries, holidays, scheduled_entries, superset, splits, counterparts
 from app.scheduler.holiday_job import start_scheduler
 from app.scheduler.scheduled_entry_job import start_scheduled_entry_scheduler
 from app.scheduler.cleanup_job import start_cleanup_scheduler
@@ -46,10 +46,15 @@ app.add_middleware(
 app.include_router(meta.router, prefix="/meta", tags=["meta"])
 app.include_router(payment_methods.router, prefix="/meta", tags=["payment_methods"])
 app.include_router(entries.router, prefix="/entries", tags=["entries"])
+# 금액 쪼개기 — /entries/{id}/splits 로 붙는다
+app.include_router(splits.router, prefix="/entries", tags=["splits"])
+app.include_router(counterparts.router, prefix="/meta/counterparts", tags=["counterparts"])
 app.include_router(pending_entries.router, prefix="/pending-entries", tags=["pending_entries"])
+app.include_router(splits.pending_router, prefix="/pending-entries", tags=["splits"])
 app.include_router(places.router, prefix="/api/places", tags=["places"])
 app.include_router(holidays.router, prefix="/holidays", tags=["holidays"])
 app.include_router(scheduled_entries.router, prefix="/scheduled-entries", tags=["scheduled_entries"])
+app.include_router(splits.scheduled_router, prefix="/scheduled-entries", tags=["splits"])
 app.include_router(superset.router, prefix="/superset", tags=["superset"])
 
 # 앱 실행 시 스케줄러 시작
