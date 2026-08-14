@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import date, datetime, timedelta
 import calendar
 from app.deps import SessionDep
-from app.models import ScheduledEntry, Holiday, PendingEntry
+from app.models import ScheduledEntry, Holiday, PendingEntry, Place
 from app.schemas import ScheduledEntryIn, ScheduledEntryOut, ScheduledEntryUpdate
 
 router = APIRouter()
@@ -13,6 +13,14 @@ router = APIRouter()
 def list_scheduled_entries(db: SessionDep = Depends()):
     """모든 스케줄된 항목 조회"""
     rows = db.query(ScheduledEntry).filter(ScheduledEntry.is_active == 1).all()
+
+    # 화면에서 장소 이름을 보여 주기 위해 한 번에 조회해 매핑한다
+    place_ids = {r.place_id for r in rows if r.place_id}
+    place_names = {}
+    if place_ids:
+        for p in db.query(Place).filter(Place.place_id.in_(place_ids)).all():
+            place_names[p.place_id] = p.place_name
+
     result = []
     for r in rows:
         result.append({
@@ -30,6 +38,7 @@ def list_scheduled_entries(db: SessionDep = Depends()):
             "pay_method": r.pay_method,
             "memo": r.memo,
             "place_id": r.place_id,
+            "place_name": place_names.get(r.place_id),
             "is_active": r.is_active,
             "created_at": str(r.created_at),
             "updated_at": str(r.updated_at) if r.updated_at else None,

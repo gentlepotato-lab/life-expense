@@ -27,16 +27,49 @@ export default function MultiSelect<T>({
   const ref = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
-  // 드롭다운 위치 계산
+  // 드롭다운 위치 계산 — 화면 밖으로 나가지 않도록 가둔다
   useEffect(() => {
-    if (open && wrapRef.current) {
-      const rect = wrapRef.current.getBoundingClientRect();
-      setDropdownStyle({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      });
-    }
+    if (!open || !wrapRef.current) return;
+
+    const place = () => {
+      const el = wrapRef.current;
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const GUTTER = 8;
+      const MIN_W = 200;
+      const MAX_H = 260;
+
+      const width = Math.min(
+        Math.max(rect.width, MIN_W),
+        window.innerWidth - GUTTER * 2
+      );
+
+      let left = rect.left;
+      if (left + width > window.innerWidth - GUTTER) {
+        left = window.innerWidth - GUTTER - width;
+      }
+      if (left < GUTTER) left = GUTTER;
+
+      const below = window.innerHeight - rect.bottom - GUTTER;
+      const above = rect.top - GUTTER;
+      const openUp = below < 140 && above > below;
+      const maxHeight = Math.max(120, Math.min(MAX_H, openUp ? above : below));
+
+      setDropdownStyle(
+        openUp
+          ? { bottom: window.innerHeight - rect.top + 4, left, width, maxHeight }
+          : { top: rect.bottom + 4, left, width, maxHeight }
+      );
+    };
+
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
   }, [open]);
 
   // 바깥 클릭 시 닫기

@@ -701,23 +701,19 @@ export default function PendingEntries() {
           onClose={closeEditor}
           onSave={saveDraft}
           onDelete={() => deletePending(draft.entry_id)}
-        >
-          <div className="edit-grid">
-            <EditField label="날짜">
+          headerFields={
+            <EditField label="날짜" span={12}>
               <input
                 type="date"
                 value={draft.tx_date ? draft.tx_date.substring(0, 10) : ""}
                 onChange={(e) => setField("tx_date", e.target.value)}
               />
             </EditField>
-
-            <EditField label="IN/OUT">
-              <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
-                {draft.inout === 1 ? "IN (+)" : draft.inout === -1 ? "OUT (−)" : "—"}
-              </span>
-            </EditField>
-
-            <EditField label="중분류">
+          }
+        >
+          <div className="edit-grid">
+            {/* 1행 — 분류 3단 */}
+            <EditField label="중분류" span={4}>
               <SingleSelect
                 options={cat1List.map(c => ({ value: String(c.id), label: c.name }))}
                 selected={draft.cat1_id ? String(draft.cat1_id) : ""}
@@ -726,7 +722,7 @@ export default function PendingEntries() {
               />
             </EditField>
 
-            <EditField label="소분류">
+            <EditField label="소분류" span={4}>
               <SingleSelect
                 options={cat2List
                   .filter((c) => c.cat1_id === draft.cat1_id)
@@ -737,7 +733,7 @@ export default function PendingEntries() {
               />
             </EditField>
 
-            <EditField label="세분류">
+            <EditField label="세분류" span={4}>
               <SingleSelect
                 options={cat3List
                   .filter((c) => c.cat2_id === draft.cat2_id)
@@ -748,7 +744,14 @@ export default function PendingEntries() {
               />
             </EditField>
 
-            <EditField label="결제 수단">
+            {/* 2행 — 거래 속성. IN/OUT 은 소분류가 결정하므로 분류 바로 아래에 둔다 */}
+            <EditField label="IN/OUT" span={4}>
+              <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
+                {draft.inout === 1 ? "IN (+)" : draft.inout === -1 ? "OUT (−)" : "—"}
+              </span>
+            </EditField>
+
+            <EditField label="결제 수단" span={4}>
               <SingleSelect
                 options={payList.map(p => ({ value: p.code, label: p.name }))}
                 selected={draft.pay_method || ""}
@@ -757,7 +760,7 @@ export default function PendingEntries() {
               />
             </EditField>
 
-            <EditField label="금액">
+            <EditField label="금액" span={4}>
               <input
                 type="number"
                 value={draft.amount ?? ""}
@@ -766,20 +769,22 @@ export default function PendingEntries() {
               />
             </EditField>
 
-            <EditField label="장소/가게" wide>
+            {/* 3행 — 장소 */}
+            <EditField label="장소/가게" span={12}>
               <div className="edit-place">
                 <span className="edit-place__name">📍 {draft.place_name || "—"}</span>
                 <button
                   type="button"
-                  className="ui-btn edit-location-btn"
+                  className="ui-btn small edit-location-btn"
                   onClick={() => setPlacePickerOpen(true)}
                 >
-                  장소/가게 편집
+                  변경
                 </button>
               </div>
             </EditField>
 
-            <EditField label="메모" wide>
+            {/* 4행 — 메모 */}
+            <EditField label="메모" span={12}>
               <input
                 type="text"
                 value={draft.memo || ""}

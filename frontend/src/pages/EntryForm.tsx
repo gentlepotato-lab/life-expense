@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "../api/client";
 import SingleSelect from "./components/SingleSelect";
 import CalculatorPopup from "./components/CalculatorPopup";
+import { EditField } from "./components/CardEditModal";
 
 function loadKakaoMap() {
   return new Promise<void>((resolve) => {
@@ -70,11 +71,18 @@ type PlacePickerProps = {
   onClose: () => void;
 };
 
+/** 결과 목록이 어느 출처를 보여 주는지 */
+type PlaceSource = "db" | "kakao";
+
 function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
   const [keyword, setKeyword] = useState("");
   const [dbResults, setDbResults] = useState<any[]>([]);
   const [apiResults, setApiResults] = useState<KakaoPlace[]>([]);
   const [selected, setSelected] = useState<any>(null);
+
+  // 저장된 장소와 새 장소를 한 영역에 번갈아 보여 준다
+  const [source, setSource] = useState<PlaceSource>("db");
+  const [searched, setSearched] = useState(false);
 
   // 외부 클릭 완전 차단
   useEffect(() => {
@@ -111,11 +119,17 @@ function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
   }, [selected]);
 
   const searchDB = async () => {
+    setSource("db");
+    setSearched(true);
+    setSelected(null);
     const res = await axios.get("/api/places/search", { params: { q: keyword } });
     setDbResults(res.data);
   };
 
   const searchKakao = async () => {
+    setSource("kakao");
+    setSearched(true);
+    setSelected(null);
     await loadKakaoMap();
     const { kakao } = window as any;
     const ps = new kakao.maps.services.Places();
@@ -127,6 +141,9 @@ function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
       }
     });
   };
+
+  // 엔터로 현재 선택된 출처를 다시 검색
+  const runSearch = () => (source === "db" ? searchDB() : searchKakao());
 
   const applySelection = () => {
     if (!selected) return;
@@ -169,122 +186,131 @@ function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
     onClose();
   };
 
-  // 팝업 스타일
-  const popupStyle: React.CSSProperties = {
-    background: "#fff",
-    padding: 8,
-    borderRadius: 16,
-    width: "calc(100vw - 32px)", // 100% 뷰포트에서 좌우 여백 확보
-    maxWidth: "480px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "stretch",
-    maxHeight: "90vh",
-    overflow: "hidden",
-    margin: "auto",
-  };
+  // 저장된 장소와 새 장소를 한 영역에 번갈아 표시한다
+  const results: any[] = source === "db" ? dbResults : apiResults;
+  const listTitle = source === "db" ? "저장된 장소/가게" : "새로운 장소/가게";
 
   return (
     <div style={overlayStyle} onClick={onClose}>
-      <div style={popupStyle} onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10, textAlign: "center" }}>장소/가게</h3>
+      <div className="place-picker" onClick={(e) => e.stopPropagation()}>
+        <header className="place-picker__head">
+          <h3 className="place-picker__title">장소/가게</h3>
+          <button
+            type="button"
+            className="edit-modal__close"
+            onClick={onClose}
+            aria-label="닫기"
+          >
+            ×
+          </button>
+        </header>
 
-        {/* 스크롤 가능한 본문 */}
-        <div style={{ flex: 1, overflowY: "auto", paddingRight: 4 }}>
-          {/* 검색 입력 */}
-          <input
-            className="ui-input"
-            placeholder="검색어를 입력하세요."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            style={{ marginBottom: 8 }}
-          />
+        {/* 검색어 */}
+        <input
+          className="ui-input place-picker__keyword"
+          placeholder="검색어를 입력하세요."
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              runSearch();
+            }
+          }}
+        />
 
-          {/* 검색 버튼 묶음 */}
-          <div className="btn-row" style={{ marginBottom: 12 }}>
-            <button className="ui-btn" onClick={searchDB} type="button">
-              저장된 장소/가게
-            </button>
-            <button className="ui-btn" onClick={searchKakao} type="button">
-              [+] 새로운 장소/가게
-            </button>
-          </div>
+        {/* 출처 전환 — 누른 쪽으로 목록과 제목이 바뀐다 */}
+        <div className="place-picker__tabs">
+          <button
+            type="button"
+            className={`place-tab ${source === "db" ? "active" : ""}`}
+            onClick={searchDB}
+          >
+            저장된 장소/가게
+          </button>
+          <button
+            type="button"
+            className={`place-tab ${source === "kakao" ? "active" : ""}`}
+            onClick={searchKakao}
+          >
+            [+] 새로운 장소/가게
+          </button>
+        </div>
 
-          {/* Stored Places */}
-          <h4 className="popup-section-title">저장된 장소/가게</h4>
-          <div className="popup-list">
-            {dbResults.length === 0 ? (
-              <div className="popup-empty">저장된 장소/가게 검색 결과가 없습니다.</div>
-            ) : (
-              dbResults.map((r) => (
-                <div
-                  key={r.place_id}
-                  className={`popup-item ${
-                    selected?.place_id === r.place_id ? "popup-selected" : ""
-                  }`}
-                  onClick={() =>
-                    setSelected({ source: "db", ...r, x: r.lng, y: r.lat })
-                  }
-                >
-                  <strong>{r.place_name}</strong>
-                  <div className="popup-sub">{r.address}</div>
-                </div>
-              ))
-            )}
-          </div>
+        <div className="place-picker__listhead">
+          <span className="place-picker__listtitle">{listTitle}</span>
+          {searched && <span className="place-picker__count">{results.length}건</span>}
+        </div>
 
-          {/* New Places */}
-          <h4 className="popup-section-title">새로운 장소/가게</h4>
-          <div className="popup-list">
-            {apiResults.length === 0 ? (
-              <div className="popup-empty">새로운 장소/가게 검색 결과가 없습니다.</div>
-            ) : (
-              apiResults.map((r) => (
-                <div
-                  key={r.id}
-                  className={`popup-item ${
-                    selected?.place_name === r.place_name ? "popup-selected" : ""
-                  }`}
-                  onClick={() => setSelected({ source: "kakao", ...r })}
-                >
-                  <strong>{r.place_name}</strong>
-                  <div className="popup-sub">{r.address_name}</div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* 지도도 스크롤 영역 안에 포함 */}
-          {selected && (
-            <div
-              id="popup-map"
-              style={{
-                width: "100%",
-                height: "320px",
-                marginTop: "12px",
-                borderRadius: "12px",
-                overflow: "hidden",
-                border: "1px solid #e5e7eb",
-                flexShrink: 0,
-              }}
-            ></div>
+        {/* 결과 목록 — 한 영역만 쓴다 */}
+        <div className="place-picker__list">
+          {results.length === 0 ? (
+            <div className="popup-empty">
+              {searched
+                ? `${listTitle} 검색 결과가 없습니다.`
+                : "검색어를 입력하고 위 버튼을 누르세요."}
+            </div>
+          ) : source === "db" ? (
+            dbResults.map((r) => (
+              <div
+                key={r.place_id}
+                className={`popup-item ${
+                  selected?.source === "db" && selected?.place_id === r.place_id
+                    ? "popup-selected"
+                    : ""
+                }`}
+                onClick={() => setSelected({ source: "db", ...r, x: r.lng, y: r.lat })}
+              >
+                <strong>{r.place_name}</strong>
+                <div className="popup-sub">{r.address}</div>
+              </div>
+            ))
+          ) : (
+            apiResults.map((r) => (
+              <div
+                key={r.id}
+                className={`popup-item ${
+                  selected?.source === "kakao" && selected?.id === r.id
+                    ? "popup-selected"
+                    : ""
+                }`}
+                onClick={() => setSelected({ source: "kakao", ...r })}
+              >
+                <strong>{r.place_name}</strong>
+                <div className="popup-sub">{r.address_name}</div>
+              </div>
+            ))
           )}
+        </div>
 
-          {/* 하단 버튼 묶음 */}
-          <div className="btn-row" style={{ marginTop: 12 }}>
+        {/* 지도 — 영역은 항상 잡아 두고, 선택 전에는 안내를 띄운다 */}
+        <div className="place-picker__mapwrap">
+          <div id="popup-map" className="place-picker__map"></div>
+          {!selected && (
+            <div className="place-picker__mapempty">
+              목록에서 장소를 선택하면 지도가 표시됩니다.
+            </div>
+          )}
+        </div>
+
+        <footer className="place-picker__foot">
+          <span className="place-picker__selected">
+            {selected ? selected.place_name : "선택된 장소 없음"}
+          </span>
+          <div className="place-picker__foot-btns">
+            <button className="ui-btn" onClick={onClose} type="button">
+              닫기
+            </button>
             <button
               className="ui-btn primary"
               onClick={applySelection}
               disabled={!selected}
+              type="button"
             >
-              선택된 장소/가게 입력
-            </button>
-            <button className="ui-btn" onClick={onClose}>
-              닫기
+              선택
             </button>
           </div>
-        </div>
+        </footer>
       </div>
     </div>
   );
@@ -477,22 +503,22 @@ export default function EntryForm() {
       <form onSubmit={handleSubmit} className="card entry-card-form"
         style={{display: 'flex', flexDirection: 'column'}}
       >
-        {/* Date */}
-        <div className="form-row" style={{marginBottom: '16px', marginTop: '4px'}}>
-          <label className="form-label required">날짜</label>
-          <input
-            type="date"
-            name="tx_date"
-            value={form.tx_date}
-            onChange={handleChange}
-            className="ui-input"
-          />
+        {/* 날짜는 편집 팝업의 머리말과 같은 자리에 둔다 */}
+        <div className="edit-modal__headfields entry-form__headfields">
+          <EditField label="날짜" span={12}>
+            <input
+              type="date"
+              name="tx_date"
+              value={form.tx_date}
+              onChange={handleChange}
+            />
+          </EditField>
         </div>
 
-        {/* CategoryM + IN/OUT */}
-        <div className="flex gap-2" style={{marginBottom: '6px'}}>
-          <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-            <label className="form-label required">중분류</label>
+        {/* 편집 팝업과 동일한 12칸 그리드 배치 */}
+        <div className="edit-grid">
+          {/* 1행 — 분류 3단 */}
+          <EditField label="중분류" span={4}>
             <SingleSelect
               options={cat1List.map(c => ({ value: String(c.id), label: c.name }))}
               selected={form.cat1_id}
@@ -502,19 +528,9 @@ export default function EntryForm() {
               }}
               placeholder="(중분류)"
             />
-          </div>
-          <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-            <label className="form-label required">IN/OUT</label>
-            <div className="ui-input" style={{ display: 'flex', alignItems: 'center', padding: '0 10px', height: '36px', background: 'var(--color-bg)', cursor: 'not-allowed' }}>
-              {form.inout === "1" ? "IN(+)" : form.inout === "-1" ? "OUT(-)" : "—"}
-            </div>
-          </div>
-        </div>
+          </EditField>
 
-        {/* CategoryS + Payment */}
-        <div className="flex gap-2" style={{marginBottom: '6px'}}>
-          <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-            <label className="form-label required">소분류</label>
+          <EditField label="소분류" span={4}>
             <SingleSelect
               options={cat2List.map(c => ({ value: String(c.id), label: c.name }))}
               selected={form.cat2_id}
@@ -524,25 +540,9 @@ export default function EntryForm() {
               }}
               placeholder="(소분류)"
             />
-          </div>
-          <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-            <label className="form-label required">결제 수단</label>
-            <SingleSelect
-              options={payList.map(p => ({ value: p.code, label: p.name }))}
-              selected={form.pay_method}
-              onChange={(value) => {
-                setForm({ ...form, pay_method: value });
-                setIsDirty(true);
-              }}
-              placeholder="(결제 수단)"
-            />
-          </div>
-        </div>
+          </EditField>
 
-        {/* CategoryD + Amount */}
-        <div className="flex gap-2" style={{marginBottom: '16px'}}>
-          <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-            <label className="form-label">세분류</label>
+          <EditField label="세분류" span={4}>
             <SingleSelect
               options={cat3List.map(c => ({ value: String(c.id), label: c.name }))}
               selected={form.cat3_id}
@@ -552,40 +552,64 @@ export default function EntryForm() {
               }}
               placeholder="(세분류)"
             />
-          </div>
-          <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-            <label className="form-label required">금액</label>
+          </EditField>
+
+          {/* 2행 — 거래 속성. IN/OUT 은 소분류가 결정하므로 분류 바로 아래 */}
+          <EditField label="IN/OUT" span={4}>
+            <span className={`inout-chip ${form.inout === "1" ? "in" : form.inout === "-1" ? "out" : ""}`}>
+              {form.inout === "1" ? "IN (+)" : form.inout === "-1" ? "OUT (−)" : "—"}
+            </span>
+          </EditField>
+
+          <EditField label="결제 수단" span={4}>
+            <SingleSelect
+              options={payList.map(p => ({ value: p.code, label: p.name }))}
+              selected={form.pay_method}
+              onChange={(value) => {
+                setForm({ ...form, pay_method: value });
+                setIsDirty(true);
+              }}
+              placeholder="(결제 수단)"
+            />
+          </EditField>
+
+          <EditField label="금액" span={4}>
             <input
               type="number"
               name="amount"
               value={form.amount}
               placeholder="(금액)"
               onChange={handleChange}
-              className="ui-input"
+              className="amount-input"
             />
-          </div>
-        </div>
+          </EditField>
 
-        {/* Place */}
-        <div className="form-row" style={{marginBottom: '16px'}}>
-          <label className="form-label">장소/가게</label>
-          <div className="flex gap-2">
+          {/* 3행 — 장소 */}
+          <EditField label="장소/가게" span={12}>
+            <div className="edit-place">
+              <span className="edit-place__name">
+                📍 {selectedPlaceName || "—"}
+              </span>
+              <button
+                type="button"
+                className="ui-btn small"
+                onClick={() => setShowPlacePicker(true)}
+              >
+                검색
+              </button>
+            </div>
+          </EditField>
+
+          {/* 4행 — 메모 */}
+          <EditField label="메모" span={12}>
             <input
               type="text"
-              value={selectedPlaceName}
-              className="ui-input"
-              readOnly
-              placeholder="(장소/가게)"
-              style={{flex: 1}}
+              name="memo"
+              value={form.memo}
+              placeholder="(메모)"
+              onChange={handleChange}
             />
-            <button
-              type="button"
-              className="ui-btn small"
-              onClick={() => setShowPlacePicker(true)}
-            >
-              검색
-            </button>
-          </div>
+          </EditField>
         </div>
 
         {showPlacePicker && (
@@ -606,25 +630,11 @@ export default function EntryForm() {
           />
         )}
 
-        {/* Memo */}
-        <div className="form-row" style={{marginBottom: '16px'}}>
-          <label className="form-label">메모</label>
-          <input
-            type="text"
-            name="memo"
-            value={form.memo}
-            placeholder="(메모)"
-            onChange={handleChange}
-            className="ui-input"
-          />
-		</div>
-
         {/* Send Button */}
         <button
           type="submit"
-          className="ui-btn primary w-full"
+          className="ui-btn primary w-full entry-form__submit"
           disabled={!isDirty}
-          style={{marginBottom: '4px'}}
         >
           전송
         </button>

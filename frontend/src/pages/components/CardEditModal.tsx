@@ -12,6 +12,12 @@ type CardEditModalProps = {
   deleteLabel?: string;
   /** 저장 버튼 왼쪽에 들어가는 추가 액션 (예: Pending 의 "전송") */
   footerExtra?: ReactNode;
+  /**
+   * 머리말 아래에 붙는 날짜·시간 입력 줄.
+   * 본문 그리드 사이에 끼면 칸이 좁아지고, 어차피 머리말이 날짜를 말하고 있으므로
+   * 시점에 관한 입력은 여기에 모은다.
+   */
+  headerFields?: ReactNode;
   children: ReactNode;
 };
 
@@ -29,6 +35,7 @@ export default function CardEditModal({
   saveLabel = "저장",
   deleteLabel = "삭제",
   footerExtra,
+  headerFields,
   children,
 }: CardEditModalProps) {
   // Esc 로 닫기
@@ -64,6 +71,10 @@ export default function CardEditModal({
           </button>
         </header>
 
+        {headerFields && (
+          <div className="edit-modal__headfields">{headerFields}</div>
+        )}
+
         <div className="edit-modal__body">{children}</div>
 
         <footer className="edit-modal__foot">
@@ -95,20 +106,31 @@ export default function CardEditModal({
   );
 }
 
-/** 편집 팝업 안에서 쓰는 라벨 + 입력 한 줄 */
+/**
+ * 편집 팝업 안의 입력 한 칸.
+ *
+ * 팝업 본문은 12칸 그리드다. span 으로 칸 수를 지정해 좌우 분할을 만든다.
+ *   12 = 한 줄 전체 · 8 = 2/3 · 6 = 2분할 · 4 = 3분할 · 3 = 4분할
+ * 칸 수를 명시하므로 입력 내용 길이와 무관하게 폭이 고정된다.
+ */
 export function EditField({
   label,
   children,
-  wide = false,
+  span = 6,
 }: {
   label: string;
   children: ReactNode;
-  wide?: boolean;
+  span?: 3 | 4 | 6 | 8 | 12;
 }) {
   return (
-    <div className={`edit-field ${wide ? "edit-field--wide" : ""}`}>
+    <div className={`edit-field edit-field--span-${span}`}>
       <label className="edit-field__label">{label}</label>
       <div className="edit-field__control">{children}</div>
     </div>
   );
+}
+
+/** 성격이 다른 항목 묶음 사이를 가르는 얇은 구분선 */
+export function EditDivider() {
+  return <div className="edit-divider" aria-hidden="true" />;
 }

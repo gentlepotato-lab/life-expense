@@ -4,6 +4,7 @@ import axios from "../api/client";
 import SingleSelect from "./components/SingleSelect";
 import CalculatorPopup from "./components/CalculatorPopup";
 import CardEditModal, { EditField } from "./components/CardEditModal";
+import { PlacePicker } from "./EntryForm";
 import useLongPress from "../hooks/useLongPress";
 
 type CategoryL2Meta = { id: number; name: string; cat1_id?: number; inout?: number | null };
@@ -215,9 +216,16 @@ export default function ScheduledEntries() {
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다
   const [draft, setDraft] = useState<any | null>(null);
 
+  // 장소 선택 — 편집 팝업(draft)과 신규 등록 폼(form) 중 어디에 반영할지
+  const [placePickerFor, setPlacePickerFor] = useState<"draft" | "form" | null>(null);
+  // 아직 DB 에 없는 카카오 장소는 저장 직전에 등록해야 하므로 원본을 들고 있는다
+  const [draftPlace, setDraftPlace] = useState<any | null>(null);
+  const [formPlace, setFormPlace] = useState<any | null>(null);
+  const [formPlaceName, setFormPlaceName] = useState("");
+
   // 팝업 열림/닫힘 시 배경 스크롤 제어
   useEffect(() => {
-    if (showForm || calculatorOpen || draft) {
+    if (showForm || calculatorOpen || draft || placePickerFor) {
       document.documentElement.classList.add("modal-open");
       // showForm일 때만 pointerEvents 설정 (calculatorOpen은 CalculatorPopup에서 처리)
       if (showForm) {
@@ -232,7 +240,32 @@ export default function ScheduledEntries() {
       document.documentElement.classList.remove("modal-open");
       document.body.style.pointerEvents = "auto";
     };
-  }, [showForm, calculatorOpen, draft]);
+  }, [showForm, calculatorOpen, draft, placePickerFor]);
+
+  /**
+   * 저장 직전에 place_id 를 확정한다.
+   * 새로 고른 카카오 장소는 아직 DB 에 없으므로 먼저 등록하고 발급된 id 를 쓴다.
+   * (백엔드가 kakao_id 로 중복을 걸러 준다)
+   */
+  const ensurePlaceId = async (picked: any, currentId: any) => {
+    if (!picked) return currentId ? Number(currentId) : null;
+    if (picked.place_id) return Number(picked.place_id);
+
+    const res = await axios.post("/api/places", {
+      place_name: picked.place_name,
+      lat: picked.lat,
+      lng: picked.lng,
+      address_name: picked.address_name,
+      kakao_id: picked.kakao_id,
+      road_address_name: picked.road_address_name,
+      phone: picked.phone,
+      category_name: picked.category_name,
+      category_group_code: picked.category_group_code,
+      category_group_name: picked.category_group_name,
+      place_url: picked.place_url,
+    });
+    return res.data.place_id;
+  };
 
   // 휴일 데이터 로드
   useEffect(() => {
@@ -431,10 +464,13 @@ export default function ScheduledEntries() {
 
   const openEditor = useCallback((schedule: any) => {
     setDraft({ ...schedule });
+    setDraftPlace(null);          // 이번 편집에서 새로 고른 장소만 추적한다
   }, []);
 
   const closeEditor = useCallback(() => {
     setDraft(null);
+    setDraftPlace(null);
+    setPlacePickerFor(null);
   }, []);
 
   // 팝업 안 필드 변경
@@ -548,7 +584,11 @@ export default function ScheduledEntries() {
 
     try {
       setIsSaving(true);
-      await axios.put(`/scheduled-entries/${draft.schedule_id}`, buildSchedulePayload(draft));
+      const placeId = await ensurePlaceId(draftPlace, draft.place_id);
+      await axios.put(`/scheduled-entries/${draft.schedule_id}`, {
+        ...buildSchedulePayload(draft),
+        place_id: placeId,
+      });
       closeEditor();
       alert("스케줄이 저장되었습니다.");
       await loadSchedules();
@@ -585,6 +625,8 @@ export default function ScheduledEntries() {
     const [hour, minute] = form.time.split(":").map(Number);
 
     try {
+      const placeId = await ensurePlaceId(formPlace, form.place_id);
+
       await axios.post("/scheduled-entries", {
         day_of_month: Number(form.day_of_month),
         hour: hour,
@@ -597,12 +639,14 @@ export default function ScheduledEntries() {
         amount: Number(form.amount),
         pay_method: form.pay_method ? Number(form.pay_method) : null,
         memo: form.memo || null,
-        place_id: form.place_id ? Number(form.place_id) : null,
+        place_id: placeId,
         is_active: 1,
       });
 
       alert("스케줄이 등록되었습니다.");
       loadSchedules();
+      setFormPlace(null);
+      setFormPlaceName("");
 
       // 폼 초기화 및 숨기기
       setForm({
@@ -788,6 +832,23 @@ export default function ScheduledEntries() {
                 />
               </div>
 
+              {/* 장소/가게 */}
+              <div className="form-row" style={{marginBottom: '6px'}}>
+                <label className="form-label">장소/가게</label>
+                <div className="edit-place">
+                  <span className="edit-place__name">
+                    📍 {formPlaceName || "—"}
+                  </span>
+                  <button
+                    type="button"
+                    className="ui-btn small"
+                    onClick={() => setPlacePickerFor("form")}
+                  >
+                    검색
+                  </button>
+                </div>
+              </div>
+
               {/* 메모 */}
               <div className="form-row" style={{marginBottom: '16px'}}>
                 <label className="form-label">메모</label>
@@ -843,46 +904,31 @@ export default function ScheduledEntries() {
           onDelete={() => handleDelete(draft.schedule_id)}
           saveDisabled={isSaving}
           saveLabel={isSaving ? "저장 중..." : "저장"}
+          headerFields={
+            <>
+              <EditField label="매월" span={6}>
+                <SingleSelect
+                  options={dayOptions.map((d) => ({ value: String(d), label: `${d}일` }))}
+                  selected={String(draft.day_of_month ?? "")}
+                  onChange={(value) => setField("day_of_month", value ? Number(value) : null)}
+                  placeholder="(일)"
+                />
+              </EditField>
+
+              <EditField label="시간" span={6}>
+                <input
+                  type="time"
+                  value={draft.time || toTimeString(draft.hour, draft.minute)}
+                  onChange={(e) => setField("time", e.target.value)}
+                  step="300"
+                />
+              </EditField>
+            </>
+          }
         >
           <div className="edit-grid">
-            <EditField label="매월">
-              <SingleSelect
-                options={dayOptions.map((d) => ({ value: String(d), label: `${d}일` }))}
-                selected={String(draft.day_of_month ?? "")}
-                onChange={(value) => setField("day_of_month", value ? Number(value) : null)}
-                placeholder="(일)"
-              />
-            </EditField>
-
-            <EditField label="시간">
-              <input
-                type="time"
-                value={draft.time || toTimeString(draft.hour, draft.minute)}
-                onChange={(e) => setField("time", e.target.value)}
-                step="300"
-              />
-            </EditField>
-
-            <EditField label="휴일 처리">
-              <SingleSelect
-                options={[
-                  { value: "before", label: "휴일 전" },
-                  { value: "on", label: "당일" },
-                  { value: "after", label: "휴일 후" },
-                ]}
-                selected={draft.holiday_handling}
-                onChange={(value) => setField("holiday_handling", value)}
-                placeholder="선택"
-              />
-            </EditField>
-
-            <EditField label="IN/OUT">
-              <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
-                {draft.inout === 1 ? "IN (+)" : draft.inout === -1 ? "OUT (−)" : "—"}
-              </span>
-            </EditField>
-
-            <EditField label="중분류">
+            {/* 1행 — 분류 3단 */}
+            <EditField label="중분류" span={4}>
               <SingleSelect
                 options={cat1List.map((c) => ({ value: String(c.id), label: c.name }))}
                 selected={String(draft.cat1_id ?? "")}
@@ -891,7 +937,7 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            <EditField label="소분류">
+            <EditField label="소분류" span={4}>
               <SingleSelect
                 options={cat2All
                   .filter((c) => c.cat1_id === draft.cat1_id)
@@ -902,7 +948,7 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            <EditField label="세분류">
+            <EditField label="세분류" span={4}>
               <SingleSelect
                 options={[
                   { value: "", label: "(세분류)" },
@@ -916,7 +962,14 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            <EditField label="결제 수단">
+            {/* 2행 — 거래 속성. IN/OUT 은 소분류가 결정하므로 분류 바로 아래에 둔다 */}
+            <EditField label="IN/OUT" span={4}>
+              <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
+                {draft.inout === 1 ? "IN (+)" : draft.inout === -1 ? "OUT (−)" : "—"}
+              </span>
+            </EditField>
+
+            <EditField label="결제 수단" span={4}>
               <SingleSelect
                 options={payList.map((p) => ({ value: p.code, label: p.name }))}
                 selected={
@@ -929,7 +982,7 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            <EditField label="금액">
+            <EditField label="금액" span={4}>
               <input
                 type="number"
                 value={draft.amount ?? ""}
@@ -939,7 +992,37 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            <EditField label="메모" wide>
+            {/* 3행 — 휴일 처리 + 장소 */}
+            <EditField label="휴일 처리" span={4}>
+              <SingleSelect
+                options={[
+                  { value: "before", label: "휴일 전" },
+                  { value: "on", label: "당일" },
+                  { value: "after", label: "휴일 후" },
+                ]}
+                selected={draft.holiday_handling}
+                onChange={(value) => setField("holiday_handling", value)}
+                placeholder="선택"
+              />
+            </EditField>
+
+            <EditField label="장소/가게" span={8}>
+              <div className="edit-place">
+                <span className="edit-place__name">
+                  📍 {draftPlace?.place_name || draft.place_name || "—"}
+                </span>
+                <button
+                  type="button"
+                  className="ui-btn small"
+                  onClick={() => setPlacePickerFor("draft")}
+                >
+                  변경
+                </button>
+              </div>
+            </EditField>
+
+            {/* 5행 — 메모 */}
+            <EditField label="메모" span={12}>
               <input
                 type="text"
                 value={draft.memo || ""}
@@ -960,6 +1043,31 @@ export default function ScheduledEntries() {
       </button>
       {calculatorOpen && (
         <CalculatorPopup onClose={() => setCalculatorOpen(false)} />
+      )}
+
+      {/* 장소 선택 — 편집 팝업과 신규 등록 폼이 함께 쓴다 */}
+      {placePickerFor && (
+        <PlacePicker
+          onSelect={(place) => {
+            if (placePickerFor === "draft") {
+              setDraftPlace(place);
+              setDraft((prev: any) => prev && ({
+                ...prev,
+                place_id: place.place_id ?? prev.place_id,
+                place_name: place.place_name,
+              }));
+            } else {
+              setFormPlace(place);
+              setFormPlaceName(place.place_name);
+              setForm((f) => ({
+                ...f,
+                place_id: place.place_id ? String(place.place_id) : "",
+              }));
+            }
+            setPlacePickerFor(null);
+          }}
+          onClose={() => setPlacePickerFor(null)}
+        />
       )}
     </div>
   );

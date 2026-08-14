@@ -3371,3 +3371,728 @@ button {
   cursor: not-allowed;
   user-select: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   14. 편집 팝업 — 12칸 그리드 레이아웃 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   · 좌우 분할을 span 으로 명시해 배치를 결정적으로 만든다
+   · 입력 폭은 칸이 정하므로 내용 길이에 따라 흔들리지 않는다
+   · 세로 스크롤이 생기지 않도록 팝업 여백을 최소화한다
+   ════════════════════════════════════════════════════════════ */
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 8px 8px;
+  align-items: start;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;          /* 내용이 칸을 밀어내지 못하게 */
+}
+
+.edit-field--span-3  { grid-column: span 3; }
+.edit-field--span-4  { grid-column: span 4; }
+.edit-field--span-6  { grid-column: span 6; }
+.edit-field--span-8  { grid-column: span 8; }
+.edit-field--span-12 { grid-column: span 12; }
+
+.edit-field__label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 어떤 컨트롤이 들어와도 칸 폭에 정확히 맞춘다 */
+.edit-field__control {
+  min-width: 0;
+  width: 100%;
+}
+
+.edit-field__control > * {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.edit-field__control input,
+.edit-field__control .ms-wrap,
+.edit-field__control .ms-display {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 성격이 다른 묶음 사이 구분선 (필요할 때만 사용) */
+.edit-divider {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: var(--color-border);
+  margin: 2px 0;
+}
+
+/* IN/OUT 칩도 칸을 가득 채워 다른 컨트롤과 높이·폭을 맞춘다 */
+.inout-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--control-h);
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+/* 장소 행 — 이름은 말줄임, 버튼은 고정 폭 */
+.edit-place {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  height: var(--control-h);
+  padding: 0 var(--control-px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-sizing: border-box;
+}
+
+.edit-place__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+}
+
+.edit-place .ui-btn {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 48px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+/* ─── 팝업 여백 최소화 — 스크롤이 생기지 않도록 ───────────────── */
+.edit-modal {
+  max-width: 600px;
+  max-height: 92vh;
+}
+
+.edit-modal__head {
+  padding: 10px 14px;
+}
+
+.edit-modal__title {
+  font-size: var(--font-size-base);
+}
+
+.edit-modal__subtitle {
+  font-size: var(--font-size-xs);
+}
+
+.edit-modal__close {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  font-size: 20px;
+}
+
+.edit-modal__body {
+  padding: 12px 14px;
+}
+
+.edit-modal__foot {
+  padding: 8px 14px;
+}
+
+.edit-modal__foot .ui-btn {
+  min-width: 64px;
+}
+
+/* ─── 좁은 화면 ─────────────────────────────────────────────────
+   3단(span 4)은 라벨이 짧아 폰에서도 유지한다. 단 수를 줄이면
+   행이 늘어나 오히려 세로 스크롤이 생기기 때문이다.
+   아주 좁을 때만 2단으로 접는다. */
+@media (max-width: 560px) {
+  .edit-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 7px 6px;
+  }
+
+  .edit-modal__body {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .edit-field--span-4 { grid-column: span 6; }
+  .edit-field--span-8 { grid-column: span 12; }
+  .edit-field--span-3 { grid-column: span 6; }
+}
+
+/* 화면이 낮을 때(가로 모드 등) 본문만 스크롤되게 */
+@media (max-height: 520px) {
+  .edit-modal {
+    max-height: 96vh;
+  }
+
+  .edit-modal__body {
+    padding: 8px 12px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   15. 편집 팝업 — 줄바꿈으로 깨지던 정렬 교정 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   앞 절에 남아 있던 flex-wrap 때문에 장소 칸의 버튼이 2줄로 밀리면서
+   그 칸만 높아져 행 정렬이 무너졌다. 줄바꿈을 금지하고 높이를 고정한다.
+   ════════════════════════════════════════════════════════════ */
+
+/* 장소 칸 — 절대 줄바꿈하지 않는다 */
+.edit-place {
+  flex-wrap: nowrap;
+  height: var(--control-h);
+  min-height: var(--control-h);
+  max-height: var(--control-h);
+  overflow: hidden;
+}
+
+.edit-place__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1;
+}
+
+.edit-place .ui-btn,
+.edit-place .ui-btn.small {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  height: 22px;
+  min-height: 22px;
+  padding: 0 7px;
+  font-size: 11px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* 모든 칸의 컨트롤 높이를 강제로 통일 — 한 칸만 커지는 일이 없도록 */
+.edit-field__control > input,
+.edit-field__control > .ms-wrap > .ms-display,
+.edit-field__control > .inout-chip,
+.edit-field__control > .edit-place {
+  height: var(--control-h);
+  min-height: var(--control-h);
+  max-height: var(--control-h);
+}
+
+.edit-field__control > .ms-wrap {
+  height: var(--control-h);
+}
+
+/* ─── 바닥글 — 한 줄 유지 ───────────────────────────────────── */
+.edit-modal__foot {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.edit-modal__foot-right {
+  width: auto;
+  flex: 0 0 auto;
+  margin-left: auto;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.edit-modal__foot .ui-btn,
+.edit-modal__foot .delete-btn {
+  min-width: 0;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.edit-modal__foot .delete-btn {
+  flex: 0 0 auto;
+}
+
+/* 좁은 화면에서도 바닥글은 한 줄 */
+@media (max-width: 560px) {
+  .edit-modal__foot {
+    flex-wrap: nowrap;
+    padding: 8px 12px;
+  }
+
+  .edit-modal__foot-right {
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .edit-modal__foot .ui-btn,
+  .edit-modal__foot .delete-btn {
+    padding: 0 10px;
+  }
+}
+
+/* ─── 라벨·입력 간격 미세 조정 ──────────────────────────────── */
+.edit-field__label {
+  line-height: 1.2;
+  margin: 0;
+}
+
+.edit-grid {
+  row-gap: 9px;
+  column-gap: 7px;
+}
+
+/* 금액은 오른쪽 정렬 + 숫자 폭 고정 */
+.edit-field__control input.amount-input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   16. 편집 팝업 — 항목 정렬 통일 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   모든 칸에서 값이 같은 x 위치에서 시작하도록 맞춘다.
+   앞 절에서 IN/OUT 은 가운데, 금액은 오른쪽으로 두어 어긋나 있었다.
+   ════════════════════════════════════════════════════════════ */
+
+/* 값의 시작 위치 · 글자 크기 · 높이를 한 번에 통일 */
+.edit-field__control input,
+.edit-field__control select,
+.edit-field__control .ms-display,
+.edit-field__control .inout-chip,
+.edit-field__control .edit-place {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;   /* 전부 왼쪽 기준 */
+  text-align: left;
+  padding-left: var(--control-px);
+  padding-right: var(--control-px);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  line-height: 1;
+}
+
+/* input 은 flex 로 만들면 캐럿이 어긋나므로 block 유지하되 정렬만 맞춘다 */
+.edit-field__control input {
+  display: block;
+  line-height: var(--control-h);
+}
+
+/* 금액도 왼쪽 정렬 — 폼 안에서는 다른 칸과 같은 기준을 따른다.
+   (카드 목록의 금액은 오른쪽 정렬 그대로 둔다) */
+.edit-field__control input.amount-input {
+  text-align: left;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* IN/OUT 칩 — 가운데 정렬 해제 */
+.edit-field__control .inout-chip {
+  justify-content: flex-start;
+  font-weight: 600;
+}
+
+/* 장소 칸 — 이름이 다른 값과 같은 x 에서 시작하도록 */
+.edit-field__control .edit-place {
+  padding-right: 4px;            /* 오른쪽 버튼 쪽만 좁게 */
+}
+
+.edit-place__name {
+  padding: 0;
+}
+
+/* 라벨도 값과 같은 들여쓰기를 줘서 세로선을 맞춘다 */
+.edit-field__label {
+  padding-left: 2px;
+}
+
+/* 날짜·시간 입력의 네이티브 아이콘이 폭을 밀지 않도록 */
+.edit-field__control input[type="date"],
+.edit-field__control input[type="time"] {
+  padding-right: 6px;
+}
+
+.edit-field__control input[type="date"]::-webkit-calendar-picker-indicator,
+.edit-field__control input[type="time"]::-webkit-calendar-picker-indicator {
+  margin-left: 0;
+  padding: 0;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+/* 셀렉트 표시부의 값·플레이스홀더도 같은 크기로 */
+.edit-field__control .ms-value,
+.edit-field__control .ms-placeholder {
+  font-size: var(--font-size-sm);
+  line-height: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   17. 장소/가게 선택 팝업 — 한 화면 구성 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   저장된 장소와 새 장소를 한 목록 영역에 번갈아 표시한다.
+   목록만 내부 스크롤을 갖고, 팝업 자체는 스크롤되지 않는다.
+   ════════════════════════════════════════════════════════════ */
+
+.place-picker {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  width: calc(100vw - 24px);
+  max-width: 460px;
+  max-height: 92vh;
+  margin: auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.place-picker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  flex: 0 0 auto;
+}
+
+.place-picker__title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.place-picker__keyword {
+  flex: 0 0 auto;
+  margin: 10px 14px 0;
+  width: calc(100% - 28px);
+}
+
+/* 출처 전환 탭 */
+.place-picker__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 8px 14px 0;
+  flex: 0 0 auto;
+}
+
+.place-tab {
+  height: var(--control-h);
+  min-height: var(--control-h);
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.place-tab.active {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+/* 목록 머리말 — 제목이 선택된 출처에 따라 바뀐다 */
+.place-picker__listhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 14px 4px;
+  flex: 0 0 auto;
+}
+
+.place-picker__listtitle {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.place-picker__count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 결과 목록 — 여기만 스크롤한다 */
+.place-picker__list {
+  flex: 1 1 auto;
+  min-height: 96px;
+  max-height: 34vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.place-picker__list .popup-item {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.place-picker__list .popup-item:last-child {
+  border-bottom: none;
+}
+
+.place-picker__list .popup-item strong {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-picker__list .popup-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-picker__list .popup-selected {
+  background: var(--color-primary-light);
+}
+
+.place-picker__list .popup-empty {
+  padding: 16px 10px;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* 지도 — 고정 높이, 스크롤 밖 */
+.place-picker__map {
+  flex: 0 0 auto;
+  height: 170px;
+  margin: 10px 14px 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.place-picker__foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-top: 10px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+  flex: 0 0 auto;
+}
+
+.place-picker__selected {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.place-picker__foot-btns {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+}
+
+.place-picker__foot-btns .ui-btn {
+  min-width: 56px;
+}
+
+/* 화면이 낮을 때 지도를 줄여 스크롤을 막는다 */
+@media (max-height: 700px) {
+  .place-picker__map { height: 130px; }
+  .place-picker__list { max-height: 26vh; }
+}
+
+@media (max-height: 560px) {
+  .place-picker__map { height: 100px; }
+  .place-picker__list { max-height: 20vh; min-height: 72px; }
+}
+
+/* ─── Add Expense 폼 — 편집 팝업과 같은 그리드를 쓴다 ─────────── */
+.entry-card-form .edit-grid {
+  margin-bottom: 12px;
+}
+
+.entry-card-form .entry-form__submit {
+  width: 100%;
+  margin-top: 2px;
+}
+
+/* 신규 스케줄 폼의 장소 칸도 편집 팝업과 같은 모양 */
+.form-row > .edit-place {
+  width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   18. 팝업 머리말 입력 · 장소 목록/지도 치수 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  /* 장소 목록 한 줄 높이 — 정확히 3줄이 들어오도록 고정한다 */
+  --place-item-h: 46px;
+}
+
+/* ─── 머리말에 놓이는 날짜·시간 입력 ────────────────────────── */
+.edit-modal__headfields {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 8px 7px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+  flex: 0 0 auto;
+}
+
+/* Add Expense 는 카드 안이라 배경/테두리를 카드에 맞춘다 */
+.entry-form__headfields {
+  background: transparent;
+  border-bottom: 1px dashed var(--color-border);
+  padding: 0 0 10px;
+  margin-bottom: 10px;
+}
+
+/* ─── 장소 목록 — 3줄 고정 + 내부 스크롤 ────────────────────── */
+.place-picker__list {
+  height: calc(var(--place-item-h) * 3);
+  min-height: calc(var(--place-item-h) * 3);
+  max-height: calc(var(--place-item-h) * 3);
+  overflow-y: auto;
+  flex: 0 0 auto;
+}
+
+.place-picker__list .popup-item {
+  height: var(--place-item-h);
+  box-sizing: border-box;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.place-picker__list .popup-item strong {
+  line-height: 1.25;
+}
+
+.place-picker__list .popup-sub {
+  line-height: 1.25;
+}
+
+.place-picker__list .popup-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+}
+
+/* ─── 지도 — 항상 자리를 잡고, 가능하면 정방형 ──────────────── */
+.place-picker__mapwrap {
+  position: relative;
+  flex: 0 0 auto;
+  margin: 10px 14px 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-bg);
+
+  /* 정방형이 기본. 화면이 낮으면 아래 미디어쿼리가 높이를 깎는다 */
+  aspect-ratio: 1 / 1;
+  max-height: 46vh;
+}
+
+.place-picker__map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.place-picker__mapempty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 16px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+/* 화면이 낮으면 정방형을 포기하고 높이를 줄인다 */
+@media (max-height: 780px) {
+  .place-picker__mapwrap { aspect-ratio: auto; height: 210px; }
+}
+
+@media (max-height: 680px) {
+  .place-picker__mapwrap { height: 160px; }
+}
+
+@media (max-height: 560px) {
+  .place-picker__mapwrap { height: 120px; }
+  :root { --place-item-h: 40px; }
+}
+
+/* ─── 드롭다운이 화면을 벗어나지 않도록 ─────────────────────── */
+.ms-dropdown {
+  min-width: 0;                 /* JS 가 계산한 width 를 그대로 쓴다 */
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+}
+
+.ms-option {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: var(--font-size-sm) !important;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ms-option input[type="radio"],
+.ms-option input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  min-height: 0;
+  margin: 0;
+}
