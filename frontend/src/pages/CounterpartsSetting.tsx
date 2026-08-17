@@ -3,6 +3,20 @@ import { useEffect, useState } from "react";
 import axios from "../api/client";
 import { apiErrorMessage } from "../utils/apiError";
 import SingleSelect from "./components/SingleSelect";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Counterpart = {
   counterpart_id: number;
@@ -23,7 +37,50 @@ const CATEGORY_OPTIONS = [
   ...CATEGORIES.map((c) => ({ value: c, label: c })),
 ];
 
-/** 비교용 지문 — 저장 시 "정말 바뀐 게 있는지" 판단한다 */
+/** 표시 순서 — 구분별로 묶고, 구분이 없는 것은 맨 뒤에 둔다 */
+const GROUPS: (string | null)[] = [...CATEGORIES, null];
+
+const groupLabel = (c: string | null) => c ?? "구분 없음";
+
+/**
+ * 끌어서 옮길 수 있는 한 줄.
+ * 손잡이는 편집 모드에서만 나오며, 자리를 항상 차지해 두 모드의
+ * 가로 위치가 어긋나지 않게 한다.
+ */
+function SortableRow({
+  id,
+  dragHandle,
+  children,
+}: {
+  id: number;
+  dragHandle: boolean;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`cp-sortable ${isDragging ? "dragging" : ""}`}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+    >
+      {/* 손잡이 자리는 두 모드에서 늘 차지한다. 그러지 않으면 편집에
+          들어가는 순간 카드가 통째로 오른쪽으로 밀린다. */}
+      {dragHandle ? (
+        <span className="cp-drag" {...attributes} {...listeners} aria-label="순서 변경">
+          ≡
+        </span>
+      ) : (
+        <span className="cp-drag cp-drag--empty" aria-hidden="true" />
+      )}
+      {children}
+    </div>
+  );
+}
+
+/** 비교용 지문 — 저장 시 "정말 바뀐 게 있는지" 판단한다.
+    배열 순서를 그대로 쓰므로 순서만 바꿔도 "변경됨" 으로 잡힌다. */
 const fingerprint = (list: Counterpart[]) =>
   JSON.stringify(
     list.map((c) => [
@@ -46,6 +103,43 @@ export default function CounterpartsSetting() {
   const [showInactive, setShowInactive] = useState(false);
   // 편집 진입 시점의 상태 — 변경 여부 판단에만 쓴다
   const [beforeEdit, setBeforeEdit] = useState("");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } })
+  );
+
+  /**
+   * 화면에 뿌릴 구분별 묶음.
+   * list 의 상대 순서를 그대로 유지하므로, 구분을 바꾸면 그 줄이
+   * 자동으로 다른 묶음으로 옮겨 간다.
+   */
+  const groups = GROUPS.map((cat) => ({
+    cat,
+    items: list.filter((c) => (c.category || null) === cat),
+  })).filter((g) => g.items.length > 0);
+
+  /** 저장할 때 쓰는 최종 순서 — 화면에 보이는 그대로다 */
+  const orderedForSave = groups.flatMap((g) => g.items);
+
+  /**
+   * 같은 묶음 안에서만 자리를 바꾼다.
+   * list 안의 위치를 직접 옮기므로 묶음 밖 순서는 흐트러지지 않는다.
+   */
+  const handleDragEnd = (event: { active: { id: unknown }; over: { id: unknown } | null }) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setList((prev) => {
+      const from = prev.findIndex((x) => x.counterpart_id === active.id);
+      const to = prev.findIndex((x) => x.counterpart_id === over.id);
+      if (from < 0 || to < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
 
   const refresh = async (inactive = showInactive) => {
     const r = await axios.get("/meta/counterparts", {
@@ -114,13 +208,18 @@ export default function CounterpartsSetting() {
       return;
     }
 
+    // 화면에 보이는 순서 그대로 sort_order 를 매긴다
+    const ordered = orderedForSave.filter((c) => rows.includes(c));
+
     try {
-      for (const c of rows) {
+      for (let i = 0; i < ordered.length; i++) {
+        const c = ordered[i];
         const body = {
           name: c.name.trim(),
           category: c.category,
           memo: c.memo,
           is_active: c.is_active,
+          sort_order: i + 1,
         };
         if (c.isNew) {
           await axios.post("/meta/counterparts", body);
@@ -215,12 +314,34 @@ export default function CounterpartsSetting() {
             </p>
           )}
 
-          {list.map((c) => (
+          {groups.map((g) => (
+            <section className="cp-group" key={groupLabel(g.cat)}>
+              <div className="cp-group__head">
+                <span className={`cp-group__dot cat-${g.cat ? CATEGORIES.indexOf(g.cat) + 1 : 0}`} />
+                <span className="cp-group__name">{groupLabel(g.cat)}</span>
+                <span className="cp-group__count">{g.items.length}</span>
+              </div>
+
+              {/* 순서 변경은 같은 묶음 안에서만 — 구분을 바꾸면 묶음이 바뀐다 */}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={g.items.map((c) => c.counterpart_id)}
+                  strategy={verticalListSortingStrategy}
+                >
+          {g.items.map((c) => (
+            <SortableRow
+              key={c.counterpart_id}
+              id={c.counterpart_id}
+              dragHandle={editMode && !c.isNew}
+            >
             <div
               className={`cp-card ${c.is_active ? "" : "inactive"} ${
                 editMode ? "editing" : ""
               } ${c.isNew ? "is-new" : ""}`}
-              key={c.counterpart_id}
             >
               {/* 아바타는 두 모드에 공통 — 편집에 들어가도 좌우 위치가 그대로다 */}
               <span
@@ -292,17 +413,15 @@ export default function CounterpartsSetting() {
                     {c.memo && <span className="cp-card__memo">{c.memo}</span>}
                   </div>
 
-                  {c.category && (
-                    <span
-                      className={`cp-chip cat-${CATEGORIES.indexOf(c.category) + 1}`}
-                    >
-                      {c.category}
-                    </span>
-                  )}
                   {!c.is_active && <span className="cp-chip muted">감춤</span>}
                 </>
               )}
             </div>
+            </SortableRow>
+          ))}
+                </SortableContext>
+              </DndContext>
+            </section>
           ))}
 
           {/* 목록의 마지막 줄처럼 보이는 추가 버튼 — 누르면 빈 행이 하나 붙는다 */}

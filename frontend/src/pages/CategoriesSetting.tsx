@@ -557,11 +557,14 @@ export default function CategoriesSetting() {
 
                       {editMode && (
                         <button
-                          className="delete-btn"
+                          type="button"
+                          className="set-remove"
                           style={{ marginLeft: "auto" }}
+                          title="제거"
+                          aria-label={`${c1.cat1_name} 제거`}
                           onClick={() => deleteCat1(c1.cat1_id)}
                         >
-                          Delete
+                          ×
                         </button>
                       )}
                     </div>
@@ -665,8 +668,14 @@ export default function CategoriesSetting() {
                               )}
 
                               {editMode && (
-                                <button className="delete-btn" onClick={() => deleteCat2(c2.cat2_id)}>
-                                  Delete
+                                <button
+                                  type="button"
+                                  className="set-remove"
+                                  title="제거"
+                                  aria-label={`${c2.cat2_name} 제거`}
+                                  onClick={() => deleteCat2(c2.cat2_id)}
+                                >
+                                  ×
                                 </button>
                               )}
                             </div>
@@ -745,8 +754,14 @@ export default function CategoriesSetting() {
                                         )}
 
                                         {editMode && (
-                                          <button className="delete-btn" onClick={() => deleteCat3(c3.cat3_id)}>
-                                            Delete
+                                          <button
+                                            type="button"
+                                            className="set-remove"
+                                            title="제거"
+                                            aria-label={`${c3.cat3_name} 제거`}
+                                            onClick={() => deleteCat3(c3.cat3_id)}
+                                          >
+                                            ×
                                           </button>
                                         )}
                                       </div>

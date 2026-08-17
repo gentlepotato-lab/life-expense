@@ -4822,3 +4822,256 @@ button {
   padding: 0;
   font-size: var(--font-size-xs);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   21. Settings 세 화면의 공통 언어 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   Categories · Payment Methods · Counterparts 는 하는 일이 같다.
+   "목록을 보고 · 순서를 바꾸고 · 이름을 고치고 · 지운다."
+   그런데 지우기 버튼만 해도 빨간 Delete 알약과 동그란 × 로 갈려 있었다.
+   여기서 공통 부품을 한 벌 정의하고 세 화면이 그것만 쓰게 한다.
+
+   치수는 기존 줄 높이 안에 들어가도록 잡았다. 편집 모드에 들어가도
+   줄이 자라지 않아야 하기 때문이다(20절과 같은 이유).
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 지우기 — 동그란 × ─────────────────────────────────────── */
+.set-remove {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.set-remove:hover {
+  background: rgba(255, 92, 87, 0.08);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* ─── 순서 손잡이 ───────────────────────────────────────────── */
+.set-drag,
+.cp-drag {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--color-text-tertiary);
+  font-size: 15px;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  border-radius: 6px;
+  transition: color 0.14s ease, background 0.14s ease;
+}
+
+.set-drag:hover,
+.cp-drag:hover {
+  color: var(--color-text-secondary);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.set-drag:active,
+.cp-drag:active {
+  cursor: grabbing;
+}
+
+/* 표시 모드에서 자리만 잡아 두는 빈 손잡이 */
+.cp-drag--empty {
+  cursor: default;
+  pointer-events: none;
+}
+
+.cp-drag--empty:hover {
+  background: transparent;
+}
+
+/* ─── Counterparts — 정렬 가능한 줄 ─────────────────────────── */
+.cp-sortable {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.cp-sortable > .cp-card {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 끌고 있는 줄은 살짝 떠 보이게 */
+.cp-sortable.dragging {
+  position: relative;
+  z-index: 5;
+}
+
+.cp-sortable.dragging > .cp-card {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+/* ─── Counterparts — 구분별 묶음 ────────────────────────────── */
+.cp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cp-group + .cp-group {
+  margin-top: 10px;
+}
+
+.cp-group__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 2px;
+}
+
+.cp-group__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-text-tertiary);
+  flex: 0 0 auto;
+}
+
+.cp-group__dot.cat-1 { background: var(--color-primary); }
+.cp-group__dot.cat-2 { background: var(--color-success); }
+.cp-group__dot.cat-3 { background: #FF9500; }
+.cp-group__dot.cat-4 { background: #98A2B3; }
+
+.cp-group__name {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.cp-group__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+}
+
+/* ─── 목록 줄을 세 화면 모두 같은 "카드" 로 ────────────────────
+   Counterparts 의 카드가 가장 읽기 좋았다. 나머지 두 화면도 같은
+   바탕·모서리·그림자를 쓰게 한다.
+   치수(높이·여백)는 건드리지 않는다. 그림자는 배치에 영향이 없고,
+   테두리를 더하면 줄 높이가 바뀌므로 쓰지 않는다. */
+.cat2-header-row {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.cat3-row {
+  background: rgba(0, 0, 0, 0.025);
+  border-radius: var(--radius);
+}
+
+.pm-item {
+  background: var(--color-surface);
+  border-bottom: none;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 2px 10px;
+}
+
+/* 중분류는 묶음의 머리말이다. Counterparts 의 묶음 머리말과 같은 결로 */
+.cat-group {
+  border-bottom: none;
+}
+
+.cat-group + .cat-group {
+  margin-top: 6px;
+}
+
+.cat1-name {
+  letter-spacing: -0.01em;
+}
+
+/* ─── 편집 컨트롤 두께를 세 화면 공통 22px 로 ──────────────────
+   20절에서 24px 로 맞춰 두었던 것을 공용 부품(.set-remove)과
+   같은 22px 로 내린다. 줄의 안쪽 여유(24px)보다 작으므로
+   편집 모드에서 줄이 자라지 않는 성질은 그대로다. */
+.cat2-header-row .inout-select-wrap,
+.cat2-header-row .inout-select-wrap .ms-wrap,
+.cat2-header-row .inout-select-wrap .ms-display {
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+}
+
+.cat2-header-row .inout-select-wrap .ms-display {
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+/* Blur 체크박스도 다른 화면의 토글과 같은 모양으로 */
+.blur-toggle {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  user-select: none;
+}
+
+.blur-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  min-height: 0;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/* ─── 손잡이 — 세 화면 같은 크기·색 ───────────────────────────
+   자리 폭(34px)은 기존 배치를 지키기 위해 그대로 두고,
+   안에 그려지는 기호만 통일한다. */
+.cat-group > div .drag-handle,
+div:has(> .pm-item) .drag-handle,
+div:has(> .cat2-header-row) .drag-handle,
+.cat3-list > div .drag-handle {
+  font-size: 15px;
+  color: var(--color-text-tertiary);
+  padding: 0;
+}
+
+/* ─── 표시 모드에서만 4px 씩 벌어지던 것 교정 ──────────────────
+   `.cat-group > div:not(:has(.drag-handle))::before` 는 중분류 줄에
+   손잡이 자리를 잡아 주려던 규칙인데, 세분류 목록(.cat3-list)도
+   `.cat-group` 의 직계 div 라서 함께 걸렸다.
+   그 결과 표시 모드에서는 빈 Flex 항목 하나와 gap 4px 이 더 생겼고,
+   편집 모드로 들어가면(손잡이가 생겨 선택자가 빗나가면) 사라지면서
+   목록이 4px 씩 위로 튀었다. 세분류 목록에는 자리 확보가 필요 없다.
+
+   원래 규칙의 특이도가 (0,2,2)라 같은 수준으로는 이길 수 없어,
+   대상을 명시해 (0,3,2)로 올린다. */
+.cat-group > div.cat3-list:not(:has(.drag-handle))::before {
+  content: none;
+}

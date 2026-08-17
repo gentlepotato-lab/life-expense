@@ -247,11 +247,14 @@ export default function PaymentMethodsSetting() {
 
                       {editMode && (
                         <button
-                          className="delete-btn"
+                          type="button"
+                          className="set-remove"
                           style={{ marginLeft: "auto" }}
+                          title="제거"
+                          aria-label={`${m.method_name} 제거`}
                           onClick={() => handleDelete(m.method_id)}
                         >
-                          Delete
+                          ×
                         </button>
                       )}
                     </div>
