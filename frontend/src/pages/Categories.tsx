@@ -1,6 +1,7 @@
-import Menu from "./components/Menu";
+import PageHead from "./components/PageHead";
 import { useEffect, useState } from "react";
 import axios from "../api/client";
+import useBackClose from "../hooks/useBackClose";
 import SingleSelect from "./components/SingleSelect";
 import EmojiPicker from "./components/EmojiPicker";
 import CollapseToggle, { CollapseAllButtons } from "./components/CollapseToggle";
@@ -52,7 +53,7 @@ function SortableItem({ id, children, dragHandle = false }: SortableItemProps) {
   );
 }
 
-export default function CategoriesSetting() {
+export default function Categories() {
   const [editMode, setEditMode] = useState(false);
   const [cat1, setCat1] = useState<any[]>([]);
   const [cat2, setCat2] = useState<any[]>([]);
@@ -108,6 +109,17 @@ export default function CategoriesSetting() {
   const [beforeEditCat2, setBeforeEditCat2] = useState<any[]>([]);
   const [beforeEditCat3, setBeforeEditCat3] = useState<any[]>([]);
 
+  /* 뒤로 가기 · Backspace 로 편집을 무른다.
+     편집에 들어올 때 떠 둔 원본으로 되돌리므로 손댄 내용은 버려진다.
+     추가 칸이 열려 있으면 그것부터 닫는다(나중에 연 것이 먼저 닫힌다). */
+  useBackClose(editMode, () => {
+    setCat1(beforeEditCat1);
+    setCat2(beforeEditCat2);
+    setCat3(beforeEditCat3);
+    setEditMode(false);
+  });
+  useBackClose(addOpen, () => setAddOpen(false));
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 }
@@ -118,7 +130,7 @@ export default function CategoriesSetting() {
   );
 
   useEffect(() => {
-    axios.get("/meta/categories/lvl1").then((r) =>
+    axios.get("/categories/lvl1").then((r) =>
       setCat1(r.data.map((c: any) => ({
         cat1_id: c.id,
         cat1_name: c.name,
@@ -128,7 +140,7 @@ export default function CategoriesSetting() {
       })))
     );
 
-    axios.get("/meta/categories/lvl2").then((r) =>
+    axios.get("/categories/lvl2").then((r) =>
       setCat2(r.data.map((c: any) => ({
         cat2_id: c.id,
         cat2_name: c.name,
@@ -140,7 +152,7 @@ export default function CategoriesSetting() {
       })))
     );
 
-    axios.get("/meta/categories/lvl3").then((r) =>
+    axios.get("/categories/lvl3").then((r) =>
       setCat3(r.data.map((c: any) => ({
         cat3_id: c.id,
         cat3_name: c.name,
@@ -189,7 +201,7 @@ export default function CategoriesSetting() {
     const cat1Names = cat1.map(c => c.cat1_name.trim());
     const duplicateCat1 = cat1Names.filter((v, i) => cat1Names.indexOf(v) !== i);
     if (duplicateCat1.length > 0) {
-      alert("이미 존재하는 항목입니다~");
+      alert("이미 존재하는 항목입니다.");
       return;
     }
 
@@ -204,7 +216,7 @@ export default function CategoriesSetting() {
     for (const group of grouped) {
       const dup = group.cat2_names.filter((v, i) => group.cat2_names.indexOf(v) !== i);
       if (dup.length > 0) {
-        alert("이미 존재하는 항목입니다~");
+        alert("이미 존재하는 항목입니다.");
         return;
       }
     }
@@ -257,7 +269,7 @@ export default function CategoriesSetting() {
       )
     };
 
-    axios.post("/meta/categories/save", payload).then(() => {
+    axios.post("/categories/save", payload).then(() => {
       alert("저장 완료-!! ;-)");
       setEditMode(false);
     });
@@ -292,7 +304,7 @@ export default function CategoriesSetting() {
       if (existCat1) {
         cat1_id = existCat1.cat1_id;
       } else {
-        const res1 = await axios.post("/meta/categories/add/cat1", null, {
+        const res1 = await axios.post("/categories/add/lvl1", null, {
           params: { name: cat1Name }
         });
         cat1_id = res1.data.cat1_id;
@@ -306,7 +318,7 @@ export default function CategoriesSetting() {
       if (existCat2) {
         cat2_id = existCat2.cat2_id;
       } else {
-        const res2 = await axios.post("/meta/categories/add/cat2", null, {
+        const res2 = await axios.post("/categories/add/lvl2", null, {
           params: { cat1_id, name: cat2Name }
         });
         cat2_id = res2.data.cat2_id;
@@ -318,11 +330,11 @@ export default function CategoriesSetting() {
           c => c.cat2_id === cat2_id && c.cat3_name === cat3Name
         );
         if (!existCat3) {
-          await axios.post("/meta/categories/add/cat3", null, {
+          await axios.post("/categories/add/lvl3", null, {
             params: { cat2_id, name: cat3Name }
           });
         } else {
-          alert("이미 존재하는 세분류입니다~");
+          alert("이미 존재하는 세분류입니다.");
         }
       }
 
@@ -357,7 +369,7 @@ export default function CategoriesSetting() {
             c => c.cat2_id === cat2_id && c.cat3_name === cat3Name
           );
           if (!existCat3) {
-            await axios.post("/meta/categories/add/cat3", null, {
+            await axios.post("/categories/add/lvl3", null, {
               params: { cat2_id, name: cat3Name }
             });
             alert("추가 완료-!! ;-)");
@@ -366,25 +378,25 @@ export default function CategoriesSetting() {
             await refreshListsAll();
             return;
           } else {
-            alert("이미 존재하는 세분류입니다~");
+            alert("이미 존재하는 세분류입니다.");
             return;
           }
         }
 
         // 세분류도 없으면 추가할 게 없으므로 중복 경고
-        alert("이미 존재하는 소분류입니다~");
+        alert("이미 존재하는 소분류입니다.");
         return;
       }
 
       // 소분류 자체가 없으면 새로 추가
-      const res2 = await axios.post("/meta/categories/add/cat2", null, {
+      const res2 = await axios.post("/categories/add/lvl2", null, {
         params: { cat1_id: selectedCat1ForAdd, name: cat2Name }
       });
       cat2_id = res2.data.cat2_id;
 
       // 세분류가 있다면 이어서 생성
       if (cat3Name) {
-        await axios.post("/meta/categories/add/cat3", null, {
+        await axios.post("/categories/add/lvl3", null, {
           params: { cat2_id, name: cat3Name }
         });
       }
@@ -408,13 +420,13 @@ export default function CategoriesSetting() {
         c => c.cat2_id === selectedCat2ForAdd && c.cat3_name === cat3Name
       );
       if (!existCat3) {
-        await axios.post("/meta/categories/add/cat3", null, {
+        await axios.post("/categories/add/lvl3", null, {
           params: { cat2_id: selectedCat2ForAdd, name: cat3Name }
         });
         alert("추가 완료-!! ;-)");
       setAddOpen(false);
       } else {
-        alert("이미 존재하는 세분류입니다~");
+        alert("이미 존재하는 세분류입니다.");
       }
 
       setNewCat3Name("");
@@ -427,9 +439,9 @@ export default function CategoriesSetting() {
 
   const refreshListsAll = async () => {
     const [r1, r2, r3] = await Promise.all([
-      axios.get("/meta/categories/lvl1"),
-      axios.get("/meta/categories/lvl2"),
-      axios.get("/meta/categories/lvl3"),
+      axios.get("/categories/lvl1"),
+      axios.get("/categories/lvl2"),
+      axios.get("/categories/lvl3"),
     ]);
 
     setCat1(r1.data.map((c: any) => ({
@@ -460,10 +472,10 @@ export default function CategoriesSetting() {
   };
 
   const deleteCat1 = async (cat1_id: number) => {
-    if (!window.confirm("이 중분류와 하위 소분류 전체를 제거합니다?")) return;
+    if (!window.confirm("이 중분류와 그 아래를 모두 제거할까요?")) return;
 
     try {
-      await axios.delete("/meta/categories/delete/cat1", { params: { cat1_id } });
+      await axios.delete("/categories/delete/lvl1", { params: { cat1_id } });
       refreshListsAll();
       alert("제거 완료-!! ;-)");
     } catch (err: any) {
@@ -476,10 +488,10 @@ export default function CategoriesSetting() {
   };
 
   const deleteCat2 = async (cat2_id: number) => {
-    if (!window.confirm("이 소분류와 하위 소분류 전체를 제거합니다?")) return;
+    if (!window.confirm("이 소분류와 그 아래 세분류를 모두 제거할까요?")) return;
 
     try {
-      await axios.delete("/meta/categories/delete/cat2", { params: { cat2_id } });
+      await axios.delete("/categories/delete/lvl2", { params: { cat2_id } });
       refreshListsAll();
       alert("제거 완료-!! ;-)");
       setSelectedCat2ForAdd(null);
@@ -493,10 +505,10 @@ export default function CategoriesSetting() {
   };
 
   const deleteCat3 = async (cat3_id: number) => {
-    if (!window.confirm("이 세분류만 제거합니다?")) return;
+    if (!window.confirm("이 세분류만 제거할까요?")) return;
 
     try {
-      await axios.delete("/meta/categories/delete/cat3", { params: { cat3_id } });
+      await axios.delete("/categories/delete/lvl3", { params: { cat3_id } });
       refreshListsAll();
       alert("제거 완료-!! ;-)");
     } catch (err: any) {
@@ -510,8 +522,7 @@ export default function CategoriesSetting() {
 
   return (
     <div className="page-wrap">
-      <Menu />
-      <h1 className="page-title">Categories</h1>
+      <PageHead />
 
       <div className="cat-toolbar">
         <div className="cat-toolbar-btns">
@@ -569,7 +580,7 @@ export default function CategoriesSetting() {
           <div className="set-draft__head">
             <span className="set-draft__name">새 항목</span>
             <span className="set-draft__hint">
-              고른 중분류·소분류 아래에 추가됩니다
+              고른 중분류·소분류 아래에 추가됩니다.
             </span>
           </div>
 
@@ -602,7 +613,7 @@ export default function CategoriesSetting() {
             <div className="cat23-input-row">
               <input
                 className="cat-input"
-                placeholder="중분류 항목 입력"
+                placeholder="(새 중분류)"
                 value={newCat1Name}
                 onChange={(e) => setNewCat1Name(e.target.value)}
               />
@@ -639,7 +650,7 @@ export default function CategoriesSetting() {
             <div className="cat23-input-row">
               <input
                 className="cat3-input"
-                placeholder="소분류 항목 입력"
+                placeholder="(새 소분류)"
                 value={newCat2Name}
                 onChange={(e) => setNewCat2Name(e.target.value)}
               />
@@ -650,7 +661,7 @@ export default function CategoriesSetting() {
             <div className="cat23-input-row">
               <input
                 className="cat3-input"
-                placeholder="세분류 항목 입력 (선택)"
+                placeholder="(새 세분류)"
                 value={newCat3Name}
                 onChange={(e) => setNewCat3Name(e.target.value)}
               />
@@ -729,7 +740,7 @@ export default function CategoriesSetting() {
                       <button
                         type="button"
                         className={`set-hide-btn ${c1.is_active ? "" : "on"}`}
-                        title={c1.is_active ? "감춘다 — 고르는 목록에서 빠진다" : "다시 보이게 한다"}
+                        title={c1.is_active ? "감춘다 — 고르는 목록에서 빠진다." : "다시 보이게 한다."}
                         onClick={() => toggleHidden1(c1.cat1_id)}
                       >
                         {c1.is_active ? "감추기" : "감춤"}
@@ -832,7 +843,7 @@ export default function CategoriesSetting() {
                                         x.cat2_id === c2.cat2_id ? { ...x, inout: parsed } : x
                                       ));
                                     }}
-                                    placeholder="IN/OUT"
+                                    placeholder="(IN/OUT)"
                                   />
                                 </div>
                               )}
@@ -845,11 +856,11 @@ export default function CategoriesSetting() {
                                   title={
                                     c2.blur === 1
                                       ? "금액을 흐리게 가리는 중"
-                                      : "금액을 흐리게 가린다"
+                                      : "금액을 흐리게 가린다."
                                   }
                                   onClick={() => {
                                     const next = c2.blur === 1 ? 0 : 1;
-                                    axios.post("/meta/categories/blur/set", null, {
+                                    axios.post("/categories/blur/set", null, {
                                       params: { cat1_id: c2.cat1_id, cat2_id: c2.cat2_id, enabled: next === 1 }
                                     });
                                     setCat2(cat2.map(x =>
@@ -865,7 +876,7 @@ export default function CategoriesSetting() {
                                 <button
                                   type="button"
                                   className={`set-hide-btn ${c2.is_active ? "" : "on"}`}
-                                  title={c2.is_active ? "감춘다 — 고르는 목록에서 빠진다" : "다시 보이게 한다"}
+                                  title={c2.is_active ? "감춘다 — 고르는 목록에서 빠진다." : "다시 보이게 한다."}
                                   onClick={() => toggleHidden2(c2.cat2_id)}
                                 >
                                   {c2.is_active ? "감추기" : "감춤"}
@@ -891,7 +902,7 @@ export default function CategoriesSetting() {
                             <div className="cat3-add-row" style={{ marginLeft: "20px", marginTop: "4px" }}>
                               <input
                                 className="cat3-input"
-                                placeholder="세분류 항목 입력"
+                                placeholder="(새 세분류)"
                                 value={newCat3Name}
                                 onChange={(e) => setNewCat3Name(e.target.value)}
                               />
@@ -964,7 +975,7 @@ export default function CategoriesSetting() {
                                           <button
                                             type="button"
                                             className={`set-hide-btn ${c3.is_active ? "" : "on"}`}
-                                            title={c3.is_active ? "감춘다 — 고르는 목록에서 빠진다" : "다시 보이게 한다"}
+                                            title={c3.is_active ? "감춘다 — 고르는 목록에서 빠진다." : "다시 보이게 한다."}
                                             onClick={() => toggleHidden3(c3.cat3_id)}
                                           >
                                             {c3.is_active ? "감추기" : "감춤"}

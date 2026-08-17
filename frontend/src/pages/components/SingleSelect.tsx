@@ -16,7 +16,8 @@ export default function SingleSelect<T>({
   options,
   selected,
   onChange,
-  placeholder = "선택하세요"
+  /* 안내 문구는 앱 전체에서 "(무엇)" 꼴로 맞춘다 */
+  placeholder = "(선택)"
 }: SingleSelectProps<T>) {
   const [open, setOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
@@ -130,4 +131,3 @@ export default function SingleSelect<T>({
     </div>
   );
 }
-

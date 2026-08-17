@@ -1,8 +1,9 @@
-import Menu from "./components/Menu";
+import PageHead from "./components/PageHead";
 import { visible } from "../utils/visible";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import api from "../api/client";
-import { PlacePicker } from "./EntryForm";
+import useBackClose from "../hooks/useBackClose";
+import PlacePicker from "./components/PlacePicker";
 import MultiSelect from "./components/MultiSelect";
 import SingleSelect from "./components/SingleSelect";
 import CalculatorPopup from "./components/CalculatorPopup";
@@ -23,6 +24,7 @@ export default function PendingEntries() {
   const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
 
   const [filterOpen, setFilterOpen] = useState(false);
+
   const [filter, setFilter] = useState({
     dateFrom: "",
     dateTo: "",
@@ -31,7 +33,16 @@ export default function PendingEntries() {
     cat3: [] as number[],
     pay: [] as string[],
     memo: "",
+    /* 지출을 적을 때 고를 수 있는 것은 모두 걸러 낼 수 있어야 한다 */
+    inout: 0,                 // 0 = 가리지 않음, 1 = 들어옴, -1 = 나감
+    amountMin: "",
+    amountMax: "",
+    place: "",
+    cp: [] as number[],       // 함께한 상대
   });
+
+  /* 함께한 상대 목록 — 필터에서 고르기 위해 받아 둔다 */
+  const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
 
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다
   const [draft, setDraft] = useState<any | null>(null);
@@ -39,11 +50,17 @@ export default function PendingEntries() {
   const [placePickerOpen, setPlacePickerOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
 
+  /* 뒤로 가기 · Backspace 로 지금 열린 것만 닫는다.
+     카드 편집 팝업은 CardEditModal 이 스스로 처리한다. */
+  useBackClose(filterOpen, () => setFilterOpen(false));
+  useBackClose(placePickerOpen, () => setPlacePickerOpen(false));
+
   useEffect(() => {
-    api.get("/meta/categories/lvl1").then((r) => setCat1List(r.data));
-    api.get("/meta/categories/lvl2").then((r) => setCat2List(r.data));
-    api.get("/meta/categories/lvl3").then((r) => setCat3List(r.data));
-    api.get("/meta/payment-methods/list").then((r) =>
+    api.get("/categories/lvl1").then((r) => setCat1List(r.data));
+    api.get("/categories/lvl2").then((r) => setCat2List(r.data));
+    api.get("/counterparts").then((r) => setCpList(r.data));
+    api.get("/categories/lvl3").then((r) => setCat3List(r.data));
+    api.get("/payment-methods").then((r) =>
       setPayList(
         r.data.map((p: any) => ({
           code: p.method_id,
@@ -242,7 +259,7 @@ export default function PendingEntries() {
 
     try {
       const res = await api.post("/pending-entries/import", fd, {
-        baseURL: "/",
+        baseURL: "/api",
         headers: { "Content-Type": "multipart/form-data" },
       });
       alert(`${res.data.inserted ?? 0}건이 적재되었습니다.`);
@@ -348,7 +365,7 @@ export default function PendingEntries() {
   };
 
   // ─────────────────────────────────────────────
-  // MultiSelect용 메모/콜백 → EntriesGrid와 동일 패턴
+  // MultiSelect용 메모/콜백 → Entries와 동일 패턴
   // ─────────────────────────────────────────────
 
   const cat1Options = useMemo(
@@ -600,9 +617,41 @@ export default function PendingEntries() {
       filter.cat2.length > 0 ||
       filter.cat3.length > 0 ||
       filter.pay.length > 0 ||
-      filter.memo.trim() !== ""
+      filter.memo.trim() !== "" ||
+      filter.inout !== 0 ||
+      filter.amountMin !== "" ||
+      filter.amountMax !== "" ||
+      filter.place.trim() !== "" ||
+      filter.cp.length > 0
     );
   }, [filter]);
+
+  const cpOptions = useMemo(
+    () => [
+      { value: -1, label: "(전체)" },
+      ...cpList.map((c) => ({ value: c.counterpart_id, label: c.name })),
+    ],
+    [cpList]
+  );
+
+  const cp_onSpecialClick = useCallback(
+    (v: number) => {
+      if (v !== -1) return false;
+      const all = cpList.map((c) => c.counterpart_id);
+      setFilter((prev) => ({ ...prev, cp: prev.cp.length === all.length ? [] : all }));
+      return true;
+    },
+    [cpList]
+  );
+
+  const cp_onChange = useCallback((list: number[]) => {
+    setFilter((prev) => ({ ...prev, cp: list }));
+  }, []);
+
+  const cp_isChecked = useCallback(
+    (v: number) => (v === -1 ? filter.cp.length === cpList.length : filter.cp.includes(v)),
+    [filter.cp, cpList]
+  );
 
   // 날짜별 단 — 들어온 순서를 그대로 보존한다.
   // 소분류에 blur 가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
@@ -636,6 +685,26 @@ export default function PendingEntries() {
     if (filter.memo.trim()) {
       const q = filter.memo.trim();
       filtered = filtered.filter((r) => (r.memo ?? "").includes(q));
+    }
+    if (filter.inout !== 0) {
+      filtered = filtered.filter((r) => r.inout === filter.inout);
+    }
+    if (filter.amountMin !== "") {
+      const min = Number(filter.amountMin);
+      filtered = filtered.filter((r) => Number(r.amount) >= min);
+    }
+    if (filter.amountMax !== "") {
+      const max = Number(filter.amountMax);
+      filtered = filtered.filter((r) => Number(r.amount) <= max);
+    }
+    if (filter.place.trim()) {
+      const q = filter.place.trim().toLowerCase();
+      filtered = filtered.filter((r) => (r.place_name ?? "").toLowerCase().includes(q));
+    }
+    if (filter.cp.length) {
+      filtered = filtered.filter((r) =>
+        (r.counterpart_ids ?? []).some((id: number) => filter.cp.includes(id))
+      );
     }
 
     setRows(filtered);
@@ -680,8 +749,7 @@ export default function PendingEntries() {
 
   return (
     <div className="page-wrap">
-      <Menu />
-      <h1 className="page-title">Pending Entries</h1>
+      <PageHead />
 
       {/* 상단 툴바: Excel Import + Filter + Reload */}
       <div className="toolbar-wrap">
@@ -786,7 +854,7 @@ export default function PendingEntries() {
             {/* 2행 — 거래 속성. IN/OUT 은 소분류가 결정하므로 분류 바로 아래에 둔다 */}
             <EditField label="IN/OUT" span={4}>
               <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
-                {draft.inout === 1 ? "IN (+)" : draft.inout === -1 ? "OUT (−)" : "—"}
+                {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
               </span>
             </EditField>
 
@@ -852,94 +920,157 @@ export default function PendingEntries() {
       {filterOpen && (
         <div className="popup-overlay" onClick={() => setFilterOpen(false)}>
           <div className="popup-panel" onClick={(e) => e.stopPropagation()}>
-            <h3>검색 필터</h3>
+            <h3>필터</h3>
 
-            {/* 1행: 날짜 */}
-            <div className="filter-row">
-              <div className="filter-col">
-                <label>시작일</label>
-                <input
-                  type="date"
-                  value={filter.dateFrom}
-                  onChange={(e) =>
-                    setFilter({ ...filter, dateFrom: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="filter-col">
-                <label>종료일</label>
-                <input
-                  type="date"
-                  value={filter.dateTo}
-                  onChange={(e) =>
-                    setFilter({ ...filter, dateTo: e.target.value })
-                  }
-                />
+            {/* 언제 */}
+            <div className="filter-group">
+              <div className="filter-group__label">기간</div>
+              <div className="filter-row">
+                <div className="filter-col">
+                  <label>시작일</label>
+                  <input
+                    type="date"
+                    value={filter.dateFrom}
+                    onChange={(e) => setFilter({ ...filter, dateFrom: e.target.value })}
+                  />
+                </div>
+                <div className="filter-col">
+                  <label>종료일</label>
+                  <input
+                    type="date"
+                    value={filter.dateTo}
+                    onChange={(e) => setFilter({ ...filter, dateTo: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* 2행: 중분류 / 소분류 */}
-            <div className="filter-row">
-              <div className="filter-col">
-                <label>중분류</label>
-                <MultiSelect
-                  options={cat1Options}
-                  selected={filter.cat1}
-                  onSpecialClick={cat1_onSpecialClick}
-                  onChange={cat1_onChange}
-                  isOptionChecked={cat1_isChecked}
-                />
+            {/* 무엇으로 */}
+            <div className="filter-group">
+              <div className="filter-group__label">분류</div>
+              <div className="filter-row">
+                <div className="filter-col">
+                  <label>중분류</label>
+                  <MultiSelect
+                    options={cat1Options}
+                    selected={filter.cat1}
+                    onSpecialClick={cat1_onSpecialClick}
+                    onChange={cat1_onChange}
+                    isOptionChecked={cat1_isChecked}
+                    placeholder="(전체)"
+                  />
+                </div>
+                <div className="filter-col">
+                  <label>소분류</label>
+                  <MultiSelect
+                    options={cat2Options}
+                    selected={filter.cat2}
+                    onSpecialClick={cat2_onSpecialClick}
+                    onChange={cat2_onChange}
+                    isOptionChecked={cat2_isChecked}
+                    placeholder="(전체)"
+                  />
+                </div>
               </div>
-
-              <div className="filter-col">
-                <label>소분류</label>
-                <MultiSelect
-                  options={cat2Options}
-                  selected={filter.cat2}
-                  onSpecialClick={cat2_onSpecialClick}
-                  onChange={cat2_onChange}
-                  isOptionChecked={cat2_isChecked}
-                />
+              <div className="filter-row">
+                <div className="filter-col">
+                  <label>세분류</label>
+                  <MultiSelect
+                    options={cat3Options}
+                    selected={filter.cat3}
+                    onSpecialClick={cat3_onSpecialClick}
+                    onChange={cat3_onChange}
+                    isOptionChecked={cat3_isChecked}
+                    placeholder="(전체)"
+                  />
+                </div>
+                <div className="filter-col">
+                  <label>결제 수단</label>
+                  <MultiSelect
+                    options={payOptions}
+                    selected={filter.pay}
+                    onSpecialClick={pay_onSpecialClick}
+                    onChange={pay_onChange}
+                    isOptionChecked={pay_isChecked}
+                    placeholder="(전체)"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* 3행: 세분류 / 결제 수단 */}
-            <div className="filter-row">
-              <div className="filter-col">
-                <label>세분류</label>
-                <MultiSelect
-                  options={cat3Options}
-                  selected={filter.cat3}
-                  onSpecialClick={cat3_onSpecialClick}
-                  onChange={cat3_onChange}
-                  isOptionChecked={cat3_isChecked}
-                />
-              </div>
-
-              <div className="filter-col">
-                <label>결제 수단</label>
-                <MultiSelect
-                  options={payOptions}
-                  selected={filter.pay}
-                  onSpecialClick={pay_onSpecialClick}
-                  onChange={pay_onChange}
-                  isOptionChecked={pay_isChecked}
-                />
+            {/* 얼마나 */}
+            <div className="filter-group">
+              <div className="filter-group__label">금액</div>
+              <div className="filter-row">
+                <div className="filter-col">
+                  <label>IN/OUT</label>
+                  <SingleSelect
+                    options={[
+                      { value: "0", label: "(전체)" },
+                      { value: "-1", label: "OUT(−)" },
+                      { value: "1", label: "IN(+)" },
+                    ]}
+                    selected={String(filter.inout)}
+                    onChange={(v) => setFilter({ ...filter, inout: Number(v) })}
+                    placeholder="(전체)"
+                  />
+                </div>
+                <div className="filter-col filter-col--amount">
+                  <label>금액</label>
+                  <div className="filter-range">
+                    <input
+                      type="number"
+                      value={filter.amountMin}
+                      placeholder="(최소)"
+                      onChange={(e) => setFilter({ ...filter, amountMin: e.target.value })}
+                    />
+                    <span className="filter-range__tilde">~</span>
+                    <input
+                      type="number"
+                      value={filter.amountMax}
+                      placeholder="(최대)"
+                      onChange={(e) => setFilter({ ...filter, amountMax: e.target.value })}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* 4행: 메모 (전체 너비) */}
-            <div className="filter-row">
-              <div className="filter-col" style={{ flex: '1 1 100%' }}>
-                <label>메모</label>
-                <input
-                  type="text"
-                  value={filter.memo}
-                  onChange={(e) =>
-                    setFilter({ ...filter, memo: e.target.value })
-                  }
-                />
+            {/* 어디서 · 누구와 */}
+            <div className="filter-group">
+              <div className="filter-group__label">장소 · 상대</div>
+              <div className="filter-row">
+                <div className="filter-col">
+                  <label>장소</label>
+                  <input
+                    type="text"
+                    value={filter.place}
+                    placeholder="(장소)"
+                    onChange={(e) => setFilter({ ...filter, place: e.target.value })}
+                  />
+                </div>
+                <div className="filter-col">
+                  <label>함께한 상대</label>
+                  <MultiSelect
+                    options={cpOptions}
+                    selected={filter.cp}
+                    onSpecialClick={cp_onSpecialClick}
+                    onChange={cp_onChange}
+                    isOptionChecked={cp_isChecked}
+                    placeholder="(전체)"
+                  />
+                </div>
+              </div>
+              <div className="filter-row">
+                <div className="filter-col filter-col--wide">
+                  <label>메모</label>
+                  <input
+                    type="text"
+                    value={filter.memo}
+                    placeholder="(메모)"
+                    onChange={(e) => setFilter({ ...filter, memo: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
 
@@ -958,6 +1089,11 @@ export default function PendingEntries() {
                     cat3: [],
                     pay: [],
                     memo: "",
+                    inout: 0,
+                    amountMin: "",
+                    amountMax: "",
+                    place: "",
+                    cp: [],
                   })
                 }
               >
@@ -998,8 +1134,7 @@ export default function PendingEntries() {
 
             // ② kakao_id만 있고 place_id는 없는 경우 → DB에 있는지 확인
             if (place.kakao_id) {
-              // 라우터가 /api/places 에 마운트되어 있다 (backend/app/main.py)
-              const res = await api.get("/api/places/exists-by-kakao", {
+              const res = await api.get("/places/exists-by-kakao", {
                 params: { kakao_id: place.kakao_id },
               });
 

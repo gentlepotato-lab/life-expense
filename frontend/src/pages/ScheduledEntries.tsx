@@ -1,13 +1,14 @@
-import Menu from "./components/Menu";
+import PageHead from "./components/PageHead";
 import { visible } from "../utils/visible";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "../api/client";
+import useBackClose from "../hooks/useBackClose";
 import SingleSelect from "./components/SingleSelect";
 import CalculatorPopup from "./components/CalculatorPopup";
 import CardEditModal, { EditField, EditDivider } from "./components/CardEditModal";
 import SplitEditor from "./components/SplitEditor";
 import type { SplitDraft } from "./components/SplitEditor";
-import { PlacePicker } from "./EntryForm";
+import PlacePicker from "./components/PlacePicker";
 import useLongPress from "../hooks/useLongPress";
 
 type CategoryL2Meta = { id: number; name: string; cat1_id?: number; inout?: number | null; is_active?: number };
@@ -222,6 +223,10 @@ export default function ScheduledEntries() {
 
   // 장소 선택 — 편집 팝업(draft)과 신규 등록 폼(form) 중 어디에 반영할지
   const [placePickerFor, setPlacePickerFor] = useState<"draft" | "form" | null>(null);
+
+  /* 뒤로 가기 · Backspace 로 지금 열린 것만 닫는다 */
+  useBackClose(showForm, () => setShowForm(false));
+  useBackClose(placePickerFor !== null, () => setPlacePickerFor(null));
   // 아직 DB 에 없는 카카오 장소는 저장 직전에 등록해야 하므로 원본을 들고 있는다
   const [draftPlace, setDraftPlace] = useState<any | null>(null);
   const [formPlace, setFormPlace] = useState<any | null>(null);
@@ -255,7 +260,7 @@ export default function ScheduledEntries() {
     if (!picked) return currentId ? Number(currentId) : null;
     if (picked.place_id) return Number(picked.place_id);
 
-    const res = await axios.post("/api/places", {
+    const res = await axios.post("/places", {
       place_name: picked.place_name,
       lat: picked.lat,
       lng: picked.lng,
@@ -318,7 +323,7 @@ export default function ScheduledEntries() {
 
   // 메타데이터 로드
   useEffect(() => {
-    axios.get("/meta/categories/lvl1")
+    axios.get("/categories/lvl1")
       .then((res) => {
         setCat1List(Array.isArray(res.data) ? res.data : []);
       })
@@ -327,7 +332,7 @@ export default function ScheduledEntries() {
         setCat1List([]);
       });
     
-    axios.get("/meta/payment-methods/list")
+    axios.get("/payment-methods")
       .then((res) => {
         const data = Array.isArray(res.data) ? res.data : [];
         setPayList(
@@ -344,7 +349,7 @@ export default function ScheduledEntries() {
       });
 
     axios
-      .get("/meta/categories/lvl2")
+      .get("/categories/lvl2")
       .then((res) => {
         const data = Array.isArray(res.data) ? res.data : [];
         setCat2All(data);
@@ -367,7 +372,7 @@ export default function ScheduledEntries() {
       });
 
     axios
-      .get("/meta/categories/lvl3")
+      .get("/categories/lvl3")
       .then((res) => {
         const data = Array.isArray(res.data) ? res.data : [];
         setCat3All(data);
@@ -396,7 +401,7 @@ export default function ScheduledEntries() {
       return;
     }
     axios
-      .get("/meta/categories/lvl2", { params: { cat1_id: form.cat1_id } })
+      .get("/categories/lvl2", { params: { cat1_id: form.cat1_id } })
       .then((res) => {
         setCat2List(Array.isArray(res.data) ? res.data : []);
       })
@@ -424,7 +429,7 @@ export default function ScheduledEntries() {
       return;
     }
     axios
-      .get("/meta/categories/lvl3", { params: { cat2_id: form.cat2_id } })
+      .get("/categories/lvl3", { params: { cat2_id: form.cat2_id } })
       .then((res) => {
         setCat3List(Array.isArray(res.data) ? res.data : []);
       })
@@ -655,7 +660,7 @@ export default function ScheduledEntries() {
       form.amount == null || form.amount === '' ||
       !form.pay_method
     ) {
-      alert("필수 항목을 모두 입력하세요~");
+      alert("필수 항목을 모두 입력하세요.");
       return;
     }
 
@@ -727,17 +732,22 @@ export default function ScheduledEntries() {
 
   return (
     <div className="page-wrap">
-      <Menu />
-      <h1 className="page-title">Scheduled Entries</h1>
+      <PageHead />
 
       {/* New & Save 툴바 */}
-      <div className="scheduled-toolbar mb-4">
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="ui-btn primary scheduled-toolbar__btn scheduled-toolbar__btn--new"
-        >
-          [+] 새로운 스케줄
-        </button>
+      {/* 툴바 껍데기는 쓴 내역 · 대기 내역과 같은 것을 쓴다.
+          화면을 옮겨 다녀도 첫 줄이 같은 높이에서 시작해야 한다. */}
+      <div className="toolbar-wrap">
+        <div className="toolbar">
+          <div className="toolbar-btns">
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="ui-btn primary scheduled-toolbar__btn scheduled-toolbar__btn--new"
+            >
+              [+] 새 정기 결제
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* 등록 폼 팝업 */}
@@ -801,7 +811,7 @@ export default function ScheduledEntries() {
                     ]}
                     selected={form.holiday_handling}
                     onChange={(value) => setForm({ ...form, holiday_handling: value as "before" | "on" | "after" })}
-                    placeholder="선택"
+                    placeholder="(휴일 처리)"
                   />
                 </div>
                 <div className="form-row" style={{flex: 1, marginBottom: 0}}>
@@ -1008,7 +1018,7 @@ export default function ScheduledEntries() {
             {/* 2행 — 거래 속성. IN/OUT 은 소분류가 결정하므로 분류 바로 아래에 둔다 */}
             <EditField label="IN/OUT" span={4}>
               <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
-                {draft.inout === 1 ? "IN (+)" : draft.inout === -1 ? "OUT (−)" : "—"}
+                {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
               </span>
             </EditField>
 
@@ -1032,7 +1042,7 @@ export default function ScheduledEntries() {
                 value={draft.amount ?? ""}
                 onChange={(e) => setField("amount", e.target.value === "" ? null : Number(e.target.value))}
                 className="amount-input"
-                placeholder="금액"
+                placeholder="(금액)"
               />
             </EditField>
 
@@ -1046,7 +1056,7 @@ export default function ScheduledEntries() {
                 ]}
                 selected={draft.holiday_handling}
                 onChange={(value) => setField("holiday_handling", value)}
-                placeholder="선택"
+                placeholder="(휴일 처리)"
               />
             </EditField>
 
@@ -1072,7 +1082,7 @@ export default function ScheduledEntries() {
                 value={draft.memo || ""}
                 onChange={(e) => setField("memo", e.target.value)}
                 className="memo-input"
-                placeholder="메모 입력"
+                placeholder="(메모)"
               />
             </EditField>
           </div>

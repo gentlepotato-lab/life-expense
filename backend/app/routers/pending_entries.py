@@ -155,6 +155,15 @@ def list_pending_entries(db: SessionDep = Depends()):
              , COALESCE(vn.split_amount, 0) AS split_amount
              , COALESCE(vn.net_amount, p.amount) AS net_amount
              , COALESCE(vn.split_count, 0) AS split_count
+             -- 화면에서 "함께한 상대" 로 걸러 낼 수 있도록 상대 ID 를 함께 보낸다.
+             -- 목록을 한 번만 읽고 화면에서 거르는 구조라, 행마다 들려 있어야 한다.
+             , COALESCE(
+                   (SELECT array_agg(DISTINCT s.counterpart_id)
+                      FROM life_expense.pending_entry_splits s
+                     WHERE s.pending_id = p.entry_id
+                       AND s.counterpart_id IS NOT NULL),
+                   '{}'
+               ) AS counterpart_ids
         FROM life_expense.pending_entries p
         LEFT JOIN life_expense.places pl
                ON p.place_id = pl.place_id

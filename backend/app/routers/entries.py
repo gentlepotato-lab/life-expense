@@ -561,6 +561,13 @@ def filter_entries(
     pay: str | None = Query(None),
     # >>> END ADD
     memo: str | None = Query(None),
+    # 지출을 적을 때 고를 수 있는 것은 모두 걸러 낼 수 있어야 한다.
+    # 그래서 나감/들어옴 · 금액 구간 · 장소 · 함께한 상대를 여기에 더한다.
+    inout: int | None = Query(None),
+    amount_min: float | None = Query(None),
+    amount_max: float | None = Query(None),
+    place: str | None = Query(None),
+    counterpart: str | None = Query(None),
     db: SessionDep = Depends()
 ):
     sql = """
@@ -628,6 +635,37 @@ def filter_entries(
     if memo:
         sql += " AND e.memo LIKE :memo"
         params["memo"] = f"%{memo}%"
+
+    # 나감(-1) / 들어옴(1). 0 이나 없음은 "가리지 않음" 으로 본다
+    if inout in (-1, 1):
+        sql += " AND e.inout = :inout"
+        params["inout"] = inout
+
+    # 금액 구간 — 한쪽만 채워도 걸린다
+    if amount_min is not None:
+        sql += " AND e.amount >= :amount_min"
+        params["amount_min"] = amount_min
+    if amount_max is not None:
+        sql += " AND e.amount <= :amount_max"
+        params["amount_max"] = amount_max
+
+    # 장소는 이름 일부만 적어도 찾게 한다
+    if place:
+        sql += " AND p.place_name ILIKE :place"
+        params["place"] = f"%{place}%"
+
+    # 함께한 상대 — 그 사람과 나눈 건이 하나라도 있으면 걸린다
+    counterpart_list = _parse_int_list(counterpart)
+    if counterpart_list:
+        sql += """
+            AND EXISTS (
+                SELECT 1
+                  FROM life_expense.entry_splits s
+                 WHERE s.entry_id = e.entry_id
+                   AND s.counterpart_id = ANY(:counterpart_list)
+            )
+        """
+        params["counterpart_list"] = counterpart_list
 
     sql += " ORDER BY e.tx_date DESC, e.entry_id DESC"
 

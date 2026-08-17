@@ -45,7 +45,7 @@ TO-BE 구조(네임스페이스 분리 · 네이티브 실행 · `gp-lab`/`life_
 - 테이블명·컬럼명·스키마명 — `life_expense`, `pending_entries`, `cat1_id`
 - 코드·명령어·파일명 — `lab.ps1`, `npm run build`, `vite.config.ts`
 - 환경변수·설정 키 — `DB_ECHO`, `basename`, `proxy_pass`
-- URL·호스트명·경로 — `http://localhost:8101/app/`, `expense.life.localhost`
+- URL·호스트명·경로 — `http://localhost:8101/`, `expense.life.localhost`
 - 고유 표기가 정해진 이름 — `npm`, `pip`, `iOS`
 
 ---
@@ -60,13 +60,23 @@ TO-BE 구조(네임스페이스 분리 · 네이티브 실행 · `gp-lab`/`life_
 | 개발 서버 | Vite `:28101` → 백엔드 `127.0.0.1:18101` 프록시 |
 | 실서비스 | 게이트웨이 Nginx 가 `frontend/dist` 를 **직접** 서빙(`:8101`, `expense.life.localhost`) |
 
+### 경로 규칙
+
+- **API 는 모두 `/api` 아래.** `app/main.py` 의 `API = "/api"` 한 곳에서 붙인다.
+  라우터를 새로 달 때도 반드시 이 접두사를 쓴다.
+- **한 자원 = 한 자리 = 한 라우터 파일 = 한 화면 파일.** 셋의 이름을 늘 맞춘다.
+  `/api/categories` ↔ `routers/categories.py` ↔ `pages/Categories.tsx` 처럼.
+  자원을 추가할 때 이 셋을 함께 만든다. `meta` 같은 중간 껍데기를 두지 않는다.
+- **화면 파일 이름 = 그 화면의 경로.** `/entries` → `Entries.tsx`, `/write` → `Write.tsx`
+- 자리 접두사는 `main.py` 에서만 붙인다. `APIRouter(prefix=...)` 로 또 붙이지 않는다.
+- 분류의 깊이는 `lvl1` · `lvl2` · `lvl3` 로만 부른다.
+- **판(v1, v2 …)은 나누지 않는다.** 쓰는 사람이 하나뿐이라 갈래를 늘릴 이유가 없다.
+- **SPA 는 루트.** `BrowserRouter` 에 `basename` 없음, `vite.config.ts` 는 `base: '/'`.
+  API 가 `/api` 로 비켜서면서 충돌이 사라졌다(2026-08 이전에는 `/app/` 에 있었다).
+- 예전 `/app/…` 주소는 게이트웨이(`Gateway\nginx\conf\conf.d\20-life.conf`)가 301 로 넘긴다.
+
 ### 절대 바꾸지 말 것
 
-- `BrowserRouter` 의 `basename="/app"`
-- `vite.config.ts` 의 `base: '/app/'`
-- 이유 — 백엔드 API 가 `/meta`, `/entries`, `/holidays` 등 **루트 경로를 점유**하고 있어
-  SPA 를 루트로 올리면 라우트와 API 가 충돌한다.
-  옮기려면 FastAPI 를 `root_path="/api"` 로 선이전하는 별도 작업이 필요하다.
 - 스키마 이름 `life_expense` — `app/deps.py` 의 `MetaData(schema=...)` 와 각 라우터의
   raw SQL 접두사가 함께 맞아야 한다. 한쪽만 바꾸지 말 것.
 
@@ -184,6 +194,12 @@ src/index.css           전역 스타일
 - 빌드는 `npm run build`(내부적으로 `tsc -b` 선행). 타입 에러가 있으면 빌드가 실패하고
   기존 `dist` 가 유지되므로 깨진 화면이 배포되지 않는다.
 - 실행·배포는 `lab.ps1` 로만 한다. 상세는 `README.md`.
+
+## 파일 끝
+
+- 프로그램 파일(`.py` · `.ts` · `.tsx`)의 **마지막 줄이 공백이면 안 된다.**
+  마지막 코드 줄에 줄바꿈 하나만 두고 끝낸다(빈 줄을 더 붙이지 않는다).
+- 새 파일을 만들 때도 마찬가지다.
 
 ## 주석
 

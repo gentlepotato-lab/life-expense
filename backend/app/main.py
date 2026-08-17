@@ -4,7 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 load_dotenv()
 
-from app.routers import entries, meta, places, payment_methods, pending_entries, holidays, scheduled_entries, superset, splits, counterparts
+from app.routers import (
+    categories,
+    counterparts,
+    entries,
+    holidays,
+    payment_methods,
+    pending_entries,
+    places,
+    scheduled_entries,
+    splits,
+)
 from app.scheduler.holiday_job import start_scheduler
 from app.scheduler.scheduled_entry_job import start_scheduled_entry_scheduler
 from app.scheduler.cleanup_job import start_cleanup_scheduler
@@ -43,19 +53,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(meta.router, prefix="/meta", tags=["meta"])
-app.include_router(payment_methods.router, prefix="/meta", tags=["payment_methods"])
-app.include_router(entries.router, prefix="/entries", tags=["entries"])
-# 금액 쪼개기 — /entries/{id}/splits 로 붙는다
-app.include_router(splits.router, prefix="/entries", tags=["splits"])
-app.include_router(counterparts.router, prefix="/meta/counterparts", tags=["counterparts"])
-app.include_router(pending_entries.router, prefix="/pending-entries", tags=["pending_entries"])
-app.include_router(splits.pending_router, prefix="/pending-entries", tags=["splits"])
-app.include_router(places.router, prefix="/api/places", tags=["places"])
-app.include_router(holidays.router, prefix="/holidays", tags=["holidays"])
-app.include_router(scheduled_entries.router, prefix="/scheduled-entries", tags=["scheduled_entries"])
-app.include_router(splits.scheduled_router, prefix="/scheduled-entries", tags=["splits"])
-app.include_router(superset.router, prefix="/superset", tags=["superset"])
+# API 는 모두 /api 아래로 모은다.
+#
+# 전에는 /meta, /entries 처럼 루트를 쓰고 있었다. 그래서 화면(SPA)을 루트에 올리면
+# 라우트와 API 가 부딪혀, 화면을 /app/ 으로 밀어 둘 수밖에 없었다.
+# 여기 한 자리로 모으면서 그 제약이 풀린다.
+#
+# 판(v1, v2 …)은 나누지 않는다. 쓰는 사람이 하나뿐이라 갈래를 늘릴 이유가 없고,
+# 갈라 두면 고칠 때마다 두 곳을 손봐야 한다.
+API = "/api"
+
+# 규칙 — 한 자원은 한 자리, 한 파일, 한 화면을 갖는다.
+#
+#   /api/categories        categories.py         Categories.tsx
+#   /api/payment-methods   payment_methods.py    PaymentMethods.tsx
+#   /api/counterparts      counterparts.py       Counterparts.tsx
+#   /api/entries           entries.py            Entries.tsx
+#   /api/pending-entries   pending_entries.py    PendingEntries.tsx
+#   /api/scheduled-entries scheduled_entries.py  ScheduledEntries.tsx
+#   /api/places            places.py             components/PlacePicker.tsx
+#   /api/holidays          holidays.py           (화면 없음)
+#
+# 자리는 여기 한 곳에서만 붙인다. 라우터 파일 안에서 또 붙이지 않는다.
+# 예전에는 분류·결제 수단·상대가 /api/meta 라는 껍데기 밑에 묶여 있었는데,
+# 셋 다 어엿한 자원이라 그 껍데기를 없앴다.
+app.include_router(categories.router, prefix=f"{API}/categories", tags=["categories"])
+app.include_router(payment_methods.router, prefix=f"{API}/payment-methods", tags=["payment_methods"])
+app.include_router(counterparts.router, prefix=f"{API}/counterparts", tags=["counterparts"])
+app.include_router(entries.router, prefix=f"{API}/entries", tags=["entries"])
+app.include_router(pending_entries.router, prefix=f"{API}/pending-entries", tags=["pending_entries"])
+app.include_router(scheduled_entries.router, prefix=f"{API}/scheduled-entries", tags=["scheduled_entries"])
+app.include_router(places.router, prefix=f"{API}/places", tags=["places"])
+app.include_router(holidays.router, prefix=f"{API}/holidays", tags=["holidays"])
+
+# 금액 쪼개기 — 세 자원에 똑같이 /{id}/splits 로 붙는다
+app.include_router(splits.router, prefix=f"{API}/entries", tags=["splits"])
+app.include_router(splits.pending_router, prefix=f"{API}/pending-entries", tags=["splits"])
+app.include_router(splits.scheduled_router, prefix=f"{API}/scheduled-entries", tags=["splits"])
 
 # 앱 실행 시 스케줄러 시작
 start_scheduler()

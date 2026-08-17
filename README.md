@@ -1,6 +1,6 @@
 # life-expense
 
-- 개인 가계부 웹 애플리케이션(지출/수입 기록 · 검수 대기열 · 반복 등록 · Superset 시각화)
+- 개인 가계부 웹 애플리케이션(지출/수입 기록 · 검수 대기열 · 반복 등록)
 - GP Lab 의 `life` 네임스페이스 서비스
 - 배포 위치 — `Desktop\Lab\life\expense`
 
@@ -11,7 +11,7 @@
 | 프론트 | React 19 · Vite 7 · TypeScript 5.9 · Axios · `react-router-dom` |
 | 백엔드 | FastAPI · SQLAlchemy 2 · psycopg3 · APScheduler · pandas |
 | DB | PostgreSQL 17 — DB `gp-lab` / 스키마 `life_expense` |
-| 외부 | Kakao Maps SDK · 공공데이터포털 특일 정보(KASI) · Superset 임베드 |
+| 외부 | Kakao Maps SDK · 공공데이터포털 특일 정보(KASI) |
 
 ## 구조
 
@@ -23,13 +23,14 @@
 │       ├── deps.py          엔진 · 세션 · MetaData(schema="life_expense")
 │       ├── models.py        테이블 7종
 │       ├── schemas.py       Pydantic 모델
-│       ├── routers/         meta · entries · pending_entries · places
-│       │                    payment_methods · holidays · scheduled_entries · superset
+│       ├── routers/         categories · payment_methods · counterparts
+│       │                    entries · pending_entries · scheduled_entries
+│       │                    places · holidays · splits
 │       └── scheduler/       holiday_job · scheduled_entry_job · cleanup_job
 ├── frontend/
-│   ├── src/pages/           화면 8종 + components
+│   ├── src/pages/           화면 10종 + components
 │   ├── src/types/           전역 타입 선언
-│   └── vite.config.ts       base '/app/' · 개발 프록시
+│   └── vite.config.ts       base '/' · 개발 프록시(/api 한 줄)
 └── lab.ps1                  실행 스크립트
 ```
 
@@ -62,14 +63,34 @@
 
 | 경로 | 주소 |
 |---|---|
-| PC · 호스트명 | http://expense.life.localhost/app/ |
-| PC · 엣지 포트 | http://localhost:8101/app/ |
-| LAN · 폰 | http://192.168.45.8:8101/app/ |
-| 개발 서버 | http://localhost:28101/app/ |
+| PC · 호스트명 | http://expense.life.localhost/ |
+| PC · 엣지 포트 | http://localhost:8101/ |
+| LAN · 폰 | http://192.168.45.8:8101/ |
+| 개발 서버 | http://localhost:28101/ |
 
-- SPA 는 `/app/` 아래에 위치(`base: '/app/'`, `basename="/app"`)
-- 백엔드 API 가 `/meta`, `/entries` 등 루트 경로를 점유하고 있어 유지 필요
-- 루트로 옮기려면 FastAPI 를 `root_path="/api"` 로 선이전할 것
+- SPA 는 **루트**에 위치(`base: '/'`, `BrowserRouter` 에 `basename` 없음)
+- API 는 모두 `/api` 아래(`backend/app/main.py` 의 `API = "/api"`). 판(v1, v2 …)은 나누지 않는다
+- 예전 `/app/…` 주소는 게이트웨이가 새 자리로 301 넘김(`/app/entries` → `/entries`)
+
+### 이름 규칙
+
+한 자원은 **한 자리 · 한 라우터 파일 · 한 화면 파일**을 갖는다. 셋의 이름이 늘 맞물린다.
+
+| 자원 | API | 라우터 | 화면 |
+|---|---|---|---|
+| 분류 | `/api/categories` | `categories.py` | `Categories.tsx` |
+| 결제 수단 | `/api/payment-methods` | `payment_methods.py` | `PaymentMethods.tsx` |
+| 함께한 상대 | `/api/counterparts` | `counterparts.py` | `Counterparts.tsx` |
+| 쓴 내역 | `/api/entries` | `entries.py` | `Entries.tsx` |
+| 쓰다 만 내역 | `/api/pending-entries` | `pending_entries.py` | `PendingEntries.tsx` |
+| 쓸 내역 | `/api/scheduled-entries` | `scheduled_entries.py` | `ScheduledEntries.tsx` |
+| 장소 | `/api/places` | `places.py` | `components/PlacePicker.tsx` |
+| 공휴일 | `/api/holidays` | `holidays.py` | — |
+| 쪼갠 몫 | `/api/…/{id}/splits` | `splits.py` | `components/SplitEditor.tsx` |
+
+- 화면 파일 이름 = 그 화면의 경로. `/entries` → `Entries.tsx`, `/write` → `Write.tsx`
+- 자리 접두사는 `main.py` 한 곳에서만 붙인다. 라우터 파일 안에서 또 붙이지 않는다
+- 분류의 깊이는 `lvl1` · `lvl2` · `lvl3` 로만 부른다(`cat1` 같은 다른 말을 섞지 않는다)
 
 ## 환경 변수
 
@@ -85,10 +106,6 @@
 - 등록 위치 — 앱 설정 → 앱 키 → **JavaScript 키 → [JavaScript SDK 도메인]**
   - "웹 도메인" 페이지가 아님. 그쪽은 카카오톡 링크 이동용
 - 미등록 시 — HTTP 401 `AccessDeniedError: domain mismatched!`
-
-### Superset(Viz 화면)
-
-- Guest Token 임베드. `SUPERSET_URL` / `SUPERSET_PUBLIC_URL` 사용
 
 ## 브랜치 전략
 

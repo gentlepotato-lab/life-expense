@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import type { ReactNode } from "react";
+import useBackClose from "../../hooks/useBackClose";
 
 type CardEditModalProps = {
   title: string;
@@ -38,14 +38,9 @@ export default function CardEditModal({
   headerFields,
   children,
 }: CardEditModalProps) {
-  // Esc 로 닫기
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  // 뒤로 가기 · Backspace · Esc 로 닫기.
+  // 이 컴포넌트는 열려 있을 때만 그려지므로 항상 열린 상태로 넘긴다.
+  useBackClose(true, onClose);
 
   return (
     <div className="popup-overlay" onClick={onClose}>

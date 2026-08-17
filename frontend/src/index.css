@@ -980,7 +980,7 @@ html.modal-open .menu-button {
 }
 
 /* ─────────────────────────────────────────────
-   13. CategoriesSetting
+   13. Categories
 ────────────────────────────────────────────── */
 .cat-card .inout-select-wrap {
   width: 70px;
@@ -1255,7 +1255,7 @@ div:has(> .cat2-header-row) .drag-handle {
 }
 
 /* ─────────────────────────────────────────────
-   14. PaymentMethodsSetting
+   14. PaymentMethods
 ────────────────────────────────────────────── */
 .pm-toolbar-row {
   display: flex;
@@ -1604,7 +1604,7 @@ div:has(> .pm-item) .drag-handle {
   font-size: var(--font-size-sm);
 }
 
-/* EntriesGrid & PendingEntries 편집 모드 - SingleSelect 스타일 */
+/* Entries & PendingEntries 편집 모드 - SingleSelect 스타일 */
 .card .row-category .ms-display,
 .card .row-payment .ms-display {
   height: 28px;
@@ -1724,87 +1724,6 @@ div:has(> .pm-item) .drag-handle {
 /* ─────────────────────────────────────────────
    19. Calculator
 ────────────────────────────────────────────── */
-.calculator-page .calculator-container {
-  width: 380px;
-  height: 740px;
-  margin: 0 auto;
-  background: #DFDFDF;
-  border-radius: var(--radius);
-  padding: var(--space-4);
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  overflow: hidden;
-}
-
-.calculator-page .calculator-buttons-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-}
-
-.calculator-page .calculator-display-wrapper {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  padding: var(--space-4) var(--space-3);
-  height: 110px;
-  border-radius: var(--radius);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  box-sizing: border-box;
-}
-
-.calculator-page .calculator-expression {
-  font-size: var(--font-size-base);
-  color: rgba(255, 255, 255, 0.6);
-  text-align: right;
-  min-height: 20px;
-  margin-bottom: var(--space-1);
-  word-break: break-all;
-  overflow-wrap: break-word;
-  flex-shrink: 0;
-}
-
-.calculator-page .calculator-display {
-  width: 100%;
-  padding: var(--space-2) 0;
-  background: transparent;
-  border: none;
-  font-size: 40px;
-  font-weight: 700;
-  color: white;
-  text-align: right;
-  outline: none;
-  min-height: 50px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  word-break: break-all;
-}
-
-.calculator-page .calculator-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 8px;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.calculator-page .calculator-display-wrapper {
-  flex-shrink: 0;
-}
-
-.calculator-page .calculator-row--top {
-  padding-top: 16px;
-}
-
-.calculator-page .calculator-row--bottom {
-  padding-bottom: 16px;
-}
-
 .calculator-button {
   border: none;
   padding: 0;
@@ -1823,103 +1742,12 @@ div:has(> .pm-item) .drag-handle {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.calculator-page .calculator-button {
-  width: 100%;
-  height: 60px;
-  border: none;
-  border-radius: 12px;
-  font-size: 20px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.calculator-page .calculator-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.calculator-page .calculator-button:active,
-.calculator-page .calculator-button--pressed {
-  transform: translateY(0) scale(0.96);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.1s ease;
-}
-
 /* 숫자 버튼 */
-.calculator-page .calculator-button--number {
-  background: #ffffff;
-  color: var(--color-text-primary);
-  font-weight: 700;
-}
-
-.calculator-page .calculator-button--number:hover {
-  background: #f0f0f0;
-}
-
 /* 연산자 버튼 */
-.calculator-page .calculator-button--operator {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  font-weight: 700;
-}
-
-.calculator-page .calculator-button--operator:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-}
-
 /* 등호 버튼 */
-.calculator-page .calculator-button--equals {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
-  font-weight: 700;
-}
-
-.calculator-page .calculator-button--equals:hover {
-  background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
-  box-shadow: 0 4px 16px rgba(245, 87, 108, 0.4);
-}
-
 /* 함수 버튼 (√, x², 1/x, %, 괄호) */
-.calculator-page .calculator-button--function {
-  background: #e9ecef;
-  color: var(--color-text-primary);
-  font-weight: 700;
-}
-
-.calculator-page .calculator-button--function:hover {
-  background: #dee2e6;
-}
-
 /* Clear 버튼 */
-.calculator-page .calculator-button--clear {
-  background: #ff6b6b;
-  color: white;
-  font-weight: 700;
-}
-
-.calculator-page .calculator-button--clear:hover {
-  background: #ff5252;
-  box-shadow: 0 4px 16px rgba(255, 107, 107, 0.4);
-}
-
 /* Backspace 버튼 */
-.calculator-page .calculator-button--backspace {
-  background: #ffa726;
-  color: white;
-  font-weight: 700;
-}
-
-.calculator-page .calculator-button--backspace:hover {
-  background: #ff9800;
-  box-shadow: 0 4px 16px rgba(255, 167, 38, 0.4);
-}
-
 
 .calculator-history {
   margin-top: var(--space-2);
@@ -1934,53 +1762,6 @@ div:has(> .pm-item) .drag-handle {
   flex-direction: column;
 }
 
-.calculator-page .calculator-history {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  margin-top: var(--space-3);
-}
-
-.calculator-page .calculator-history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 10px;
-  background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
-  border-radius: 6px;
-  cursor: pointer;
-  user-select: none;
-  flex-shrink: 0;
-}
-
-.calculator-page .calculator-history-header:hover {
-  background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
-}
-
-.calculator-page .calculator-history-title {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.calculator-page .calculator-history-toggle {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-}
-
-.calculator-page .calculator-history-toggle--open {
-  transform: rotate(180deg);
-}
-
 .calculator-history-list-wrapper {
   flex: 1;
   min-height: 0;
@@ -1990,162 +1771,6 @@ div:has(> .pm-item) .drag-handle {
   max-height: 200px;
 }
 
-.calculator-page .calculator-history-list-wrapper::-webkit-scrollbar {
-  width: 6px;
-}
-
-.calculator-page .calculator-history-list-wrapper::-webkit-scrollbar-track {
-  background: var(--color-bg);
-  border-radius: 3px;
-}
-
-.calculator-page .calculator-history-list-wrapper::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 3px;
-}
-
-.calculator-page .calculator-history-list-wrapper::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-tertiary);
-}
-
-.calculator-page .calculator-history-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.calculator-page .calculator-history-item {
-  padding: var(--space-2) var(--space-2);
-  background: var(--color-surface);
-  border-radius: 6px;
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  transition: all 0.2s;
-  user-select: none;
-}
-
-.calculator-page .calculator-history-item:hover {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-}
-
-.calculator-page .calculator-history-expression {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-  margin-bottom: 2px;
-}
-
-.calculator-page .calculator-history-result {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.calculator-page .calculator-history-empty {
-  padding: var(--space-4);
-  text-align: center;
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-sm);
-}
-
-/* Calculator 페이지 전용 미디어 쿼리 */
-@media (max-width: 480px) {
-  .calculator-page {
-    padding: var(--space-2);
-    margin: 0;
-    width: 100vw;
-    height: 100vh;
-    max-width: 100vw;
-    max-height: 100vh;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-
-  .calculator-page-title {
-    display: block;
-    margin-bottom: var(--space-2);
-    padding: var(--space-2) 0;
-    font-size: var(--font-size-2xl);
-  }
-
-  .calculator-page .calculator-container {
-    width: calc(100vw - 16px);
-    height: calc(100vh - 80px);
-    max-width: calc(100vw - 16px);
-    max-height: calc(100vh - 80px);
-    border-radius: 16px;
-    margin: 0 auto;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-
-  .calculator-page .calculator-display-wrapper {
-    padding: var(--space-3) var(--space-2);
-    height: 90px;
-    box-sizing: border-box;
-  }
-
-  .calculator-page .calculator-display {
-    font-size: 36px;
-    min-height: 50px;
-    word-break: break-all;
-    overflow-wrap: break-word;
-  }
-
-  .calculator-page .calculator-expression {
-    font-size: var(--font-size-sm);
-    word-break: break-all;
-    overflow-wrap: break-word;
-  }
-
-  .calculator-page .calculator-row {
-    gap: 6px;
-    padding: 0;
-  }
-
-  .calculator-page .calculator-row--top {
-    padding-top: 12px;
-  }
-
-  .calculator-page .calculator-row--bottom {
-    padding-bottom: 12px;
-  }
-
-  .calculator-page .calculator-button {
-    font-size: 20px;
-    height: 52px;
-    border-radius: 10px;
-  }
-
-  .calculator-page .calculator-history {
-    margin-top: var(--space-3);
-    box-sizing: border-box;
-  }
-
-  .calculator-page .calculator-history-list-wrapper {
-    max-height: 200px;
-  }
-}
-
-@media (max-width: 360px) {
-  .calculator-page .calculator-display {
-    font-size: 28px;
-  }
-
-  .calculator-page .calculator-button {
-    font-size: 20px;
-    height: 48px;
-  }
-}
-
-/* Calculator 페이지 전용 미디어 쿼리 - Menu 버튼 */
-@media (max-width: 480px) {
-  .calculator-page .menu-button {
-    top: var(--space-2);
-    left: var(--space-2);
-    z-index: 1001;
-  }
-}
 
 /* ─────────────────────────────────────────────
    20. Calculator Popup & Trigger Button
@@ -6095,4 +5720,665 @@ div:has(> .pm-item) .drag-handle {
 .cat-toolbar-btns > .btn-row > .cp-toggle,
 .pm-toolbar-row > .cp-toggle {
   margin-right: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   33. 바탕 — 서체 · 금액 가리개 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 서체 ────────────────────────────────────────────────────
+   Pretendard 를 실제로 불러온다(index.html). 그동안 이름만 적혀 있고
+   내려받지 않아 시스템 서체로 떨어지고 있었다.
+   숫자는 같은 폭으로 고정해 금액이 세로로 가지런히 서게 한다. */
+:root {
+  --font-family: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+}
+
+.amount-text,
+.amount-split,
+.date-group__sum,
+.split-editor__sum,
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ─── 금액 가리개 — 스카치테이프 ──────────────────────────────
+   흐리게 처리하면 글자 폭이 그대로 남아 자릿수가 짐작된다.
+   불투명한 테이프로 덮고 길이를 고정해 "얼마인지"도 "몇 자리인지"도
+   드러나지 않게 한다. 끌어서 잠깐 확인하는 동작은 그대로다. */
+.amount-text.masked {
+  /* 흐림 대신 완전히 가린다 */
+  filter: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 길이 고정 — 금액이 커도 작아도 테이프 폭은 같다 */
+  width: 92px;
+  min-width: 92px;
+  max-width: 92px;
+  height: 24px;
+  overflow: hidden;
+
+  /* 색으로만 지우면 카드 색(.card:has(.out-bar) …)이 더 세서 되살아난다.
+     글자 크기를 0 으로 접어 획 자체가 남지 않게 한다 */
+  font-size: 0;
+  color: transparent;
+  cursor: ew-resize;
+  user-select: none;
+  vertical-align: middle;
+}
+
+.amount-text.masked::after {
+  content: "";
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  top: 50%;
+  height: 21px;
+  transform: translateY(-50%) rotate(-1.6deg);
+
+  /* 사선 줄무늬 — 불투명해서 뒤가 비치지 않는다.
+     위에 얹은 옅은 띠는 테이프 표면의 윤기 */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.45) 0%,
+      rgba(255, 255, 255, 0) 42%,
+      rgba(16, 24, 40, 0.05) 100%
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      #E7E9F5 0 6px,
+      #D6DAF0 6px 12px
+    );
+  border-radius: 2px;
+
+  /* 테이프 끝의 살짝 접힌 느낌 */
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+}
+
+/* 끌어서 드러낸 상태 — 테이프를 떼고 원래 모습으로 */
+.amount-text.revealed {
+  filter: none;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  font-size: var(--font-size-2xl);
+  color: inherit;
+}
+
+.amount-text.revealed::after {
+  content: none;
+}
+
+/* 쪼갠 건의 작은 줄(3,506 − 1,500)도 같은 테이프로 */
+.amount-split.masked {
+  filter: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 66px;
+  min-width: 66px;
+  max-width: 66px;
+  height: 13px;
+  overflow: hidden;
+  font-size: 0;
+  color: transparent;
+  user-select: none;
+}
+
+.amount-split.masked::after {
+  content: "";
+  position: absolute;
+  inset: 1px -4%;
+  transform: rotate(-1.6deg);
+  background: repeating-linear-gradient(-45deg, #EDEFF8 0 5px, #DFE3F2 5px 10px);
+  border-radius: 2px;
+}
+
+/* 날짜별 합계도 같은 결로 */
+.date-group__sum.masked {
+  filter: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  min-width: 96px;
+  max-width: 96px;
+  height: 20px;
+  overflow: hidden;
+  font-size: 0;
+  color: transparent;
+  cursor: not-allowed;
+  user-select: none;
+}
+
+.date-group__sum.masked::after {
+  content: "";
+  position: absolute;
+  inset: 0 -5%;
+  transform: rotate(-1.2deg);
+  background: repeating-linear-gradient(-45deg, #E7E9F5 0 6px, #D6DAF0 6px 12px);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+/* 테이프를 떼는 동안에는 폭이 늘어나므로, 카드가 흔들리지 않도록
+   금액 칸의 최소 폭을 테이프 폭에 맞춰 둔다 */
+.row-payment .amount-stack {
+  min-width: 92px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   34. 안내 문구(Placeholder) 표기 통일 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* 문구는 "(무엇)" 꼴로 맞추고, 보이는 결도 한 곳에서 정한다.
+   글자 크기는 입력 칸마다 다르므로 물려받게 두고, 색·굵기·기울기만 고정한다.
+   그동안 .ui-input 만 색이 지정돼 있어 나머지는 브라우저 기본 회색으로 떨어졌다. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-tertiary);
+  opacity: 1;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: normal;
+}
+
+/* 직접 만든 드롭다운(SingleSelect · MultiSelect)의 안내 문구도 같은 결로.
+   크기는 고른 값(.ms-value)과 이미 같으므로 건드리지 않는다. */
+.ms-placeholder {
+  color: var(--color-text-tertiary);
+  font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   35. 뼈대 — 머리말 · 갈래 · 아래 이동 막대 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 머리말 ─────────────────────────────────────────────────
+   제목은 왼쪽 위. 그동안 가운데였고, 왼쪽 위는 ☰ 가 차지하고 있었다. */
+/* 전역 button 규칙이 높이를 var(--control-h) 로 못 박아 둔다.
+   아래 셋은 버튼이지만 "칸" 이라 제 내용만큼 커져야 한다. */
+.home-door,
+.tabbar__item,
+.subtabs__item {
+  height: auto;
+  min-height: 0;
+}
+
+.page-head {
+  margin-bottom: var(--space-3);
+}
+
+.page-head__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 34px;
+}
+
+.page-head__right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 가운데 정렬을 왼쪽으로 돌리고, 아래 여백은 .page-head 가 가진다 */
+.page-head .page-title {
+  text-align: left;
+  margin-bottom: 0;
+  font-size: var(--font-size-2xl);
+}
+
+/* ─── 갈래(SubTabs) ──────────────────────────────────────────
+   "내역" 과 "설정" 은 각각 셋으로 갈라진다. 아래 막대를 네 개로 두고
+   그 안에서 다시 고르게 해 이동 막대가 붐비지 않게 한다. */
+.subtabs {
+  display: flex;
+  gap: 4px;
+  margin-top: var(--space-2);
+  padding: 3px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.subtabs__item {
+  flex: 1 1 0;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.subtabs__item:hover {
+  color: var(--color-text-primary);
+}
+
+.subtabs__item.on {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  cursor: default;
+}
+
+/* ─── 아래 이동 막대 ─────────────────────────────────────────
+   한 손으로 쥐고 쓰는 화면이라 엄지가 닿는 아래쪽에 둔다. */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  display: flex;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--color-border);
+  /* 홈 표시줄이 있는 기기에서 막대가 가려지지 않도록 */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.tabbar__item {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 7px 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 140ms ease;
+}
+
+.tabbar__item.on {
+  color: var(--color-primary);
+}
+
+.tabbar__icon {
+  display: block;
+  width: 23px;
+  height: 23px;
+}
+
+.tabbar__icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.tabbar__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* 막대에 가려지는 만큼 아래를 비워 둔다 */
+.page-wrap {
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ─── 홈 ─────────────────────────────────────────────────────
+   위 한 행에 둘(쓰기 · 쓰는 사람), 그 아래 한 줄씩 둘(씀씀이 · 잔소리).
+   속이 아직 비어 있는 화면들이라 칸마다 그림으로 무엇이 들어올지 보여 준다.
+
+   홈은 여백을 줄여 화면을 넓게 쓴다. 칸이 크고 그림이 커야 눈에 들어온다. */
+.page-wrap.home {
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.home-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.home-card {
+  /* 전역 button 규칙이 높이를 못 박아 두므로 풀어 준다 */
+  height: auto;
+  min-height: 0;
+  width: 100%;
+  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.home-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-lift);
+}
+
+.home-card:active {
+  transform: translateY(0);
+}
+
+/* 반 칸 — 그림이 위, 이름이 아래 */
+.home-card--half {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-3) var(--space-3);
+}
+
+.home-card--half .home-card__art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 84px;
+}
+
+/* 한 줄 칸 — 이름이 왼쪽, 그림이 오른쪽 */
+.home-card--wide {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.home-card--wide .home-card__text {
+  flex: 1 1 auto;
+}
+
+/* 그림은 남는 자리를 최대한 차지한다. 화면이 넓어지면 그림도 함께 커진다 */
+.home-card--wide .home-card__art {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 168px;
+  max-width: 48%;
+}
+
+.home-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.home-card__title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.home-card__desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* 그림 자체 */
+.home-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 88px;
+}
+
+/* 가로형 로고는 납작해서 폭을 다 쓰게 두고, 위아래로만 조금 여유를 준다 */
+.home-art--logo {
+  padding: var(--space-2) 0;
+}
+
+/* 사람 그림은 좁고 키가 커서 혼자 커 보인다. 옆 칸 로고와 눈높이를 맞춘다 */
+.home-art--profile {
+  max-height: 70px;
+}
+
+/* ─── 아직 비어 있는 화면 ────────────────────────────────────── */
+.blank-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 56px var(--space-3);
+  color: var(--color-text-tertiary);
+}
+
+.blank-page__line {
+  margin: 0;
+  font-size: var(--font-size-base);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   36. 골라 보기 — 조건 묶음 · 줄 맞춤 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* 조건이 늘어난 만큼 "언제 · 무엇으로 · 얼마나 · 어디서" 로 묶는다.
+   묶음마다 작은 이름표를 달아 두면 눈이 덜 헤맨다. */
+.filter-group + .filter-group {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.filter-group__label {
+  margin-bottom: 6px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  letter-spacing: -0.01em;
+}
+
+/* 두 칸이 늘 반씩 나눠 가지게 해, 안에 든 것이 무엇이든 세로줄이 맞는다.
+   전에는 내용에 따라 칸 폭이 들쭉날쭉했다. */
+.filter-group .filter-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+
+.filter-group .filter-row + .filter-row {
+  margin-top: var(--space-2);
+}
+
+.filter-group .filter-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-group .filter-col--wide {
+  flex: 1 1 100%;
+}
+
+.filter-group .filter-col > label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* 입력 칸 높이를 하나로 맞춘다 — 날짜·숫자·글자·드롭다운이 모두 같은 줄에 선다 */
+.filter-group .filter-col > input,
+.filter-group .filter-col .ms-wrap,
+.filter-group .filter-col .ms-control {
+  width: 100%;
+  min-width: 0;
+}
+
+/* 금액 구간 — 두 칸과 물결표 */
+.filter-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-range > input {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: right;
+}
+
+.filter-range__tilde {
+  flex: 0 0 auto;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   37. 화면끼리 흔들리지 않게 — 폭 · 툴바 높이 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* 세로 스크롤이 생기는 화면과 아닌 화면 사이에서 내용이 좌우로 7px 씩 튀었다.
+   100vw 는 세로 스크롤 막대 폭까지 세기 때문이다. 부모 폭을 그대로 쓴다.
+   덤으로 없던 가로 스크롤도 사라진다. */
+/* body 가 가운데 정렬 flex 라서 #root 가 내용만큼만 넓어진다.
+   그래서 100vw 를 걷어 내면 폭이 무너진다. 담는 그릇부터 폭을 채우게 한다. */
+body {
+  align-items: stretch;
+}
+
+#root {
+  width: 100%;
+  min-width: 0;
+}
+
+.page-wrap {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* 내역 세 화면의 툴바 높이를 맞춘다.
+   좁은 화면에서 [필터][조회] 가 통째로 아랫줄로 내려가 혼자 두 줄(106px)이 됐다.
+   버튼 둘은 100px 도 안 되므로 한 줄에 들어간다. */
+@media (max-width: 480px) {
+  .toolbar-btns {
+    width: auto;
+    margin-left: auto;
+  }
+
+  .toolbar .ui-input,
+  .toolbar .filter-range-label {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+/* 설정 세 화면의 첫 줄 높이를 맞춘다.
+   분류·결제 수단은 .cat-toolbar 가 아래 여백을 가졌는데 함께한 상대만 없어서
+   토글 줄이 4px 위에 붙어 있었다. */
+.cp-toolbar {
+  margin-bottom: calc(var(--space-3) - 8px);
+}
+
+/* 함께한 상대의 목록은 행 사이에 6px 를 두는데, 그 간격이 [+ 새 항목 추가] 줄
+   뒤에도 붙어 첫 묶음이 다른 두 화면보다 6px 아래에서 시작했다.
+   추가 줄은 목록의 일부가 아니라 머리이므로 간격을 걷는다. */
+.cp-list > .set-add-bar {
+  margin-bottom: -6px;
+}
+
+/* 결제 수단만 묶음 머리말의 위아래 여백이 2px 더 있어, 첫 행이 함께한 상대보다
+   4px 아래에서 시작했다. 왼쪽 들여쓰기는 두고 위아래만 맞춘다. */
+.cat-card > .set-group > .set-group__head {
+  padding: 0 2px 2px 10px;
+}
+
+/* ─── 탭 안의 진입 목록 ───────────────────────────────────────
+   홈과 같은 칸 모양을 쓰되, 그림 자리에는 작은 기호만 둔다. */
+.menu-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-card {
+  min-height: 76px;
+}
+
+.menu-card__icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--color-primary);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.menu-card__icon svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+/* ─── 항목 글자 크기 통일 ─────────────────────────────────────
+   분류와 결제 수단의 항목 이름만 16px 였다. 함께한 상대(14px)에 맞춘다.
+   굵기는 그대로 둔다 — 분류는 굵기로 뎁스를 구분하고 있다.
+   .pm-item .cat1-name 이 더 센 셀렉터라 함께 적어야 한다. */
+.cat1-name,
+.cat2-name,
+.cat3-name,
+.pm-item .cat1-name {
+  font-size: var(--font-size-base);
+}
+
+/* ─── 새 항목 줄 — 두 화면 같은 배치 ──────────────────────────
+   결제 수단과 함께한 상대는 넣는 것이 같은데(이름 + 구분) 놓는 방식이 달랐다.
+   함께한 상대는 한 줄에 나란히 두는데, 결제 수단만 좁은 화면에서 줄바꿈해
+   이름 · 구분 · [추가] 가 세 층으로 쌓였다(123px). 같은 한 줄로 맞춘다.
+
+   함께한 상대(.cp-card__edit)와 같은 격자 방식을 쓴다. 칸이 내용에 따라
+   들쭉날쭉하지 않고 늘 같은 비율로 나뉜다. */
+.set-add-form__row {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+/* 격자가 폭을 정하므로 칸이 제 폭을 따로 우기지 않게 한다 */
+.set-add-form__cat {
+  width: auto;
+}
+
+@media (max-width: 520px) {
+  .set-add-form__cat {
+    width: auto;
+  }
+}
+
+/* 새 항목 줄이 한 줄로 줄면서 머리말에 자리가 생겼다.
+   좁은 화면에서 감춰 두었던 안내 문구를 다시 보인다. */
+@media (max-width: 520px) {
+  .set-draft__hint,
+  .cp-draft__hint {
+    display: inline;
+  }
 }

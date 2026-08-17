@@ -14,7 +14,7 @@ export default function DateGroupHeader({
   const prefix = net > 0 ? "+" : net < 0 ? "−" : "";
 
   // 가려진 항목이 섞여 있으면 합계로 금액이 드러나지 않도록 함께 가린다
-  const title = hasMasked ? "금액이 가려진 항목이 포함되어 있습니다" : undefined;
+  const title = hasMasked ? "금액이 가려진 항목이 포함되어 있습니다." : undefined;
 
   return (
     <div className="date-group__head">

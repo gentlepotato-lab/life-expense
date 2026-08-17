@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from app.deps import SessionDep
 
-router = APIRouter(prefix="/payment-methods")
+# 자리는 main.py 에서 /api/payment-methods 로 붙인다
+router = APIRouter()
 
-# 목록 조회
-@router.get("/list")
+# 목록 조회 — 자원 제 자리
+@router.get("")
 def list_methods(db: SessionDep = Depends()):
     rows = db.execute(text("""
         SELECT p.method_id

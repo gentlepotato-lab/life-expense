@@ -1,6 +1,7 @@
-import Menu from "./components/Menu";
+import PageHead from "./components/PageHead";
 import { useEffect, useState } from "react";
 import axios from "../api/client";
+import useBackClose from "../hooks/useBackClose";
 import SingleSelect from "./components/SingleSelect";
 import { apiErrorMessage } from "../utils/apiError";
 import EmojiPicker from "./components/EmojiPicker";
@@ -63,7 +64,7 @@ const NEW_CATEGORY = "__new__";
 
 const groupLabel = (c: Category | null) => c?.name ?? "구분 없음";
 
-export default function PaymentMethodsSetting() {
+export default function PaymentMethods() {
   const [editMode, setEditMode] = useState(false);
   const [list, setList] = useState<any[]>([]);
   const [newName, setNewName] = useState("");
@@ -86,6 +87,13 @@ export default function PaymentMethodsSetting() {
   const [beforeEdit, setBeforeEdit] = useState<any[]>([]);
   const [beforeCategories, setBeforeCategories] = useState<Category[]>([]);
 
+  /* 뒤로 가기 · Backspace 로 편집을 무른다 — 편집 전 상태로 되돌린다 */
+  useBackClose(editMode, () => {
+    setList(beforeEdit);
+    setCategories(beforeCategories);
+    setEditMode(false);
+  });
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 }
@@ -102,13 +110,13 @@ export default function PaymentMethodsSetting() {
   }, []);
 
   const refreshCategories = async () => {
-    const r = await axios.get("/meta/payment-methods/categories");
+    const r = await axios.get("/payment-methods/categories");
     setCategories(r.data);
     return r.data as Category[];
   };
 
   const refresh = async () => {
-    const r = await axios.get("/meta/payment-methods/list");
+    const r = await axios.get("/payment-methods");
     setList(
       r.data.map((x: any) => ({
         method_id: x.method_id,
@@ -198,7 +206,7 @@ export default function PaymentMethodsSetting() {
     const name = window.prompt("새 구분 이름을 입력하세요.")?.trim();
     if (!name) return;
     try {
-      const r = await axios.post("/meta/payment-methods/categories", { name });
+      const r = await axios.post("/payment-methods/categories", { name });
       const next = await refreshCategories();
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
       setAddCategoryId(r.data.category_id);
@@ -212,7 +220,7 @@ export default function PaymentMethodsSetting() {
     const name = window.prompt("새 구분 이름을 입력하세요.")?.trim();
     if (!name) return;
     try {
-      const r = await axios.post("/meta/payment-methods/categories", { name });
+      const r = await axios.post("/payment-methods/categories", { name });
       const next = await refreshCategories();
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
       setCategoryOf(assignTo, r.data.category_id);
@@ -224,7 +232,7 @@ export default function PaymentMethodsSetting() {
   const deleteCategory = async (categoryId: number, name: string) => {
     if (!window.confirm(`구분 "${name}" 을 제거합니다?`)) return;
     try {
-      const r = await axios.delete(`/meta/payment-methods/categories/${categoryId}`);
+      const r = await axios.delete(`/payment-methods/categories/${categoryId}`);
       if (r.data?.error === "IN_USE") {
         alert(`${r.data.used_count}건이 쓰고 있어 제거할 수 없습니다.`);
         return;
@@ -241,9 +249,9 @@ export default function PaymentMethodsSetting() {
     const name = newName.trim();
     if (!name) return alert("항목을 입력하세요.");
     const exist = list.find((x) => x.method_name === name);
-    if (exist) return alert("이미 존재하는 항목입니다~");
+    if (exist) return alert("이미 존재하는 항목입니다.");
 
-    await axios.post("/meta/payment-methods/add", null, {
+    await axios.post("/payment-methods/add", null, {
       params: { name, category_id: addCategoryId ?? undefined }
     });
 
@@ -281,10 +289,10 @@ export default function PaymentMethodsSetting() {
       sort_order: i + 1
     }));
 
-    await axios.post("/meta/payment-methods/save", payload);
+    await axios.post("/payment-methods/save", payload);
     // 이모지는 분류 행에 저장한다
     await axios.post(
-      "/meta/payment-methods/categories/save",
+      "/payment-methods/categories/save",
       categories.map((c, i) => ({
         category_id: c.category_id,
         emoji: c.emoji,
@@ -299,9 +307,9 @@ export default function PaymentMethodsSetting() {
 
   // 삭제
   const handleDelete = async (id: number) => {
-    if (!window.confirm("이 항목을 제거합니다?")) return;
+    if (!window.confirm("이 항목을 제거할까요?")) return;
 
-    const r = await axios.delete("/meta/payment-methods/delete", {
+    const r = await axios.delete("/payment-methods/delete", {
       params: { method_id: id }
     });
 
@@ -316,10 +324,7 @@ export default function PaymentMethodsSetting() {
 
   return (
     <div className="page-wrap">
-      <Menu />
-      <div className="page-title-box">
-        <h1 className="page-title">Payment Methods</h1>
-      </div>
+      <PageHead />
 
       <div className="cat-toolbar">
         <div className="pm-toolbar-row">
@@ -373,7 +378,7 @@ export default function PaymentMethodsSetting() {
           <div className="set-add-form set-add-form--col set-draft">
             <div className="set-draft__head">
               <span className="set-draft__name">새 항목</span>
-              <span className="set-draft__hint">구분은 추가한 뒤 지정합니다</span>
+              <span className="set-draft__hint">구분은 비워 두어도 됩니다.</span>
             </div>
 
             <div className="set-add-form__row">
@@ -570,7 +575,7 @@ export default function PaymentMethodsSetting() {
                         <button
                           type="button"
                           className={`set-hide-btn ${m.is_active ? "" : "on"}`}
-                          title={m.is_active ? "감춘다 — 고르는 목록에서 빠진다" : "다시 보이게 한다"}
+                          title={m.is_active ? "감춘다 — 고르는 목록에서 빠진다." : "다시 보이게 한다."}
                           onClick={() => toggleHidden(m.method_id)}
                         >
                           {m.is_active ? "감추기" : "감춤"}

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" sizes="any" />
@@ -8,10 +8,67 @@
     <link rel="apple-touch-icon" href="/logo-mark-180.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#ffffff" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Pretendard — 한글·숫자 모두 고른 무료 서체(OFL).
+         숫자가 같은 폭이라 금액이 세로로 가지런히 선다. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
+
     <title>돈을 쓰다</title>
+
+    <!-- 앱이 뜨기 전 잠깐 보이는 화면.
+         React 가 붙기 전부터 보여야 해서 여기 인라인으로 둔다.
+         자바스크립트가 준비되면 App 이 이 요소를 걷어 낸다. -->
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background: #f8f9fa;
+        transition: opacity 320ms ease;
+      }
+      #splash.out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash img {
+        width: min(58vw, 260px);
+        height: auto;
+        animation: splash-rise 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      #splash .splash-name {
+        font-family: "Pretendard Variable", Pretendard, -apple-system, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.22em;
+        color: #98a2b3;
+        animation: splash-rise 480ms 90ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      @keyframes splash-rise {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #splash img,
+        #splash .splash-name { animation: none; }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash">
+      <img src="/logo-h.svg" alt="돈을 쓰다" />
+      <span class="splash-name">돈을 쓰다</span>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

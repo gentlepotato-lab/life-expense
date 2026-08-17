@@ -60,4 +60,3 @@ def start_cleanup_scheduler():
     
     scheduler.start()
     logger.info("Monthly cleanup scheduler started (runs on day 1 at 02:00)")
-

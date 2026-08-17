@@ -1,22 +1,18 @@
+"""
+분류(3뎁스) — 중분류 · 소분류 · 세분류.
+
+자리는 main.py 에서 /api/categories 로 붙인다.
+"""
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from app.models import CategoryL1, CategoryL2, CategoryL3, PaymentMethod
+from app.models import CategoryL1, CategoryL2, CategoryL3
 from app.deps import get_db
 
 router = APIRouter()
 
-@router.get("/payment-methods")
-def payment_methods(db=Depends(get_db)):
-    rows = db.execute(
-        select(PaymentMethod.method_code, PaymentMethod.method_name)
-        .order_by(PaymentMethod.sort_order)
-    ).all()
-    return [{"code": c, "name": n} for c, n in rows]
-
-
-@router.get("/categories/lvl1")
+@router.get("/lvl1")
 def cat1(db=Depends(get_db)):
     rows = db.execute(
         select(CategoryL1.cat1_id, CategoryL1.cat1_name, CategoryL1.emoji,
@@ -27,7 +23,7 @@ def cat1(db=Depends(get_db)):
     # 목록에 있어야 하기 때문이다. 고르는 목록에서 빼는 일은 화면이 한다.
     return [{"id": i, "name": n, "emoji": e, "is_active": a} for i, n, e, a in rows]
 
-@router.get("/categories/lvl2")
+@router.get("/lvl2")
 def cat2(cat1_id: int | None = Query(None), db=Depends(get_db)):
     """
     cat1_id가 주어지면 해당 중분류에 속한 소분류만,
@@ -51,7 +47,7 @@ def cat2(cat1_id: int | None = Query(None), db=Depends(get_db)):
         for i, n, c1, b, io, a in rows
     ]
 
-@router.get("/categories/lvl3")
+@router.get("/lvl3")
 def cat3(cat2_id: int | None = Query(None), db=Depends(get_db)):
     stmt = select(
         CategoryL3.cat3_id,
@@ -66,7 +62,7 @@ def cat3(cat2_id: int | None = Query(None), db=Depends(get_db)):
     rows = db.execute(stmt).all()
     return [{"id": i, "name": n, "cat2_id": c2, "is_active": a} for i, n, c2, a in rows]
 
-@router.post("/categories/add/cat3")
+@router.post("/add/lvl3")
 def add_cat3(cat2_id: int = Query(...), name: str = Query(...), db=Depends(get_db)):
     existing = db.query(CategoryL3).filter(
         CategoryL3.cat2_id == cat2_id,
@@ -88,7 +84,7 @@ def add_cat3(cat2_id: int = Query(...), name: str = Query(...), db=Depends(get_d
 
     return {"status": "ok", "cat3_id": new.cat3_id, "cat3_name": new.cat3_name}
 
-@router.post("/categories/save")
+@router.post("/save")
 def save_categories(payload: dict, db: Session = Depends(get_db)):
     cat1_list = payload.get("cat1", [])
     cat2_list = payload.get("cat2", [])
@@ -175,7 +171,7 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "ok"}
 
-@router.post("/categories/add/cat1")
+@router.post("/add/lvl1")
 def add_cat1(
     name: str = Query(...),
     db: Session = Depends(get_db)
@@ -193,7 +189,7 @@ def add_cat1(
         "cat1_name": new_item.cat1_name
     }
 
-@router.post("/categories/add/cat2")
+@router.post("/add/lvl2")
 def add_cat2(
     cat1_id: int = Query(...),
     name: str = Query(...),
@@ -228,7 +224,7 @@ def add_cat2(
         "cat1_id": new_item.cat1_id
     }
 
-@router.delete("/categories/delete/cat1")
+@router.delete("/delete/lvl1")
 def delete_cat1(cat1_id: int, db: Session = Depends(get_db)):
     try:
         # 하위 소분류 먼저 삭제
@@ -242,7 +238,7 @@ def delete_cat1(cat1_id: int, db: Session = Depends(get_db)):
 
     return {"status": "ok"}
 
-@router.delete("/categories/delete/cat2")
+@router.delete("/delete/lvl2")
 def delete_cat2(cat2_id: int, db: Session = Depends(get_db)):
     # 1) entries 테이블에서 사용 여부 확인
     used = db.execute(text("""
@@ -264,7 +260,7 @@ def delete_cat2(cat2_id: int, db: Session = Depends(get_db)):
 
     return {"status": "ok"}
 
-@router.delete("/categories/delete/cat3")
+@router.delete("/delete/lvl3")
 def delete_cat3(cat3_id: int, db: Session = Depends(get_db)):
     used = db.execute(text("""
         SELECT 1
@@ -280,7 +276,7 @@ def delete_cat3(cat3_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "ok"}
 
-@router.post("/categories/blur/set")
+@router.post("/blur/set")
 def set_blur(
     cat1_id: int = Query(...),
     cat2_id: int = Query(...),

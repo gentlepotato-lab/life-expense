@@ -41,7 +41,7 @@ export default function SplitEditor({
 
   const loadCounterparts = () => {
     axios
-      .get("/meta/counterparts")
+      .get("/counterparts")
       .then((r) => setList(r.data))
       .catch(() => setList([]));
   };
@@ -89,7 +89,7 @@ export default function SplitEditor({
     const name = newName.trim();
     if (!name) return;
     try {
-      const res = await axios.post("/meta/counterparts", { name });
+      const res = await axios.post("/counterparts", { name });
       loadCounterparts();
       patch(i, "counterpart_id", res.data.counterpart_id);
       setNewAt(null);
@@ -130,7 +130,7 @@ export default function SplitEditor({
                       type="text"
                       value={newName}
                       autoFocus
-                      placeholder="이름"
+                      placeholder="(이름)"
                       onChange={(e) => setNewName(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {

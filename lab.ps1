@@ -11,9 +11,9 @@
     .\lab.ps1 status     포트/프로세스 확인
 
   접속:
-    개발  http://localhost:28101/app/
-    서비스 http://expense.life.localhost/app/        (게이트웨이 기동 필요)
-           http://<이 PC IP>:8101/app/          (폰 등 외부 기기)
+    개발  http://localhost:28101/
+    서비스 http://expense.life.localhost/        (게이트웨이 기동 필요)
+           http://<이 PC IP>:8101/          (폰 등 외부 기기)
 #>
 param(
   [Parameter(Position = 0)]

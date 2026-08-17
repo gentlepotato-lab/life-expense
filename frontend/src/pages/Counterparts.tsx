@@ -1,6 +1,7 @@
-import Menu from "./components/Menu";
+import PageHead from "./components/PageHead";
 import { useEffect, useState } from "react";
 import axios from "../api/client";
+import useBackClose from "../hooks/useBackClose";
 import { apiErrorMessage } from "../utils/apiError";
 import SingleSelect from "./components/SingleSelect";
 import CollapseToggle, { CollapseAllButtons } from "./components/CollapseToggle";
@@ -107,7 +108,7 @@ const fingerprint = (list: Counterpart[]) =>
  * 금액 쪼개기에서 "누구에게 돌려받았는지"(Who?) 를 고르기 위한 목록 관리.
  * 분할 편집 중에 즉석 등록도 되지만, 구분·메모 정리와 오타 수정은 여기서 한다.
  */
-export default function CounterpartsSetting() {
+export default function Counterparts() {
   const [list, setList] = useState<Counterpart[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
@@ -117,6 +118,15 @@ export default function CounterpartsSetting() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [categories, setCategories] = useState<Category[]>([]);
   const [beforeCategories, setBeforeCategories] = useState<Category[]>([]);
+
+  /* 뒤로 가기 · Backspace 로 편집을 무른다.
+     여기는 편집 전 목록을 지문으로만 들고 있어 되돌릴 수 없으므로
+     서버에서 다시 읽어 손댄 내용을 버린다. */
+  useBackClose(editMode, () => {
+    setEditMode(false);
+    refresh();
+    refreshCategories();
+  });
 
   const toggleGroup = (key: string) =>
     setCollapsed((prev) => {
@@ -197,13 +207,13 @@ export default function CounterpartsSetting() {
   };
 
   const refreshCategories = async () => {
-    const r = await axios.get("/meta/counterparts/categories");
+    const r = await axios.get("/counterparts/categories");
     setCategories(r.data);
     return r.data as Category[];
   };
 
   const refresh = async (inactive = showInactive) => {
-    const r = await axios.get("/meta/counterparts", {
+    const r = await axios.get("/counterparts", {
       params: { include_inactive: inactive },
     });
     setList(r.data);
@@ -300,14 +310,14 @@ export default function CounterpartsSetting() {
           sort_order: i + 1,
         };
         if (c.isNew) {
-          await axios.post("/meta/counterparts", body);
+          await axios.post("/counterparts", body);
         } else {
-          await axios.put(`/meta/counterparts/${c.counterpart_id}`, body);
+          await axios.put(`/counterparts/${c.counterpart_id}`, body);
         }
       }
       // 구분의 이모지·색은 분류 행에 저장한다
       await axios.post(
-        "/meta/counterparts/categories/save",
+        "/counterparts/categories/save",
         categories.map((c, i) => ({
           category_id: c.category_id,
           emoji: c.emoji,
@@ -330,9 +340,9 @@ export default function CounterpartsSetting() {
       setList((prev) => prev.filter((x) => x.counterpart_id !== id));
       return;
     }
-    if (!window.confirm("이 항목을 제거합니다?")) return;
+    if (!window.confirm("이 항목을 제거할까요?")) return;
     try {
-      const r = await axios.delete(`/meta/counterparts/${id}`);
+      const r = await axios.delete(`/counterparts/${id}`);
       if (r.data?.status === "deactivated") {
         alert(
           `이미 ${r.data.used_count}건에 쓰이고 있어 제거하지 않고 감췄습니다.\n` +
@@ -375,7 +385,7 @@ export default function CounterpartsSetting() {
     const name = window.prompt("새 구분 이름을 입력하세요.")?.trim();
     if (!name) return;
     try {
-      const r = await axios.post("/meta/counterparts/categories", { name });
+      const r = await axios.post("/counterparts/categories", { name });
       const next = await refreshCategories();
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
       setCategoryOf(assignTo, r.data.category_id);
@@ -387,7 +397,7 @@ export default function CounterpartsSetting() {
   const deleteCategory = async (categoryId: number, name: string) => {
     if (!window.confirm(`구분 "${name}" 을 제거합니다?`)) return;
     try {
-      const r = await axios.delete(`/meta/counterparts/categories/${categoryId}`);
+      const r = await axios.delete(`/counterparts/categories/${categoryId}`);
       if (r.data?.error === "IN_USE") {
         alert(`${r.data.used_count}건이 쓰고 있어 제거할 수 없습니다.`);
         return;
@@ -434,7 +444,7 @@ export default function CounterpartsSetting() {
                   <input
                     className="cp-input cp-input--name"
                     value={c.name}
-                    placeholder="이름"
+                    placeholder="(이름)"
                     /* 방금 붙인 빈 행이면 바로 타이핑할 수 있게 한다 */
                     autoFocus={c.isNew}
                     onChange={(e) => patch(c.counterpart_id, "name", e.target.value)}
@@ -463,7 +473,7 @@ export default function CounterpartsSetting() {
                   <input
                     className="cp-input cp-input--memo"
                     value={c.memo || ""}
-                    placeholder="메모"
+                    placeholder="(메모)"
                     onChange={(e) => patch(c.counterpart_id, "memo", e.target.value)}
                   />
                 </div>
@@ -475,8 +485,8 @@ export default function CounterpartsSetting() {
                     className={`cp-hide-btn ${c.is_active ? "" : "on"}`}
                     title={
                       c.is_active
-                        ? "감춘다 — 분할 편집의 Who? 목록에서 빠진다"
-                        : "다시 보이게 한다"
+                        ? "감춘다 — 분할 편집의 Who? 목록에서 빠진다."
+                        : "다시 보이게 한다."
                     }
                     onClick={() => toggleHidden(c.counterpart_id)}
                   >
@@ -509,10 +519,7 @@ export default function CounterpartsSetting() {
 
   return (
     <div className="page-wrap">
-      <Menu />
-      <div className="page-title-box">
-        <h1 className="page-title">Counterparts</h1>
-      </div>
+      <PageHead />
 
       <div className="cp-page">
         {/* 추가는 목록 아래에서 한다. 여기는 편집 여부와 목록 범위만 다룬다 */}
@@ -556,7 +563,7 @@ export default function CounterpartsSetting() {
               <div className="cp-draft__head">
                 <span className="cp-draft__name">저장 전</span>
                 <span className="cp-draft__count">{drafts.length}</span>
-                <span className="cp-draft__hint">저장하면 고른 구분으로 옮겨집니다</span>
+                <span className="cp-draft__hint">저장하면 고른 구분으로 옮겨집니다.</span>
               </div>
               {drafts.map((c) => (
                 <div key={c.counterpart_id}>{renderCard(c)}</div>

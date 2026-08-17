@@ -1,4 +1,5 @@
 import { useState, type ReactNode, useEffect } from "react";
+import useBackClose from "../../hooks/useBackClose";
 
 type HistoryItem = {
   expression: string;
@@ -17,6 +18,9 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
   const [pressedButton, setPressedButton] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [isCalculated, setIsCalculated] = useState(false);
+
+  /* 뒤로 가기 · Esc 로 닫는다. Backspace 는 숫자를 지우는 키로 남겨 둔다 */
+  useBackClose(true, onClose, false);
 
   // 팝업 열렸을 때 뒤 화면 스크롤/인터랙션 막기
   useEffect(() => {
