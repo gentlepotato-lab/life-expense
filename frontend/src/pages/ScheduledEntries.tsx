@@ -82,7 +82,7 @@ export default function ScheduledEntries() {
   useEffect(() => {
     if (showForm || calculatorOpen || draft || placePickerFor) {
       document.documentElement.classList.add("modal-open");
-      // showForm일 때만 pointerEvents 설정 (calculatorOpen은 CalculatorPopup에서 처리)
+      // showForm일 때만 pointerEvents 설정(calculatorOpen은 CalculatorPopup에서 처리)
       if (showForm) {
         document.body.style.pointerEvents = "none";
       }
@@ -333,7 +333,7 @@ export default function ScheduledEntries() {
     });
   };
 
-  // IN/OUT 전환 (소분류 선택 시 자동 설정되므로 비활성화)
+  // IN/OUT 전환(소분류 선택 시 자동 설정되므로 비활성화)
   // const toggleScheduleInOut = (scheduleId: number) => {
   //   mutateSchedule(scheduleId, (item) => ({
   //     ...item,
@@ -469,7 +469,7 @@ export default function ScheduledEntries() {
       return;
     }
 
-    // time 문자열을 시/분으로 분리 (HH:MM → hour, minute)
+    // time 문자열을 시/분으로 분리(HH:MM → hour, minute)
     const [hour, minute] = form.time.split(":").map(Number);
 
     try {
@@ -532,7 +532,7 @@ export default function ScheduledEntries() {
     }
   };
 
-  // 일 선택 옵션 생성 (1-31)
+  // 일 선택 옵션 생성(1-31)
   const dayOptions = Array.from({ length: 31 }, (_, i) => i + 1);
 
   return (

@@ -18,6 +18,7 @@ export const PAGE_TITLE: Record<string, string> = {
   "/entries": "지출 내역",
   "/pending-entries": "대기 내역",
   "/scheduled-entries": "정기 내역",
+  "/calendar": "달력",
 
   /* 설정 탭 */
   "/settings": "설정",
@@ -27,7 +28,12 @@ export const PAGE_TITLE: Record<string, string> = {
 };
 
 /** 내역 탭이 품는 화면들 */
-export const ENTRY_TABS = ["/entries", "/pending-entries", "/scheduled-entries"];
+export const ENTRY_TABS = [
+  "/entries",
+  "/pending-entries",
+  "/scheduled-entries",
+  "/calendar",
+];
 
 /** 설정 탭이 품는 화면들 */
 export const SETTING_TABS = ["/categories", "/payment-methods", "/counterparts"];

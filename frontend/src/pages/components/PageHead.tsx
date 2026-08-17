@@ -36,7 +36,13 @@ export default function PageHead() {
       </div>
 
       {subs && (
-        <div className="subtabs" role="tablist">
+        <div
+          className="subtabs"
+          role="tablist"
+          /* 갈래 수가 화면마다 다르다(내역 4개 · 설정 3개).
+             알약 폭을 여기서 알려 줘야 CSS 가 맞춰 자를 수 있다 */
+          style={{ "--tab-n": subs.length } as React.CSSProperties}
+        >
           {/* 켜진 갈래를 덮는 알약 하나. 자리만 옮기므로 미끄러진다 */}
           <span
             className="subtabs__thumb"

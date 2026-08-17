@@ -342,6 +342,15 @@ def get_entries_by_month(ym: str, db: SessionDep = Depends()):
                  , COALESCE(vn.split_amount, 0) AS split_amount
                  , COALESCE(vn.net_amount, e.amount) AS net_amount
                  , COALESCE(vn.split_count, 0) AS split_count
+                 -- 달력이 "함께한 상대" 로 걸러 낼 때 쓴다. 화면에서 거르는 구조라
+                 -- 행마다 들려 있어야 한다(pending_entries 와 같은 방식).
+                 , COALESCE(
+                       (SELECT array_agg(DISTINCT s.counterpart_id)
+                          FROM life_expense.entry_splits s
+                         WHERE s.entry_id = e.entry_id
+                           AND s.counterpart_id IS NOT NULL),
+                       '{{}}'   -- 이 SQL 은 f-string 이라 중괄호를 두 번 쓴다
+                   ) AS counterpart_ids
             FROM life_expense.entries e
                      LEFT JOIN
                  life_expense.categories_lvl3 c3

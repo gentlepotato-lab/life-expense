@@ -27,9 +27,15 @@ def list_scheduled_entries(db: SessionDep = Depends()):
 
     # 분할 합계도 한 번에 모은다(스케줄은 건수가 적어 단순 집계로 충분하다)
     split_agg: dict[int, tuple[float, int]] = {}
+    # 달력이 "함께한 상대" 로 걸러 낼 때 쓸 상대 ID 도 함께 모은다
+    cp_agg: dict[int, list[int]] = {}
     for s in db.query(ScheduledEntrySplit).all():
         amt, cnt = split_agg.get(s.schedule_id, (0.0, 0))
         split_agg[s.schedule_id] = (amt + float(s.amount), cnt + 1)
+        if s.counterpart_id is not None:
+            ids = cp_agg.setdefault(s.schedule_id, [])
+            if s.counterpart_id not in ids:
+                ids.append(s.counterpart_id)
 
     result = []
     for r in rows:
@@ -38,6 +44,7 @@ def list_scheduled_entries(db: SessionDep = Depends()):
             "split_amount": split_amount,
             "net_amount": float(r.amount) - split_amount,
             "split_count": split_count,
+            "counterpart_ids": cp_agg.get(r.schedule_id, []),
             "schedule_id": r.schedule_id,
             "day_of_month": r.day_of_month,
             "hour": r.hour,

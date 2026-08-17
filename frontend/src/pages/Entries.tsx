@@ -284,7 +284,7 @@ export default function Entries() {
     }
   };
 
-  // 드래그 제스처 핸들러 (금액 마스킹 해제)
+  // 드래그 제스처 핸들러(금액 마스킹 해제)
   const handleRevealDrag = (id: number, startX: number) => {
     const onMove = (e: MouseEvent | TouchEvent) => {
       const currentX = ('touches' in e)
@@ -533,7 +533,7 @@ export default function Entries() {
   const cat3Options = useMemo(() => {
     const result: any[] = [];
 
-    // 최상단의 (세분류 전체)
+    // 최상단의(세분류 전체)
     if (filter.cat2.length)
       result.push({ value: -1, label: "[전체]" });
 

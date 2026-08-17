@@ -7,6 +7,15 @@ type HistoryItem = {
   timestamp: number;
 };
 
+/**
+ * 계산 기록.
+ *
+ * 팝업 안의 상태로 두면 닫는 순간 사라진다. 모듈 바깥에 두면 팝업을 여닫아도
+ * 남아 있고, 페이지를 새로 고치면 함께 비워진다 — 딱 그만큼만 기억한다.
+ */
+const HISTORY_MAX = 10;
+let sharedHistory: HistoryItem[] = [];
+
 interface CalculatorPopupProps {
   onClose: () => void;
 }
@@ -14,7 +23,7 @@ interface CalculatorPopupProps {
 export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
   const [expression, setExpression] = useState("");
   const [display, setDisplay] = useState("0");
-  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>(() => sharedHistory);
   const [pressedButton, setPressedButton] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [isCalculated, setIsCalculated] = useState(false);
@@ -36,10 +45,8 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
       result,
       timestamp: Date.now(),
     };
-    setHistory((prev) => {
-      const updated = [newHistory, ...prev];
-      return updated.slice(0, 10);
-    });
+    sharedHistory = [newHistory, ...sharedHistory].slice(0, HISTORY_MAX);
+    setHistory(sharedHistory);
   };
 
   const formatNumber = (value: number | string): string => {
@@ -76,7 +83,7 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
       // ^(2)를 **2로 변환
       processed = processed.replace(/\^\(2\)/g, "**2");
       
-      // ^(를 **로 변환 (x^y 형태)
+      // ^(를 **로 변환(x^y 형태)
       processed = processed.replace(/\^\(/g, "**");
       
       // ×를 *, ÷를 /로 변환
@@ -370,6 +377,40 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
     }
   };
 
+  /** 백분율 — 지금 보이는 값을 100으로 나눈다. 10000 × 10 % 처럼 쓴다 */
+  const inputPercent = () => {
+    const n = parseFloat(display.replace(/,/g, ""));
+    if (isNaN(n)) return;
+    const v = n / 100;
+    setDisplay(formatNumber(v));
+    setExpression(String(v));
+    setIsCalculated(true);
+  };
+
+  /** 부호 바꾸기 */
+  const toggleSign = () => {
+    const n = parseFloat(display.replace(/,/g, ""));
+    if (isNaN(n)) return;
+    const v = -n;
+    setDisplay(formatNumber(v));
+    setExpression(String(v));
+    setIsCalculated(true);
+  };
+
+  /** 결과를 복사한다 — 금액 칸에 붙여 넣으려고 쓴다 */
+  const [copied, setCopied] = useState(false);
+  const copyResult = async () => {
+    const text = display.replace(/,/g, "");
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      /* 클립보드를 못 쓰는 환경에서는 조용히 넘어간다 */
+      return;
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
+  };
+
   const clear = () => {
     setDisplay("0");
     setExpression("");
@@ -462,6 +503,24 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
             </div>
             <div className="calculator-display">{display}</div>
           </div>
+          {/* 작은 줄 — 뒤에 더한 것들. 아래 숫자판은 그대로 둔다 */}
+          <div className="calculator-utils">
+            <button type="button" className="calculator-util" onClick={inputPercent} title="백분율">
+              %
+            </button>
+            <button type="button" className="calculator-util" onClick={toggleSign} title="부호 바꾸기">
+              ±
+            </button>
+            <button
+              type="button"
+              className={`calculator-util${copied ? " is-copied" : ""}`}
+              onClick={copyResult}
+              title="결과 복사"
+            >
+              {copied ? "복사됨" : "복사"}
+            </button>
+          </div>
+
           {/* 첫 번째 행: C, 지우기, 괄호 */}
           <div className="calculator-row calculator-row--top">
             <Button
@@ -579,7 +638,21 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
               className="calculator-history-header"
               onClick={() => setHistoryOpen(!historyOpen)}
             >
-              <div className="calculator-history-title">History ({history.length})</div>
+              <div className="calculator-history-title">기록({history.length})</div>
+              {history.length > 0 && (
+                <button
+                  type="button"
+                  className="calculator-history-clear"
+                  title="기록 비우기"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    sharedHistory = [];
+                    setHistory([]);
+                  }}
+                >
+                  비우기
+                </button>
+              )}
               <div className={`calculator-history-toggle ${historyOpen ? "calculator-history-toggle--open" : ""}`}>
                 ▼
               </div>

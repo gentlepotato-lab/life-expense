@@ -7,6 +7,7 @@ import ScheduledEntries from "./pages/ScheduledEntries";
 import Categories from "./pages/Categories";
 import PaymentMethods from "./pages/PaymentMethods";
 import Counterparts from "./pages/Counterparts";
+import Calendar from "./pages/Calendar";
 import Home from "./pages/Home";
 import Blank from "./pages/Blank";
 import History from "./pages/History";
@@ -66,6 +67,8 @@ function App() {
         <Route path="/pending-entries" element={<PendingEntries />} />
         {/* 정기 내역 페이지 */}
         <Route path="/scheduled-entries" element={<ScheduledEntries />} />
+        {/* 달력 페이지 */}
+        <Route path="/calendar" element={<Calendar />} />
         {/* 설정 탭 첫 화면 */}
         <Route path="/settings" element={<Settings />} />
         {/* 분류 페이지 */}

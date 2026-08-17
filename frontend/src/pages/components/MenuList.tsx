@@ -62,6 +62,16 @@ const ITEM: Record<string, { desc: string; icon: React.ReactNode }> = {
       </svg>
     ),
   },
+  "/calendar": {
+    desc: "한 달을 한눈에",
+    icon: (
+      <svg viewBox="0 0 32 32" {...stroke}>
+        <path d="M5 8h22v19H5z" />
+        <path d="M5 14h22M11 5v5M21 5v5" />
+        <path d="M10 19h3M15 19h3M20 19h3M10 23h3M15 23h3" />
+      </svg>
+    ),
+  },
   "/categories": {
     desc: "중분류 · 소분류 · 세분류",
     icon: (

@@ -47,7 +47,13 @@ const TABS: Tab[] = [
   {
     label: "내역",
     to: "/history",
-    match: ["/history", "/entries", "/pending-entries", "/scheduled-entries"],
+    match: [
+      "/history",
+      "/entries",
+      "/pending-entries",
+      "/scheduled-entries",
+      "/calendar",
+    ],
     icon: (
       <svg viewBox="0 0 24 24" {...stroke}>
         <path d="M5 4h14v16H5z" />

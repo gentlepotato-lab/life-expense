@@ -10,7 +10,7 @@ type CardEditModalProps = {
   saveDisabled?: boolean;
   saveLabel?: string;
   deleteLabel?: string;
-  /** 저장 버튼 왼쪽에 들어가는 추가 액션 (예: Pending 의 "전송") */
+  /** 저장 버튼 왼쪽에 들어가는 추가 액션(예: Pending 의 "전송") */
   footerExtra?: ReactNode;
   /**
    * 머리말 아래에 붙는 날짜·시간 입력 줄.

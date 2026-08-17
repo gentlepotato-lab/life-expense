@@ -34,7 +34,7 @@ export default function EmojiPicker({
     return EMOJI_GROUPS.find((g) => g.key === tab)?.items ?? [];
   }, [query, tab]);
 
-  // 화면 밖으로 나가지 않도록 위치를 잡는다 (SingleSelect 와 같은 방식)
+  // 화면 밖으로 나가지 않도록 위치를 잡는다(SingleSelect 와 같은 방식)
   useEffect(() => {
     if (!open || !wrapRef.current) return;
 

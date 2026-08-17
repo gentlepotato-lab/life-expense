@@ -183,7 +183,7 @@ export default function PendingEntries() {
     });
   };
 
-  // IN/OUT 전환 (소분류 선택 시 자동 설정되므로 비활성화)
+  // IN/OUT 전환(소분류 선택 시 자동 설정되므로 비활성화)
   // const toggleInOut = (id: number) => {
   //   setRows((prev) =>
   //     prev.map((r) =>
@@ -359,7 +359,7 @@ export default function PendingEntries() {
     }
   };
 
-  // 모든 항목을 Entries로 전송 (현재 필터링된 항목만)
+  // 모든 항목을 Entries로 전송(현재 필터링된 항목만)
   const sendAllEntries = async () => {
     if (rows.length === 0) {
       alert("전송할 항목이 없습니다.");
@@ -382,7 +382,7 @@ export default function PendingEntries() {
         alert(`${sentCount}건이 전송되었습니다.`);
       }
       
-      // 데이터 다시 로드 (sended = 0인 항목만 표시됨)
+      // 데이터 다시 로드(sended = 0인 항목만 표시됨)
       await loadData();
       
       // 필터가 활성화되어 있으면 다시 적용

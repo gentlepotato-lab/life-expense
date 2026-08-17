@@ -119,7 +119,7 @@ export default function Write() {
 
       // 새 장소인 경우 → DB에 아직 없음
       if (!place_id && selectedPlace && !selectedPlace.place_id) {
-        // 새로 등록 (백엔드에서 kakao_id로 중복 검사)
+        // 새로 등록(백엔드에서 kakao_id로 중복 검사)
         const res = await axios.post("/places", {
           place_name: selectedPlace.place_name,
           lat: selectedPlace.lat,

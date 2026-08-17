@@ -1745,7 +1745,7 @@ div:has(> .pm-item) .drag-handle {
 /* 숫자 버튼 */
 /* 연산자 버튼 */
 /* 등호 버튼 */
-/* 함수 버튼 (√, x², 1/x, %, 괄호) */
+/* 함수 버튼(√, x², 1/x, %, 괄호) */
 /* Clear 버튼 */
 /* Backspace 버튼 */
 
@@ -1775,7 +1775,7 @@ div:has(> .pm-item) .drag-handle {
 /* ─────────────────────────────────────────────
    20. Calculator Popup & Trigger Button
 ────────────────────────────────────────────── */
-/* 계산기 트리거 버튼 (오른쪽 고정) */
+/* 계산기 트리거 버튼(오른쪽 고정) */
 .calculator-trigger-button {
   position: fixed;
   top: var(--space-4);
@@ -2432,7 +2432,7 @@ html.modal-open .calculator-trigger-button {
   box-shadow: var(--ring);
 }
 
-/* IN/OUT 칩 — 읽기 전용 표시 (소분류가 결정한다) */
+/* IN/OUT 칩 — 읽기 전용 표시(소분류가 결정한다) */
 .inout-chip {
   display: inline-flex;
   align-items: center;
@@ -3055,7 +3055,7 @@ button {
   box-sizing: border-box;
 }
 
-/* 성격이 다른 묶음 사이 구분선 (필요할 때만 사용) */
+/* 성격이 다른 묶음 사이 구분선(필요할 때만 사용) */
 .edit-divider {
   grid-column: 1 / -1;
   height: 1px;
@@ -6821,8 +6821,8 @@ body {
   top: 3px;
   bottom: 3px;
   left: 3px;
-  /* 갈래는 늘 셋이라 폭 계산이 간단하다 */
-  width: calc((100% - 6px) / 3);
+  /* 갈래 수는 화면마다 다르다. PageHead 가 --tab-n 으로 알려 준다 */
+  width: calc((100% - 6px) / var(--tab-n, 3));
   background: var(--color-surface);
   border-radius: 999px;
   box-shadow: var(--shadow-sm);
@@ -7247,4 +7247,341 @@ html {
   transform: rotate(90deg);
   background: rgba(255, 255, 255, 0.75);
   color: var(--color-primary-dark);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   47. 계산기 — 조금 작게, 새 줄 하나 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* 380×740 은 폰 화면을 거의 다 덮었다. 버튼과 표시부를 함께 줄인다 */
+.calculator-popup-content .calculator-container {
+  width: 320px;
+  height: auto;
+  max-height: 88vh;
+  padding: var(--space-3);
+  gap: var(--space-2);
+}
+
+.calculator-popup-content .calculator-display-wrapper {
+  height: auto;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+}
+
+.calculator-popup-content .calculator-display {
+  min-height: 40px;
+  padding: 2px 0;
+  font-size: 32px;
+}
+
+.calculator-popup-content .calculator-expression {
+  min-height: 17px;
+  font-size: var(--font-size-sm);
+}
+
+.calculator-popup-content .calculator-row {
+  gap: 6px;
+}
+
+.calculator-popup-content .calculator-button {
+  height: 46px;
+  font-size: var(--font-size-lg);
+}
+
+/* ─── 뒤에 더한 작은 줄 — % · ± · 복사 ─────────────────────── */
+.calculator-utils {
+  display: flex;
+  gap: 6px;
+}
+
+.calculator-util {
+  flex: 1 1 0;
+  height: 26px;
+  min-height: 26px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.calculator-util:hover {
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-primary);
+}
+
+.calculator-util:active {
+  transform: scale(0.94);
+}
+
+/* 복사한 직후 잠깐 */
+.calculator-util.is-copied {
+  border-color: transparent;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+/* ─── 기록 ────────────────────────────────────────────────── */
+.calculator-popup-content .calculator-history-header {
+  padding: 6px 10px;
+}
+
+.calculator-history-clear {
+  height: 20px;
+  min-height: 20px;
+  margin-left: auto;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.calculator-history-clear:hover {
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   48. 달력 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   한 달을 한눈에. 지출 · 대기 · 정기를 겹쳐 볼 수 있다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 무엇을 겹쳐 볼지 ────────────────────────────────────────── */
+.cal-sources {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--space-2);
+}
+
+.cal-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+/* 체크박스 자체는 감추고 알약이 상태를 말한다 */
+.cal-source > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cal-source__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-border);
+  transition: background 140ms ease;
+}
+
+.cal-source.on {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-tertiary);
+}
+
+.cal-source:active {
+  transform: scale(0.94);
+}
+
+/* 자료별 색 — 카드의 IN/OUT 색과 섞이지 않게 따로 고른다 */
+.cal-source--expense.on .cal-source__dot { background: #5B5FEF; }
+.cal-source--pending.on .cal-source__dot { background: #F5A524; }
+.cal-source--scheduled.on .cal-source__dot { background: #00C7BE; }
+
+.cal-sum {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-sum__in { color: var(--color-success); }
+.cal-sum__out { color: var(--color-danger); }
+
+/* ─── 달력 판 ─────────────────────────────────────────────────── */
+.cal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.cal__head {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.cal__weekday {
+  padding: 6px 0;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-text-tertiary);
+}
+
+.cal__weekday.sun { color: var(--color-danger); }
+.cal__weekday.sat { color: var(--color-primary); }
+
+.cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.cal__cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-height: 58px;
+  padding: 4px 5px 5px;
+  /* 칸 사이를 선 대신 옅은 테두리로 가른다 — 촘촘해도 답답하지 않다 */
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* 오른쪽 끝과 마지막 줄은 판 테두리가 있으니 겹치지 않게 */
+.cal__cell:nth-child(7n) {
+  border-right: 0;
+}
+
+.cal__grid > .cal__cell:nth-last-child(-n + 7) {
+  border-bottom: 0;
+}
+
+.cal__cell--empty {
+  background: var(--color-bg);
+}
+
+.cal__day {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.cal__day.sun { color: var(--color-danger); }
+.cal__day.sat { color: var(--color-primary); }
+
+/* 오늘 — 날짜에 동그라미 */
+.cal__cell.is-today .cal__day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin: -2px 0 -1px -3px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.cal__net {
+  margin-top: auto;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.cal__net.plus { color: var(--color-success); }
+.cal__net.minus { color: var(--color-danger); }
+.cal__net.zero { color: var(--color-text-tertiary); }
+
+.cal__dots {
+  display: flex;
+  gap: 3px;
+}
+
+.cal__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+}
+
+.cal__dot--expense { background: #5B5FEF; }
+.cal__dot--pending { background: #F5A524; }
+.cal__dot--scheduled { background: #00C7BE; }
+
+/* 뭔가 있는 날은 아주 옅게 깔아 준다 */
+.cal__cell.has-items {
+  background: color-mix(in srgb, var(--color-primary-light) 26%, transparent);
+}
+
+@media (max-width: 400px) {
+  .cal__cell {
+    min-height: 52px;
+    padding: 3px 4px 4px;
+  }
+}
+
+/* ─── 칸 크기를 못 박는다 ──────────────────────────────────────
+   내용에 따라 칸이 늘었다 줄었다 하면 달력이 들썩인다.
+   천만 원 단위(−12,345,678)가 한 줄에 들어가는 글자 크기를 잡고,
+   칸 높이는 값이 있든 없든 같게 둔다. */
+.cal__cell {
+  height: 62px;
+  min-height: 62px;
+  overflow: hidden;
+  /* 좌우 여백을 줄여 금액이 들어갈 폭을 번다 */
+  padding: 4px 2px 4px;
+}
+
+.cal__net {
+  /* −12,345,678 = 11글자. 칸 안쪽 폭이 좁으니 여백을 줄이고
+     숫자 폭이 일정한 tabular-nums 로 자리를 아낀다. */
+  font-size: 8.5px;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  width: 100%;
+  text-align: right;
+}
+
+/* 점 줄도 자리를 늘 차지한다 — 값이 없는 날과 높이가 같아야 한다 */
+.cal__dots {
+  min-height: 5px;
+}
+
+@media (max-width: 400px) {
+  .cal__cell {
+    height: 56px;
+    min-height: 56px;
+  }
 }
