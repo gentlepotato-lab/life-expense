@@ -19,10 +19,13 @@ def payment_methods(db=Depends(get_db)):
 @router.get("/categories/lvl1")
 def cat1(db=Depends(get_db)):
     rows = db.execute(
-        select(CategoryL1.cat1_id, CategoryL1.cat1_name)
+        select(CategoryL1.cat1_id, CategoryL1.cat1_name, CategoryL1.emoji,
+               CategoryL1.is_active)
         .order_by(CategoryL1.sort_order)
     ).all()
-    return [{"id": i, "name": n} for i, n in rows]
+    # 감춘 것도 함께 준다. 지난 내역이 그 분류를 가리키고 있어 이름을 찾으려면
+    # 목록에 있어야 하기 때문이다. 고르는 목록에서 빼는 일은 화면이 한다.
+    return [{"id": i, "name": n, "emoji": e, "is_active": a} for i, n, e, a in rows]
 
 @router.get("/categories/lvl2")
 def cat2(cat1_id: int | None = Query(None), db=Depends(get_db)):
@@ -35,14 +38,18 @@ def cat2(cat1_id: int | None = Query(None), db=Depends(get_db)):
         CategoryL2.cat2_name,
         CategoryL2.cat1_id,
         CategoryL2.blur_flag,
-        CategoryL2.inout
+        CategoryL2.inout,
+        CategoryL2.is_active
     ).order_by(CategoryL2.cat1_id, CategoryL2.sort_order)
 
     if cat1_id:
         stmt = stmt.where(CategoryL2.cat1_id == cat1_id)
 
     rows = db.execute(stmt).all()
-    return [{"id": i, "name": n, "cat1_id": c1, "blur": b, "inout": io} for i, n, c1, b, io in rows]
+    return [
+        {"id": i, "name": n, "cat1_id": c1, "blur": b, "inout": io, "is_active": a}
+        for i, n, c1, b, io, a in rows
+    ]
 
 @router.get("/categories/lvl3")
 def cat3(cat2_id: int | None = Query(None), db=Depends(get_db)):
@@ -50,13 +57,14 @@ def cat3(cat2_id: int | None = Query(None), db=Depends(get_db)):
         CategoryL3.cat3_id,
         CategoryL3.cat3_name,
         CategoryL3.cat2_id,
+        CategoryL3.is_active,
     ).order_by(CategoryL3.cat2_id, CategoryL3.sort_order)
 
     if cat2_id is not None:
         stmt = stmt.where(CategoryL3.cat2_id == cat2_id)
 
     rows = db.execute(stmt).all()
-    return [{"id": i, "name": n, "cat2_id": c2} for i, n, c2 in rows]
+    return [{"id": i, "name": n, "cat2_id": c2, "is_active": a} for i, n, c2, a in rows]
 
 @router.post("/categories/add/cat3")
 def add_cat3(cat2_id: int = Query(...), name: str = Query(...), db=Depends(get_db)):
@@ -92,14 +100,25 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
     for item in cat1_list:
         cid = item["cat1_id"]
         if isinstance(cid, str) and cid.startswith("new_"):
-            new = CategoryL1(cat1_name=item["cat1_name"], sort_order=item["sort_order"])
+            new = CategoryL1(
+                cat1_name=item["cat1_name"],
+                sort_order=item["sort_order"],
+                emoji=(item.get("emoji") or None),
+            )
             db.add(new)
             db.flush()
             id_map_cat1[cid] = new.cat1_id
         else:
-            db.query(CategoryL1).filter(CategoryL1.cat1_id == cid).update(
-                {"cat1_name": item["cat1_name"], "sort_order": item["sort_order"]}
-            )
+            update_data = {
+                "cat1_name": item["cat1_name"],
+                "sort_order": item["sort_order"],
+            }
+            if "is_active" in item:
+                update_data["is_active"] = 1 if item["is_active"] else 0
+            # 키가 없으면 그대로 두고, 빈 값이면 지운다
+            if "emoji" in item:
+                update_data["emoji"] = item.get("emoji") or None
+            db.query(CategoryL1).filter(CategoryL1.cat1_id == cid).update(update_data)
 
     # 소분류 처리 (신규 + 기존)
     for item in cat2_list:
@@ -125,6 +144,8 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
                 "cat1_id": parent,
                 "sort_order": item["sort_order"]
             }
+            if "is_active" in item:
+                update_data["is_active"] = 1 if item["is_active"] else 0
             if "inout" in item:
                 update_data["inout"] = inout_value
             db.query(CategoryL2).filter(CategoryL2.cat2_id == cid).update(update_data)
@@ -142,13 +163,14 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
             )
             db.add(new)
         else:
-            db.query(CategoryL3).filter(CategoryL3.cat3_id == cid).update(
-                {
-                    "cat3_name": item["cat3_name"],
-                    "cat2_id": parent,
-                    "sort_order": item["sort_order"]
-                }
-            )
+            update3 = {
+                "cat3_name": item["cat3_name"],
+                "cat2_id": parent,
+                "sort_order": item["sort_order"],
+            }
+            if "is_active" in item:
+                update3["is_active"] = 1 if item["is_active"] else 0
+            db.query(CategoryL3).filter(CategoryL3.cat3_id == cid).update(update3)
 
     db.commit()
     return {"status": "ok"}

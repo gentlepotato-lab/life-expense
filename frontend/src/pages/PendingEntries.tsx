@@ -1,4 +1,5 @@
 import Menu from "./components/Menu";
+import { visible } from "../utils/visible";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import api from "../api/client";
 import { PlacePicker } from "./EntryForm";
@@ -16,10 +17,10 @@ export default function PendingEntries() {
   const [rows, setRows] = useState<any[]>([]);
   const [allRows, setAllRows] = useState<any[]>([]); // 필터용 원본
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string }[]>([]);
-  const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout?: number | null }[]>([]);
-  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number }[]>([]);
-  const [payList, setPayList] = useState<{ code: string; name: string }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
+  const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout?: number | null; is_active?: number }[]>([]);
+  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; is_active?: number }[]>([]);
+  const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [filter, setFilter] = useState({
@@ -47,6 +48,7 @@ export default function PendingEntries() {
         r.data.map((p: any) => ({
           code: p.method_id,
           name: p.method_name,
+          is_active: p.is_active,
         }))
       )
     );
@@ -751,7 +753,8 @@ export default function PendingEntries() {
             {/* 1행 — 분류 3단 */}
             <EditField label="중분류" span={4}>
               <SingleSelect
-                options={cat1List.map(c => ({ value: String(c.id), label: c.name }))}
+                options={visible(cat1List, (c) => c.id === draft.cat1_id)
+                  .map(c => ({ value: String(c.id), label: c.name }))}
                 selected={draft.cat1_id ? String(draft.cat1_id) : ""}
                 onChange={(value) => setField("cat1_id", value ? Number(value) : null)}
                 placeholder="(중분류)"
@@ -760,7 +763,7 @@ export default function PendingEntries() {
 
             <EditField label="소분류" span={4}>
               <SingleSelect
-                options={cat2List
+                options={visible(cat2List, (c) => c.id === draft.cat2_id)
                   .filter((c) => c.cat1_id === draft.cat1_id)
                   .map(c => ({ value: String(c.id), label: c.name }))}
                 selected={draft.cat2_id ? String(draft.cat2_id) : ""}
@@ -771,7 +774,7 @@ export default function PendingEntries() {
 
             <EditField label="세분류" span={4}>
               <SingleSelect
-                options={cat3List
+                options={visible(cat3List, (c) => c.id === draft.cat3_id)
                   .filter((c) => c.cat2_id === draft.cat2_id)
                   .map(c => ({ value: String(c.id), label: c.name }))}
                 selected={draft.cat3_id ? String(draft.cat3_id) : ""}
@@ -789,7 +792,8 @@ export default function PendingEntries() {
 
             <EditField label="결제 수단" span={4}>
               <SingleSelect
-                options={payList.map(p => ({ value: p.code, label: p.name }))}
+                options={visible(payList, (p) => p.code === draft.pay_method)
+                  .map(p => ({ value: p.code, label: p.name }))}
                 selected={draft.pay_method || ""}
                 onChange={(value) => setField("pay_method", value)}
                 placeholder="(결제 수단)"

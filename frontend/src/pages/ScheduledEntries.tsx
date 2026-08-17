@@ -1,4 +1,5 @@
 import Menu from "./components/Menu";
+import { visible } from "../utils/visible";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "../api/client";
 import SingleSelect from "./components/SingleSelect";
@@ -9,8 +10,8 @@ import type { SplitDraft } from "./components/SplitEditor";
 import { PlacePicker } from "./EntryForm";
 import useLongPress from "../hooks/useLongPress";
 
-type CategoryL2Meta = { id: number; name: string; cat1_id?: number; inout?: number | null };
-type CategoryL3Meta = { id: number; name: string; cat2_id?: number };
+type CategoryL2Meta = { id: number; name: string; cat1_id?: number; inout?: number | null; is_active?: number };
+type CategoryL3Meta = { id: number; name: string; cat2_id?: number; is_active?: number };
 
 interface Holiday {
   dt: string;
@@ -204,12 +205,12 @@ export default function ScheduledEntries() {
     place_id: "",
   });
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string }[]>([]);
-  const [cat2List, setCat2List] = useState<{ id: number; name: string; inout: number | null }[]>([]);
-  const [cat3List, setCat3List] = useState<{ id: number; name: string }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
+  const [cat2List, setCat2List] = useState<{ id: number; name: string; inout: number | null; is_active?: number }[]>([]);
+  const [cat3List, setCat3List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
   const [cat2All, setCat2All] = useState<CategoryL2Meta[]>([]);
   const [cat3All, setCat3All] = useState<CategoryL3Meta[]>([]);
-  const [payList, setPayList] = useState<{ code: string; name: string }[]>([]);
+  const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
   const [cat2Map, setCat2Map] = useState<Record<number, CategoryL2Meta>>({});
   const [cat3Map, setCat3Map] = useState<Record<number, CategoryL3Meta>>({});
   const [holidays, setHolidays] = useState<Holiday[]>([]);
@@ -333,6 +334,7 @@ export default function ScheduledEntries() {
           data.map((p: any) => ({
             code: String(p.method_id),
             name: p.method_name,
+            is_active: p.is_active,
           }))
         );
       })
@@ -805,7 +807,8 @@ export default function ScheduledEntries() {
                 <div className="form-row" style={{flex: 1, marginBottom: 0}}>
                   <label className="form-label required">중분류</label>
                   <SingleSelect
-                    options={cat1List.map(c => ({ value: String(c.id), label: c.name }))}
+                    options={visible(cat1List, (c) => String(c.id) === form.cat1_id)
+                      .map(c => ({ value: String(c.id), label: c.name }))}
                     selected={form.cat1_id}
                     onChange={(value) => setForm({ ...form, cat1_id: value })}
                     placeholder="(중분류)"
@@ -818,7 +821,8 @@ export default function ScheduledEntries() {
                 <div className="form-row" style={{flex: 1, marginBottom: 0}}>
                   <label className="form-label required">소분류</label>
                   <SingleSelect
-                    options={cat2List.map(c => ({ value: String(c.id), label: c.name }))}
+                    options={visible(cat2List, (c) => String(c.id) === form.cat2_id)
+                      .map(c => ({ value: String(c.id), label: c.name }))}
                     selected={form.cat2_id}
                     onChange={(value) => setForm({ ...form, cat2_id: value })}
                     placeholder="(소분류)"
@@ -827,7 +831,8 @@ export default function ScheduledEntries() {
                 <div className="form-row" style={{flex: 1, marginBottom: 0}}>
                   <label className="form-label">세분류</label>
                   <SingleSelect
-                    options={cat3List.map(c => ({ value: String(c.id), label: c.name }))}
+                    options={visible(cat3List, (c) => String(c.id) === form.cat3_id)
+                      .map(c => ({ value: String(c.id), label: c.name }))}
                     selected={form.cat3_id}
                     onChange={(value) => setForm({ ...form, cat3_id: value })}
                     placeholder="(세분류)"
@@ -846,7 +851,8 @@ export default function ScheduledEntries() {
                 <div className="form-row" style={{flex: 1, marginBottom: 0}}>
                   <label className="form-label required">결제 수단</label>
                   <SingleSelect
-                    options={payList.map(p => ({ value: p.code, label: p.name }))}
+                    options={visible(payList, (p) => p.code === form.pay_method)
+                      .map(p => ({ value: p.code, label: p.name }))}
                     selected={form.pay_method}
                     onChange={(value) => setForm({ ...form, pay_method: value })}
                     placeholder="(결제 수단)"
@@ -966,7 +972,8 @@ export default function ScheduledEntries() {
             {/* 1행 — 분류 3단 */}
             <EditField label="중분류" span={4}>
               <SingleSelect
-                options={cat1List.map((c) => ({ value: String(c.id), label: c.name }))}
+                options={visible(cat1List, (c) => c.id === draft.cat1_id)
+                  .map((c) => ({ value: String(c.id), label: c.name }))}
                 selected={String(draft.cat1_id ?? "")}
                 onChange={(value) => setField("cat1_id", value ? Number(value) : null)}
                 placeholder="(중분류)"
@@ -975,7 +982,7 @@ export default function ScheduledEntries() {
 
             <EditField label="소분류" span={4}>
               <SingleSelect
-                options={cat2All
+                options={visible(cat2All, (c) => c.id === draft.cat2_id)
                   .filter((c) => c.cat1_id === draft.cat1_id)
                   .map((c) => ({ value: String(c.id), label: c.name }))}
                 selected={String(draft.cat2_id ?? "")}
@@ -988,7 +995,7 @@ export default function ScheduledEntries() {
               <SingleSelect
                 options={[
                   { value: "", label: "(세분류)" },
-                  ...cat3All
+                  ...visible(cat3All, (c) => c.id === draft.cat3_id)
                     .filter((c) => c.cat2_id === draft.cat2_id)
                     .map((c) => ({ value: String(c.id), label: c.name })),
                 ]}
@@ -1007,7 +1014,8 @@ export default function ScheduledEntries() {
 
             <EditField label="결제 수단" span={4}>
               <SingleSelect
-                options={payList.map((p) => ({ value: p.code, label: p.name }))}
+                options={visible(payList, (p) => String(p.code) === String(draft.pay_method))
+                  .map((p) => ({ value: p.code, label: p.name }))}
                 selected={
                   draft.pay_method === null || draft.pay_method === undefined
                     ? ""

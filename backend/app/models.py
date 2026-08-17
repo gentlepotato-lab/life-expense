@@ -9,7 +9,9 @@ class CategoryL1(Base):
     __tablename__ = "categories_lvl1"
     cat1_id = Column(Integer, primary_key=True)
     cat1_name = Column(String, unique=True, nullable=False)
+    emoji = Column(String(16))              # 묶음 머리말에 붙는 이모지
     sort_order = Column(Integer, default=0, nullable=True)
+    is_active = Column(SmallInteger, nullable=False, default=1)   # 0 이면 고르는 목록에서 뺀다
 
 class CategoryL2(Base):
     __tablename__ = "categories_lvl2"
@@ -20,6 +22,7 @@ class CategoryL2(Base):
     sort_order = Column(Integer, default=0, nullable=True)
     blur_flag = Column(SmallInteger, default=0, nullable=False)
     inout = Column(SmallInteger, nullable=True)
+    is_active = Column(SmallInteger, nullable=False, default=1)   # 0 이면 고르는 목록에서 뺀다
 
 class CategoryL3(Base):
     __tablename__ = "categories_lvl3"
@@ -27,11 +30,14 @@ class CategoryL3(Base):
     cat3_name = Column(String, nullable=False)
     cat2_id = Column(Integer, ForeignKey("categories_lvl2.cat2_id"), nullable=False)
     sort_order = Column(Integer, default=0, nullable=True)
+    is_active = Column(SmallInteger, nullable=False, default=1)   # 0 이면 고르는 목록에서 뺀다
 
 class PaymentMethod(Base):
     __tablename__ = "payment_methods"
     method_id = Column(Integer, primary_key=True, autoincrement=True)
     method_name = Column(String, nullable=False, unique=True)
+    # 구분은 payment_method_categories 행을 가리킨다
+    category_id = Column(Integer, ForeignKey("payment_method_categories.category_id", ondelete="SET NULL"))
     sort_order = Column(Integer, default=0, nullable=True)
 
 class Entry(Base):
@@ -198,7 +204,8 @@ class Counterpart(Base):
 
     counterpart_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False, unique=True)
-    category = Column(String(20))          # 가족 / 친구 / 직장 / 기타
+    # 구분은 counterpart_categories 행을 가리킨다
+    category_id = Column(Integer, ForeignKey("counterpart_categories.category_id", ondelete="SET NULL"))
     memo = Column(String(200))
     sort_order = Column(Integer, nullable=False, default=0)
     is_active = Column(SmallInteger, nullable=False, default=1)
@@ -209,7 +216,7 @@ class Counterpart(Base):
         return {
             "counterpart_id": self.counterpart_id,
             "name": self.name,
-            "category": self.category,
+            "category_id": self.category_id,
             "memo": self.memo,
             "sort_order": self.sort_order,
             "is_active": self.is_active,
@@ -296,4 +303,59 @@ class ScheduledEntrySplit(Base):
             "split_type": self.split_type,
             "counterpart_id": self.counterpart_id,
             "memo": self.memo,
+        }
+
+
+class PaymentMethodCategory(Base):
+    """
+    결제 수단의 구분.
+    Categories 의 중분류처럼 행으로 두어야 이모지를 그 행에 담고,
+    나중에 구분별로 집계할 때 그대로 조인할 수 있다.
+    """
+    __tablename__ = "payment_method_categories"
+
+    category_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(40), nullable=False, unique=True)
+    emoji = Column(String(16))
+    sort_order = Column(Integer, nullable=False, default=0)
+    is_active = Column(SmallInteger, nullable=False, default=1)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    def to_dict(self):
+        return {
+            "category_id": self.category_id,
+            "name": self.name,
+            "emoji": self.emoji,
+            "sort_order": self.sort_order,
+            "is_active": self.is_active,
+        }
+
+
+class CounterpartCategory(Base):
+    """
+    상대의 구분. 사용자가 늘릴 수 있다.
+
+    color 는 헥사값이 아니라 팔레트 토큰 이름('indigo' 등)이다.
+    화면의 색을 조정할 때 DB 를 건드리지 않기 위해서다.
+    """
+    __tablename__ = "counterpart_categories"
+
+    category_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(40), nullable=False, unique=True)
+    emoji = Column(String(16))
+    color = Column(String(20))
+    sort_order = Column(Integer, nullable=False, default=0)
+    is_active = Column(SmallInteger, nullable=False, default=1)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    def to_dict(self):
+        return {
+            "category_id": self.category_id,
+            "name": self.name,
+            "emoji": self.emoji,
+            "color": self.color,
+            "sort_order": self.sort_order,
+            "is_active": self.is_active,
         }

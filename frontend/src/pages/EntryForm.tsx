@@ -1,4 +1,5 @@
 import Menu from "./components/Menu";
+import { visible } from "../utils/visible";
 import React, { useEffect, useState } from "react";
 import axios from "../api/client";
 import SingleSelect from "./components/SingleSelect";
@@ -329,10 +330,10 @@ export default function EntryForm() {
     place_id: ""
   });
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string }[]>([]);
-  const [cat2List, setCat2List] = useState<{ id: number; name: string; inout: number | null }[]>([]);
-  const [cat3List, setCat3List] = useState<{ id: number; name: string }[]>([]);
-  const [payList, setPayList] = useState<{ code: string; name: string }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
+  const [cat2List, setCat2List] = useState<{ id: number; name: string; inout: number | null; is_active?: number }[]>([]);
+  const [cat3List, setCat3List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
+  const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
 
   const [showPlacePicker, setShowPlacePicker] = useState(false);
   const [selectedPlaceName, setSelectedPlaceName] = useState("");
@@ -383,7 +384,8 @@ export default function EntryForm() {
       setPayList(
         res.data.map((p: any) => ({
           code: String(p.method_id),
-          name: p.method_name
+          name: p.method_name,
+          is_active: p.is_active,
         }))
       )
     );
@@ -520,7 +522,8 @@ export default function EntryForm() {
           {/* 1행 — 분류 3단 */}
           <EditField label="중분류" span={4}>
             <SingleSelect
-              options={cat1List.map(c => ({ value: String(c.id), label: c.name }))}
+              options={visible(cat1List, (c) => String(c.id) === form.cat1_id)
+                .map(c => ({ value: String(c.id), label: c.name }))}
               selected={form.cat1_id}
               onChange={(value) => {
                 setForm({ ...form, cat1_id: value });
@@ -563,7 +566,8 @@ export default function EntryForm() {
 
           <EditField label="결제 수단" span={4}>
             <SingleSelect
-              options={payList.map(p => ({ value: p.code, label: p.name }))}
+              options={visible(payList, (p) => p.code === form.pay_method)
+                .map(p => ({ value: p.code, label: p.name }))}
               selected={form.pay_method}
               onChange={(value) => {
                 setForm({ ...form, pay_method: value });

@@ -2,6 +2,8 @@ import Menu from "./components/Menu";
 import { useEffect, useState } from "react";
 import axios from "../api/client";
 import SingleSelect from "./components/SingleSelect";
+import EmojiPicker from "./components/EmojiPicker";
+import CollapseToggle, { CollapseAllButtons } from "./components/CollapseToggle";
 import {
   DndContext,
   closestCenter,
@@ -57,6 +59,44 @@ export default function CategoriesSetting() {
   const [cat3, setCat3] = useState<any[]>([]);
 
   const [addCat1Mode, setAddCat1Mode] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addCat2Mode, setAddCat2Mode] = useState(false);
+  /** 감춘 항목까지 보여 줄지. 꺼져 있으면 목록에서만 빠진다(상태에는 그대로 남는다) */
+  const [showInactive, setShowInactive] = useState(false);
+
+  /** 접어 둔 묶음. 비어 있으면 전부 펼쳐진 상태다(기존과 같은 모습).
+      중분류와 소분류를 한 곳에 담되 접두사로 구분한다. */
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  const isOpen = (key: string) => !collapsed.has(key);
+
+  const toggleKey = (key: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  /**
+   * 화면에 뿌릴 목록.
+   * 감춘 항목은 저장 대상에는 그대로 두고 보이기만 뺀다.
+   * 그래야 감췄다는 사실이 저장할 때 지워지지 않는다.
+   */
+  const seen = <T extends { is_active?: number }>(rows: T[]) =>
+    showInactive ? rows : rows.filter((r) => r.is_active !== 0);
+
+  const cat1View = seen(cat1);
+  const cat2View = seen(cat2);
+  const cat3View = seen(cat3);
+
+  /** 접을 수 있는 모든 줄 — 중분류 전체 + 세분류를 가진 소분류 */
+  const allCollapsibleKeys = () => [
+    ...cat1View.map((c) => `1:${c.cat1_id}`),
+    ...cat2View
+      .filter((c) => cat3View.some((x) => x.cat2_id === c.cat2_id))
+      .map((c) => `2:${c.cat2_id}`),
+  ];
 
   const [selectedCat1ForAdd, setSelectedCat1ForAdd] = useState<number | null>(null);
   const [selectedCat2ForAdd, setSelectedCat2ForAdd] = useState<number | null>(null);
@@ -82,6 +122,8 @@ export default function CategoriesSetting() {
       setCat1(r.data.map((c: any) => ({
         cat1_id: c.id,
         cat1_name: c.name,
+        emoji: c.emoji ?? null,
+        is_active: c.is_active ?? 1,
         editing: false
       })))
     );
@@ -93,6 +135,7 @@ export default function CategoriesSetting() {
         cat1_id: c.cat1_id,
         blur: c.blur ?? 0, // blur 값 받기
         inout: c.inout ?? null, // inout 값 받기
+        is_active: c.is_active ?? 1,
         editing: false
       })))
     );
@@ -102,6 +145,7 @@ export default function CategoriesSetting() {
         cat3_id: c.id,
         cat3_name: c.name,
         cat2_id: c.cat2_id,
+        is_active: c.is_active ?? 1,
         editing: false
       })))
     );
@@ -167,12 +211,12 @@ export default function CategoriesSetting() {
 
     // 변경 체크 & 저장 로직 기존 그대로
     const changed =
-      JSON.stringify(beforeEditCat1.map(c => [c.cat1_id, c.cat1_name])) !==
-        JSON.stringify(cat1.map(c => [c.cat1_id, c.cat1_name])) ||
-      JSON.stringify(beforeEditCat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout])) !==
-        JSON.stringify(cat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout])) ||
-      JSON.stringify(beforeEditCat3.map(c => [c.cat3_id, c.cat3_name])) !==
-        JSON.stringify(cat3.map(c => [c.cat3_id, c.cat3_name]));
+      JSON.stringify(beforeEditCat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active])) !==
+        JSON.stringify(cat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active])) ||
+      JSON.stringify(beforeEditCat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active])) !==
+        JSON.stringify(cat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active])) ||
+      JSON.stringify(beforeEditCat3.map(c => [c.cat3_id, c.cat3_name, c.is_active])) !==
+        JSON.stringify(cat3.map(c => [c.cat3_id, c.cat3_name, c.is_active]));
 
     if (!changed) {
       alert("변경된 내용이 없습니다만...?");
@@ -184,6 +228,8 @@ export default function CategoriesSetting() {
       cat1: cat1.map((c, idx) => ({
         cat1_id: c.cat1_id,
         cat1_name: c.cat1_name,
+        emoji: c.emoji ?? "",
+        is_active: c.is_active ?? 1,
         sort_order: idx + 1,
       })),
       cat2: cat1.flatMap(c1 =>
@@ -193,6 +239,7 @@ export default function CategoriesSetting() {
             cat2_id: c.cat2_id,
             cat1_id: c1.cat1_id,
             cat2_name: c.cat2_name,
+            is_active: c.is_active ?? 1,
             sort_order: idx + 1,
             inout: c.inout,
           }))
@@ -204,6 +251,7 @@ export default function CategoriesSetting() {
             cat3_id: c.cat3_id,
             cat2_id: c2.cat2_id,
             cat3_name: c.cat3_name,
+            is_active: c.is_active ?? 1,
             sort_order: idx + 1,
           }))
       )
@@ -214,6 +262,17 @@ export default function CategoriesSetting() {
       setEditMode(false);
     });
   };
+
+  /**
+   * 감추기 — 고르는 목록에서 뺀다. Blur(금액 가리기)와는 다른 것이다.
+   * 지난 내역은 이 분류를 계속 가리키므로 지우지 않고 감추기만 한다.
+   */
+  const toggleHidden1 = (id: number) =>
+    setCat1(cat1.map(x => x.cat1_id === id ? { ...x, is_active: x.is_active ? 0 : 1 } : x));
+  const toggleHidden2 = (id: number) =>
+    setCat2(cat2.map(x => x.cat2_id === id ? { ...x, is_active: x.is_active ? 0 : 1 } : x));
+  const toggleHidden3 = (id: number) =>
+    setCat3(cat3.map(x => x.cat3_id === id ? { ...x, is_active: x.is_active ? 0 : 1 } : x));
 
   const handleAdd = async () => {
     const cat1Name = newCat1Name.trim();
@@ -268,6 +327,7 @@ export default function CategoriesSetting() {
       }
 
       alert("추가 완료-!! ;-)");
+      setAddOpen(false);
       setNewCat1Name("");
       setNewCat2Name("");
       setNewCat3Name("");
@@ -301,6 +361,7 @@ export default function CategoriesSetting() {
               params: { cat2_id, name: cat3Name }
             });
             alert("추가 완료-!! ;-)");
+      setAddOpen(false);
             setNewCat3Name("");
             await refreshListsAll();
             return;
@@ -329,6 +390,7 @@ export default function CategoriesSetting() {
       }
 
       alert("추가 완료-!! ;-)");
+      setAddOpen(false);
       setNewCat2Name("");
       setNewCat3Name("");
       await refreshListsAll();
@@ -350,6 +412,7 @@ export default function CategoriesSetting() {
           params: { cat2_id: selectedCat2ForAdd, name: cat3Name }
         });
         alert("추가 완료-!! ;-)");
+      setAddOpen(false);
       } else {
         alert("이미 존재하는 세분류입니다~");
       }
@@ -372,6 +435,8 @@ export default function CategoriesSetting() {
     setCat1(r1.data.map((c: any) => ({
       cat1_id: c.id,
       cat1_name: c.name,
+      emoji: c.emoji ?? null,
+      is_active: c.is_active ?? 1,
       editing: false,
     })));
 
@@ -379,6 +444,7 @@ export default function CategoriesSetting() {
       cat2_id: c.id,
       cat2_name: c.name,
       cat1_id: c.cat1_id,
+      is_active: c.is_active ?? 1,
       blur: c.blur ?? 0,
       inout: c.inout ?? null,
       editing: false,
@@ -388,6 +454,7 @@ export default function CategoriesSetting() {
       cat3_id: c.id,
       cat3_name: c.name,
       cat2_id: c.cat2_id,
+      is_active: c.is_active ?? 1,
       editing: false,
     })));
   };
@@ -448,62 +515,15 @@ export default function CategoriesSetting() {
 
       <div className="cat-toolbar">
         <div className="cat-toolbar-btns">
-
-          {/* 중분류 추가 UI */}
-          <SingleSelect
-            options={[
-              { value: "", label: "(중분류)" },
-              ...cat1.map(c => ({ value: String(c.cat1_id), label: c.cat1_name })),
-              { value: "NEW", label: "[+] 항목 추가" }
-            ]}
-            selected={addCat1Mode ? "NEW" : (selectedCat1ForAdd ? String(selectedCat1ForAdd) : "")}
-            onChange={(value) => {
-              if (value === "NEW") {
-                setAddCat1Mode(true);
-                setNewCat1Name("");
-              } else if (value === "") {
-                setAddCat1Mode(false);
-                setSelectedCat1ForAdd(null);
-              } else {
-                setAddCat1Mode(false);
-                setSelectedCat1ForAdd(parseInt(value));
-              }
-            }}
-            placeholder="(중분류)"
-          />
-
-          {addCat1Mode && (
-            <div className="cat23-input-row">
-              <input
-                className="cat-input"
-                placeholder="중분류 항목 입력"
-                value={newCat1Name}
-                onChange={(e) => setNewCat1Name(e.target.value)}
-              />
-            </div>
-          )}
-
-          {/* 소분류 추가 UI + 세분류 추가 UI → 가로 균등 분할 */}
-          {(addCat1Mode || selectedCat1ForAdd) && (
-            <div className="cat23-input-row">
-              <input
-                className="cat3-input"
-                placeholder="소분류 항목 입력"
-                value={newCat2Name}
-                onChange={(e) => setNewCat2Name(e.target.value)}
-              />
-              <input
-                className="cat3-input"
-                placeholder="세분류 항목 입력 (선택)"
-                value={newCat3Name}
-                onChange={(e) => setNewCat3Name(e.target.value)}
-              />
-            </div>
-          )}
-
-          {/* 버튼 영역을 하나의 행으로 묶기 */}
           <div className="btn-row">
-            <button className="ui-btn" onClick={handleAdd}>추가</button>
+            <label className="cp-toggle">
+              <input
+                type="checkbox"
+                checked={showInactive}
+                onChange={(e) => setShowInactive(e.target.checked)}
+              />
+              감춘 항목 보기
+            </label>
             <button
               className="ui-btn primary"
               onClick={() => {
@@ -525,68 +545,235 @@ export default function CategoriesSetting() {
       </div>
 
       <div className="cat-card">
+        {/* 추가는 목록 맨 위에서 — 세 Settings 화면 공통 자리.
+            분류가 3뎁스라 기존 중분류/소분류를 고르면 그 아래에 붙는
+            기존 동작을 그대로 옮겨 왔다. */}
+        <div className="set-add-bar">
+          <button
+            type="button"
+            className={`set-add-btn ${addOpen ? "on" : ""}`}
+            onClick={() => setAddOpen((v) => !v)}
+          >
+            <span className="set-add-btn__mark" aria-hidden="true">+</span>
+            새 항목 추가
+          </button>
+
+          <CollapseAllButtons
+            onExpandAll={() => setCollapsed(new Set())}
+            onCollapseAll={() => setCollapsed(new Set(allCollapsibleKeys()))}
+          />
+        </div>
+
+        {addOpen && (
+        <div className="set-add-form set-add-form--col set-draft">
+          <div className="set-draft__head">
+            <span className="set-draft__name">새 항목</span>
+            <span className="set-draft__hint">
+              고른 중분류·소분류 아래에 추가됩니다
+            </span>
+          </div>
+
+          <SingleSelect
+            options={[
+              { value: "NEW", label: "[+] 새 항목 추가" },
+              { value: "", label: "(중분류)" },
+              ...cat1.map(c => ({ value: String(c.cat1_id), label: c.cat1_name })),
+            ]}
+            selected={addCat1Mode ? "NEW" : (selectedCat1ForAdd ? String(selectedCat1ForAdd) : "")}
+            onChange={(value) => {
+              if (value === "NEW") {
+                setAddCat1Mode(true);
+                setNewCat1Name("");
+              } else if (value === "") {
+                setAddCat1Mode(false);
+                setSelectedCat1ForAdd(null);
+              } else {
+                setAddCat1Mode(false);
+                setSelectedCat1ForAdd(parseInt(value));
+              }
+              // 중분류가 바뀌면 아래 선택은 의미가 없어진다
+              setAddCat2Mode(false);
+              setNewCat2Name("");
+            }}
+            placeholder="(중분류)"
+          />
+
+          {addCat1Mode && (
+            <div className="cat23-input-row">
+              <input
+                className="cat-input"
+                placeholder="중분류 항목 입력"
+                value={newCat1Name}
+                onChange={(e) => setNewCat1Name(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* 소분류 — 기존 것을 고르면 그 아래에 세분류가 붙고,
+              [+] 새 항목 추가를 고르면 이름을 직접 적는다.
+              중분류를 새로 만드는 중이면 고를 기존 소분류가 없으므로 입력칸만 둔다. */}
+          {selectedCat1ForAdd && !addCat1Mode && (
+            <SingleSelect
+              options={[
+                { value: "NEW", label: "[+] 새 항목 추가" },
+                { value: "", label: "(소분류)" },
+                ...cat2
+                  .filter(c => c.cat1_id === selectedCat1ForAdd)
+                  .map(c => ({ value: c.cat2_name, label: c.cat2_name })),
+              ]}
+              selected={addCat2Mode ? "NEW" : newCat2Name}
+              onChange={(value) => {
+                if (value === "NEW") {
+                  setAddCat2Mode(true);
+                  setNewCat2Name("");
+                } else {
+                  setAddCat2Mode(false);
+                  setNewCat2Name(value);
+                }
+              }}
+              placeholder="(소분류)"
+            />
+          )}
+
+          {(addCat1Mode || addCat2Mode) && (
+            <div className="cat23-input-row">
+              <input
+                className="cat3-input"
+                placeholder="소분류 항목 입력"
+                value={newCat2Name}
+                onChange={(e) => setNewCat2Name(e.target.value)}
+              />
+            </div>
+          )}
+
+          {(addCat1Mode || selectedCat1ForAdd) && (
+            <div className="cat23-input-row">
+              <input
+                className="cat3-input"
+                placeholder="세분류 항목 입력 (선택)"
+                value={newCat3Name}
+                onChange={(e) => setNewCat3Name(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="btn-row">
+            <button className="ui-btn" onClick={handleAdd}>추가</button>
+          </div>
+        </div>
+        )}
+
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndCat1}>
-          <SortableContext items={cat1.map((c) => c.cat1_id)} strategy={verticalListSortingStrategy}>
-            {cat1.map((c1) => (
+          <SortableContext items={cat1View.map((c) => c.cat1_id)} strategy={verticalListSortingStrategy}>
+            {cat1View.map((c1) => (
               <div key={c1.cat1_id} className="cat-group">
                 <SortableItem id={c1.cat1_id} dragHandle={editMode}>
-                  {editMode && c1.editing ? (
-                    <input
-                      className="cat1-input"
-                      value={c1.cat1_name}
-                      onChange={(e) =>
-                        setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, cat1_name: e.target.value } : x))
-                      }
-                      onBlur={() =>
-                        setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, editing: false } : x))
-                      }
-                      autoFocus
+                  {/* 중분류는 이 묶음의 머리말이다.
+                      Counterparts·Payment Methods 의 묶음 머리말과 같은 모양으로 둔다.
+                      이름 칸을 클릭해 고치는 기존 동작은 그대로다. */}
+                  <div className="set-group__head cat1-head">
+                    <CollapseToggle
+                      open={isOpen(`1:${c1.cat1_id}`)}
+                      onToggle={() => toggleKey(`1:${c1.cat1_id}`)}
+                      hidden={!cat2View.some((c) => c.cat1_id === c1.cat1_id)}
+                      label={c1.cat1_name}
                     />
-                  ) : (
-                    <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
-                      <span
-                        className="cat1-name"
-                        onClick={() =>
-                          editMode &&
-                          setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, editing: true } : x))
-                        }
-                        style={{ flex: 1 }}
-                      >
-                        {c1.cat1_name}
-                      </span>
 
-                      {editMode && (
-                        <button
-                          type="button"
-                          className="set-remove"
-                          style={{ marginLeft: "auto" }}
-                          title="제거"
-                          aria-label={`${c1.cat1_name} 제거`}
-                          onClick={() => deleteCat1(c1.cat1_id)}
-                        >
-                          ×
-                        </button>
+                    {/* 이름 · 이모지 · 건수를 한 덩어리로 묶는다.
+                        이 덩어리 전체가 클릭 영역이라 이름을 고치기 위한
+                        누를 곳이 좁아지지 않는다. */}
+                    <div
+                      className="cat1-head__text"
+                      onClick={() =>
+                        editMode &&
+                        setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, editing: true } : x))
+                      }
+                    >
+                      {editMode && c1.editing ? (
+                        <input
+                          className="cat1-input"
+                          value={c1.cat1_name}
+                          onChange={(e) =>
+                            setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, cat1_name: e.target.value } : x))
+                          }
+                          onBlur={() =>
+                            setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, editing: false } : x))
+                          }
+                          autoFocus
+                        />
+                      ) : (
+                        <span className="cat1-name">
+                          {c1.cat1_name}
+                          {!c1.is_active && <span className="set-hide-mark">감춤</span>}
+                        </span>
                       )}
+
+                      {/* 이모지는 이름 뒤에 — 없을 때 이름 앞이 비어 보이지 않게 */}
+                      <EmojiPicker
+                        value={c1.emoji ?? null}
+                        disabled={!editMode}
+                        title={`${c1.cat1_name} 이모지`}
+                        onChange={(v) =>
+                          setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, emoji: v } : x))
+                        }
+                      />
+
                     </div>
-                  )}
+
+                    {/* 건수는 오른쪽 끝에 — 세 화면 공통 */}
+                    <span className="set-group__count">
+                      {cat2View.filter((c) => c.cat1_id === c1.cat1_id).length}
+                    </span>
+
+                    {editMode && (
+                      <button
+                        type="button"
+                        className={`set-hide-btn ${c1.is_active ? "" : "on"}`}
+                        title={c1.is_active ? "감춘다 — 고르는 목록에서 빠진다" : "다시 보이게 한다"}
+                        onClick={() => toggleHidden1(c1.cat1_id)}
+                      >
+                        {c1.is_active ? "감추기" : "감춤"}
+                      </button>
+                    )}
+
+                    {editMode && (
+                      <button
+                        type="button"
+                        className="set-remove"
+                        title="제거"
+                        aria-label={`${c1.cat1_name} 제거`}
+                        onClick={() => deleteCat1(c1.cat1_id)}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </SortableItem>
 
+                {/* 접힌 중분류는 아래를 그리지 않는다 */}
+                {isOpen(`1:${c1.cat1_id}`) && (
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEndCat2(c1.cat1_id)}
                 >
                   <SortableContext
-                    items={cat2.filter((c) => c.cat1_id === c1.cat1_id).map((c) => c.cat2_id)}
+                    items={cat2View.filter((c) => c.cat1_id === c1.cat1_id).map((c) => c.cat2_id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    {cat2
+                    {cat2View
                       .filter((c) => c.cat1_id === c1.cat1_id)
                       .map((c2) => (
                         <>
                           <SortableItem key={c2.cat2_id} id={c2.cat2_id} dragHandle={editMode}>
                             {/* 소분류 행 */}
                             <div className="cat2-header-row">
+                              <CollapseToggle
+                                open={isOpen(`2:${c2.cat2_id}`)}
+                                onToggle={() => toggleKey(`2:${c2.cat2_id}`)}
+                                hidden={!cat3View.some((c) => c.cat2_id === c2.cat2_id)}
+                                label={c2.cat2_name}
+                              />
                               {editMode && c2.editing ? (
                                 <input
                                   className="cat2-input"
@@ -617,16 +804,17 @@ export default function CategoriesSetting() {
                                   }}
                                 >
                                   {!editMode && c2.inout !== null && (
+                                    /* 색은 그대로 두고 모양만 묶음 머리말의 점과 맞춘다 */
                                     <span
+                                      className="set-group__dot inout-dot"
                                       style={{
-                                        color: c2.inout === 1 ? "#00C7BE" : "#FF5C57",
-                                        marginRight: "4px"
+                                        background: c2.inout === 1 ? "#00C7BE" : "#FF5C57",
                                       }}
-                                    >
-                                      ●
-                                    </span>
+                                      aria-label={c2.inout === 1 ? "IN" : "OUT"}
+                                    />
                                   )}
                                   {c2.cat2_name}
+                                  {!c2.is_active && <span className="set-hide-mark">감춤</span>}
                                 </span>
                               )}
 
@@ -650,21 +838,38 @@ export default function CategoriesSetting() {
                               )}
 
                               {editMode && (
-                                <label className="blur-toggle">
-                                  <input
-                                    type="checkbox"
-                                    checked={c2.blur === 1}
-                                    onChange={(e) => {
-                                      axios.post("/meta/categories/blur/set", null, {
-                                        params: { cat1_id: c2.cat1_id, cat2_id: c2.cat2_id, enabled: e.target.checked }
-                                      });
-                                      setCat2(cat2.map(x =>
-                                        x.cat2_id === c2.cat2_id ? { ...x, blur: e.target.checked ? 1 : 0 } : x
-                                      ));
-                                    }}
-                                  />
+                                /* Blur 는 금액을 흐리게 가리는 것. 감추기와는 다르다 */
+                                <button
+                                  type="button"
+                                  className={`set-blur-btn ${c2.blur === 1 ? "on" : ""}`}
+                                  title={
+                                    c2.blur === 1
+                                      ? "금액을 흐리게 가리는 중"
+                                      : "금액을 흐리게 가린다"
+                                  }
+                                  onClick={() => {
+                                    const next = c2.blur === 1 ? 0 : 1;
+                                    axios.post("/meta/categories/blur/set", null, {
+                                      params: { cat1_id: c2.cat1_id, cat2_id: c2.cat2_id, enabled: next === 1 }
+                                    });
+                                    setCat2(cat2.map(x =>
+                                      x.cat2_id === c2.cat2_id ? { ...x, blur: next } : x
+                                    ));
+                                  }}
+                                >
                                   Blur
-                                </label>
+                                </button>
+                              )}
+
+                              {editMode && (
+                                <button
+                                  type="button"
+                                  className={`set-hide-btn ${c2.is_active ? "" : "on"}`}
+                                  title={c2.is_active ? "감춘다 — 고르는 목록에서 빠진다" : "다시 보이게 한다"}
+                                  onClick={() => toggleHidden2(c2.cat2_id)}
+                                >
+                                  {c2.is_active ? "감추기" : "감춤"}
+                                </button>
                               )}
 
                               {editMode && (
@@ -695,7 +900,8 @@ export default function CategoriesSetting() {
                           )}
 
                           {/* 세분류는 cat2-header-row 밖 & 새 DndContext 영역 - 세분류가 있을 때만 표시 */}
-                          {cat3.filter((c) => c.cat2_id === c2.cat2_id).length > 0 && (
+                          {isOpen(`2:${c2.cat2_id}`) &&
+                            cat3View.filter((c) => c.cat2_id === c2.cat2_id).length > 0 && (
                             <DndContext
                               sensors={sensors}
                               collisionDetection={closestCenter}
@@ -716,11 +922,11 @@ export default function CategoriesSetting() {
                               }}
                             >
                               <SortableContext
-                                items={cat3.filter((c) => c.cat2_id === c2.cat2_id).map((c) => c.cat3_id)}
+                                items={cat3View.filter((c) => c.cat2_id === c2.cat2_id).map((c) => c.cat3_id)}
                                 strategy={verticalListSortingStrategy}
                               >
                                 <div className="cat3-list">
-                                  {cat3.filter((c) => c.cat2_id === c2.cat2_id).map((c3) => (
+                                  {cat3View.filter((c) => c.cat2_id === c2.cat2_id).map((c3) => (
                                     <SortableItem key={c3.cat3_id} id={c3.cat3_id} dragHandle={editMode}>
                                       <div className="cat3-row">
                                         {editMode && c3.editing ? (
@@ -750,7 +956,19 @@ export default function CategoriesSetting() {
                                             }
                                           >
                                             {c3.cat3_name}
+                                            {!c3.is_active && <span className="set-hide-mark">감춤</span>}
                                           </span>
+                                        )}
+
+                                        {editMode && (
+                                          <button
+                                            type="button"
+                                            className={`set-hide-btn ${c3.is_active ? "" : "on"}`}
+                                            title={c3.is_active ? "감춘다 — 고르는 목록에서 빠진다" : "다시 보이게 한다"}
+                                            onClick={() => toggleHidden3(c3.cat3_id)}
+                                          >
+                                            {c3.is_active ? "감추기" : "감춤"}
+                                          </button>
                                         )}
 
                                         {editMode && (
@@ -775,6 +993,7 @@ export default function CategoriesSetting() {
                       ))}
                   </SortableContext>
                 </DndContext>
+                )}
               </div>
             ))}
           </SortableContext>

@@ -4505,12 +4505,7 @@ button {
   font-weight: 500;
 }
 
-/* 구분별 색 — 아바타와 칩이 같은 색 계열을 쓴다 */
-.cp-chip.cat-1 { background: rgba(91, 95, 239, 0.12); color: var(--color-primary); }
-.cp-chip.cat-2 { background: rgba(0, 199, 190, 0.14); color: var(--color-success-dark); }
-.cp-chip.cat-3 { background: rgba(255, 149, 0, 0.14); color: #C26A00; }
-.cp-chip.cat-4 { background: rgba(0, 0, 0, 0.05); color: var(--color-text-secondary); }
-
+/* 구분별 아바타 색 */
 .cp-avatar.cat-1 { background: var(--color-primary); }
 .cp-avatar.cat-2 { background: var(--color-success); }
 .cp-avatar.cat-3 { background: #FF9500; }
@@ -4612,46 +4607,6 @@ button {
 
 .cp-hide-btn.on:hover {
   background: var(--color-text-secondary);
-}
-
-/* ─── 목록 끝의 추가 줄 ──────────────────────────────────────
-   카드와 같은 높이·모서리를 쓰되 점선으로 "아직 비어 있는 자리" 임을
-   나타낸다. 누르면 이 자리에 실제 행이 하나 생긴다. */
-.cp-add-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  width: 100%;
-  min-height: 44px;
-  height: 44px;
-  padding: 0 12px;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
-}
-
-.cp-add-row:hover {
-  background: rgba(91, 95, 239, 0.05);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.cp-add-row__mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  font-size: 12px;
-  line-height: 1;
 }
 
 /* 아직 저장 전인 행 — 저장을 눌러야 반영된다는 걸 보여 준다 */
@@ -4928,7 +4883,10 @@ button {
   box-shadow: var(--shadow-md);
 }
 
-/* ─── Counterparts — 구분별 묶음 ────────────────────────────── */
+/* ─── 묶음 머리말 — 세 화면 공용 ─────────────────────────────
+   Counterparts 의 "● 친구  2" 머리말을 Categories(중분류)와
+   Payment Methods(구분)도 그대로 쓴다. */
+.set-group,
 .cp-group {
   display: flex;
   flex-direction: column;
@@ -4936,10 +4894,12 @@ button {
   min-width: 0;
 }
 
+.set-group + .set-group,
 .cp-group + .cp-group {
   margin-top: 10px;
 }
 
+.set-group__head,
 .cp-group__head {
   display: flex;
   align-items: center;
@@ -4947,6 +4907,7 @@ button {
   padding: 0 2px 2px;
 }
 
+.set-group__dot,
 .cp-group__dot {
   width: 7px;
   height: 7px;
@@ -4955,11 +4916,16 @@ button {
   flex: 0 0 auto;
 }
 
+.set-group__dot.cat-1,
 .cp-group__dot.cat-1 { background: var(--color-primary); }
+.set-group__dot.cat-2,
 .cp-group__dot.cat-2 { background: var(--color-success); }
+.set-group__dot.cat-3,
 .cp-group__dot.cat-3 { background: #FF9500; }
+.set-group__dot.cat-4,
 .cp-group__dot.cat-4 { background: #98A2B3; }
 
+.set-group__name,
 .cp-group__name {
   font-size: var(--font-size-xs);
   font-weight: 700;
@@ -4967,6 +4933,7 @@ button {
   letter-spacing: 0.01em;
 }
 
+.set-group__count,
 .cp-group__count {
   display: inline-flex;
   align-items: center;
@@ -5074,4 +5041,1058 @@ div:has(> .cat2-header-row) .drag-handle,
    대상을 명시해 (0,3,2)로 올린다. */
 .cat-group > div.cat3-list:not(:has(.drag-handle))::before {
   content: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   22. Categories · Payment Methods 도 구분으로 묶어 표시 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   묶음 머리말(.set-group__head)은 21절에서 세 화면 공용으로 넓혔다.
+   여기서는 각 화면의 기존 치수를 지키면서 그 머리말을 얹는다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── Categories — 중분류 줄을 묶음 머리말로 ───────────────────
+   .cat1-name 은 34px 이다. 점(7px)·건수(17px)·× (22px) 모두 그보다
+   작아 줄 높이가 그대로 유지된다. */
+.cat1-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+
+.cat1-head > .cat1-name,
+.cat1-head > .cat1-input {
+  min-width: 0;
+}
+
+/* 건수는 이름 뒤가 아니라 오른쪽 끝(× 앞)에 붙는다.
+   이름 칸이 flex:1 이라 클릭 영역을 넓게 유지해야 하기 때문이다. */
+.cat1-head > .set-group__count {
+  margin-left: auto;
+}
+
+/* ─── Payment Methods — 묶음 안의 줄 ──────────────────────────
+   머리말이 생기면서 목록이 한 단 들어간 것처럼 보이지 않도록
+   묶음 사이 간격만 준다. 줄 자체의 치수는 건드리지 않는다. */
+.cat-card > .set-group + .set-group {
+  margin-top: 10px;
+}
+
+.cat-card > .set-group > .set-group__head {
+  padding: 2px 2px 4px 10px;
+}
+
+/* 구분 선택 — 편집 모드에서만 나오며, 폭을 고정해 줄이 흔들리지 않게 */
+.pm-cat-select {
+  flex: 0 0 auto;
+  width: 116px;
+  min-width: 116px;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.pm-cat-select .ms-wrap,
+.pm-cat-select .ms-display {
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+}
+
+.pm-cat-select .ms-display {
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+@media (max-width: 520px) {
+  .pm-cat-select {
+    width: 92px;
+    min-width: 92px;
+    margin-right: 6px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   23. 묶음 이모지 · 목록 위 추가 버튼 · 흰 판 제거 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 전체를 감싸던 흰 판 제거 ────────────────────────────────
+   Counterparts 는 줄 하나하나가 카드라 배경 판이 없다.
+   Categories · Payment Methods 도 같은 결로 맞춘다. */
+.cat-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* ─── 이모지 고르기 ───────────────────────────────────────────
+   직접 입력을 두지 않고 고른 것만 들어간다. 이모지가 아닌 글자가
+   섞일 여지를 없애려는 것이다. */
+.emoji-pick {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+}
+
+.emoji-pick__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: 1px dashed var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+
+.emoji-pick__btn.has {
+  border-style: solid;
+  border-color: transparent;
+  font-size: 15px;
+}
+
+.emoji-pick__btn:hover:not(.readonly) {
+  border-color: var(--color-primary);
+  background: rgba(91, 95, 239, 0.06);
+}
+
+/* 표시 모드에서는 고른 이모지만 보여 준다 */
+.emoji-pick__btn.readonly {
+  cursor: default;
+  border-color: transparent;
+  background: transparent;
+}
+
+.emoji-pick__btn.readonly:not(.has) {
+  visibility: hidden;
+}
+
+.emoji-pick__pop {
+  position: fixed;
+  z-index: 12000;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.emoji-pick__grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+}
+
+.emoji-pick__cell {
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.emoji-pick__cell:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.emoji-pick__cell.on {
+  border-color: var(--color-primary);
+  background: rgba(91, 95, 239, 0.1);
+}
+
+.emoji-pick__clear {
+  width: 100%;
+  height: 26px;
+  min-height: 26px;
+  margin-top: 6px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.emoji-pick__clear:hover {
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-primary);
+}
+
+/* ─── 소분류의 IN/OUT 표시 — 묶음 점과 같은 모양 ─────────────
+   색은 인라인으로 들어온다(수입 청록 / 지출 빨강).
+
+   .set-group__dot 은 Flex 항목으로 쓰일 때만 크기를 갖는다.
+   여기서는 이름 span 안의 인라인 요소라 그대로 두면 크기가 0 이 된다. */
+.inout-dot {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 5px;
+  position: relative;
+  top: -1px;
+}
+
+/* ─── 목록 맨 위의 추가 버튼 ──────────────────────────────── */
+.set-add-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 2px 2px;
+}
+
+.set-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0 10px 0 7px;
+  border: 1px dashed var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.set-add-btn:hover,
+.set-add-btn.on {
+  background: rgba(91, 95, 239, 0.06);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.set-add-btn__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* ─── 펼쳐지는 추가 입력 ─────────────────────────────────────
+   페이지마다 들어가는 항목이 달라 배치만 잡아 준다. */
+.set-add-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.set-add-form > input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--control-h);
+  min-height: var(--control-h);
+}
+
+.set-add-form > .ui-btn {
+  flex: 0 0 auto;
+  height: var(--control-h);
+  min-height: var(--control-h);
+}
+
+/* Categories 는 분류가 3뎁스라 여러 줄이 필요하다 */
+.set-add-form--col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.set-add-form--col .btn-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.set-add-form--col .btn-row .ui-btn {
+  min-width: 84px;
+}
+
+/* ─── 편집/저장 버튼 자리 — 세 화면 모두 오른쪽 위 ────────────
+   추가 UI 가 목록 안으로 내려가면서 툴바에는 모드 전환만 남았다.
+   Counterparts 와 같은 자리·같은 크기로 맞춘다. */
+.cat-toolbar-btns > .btn-row {
+  justify-content: flex-end;
+}
+
+.cat-toolbar-btns > .btn-row > .ui-btn {
+  flex: 0 0 auto;
+  min-width: 84px;
+  padding: 0 16px;
+}
+
+.pm-toolbar-row {
+  justify-content: flex-end;
+}
+
+.pm-toolbar-row > .ui-btn {
+  flex: 0 0 auto;
+  min-width: 84px;
+  padding: 0 16px;
+}
+
+/* 추가 폼 안의 버튼 행은 위 규칙에 걸리지 않게 되돌린다 */
+.set-add-form--col .btn-row > .ui-btn {
+  flex: 0 0 auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   24. 이모지 위치·검색 · 입력칸 두께 통일 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 이름 · 이모지 · 건수를 한 덩어리로 ──────────────────────
+   이모지를 이름 뒤로 옮겼다. 앞에 두면 이모지가 없는 줄만
+   왼쪽이 비어 보여 줄이 들쭉날쭉했다. */
+.cat1-head__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: inherit;
+}
+
+/* 덩어리 안에서는 이름이 제 너비만 차지한다(뒤에 이모지·건수가 붙어야 하므로) */
+.cat1-head__text > .cat1-name {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat1-head__text > .cat1-input {
+  flex: 0 1 auto;
+  width: 220px;
+  max-width: 100%;
+}
+
+/* 건수는 세 화면 모두 오른쪽 끝에 붙인다.
+   이름 길이가 제각각이어도 숫자가 한 줄로 정렬돼 훑기 좋다. */
+.cat1-head > .set-group__count,
+.set-group__head > .set-group__count,
+.cp-group__head > .cp-group__count {
+  margin-left: auto;
+}
+
+/* 건수 뒤에 오는 지우기 버튼은 바로 옆에 */
+.cat1-head > .set-remove {
+  margin-left: 0;
+}
+
+/* ─── 이모지 선택기 — 검색 · 분류 탭 ─────────────────────────── */
+.emoji-pick__search {
+  width: 100%;
+  height: 28px;
+  min-height: 28px;
+  margin-bottom: 6px;
+  padding: 0 9px;
+  font-size: var(--font-size-xs);
+}
+
+.emoji-pick__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+.emoji-pick__tab {
+  height: 21px;
+  min-height: 21px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.emoji-pick__tab:hover {
+  color: var(--color-text-secondary);
+}
+
+.emoji-pick__tab.on {
+  border-color: transparent;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* 목록이 길어졌으므로 안에서 스크롤한다 */
+.emoji-pick__grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  max-height: 210px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.emoji-pick__none {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* ─── 입력칸 두께 통일 ────────────────────────────────────────
+   Categories 의 추가 입력칸은 type 속성이 없어 전역 32px 규칙을
+   비껴가며 20px 안팎으로 렌더링돼 왔다. 세 화면이 그 두께에 맞도록
+   한 값으로 못 박는다. */
+:root {
+  --set-input-h: 22px;
+}
+
+.set-add-form > input,
+.set-add-form .cat-input,
+.set-add-form .cat3-input,
+.set-add-form .ms-wrap,
+.set-add-form .ms-display,
+.cat1-head__text > .cat1-input,
+.cat2-header-row .cat2-input,
+.cat3-row .cat3-input,
+.cp-card__edit .cp-input,
+.cp-card__edit .cp-input--cat .ms-wrap,
+.cp-card__edit .cp-input--cat .ms-display,
+.pm-item .cat1-input,
+.pm-cat-select .ms-wrap,
+.pm-cat-select .ms-display {
+  height: var(--set-input-h);
+  min-height: var(--set-input-h);
+  max-height: var(--set-input-h);
+  font-size: var(--font-size-xs);
+}
+
+.set-add-form > input,
+.set-add-form .cat-input,
+.set-add-form .cat3-input,
+.set-add-form .ms-display {
+  padding: 0 8px;
+}
+
+/* 추가 폼의 버튼도 같은 두께로 */
+.set-add-form .ui-btn,
+.set-add-form--col .btn-row > .ui-btn {
+  height: 26px;
+  min-height: 26px;
+  font-size: var(--font-size-xs);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   25. 묶음 펼치기 · 접기 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   삼각형은 두 상태(펼침/접힘)에서 같은 자리·같은 크기를 차지한다.
+   회전만 하므로 접었다 펴도 옆 항목이 밀리지 않는다.
+   ════════════════════════════════════════════════════════════ */
+
+.set-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transform: rotate(0deg);
+  transition: transform 0.16s ease, color 0.14s ease, background 0.14s ease;
+}
+
+.set-toggle:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-secondary);
+}
+
+.set-toggle.open {
+  transform: rotate(90deg);
+}
+
+/* 접을 자식이 없는 줄 — 자리만 남긴다 */
+.set-toggle--empty {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ─── 모두 펼치기 · 모두 접기 ─────────────────────────────────
+   추가 버튼과 같은 줄의 오른쪽에 둔다. 눈에 띄지 않게 글자만. */
+.set-bulk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.set-bulk__btn {
+  height: 22px;
+  min-height: 22px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.14s ease, background 0.14s ease;
+}
+
+.set-bulk__btn:hover {
+  background: rgba(91, 95, 239, 0.06);
+  color: var(--color-primary);
+}
+
+.set-bulk__sep {
+  width: 1px;
+  height: 10px;
+  background: var(--color-border);
+}
+
+/* ─── 삼각형이 들어가면서 생긴 자리 조정 ──────────────────────
+   소분류 줄은 안쪽 여유가 24px 이라 18px 삼각형이 들어가도
+   줄 높이는 그대로다. 왼쪽 여백만 살짝 줄여 균형을 맞춘다. */
+.cat2-header-row > .set-toggle {
+  margin-left: -2px;
+}
+
+.cat1-head > .set-toggle,
+.set-group__head > .set-toggle,
+.cp-group__head > .set-toggle {
+  margin-left: -3px;
+}
+
+@media (max-width: 520px) {
+  .set-bulk__btn {
+    padding: 0 4px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   26. 토글 모양 · 뎁스 들여쓰기 · 앞 여백 정리 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   앞선 절에서는 세 뎁스가 모두 같은 x 에서 시작해 계층이 보이지 않았고,
+   손잡이 자리(34px)가 넓어 이름 앞이 휑했다.
+   손잡이 자리를 줄이고 뎁스마다 한 단씩 들여쓴다.
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  --set-indent: 18px;   /* 한 단 들여쓰기 */
+  --set-gutter: 20px;   /* 손잡이(또는 그 자리)의 폭 */
+}
+
+/* ─── 토글 — 둥근 쉐브론 ────────────────────────────────────── */
+.set-toggle {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  color: var(--color-text-tertiary);
+}
+
+.set-toggle svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.set-toggle:hover {
+  background: rgba(91, 95, 239, 0.08);
+  color: var(--color-primary);
+}
+
+/* ─── 손잡이 자리를 34px → 20px 로 ────────────────────────────
+   빈 자리가 넓어 이름 앞이 뜨는 주된 원인이었다.
+   표시·편집 두 모드가 같은 폭을 쓰므로 밀림은 그대로 없다. */
+.cat-group > div:not(:has(.drag-handle))::before,
+.cat-group > div .drag-handle,
+div:has(> .cat2-header-row):not(:has(.drag-handle))::before,
+div:has(> .cat2-header-row) .drag-handle,
+.cat3-list > div:not(:has(.drag-handle))::before,
+.cat3-list > div .drag-handle,
+div:has(> .pm-item):not(:has(.drag-handle))::before,
+div:has(> .pm-item) .drag-handle {
+  width: var(--set-gutter);
+}
+
+/* ─── 뎁스별 들여쓰기 ─────────────────────────────────────────
+   중분류 0단 · 소분류 1단 · 세분류 2단. */
+.cat-group > div:has(> .cat2-header-row) {
+  padding-left: var(--set-indent);
+}
+
+/* 세분류에는 토글도 색 점도 없다. 소분류 이름보다 확실히 더 들어가
+   보이도록 목록 자체를 세 단 들여쓴다. */
+.cat-group > div.cat3-list {
+  padding-left: calc(var(--set-indent) * 3);
+}
+
+.cat3-row {
+  padding-left: 20px;
+}
+
+/* ─── 토글 · 이름 · 이모지 사이 간격 ──────────────────────────
+   기호와 글자가 서로 붙어 보이도록 좁힌다. */
+.cat1-head,
+.set-group__head,
+.cp-group__head {
+  gap: 5px;
+}
+
+.cat1-head__text {
+  gap: 5px;
+}
+
+.cat2-header-row {
+  gap: 5px;
+}
+
+/* 음수 여백으로 당기던 보정은 자리 폭을 줄였으니 필요 없다 */
+.cat1-head > .set-toggle,
+.set-group__head > .set-toggle,
+.cp-group__head > .set-toggle,
+.cat2-header-row > .set-toggle {
+  margin-left: 0;
+}
+
+/* 이모지 버튼은 이름에 바짝 붙인다 */
+.cat1-head__text > .emoji-pick,
+.set-group__head > .emoji-pick {
+  margin-left: -1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   27. 구분 색 고르기 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   Counterparts 는 이름 첫 글자 아바타가 색을 쓴다. 구분을 사용자가
+   늘릴 수 있게 되면서 색도 구분 행에서 가져온다.
+   실제 색값은 인라인으로 들어오고(팔레트 토큰 → 색), 여기서는 모양만 잡는다.
+   ════════════════════════════════════════════════════════════ */
+
+.color-pick {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+}
+
+.color-pick__btn {
+  width: 12px;
+  height: 12px;
+  min-height: 12px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.color-pick__btn:hover:not(.readonly) {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
+}
+
+/* 표시 모드에서는 그냥 색 점이다 */
+.color-pick__btn.readonly {
+  cursor: default;
+  width: 7px;
+  height: 7px;
+  min-height: 7px;
+  border-width: 0;
+}
+
+.color-pick__pop {
+  position: fixed;
+  z-index: 12000;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.color-pick__cell {
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.color-pick__cell:hover {
+  transform: scale(1.12);
+}
+
+.color-pick__cell.on {
+  border-color: var(--color-text-primary);
+  box-shadow: 0 0 0 2px var(--color-surface) inset;
+}
+
+/* 구분이 없는 묶음의 점 — 색 선택기 자리와 폭을 맞춘다 */
+.cp-group__head > .cp-group__dot {
+  width: 7px;
+  height: 7px;
+  background: var(--color-text-tertiary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   28. 저장 전 항목을 맨 위에 붙잡아 두기 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   새 항목을 만들면서 구분을 고르면 그 줄이 곧바로 해당 묶음으로
+   날아가 버려 눈으로 쫓기 어려웠다. 저장하기 전까지는 목록 맨 위의
+   이 자리에 머무르고, 저장한 뒤에야 제자리를 찾아간다.
+   ════════════════════════════════════════════════════════════ */
+
+.set-draft,
+.cp-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px dashed var(--color-primary);
+  border-radius: var(--radius);
+  background: rgba(91, 95, 239, 0.04);
+}
+
+.set-draft__head,
+.cp-draft__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 2px;
+}
+
+.set-draft__name,
+.cp-draft__name {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.set-draft__count,
+.cp-draft__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(91, 95, 239, 0.14);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.set-draft__hint,
+.cp-draft__hint {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 대기 영역 안에서는 손잡이 자리를 잡지 않는다(순서가 의미 없다) */
+.cp-draft .cp-card {
+  width: 100%;
+}
+
+@media (max-width: 520px) {
+  .set-draft__hint,
+  .cp-draft__hint {
+    display: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   29. 추가 상자 공용화 · 편집 버튼 크기 통일 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 추가 폼을 "저장 전" 상자와 같은 결로 ────────────────────
+   Counterparts 의 대기 영역과 같은 점선 상자를 쓴다.
+   .set-draft 쪽 규칙이 이미 테두리·바탕을 잡으므로 여기서는
+   앞 절에서 준 값과 겹치는 부분만 되돌린다. */
+.set-add-form.set-draft {
+  border-style: dashed;
+  border-color: var(--color-primary);
+  background: rgba(91, 95, 239, 0.04);
+  padding: 8px;
+}
+
+/* Payment Methods 는 한 줄짜리라 입력과 버튼을 가로로 둔다 */
+.set-add-form__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.set-add-form__row > input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--set-input-h);
+  min-height: var(--set-input-h);
+  max-height: var(--set-input-h);
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+.set-add-form__row > .ui-btn {
+  flex: 0 0 auto;
+  height: 26px;
+  min-height: 26px;
+  font-size: var(--font-size-xs);
+}
+
+/* ─── 편집 · 저장 버튼 — 세 화면 한 치수로, 가능한 한 작게 ────
+   84 / 84 / 56 × 32px 로 제각각이던 것을 하나로 맞춘다.
+   목록 위의 [+] 새 항목 추가(24px)와 같은 눈높이가 된다. */
+.cat-toolbar-btns > .btn-row > .ui-btn,
+.pm-toolbar-row > .ui-btn,
+.cp-toolbar > .ui-btn {
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  min-width: 0;
+  padding: 0 12px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   30. 구분 순서 바꾸기 · 추가 폼의 구분 선택 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 묶음 머리말의 손잡이 ────────────────────────────────────
+   두 모드에서 늘 자리를 차지한다. 편집에 들어갈 때 머리말이
+   통째로 밀리지 않게 하려는 것이다. */
+.set-group-drag {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  border-radius: 5px;
+  transition: color 0.14s ease, background 0.14s ease;
+}
+
+.set-group-drag:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-secondary);
+}
+
+.set-group-drag:active {
+  cursor: grabbing;
+}
+
+.set-group-drag--empty {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* 끌고 있는 묶음은 위로 띄운다 */
+.set-group.dragging,
+.cp-group.dragging {
+  position: relative;
+  z-index: 6;
+  opacity: 0.9;
+}
+
+.set-group.dragging > .set-group__head,
+.cp-group.dragging > .cp-group__head {
+  border-radius: var(--radius-sm);
+  background: rgba(91, 95, 239, 0.06);
+}
+
+/* ─── 추가 폼의 구분 선택 ─────────────────────────────────────
+   이름 옆에 두되 폭을 고정해 입력칸이 들쭉날쭉하지 않게 한다. */
+.set-add-form__cat {
+  flex: 0 0 auto;
+  width: 136px;
+  min-width: 0;
+}
+
+.set-add-form__cat .ms-wrap,
+.set-add-form__cat .ms-display {
+  height: var(--set-input-h);
+  min-height: var(--set-input-h);
+  max-height: var(--set-input-h);
+}
+
+.set-add-form__cat .ms-display {
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+@media (max-width: 520px) {
+  .set-add-form__row {
+    flex-wrap: wrap;
+  }
+
+  .set-add-form__cat {
+    width: 100%;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   31. Blur · 감추기 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   둘은 다른 것이다.
+     · Blur   — 금액을 흐리게 가린다. 항목은 그대로 쓴다.
+     · 감추기 — 고르는 목록에서 뺀다. 지난 내역은 그대로 남는다.
+   같은 알약 모양을 쓰되 켜졌을 때의 색으로 구분한다.
+   ════════════════════════════════════════════════════════════ */
+
+.set-blur-btn,
+.set-hide-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+/* 두 문구("감추기" 3자 / "감춤" 2자)의 폭이 달라 칸을 고정한다.
+   그러지 않으면 누를 때마다 옆 항목이 흔들린다. */
+.set-hide-btn {
+  width: 48px;
+  min-width: 48px;
+}
+
+.set-blur-btn {
+  width: 42px;
+  min-width: 42px;
+}
+
+.set-blur-btn:hover,
+.set-hide-btn:hover {
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
+}
+
+/* 켜짐 — Blur 는 가린다는 뜻이라 흐릿한 보라, 감추기는 진회색 */
+.set-blur-btn.on {
+  border-color: transparent;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  letter-spacing: 0.02em;
+}
+
+.set-blur-btn.on:hover {
+  background: #DCDEFB;
+}
+
+.set-hide-btn.on {
+  border-color: transparent;
+  background: var(--color-text-tertiary);
+  color: #fff;
+}
+
+.set-hide-btn.on:hover {
+  background: var(--color-text-secondary);
+}
+
+/* ─── 표시 모드에서 "감춤" 임을 알리는 작은 글씨 ─────────────── */
+.set-hide-mark {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px dashed var(--color-border);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  vertical-align: middle;
+}
+
+/* 감춘 줄은 흐리게 */
+.cat2-header-row:has(.set-hide-mark),
+.cat3-row:has(.set-hide-mark),
+.pm-item:has(.set-hide-mark),
+.cat1-head:has(.set-hide-mark) {
+  opacity: 0.55;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   32. 툴바 정렬 — 세 화면 같은 자리 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   Counterparts 는 "감춘 항목 보기" 가 왼쪽, 편집/저장이 오른쪽이다.
+   나머지 두 화면은 둘 다 오른쪽에 몰려 있어 자리가 달랐다.
+   토글을 왼쪽으로 보내 셋을 같게 맞춘다.
+   ════════════════════════════════════════════════════════════ */
+
+.cat-toolbar-btns > .btn-row,
+.pm-toolbar-row {
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* 토글이 왼쪽을 잡고, 뒤따르는 버튼은 오른쪽 끝으로 밀린다 */
+.cat-toolbar-btns > .btn-row > .cp-toggle,
+.pm-toolbar-row > .cp-toggle {
+  margin-right: auto;
 }
