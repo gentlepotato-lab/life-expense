@@ -1222,7 +1222,7 @@ export default function PendingEntries() {
 // ------------------------------------
 // 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다
 // ------------------------------------
-function PendingCard({
+export function PendingCard({
   row,
   cat1List,
   cat2List,
@@ -1231,6 +1231,7 @@ function PendingCard({
   onOpenEditor,
   onStartReveal,
   onSend,
+  readOnly = false,
 }: {
   row: any;
   cat1List: { id: number; name: string }[];
@@ -1239,7 +1240,10 @@ function PendingCard({
   payList: { code: string; name: string }[];
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
-  onSend: (row: any) => void;
+  onSend?: (row: any) => void;
+  /* 보기만 하는 화면(기간 상세)에서는 편집도 전송도 하지 않는다.
+     기본값은 지금까지와 같으므로 이 화면의 동작은 그대로다. */
+  readOnly?: boolean;
 }) {
   const openEditor = useCallback(() => onOpenEditor(row), [onOpenEditor, row]);
   const { pressing, handlers } = useLongPress(openEditor);
@@ -1258,9 +1262,9 @@ function PendingCard({
 
   return (
     <article
-      className={`card card--pressable ${pressing ? "pressing" : ""}`}
-      {...handlers}
-      title="꾹 눌러서 편집"
+      className={`card card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
+      {...(readOnly ? {} : handlers)}
+      title={readOnly ? undefined : "꾹 눌러서 편집"}
     >
       {/* IN/OUT 색상 바 */}
       <div
@@ -1274,11 +1278,13 @@ function PendingCard({
         <div className="card-left">
           <span className="place-text">📍 {row.place_name || "—"}</span>
         </div>
-        <div className="card-right">
-          <button className="ui-btn small" onClick={() => onSend(row)}>
-            전송
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="card-right">
+            <button className="ui-btn small" onClick={() => onSend?.(row)}>
+              전송
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 2행: 카테고리 */}

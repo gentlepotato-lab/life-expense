@@ -8,6 +8,7 @@ import Categories from "./pages/Categories";
 import PaymentMethods from "./pages/PaymentMethods";
 import Counterparts from "./pages/Counterparts";
 import Calendar from "./pages/Calendar";
+import CalendarDetail from "./pages/CalendarDetail";
 import Home from "./pages/Home";
 import Blank from "./pages/Blank";
 import History from "./pages/History";
@@ -69,6 +70,8 @@ function App() {
         <Route path="/scheduled-entries" element={<ScheduledEntries />} />
         {/* 달력 페이지 */}
         <Route path="/calendar" element={<Calendar />} />
+        {/* 달력에서 고른 기간의 상세 — 달력에 딸린 화면이다 */}
+        <Route path="/calendar/detail" element={<CalendarDetail />} />
         {/* 설정 탭 첫 화면 */}
         <Route path="/settings" element={<Settings />} />
         {/* 분류 페이지 */}

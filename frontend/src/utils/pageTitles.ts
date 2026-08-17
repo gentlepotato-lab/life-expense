@@ -19,6 +19,7 @@ export const PAGE_TITLE: Record<string, string> = {
   "/pending-entries": "대기 내역",
   "/scheduled-entries": "정기 내역",
   "/calendar": "달력",
+  "/calendar/detail": "기간 내역",
 
   /* 설정 탭 */
   "/settings": "설정",

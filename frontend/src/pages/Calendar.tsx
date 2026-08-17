@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
 import CalculatorPopup from "./components/CalculatorPopup";
@@ -6,6 +7,14 @@ import MultiSelect from "./components/MultiSelect";
 import SingleSelect from "./components/SingleSelect";
 import { EditField, EditDivider } from "./components/CardEditModal";
 import { visible } from "../utils/visible";
+import {
+  EMPTY_FILTER,
+  hasCondition,
+  pass,
+  type Filter,
+  type Row,
+  type Src,
+} from "../utils/calendarFilter";
 
 /**
  * 달력.
@@ -17,24 +26,6 @@ import { visible } from "../utils/visible";
  * 지출·대기는 거래일(tx_date), 정기는 다음 예정일(next_run_at)이다.
  */
 
-type Row = {
-  key: string;
-  src: Src;
-  day: number;
-  inout: number | null;
-  net: number;
-  cat1_id?: number | null;
-  cat2_id?: number | null;
-  cat3_id?: number | null;
-  pay_method?: number | string | null;
-  memo?: string | null;
-  place_name?: string | null;
-  amount: number;
-  counterpart_ids?: number[] | null;
-};
-
-type Src = "expense" | "pending" | "scheduled";
-
 const SOURCES: { key: Src; label: string }[] = [
   { key: "expense", label: "지출" },
   { key: "pending", label: "대기" },
@@ -45,52 +36,6 @@ const SOURCES: { key: Src; label: string }[] = [
 const ALL = -1;
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-
-const EMPTY_FILTER = {
-  cat1: [] as number[],
-  cat2: [] as number[],
-  cat3: [] as number[],
-  pay: [] as string[],
-  memo: "",
-  inout: 0,
-  amountMin: "",
-  amountMax: "",
-  place: "",
-  cp: [] as number[],
-};
-
-type Filter = typeof EMPTY_FILTER;
-
-function hasCondition(f: Filter): boolean {
-  return (
-    f.cat1.length > 0 ||
-    f.cat2.length > 0 ||
-    f.cat3.length > 0 ||
-    f.pay.length > 0 ||
-    f.memo.trim() !== "" ||
-    f.inout !== 0 ||
-    f.amountMin !== "" ||
-    f.amountMax !== "" ||
-    f.place.trim() !== "" ||
-    f.cp.length > 0
-  );
-}
-
-/** 걸린 조건을 한 줄에 다 통과하는지 */
-function pass(r: Row, f: Filter): boolean {
-  if (f.cat1.length && !f.cat1.includes(Number(r.cat1_id))) return false;
-  if (f.cat2.length && !f.cat2.includes(Number(r.cat2_id))) return false;
-  if (f.cat3.length && !f.cat3.includes(Number(r.cat3_id))) return false;
-  if (f.pay.length && !f.pay.includes(String(r.pay_method))) return false;
-  if (f.inout !== 0 && r.inout !== f.inout) return false;
-  if (f.amountMin !== "" && r.amount < Number(f.amountMin)) return false;
-  if (f.amountMax !== "" && r.amount > Number(f.amountMax)) return false;
-  if (f.place.trim() && !(r.place_name ?? "").toLowerCase().includes(f.place.trim().toLowerCase()))
-    return false;
-  if (f.memo.trim() && !(r.memo ?? "").includes(f.memo.trim())) return false;
-  if (f.cp.length && !(r.counterpart_ids ?? []).some((id) => f.cp.includes(id))) return false;
-  return true;
-}
 
 /** "2026-08-17" 의 날짜 부분만 숫자로 */
 function dayOf(v: string | null | undefined): number | null {
@@ -113,6 +58,14 @@ export default function Calendar() {
   });
 
   const [rows, setRows] = useState<Row[]>([]);
+
+  /* 눌러서 고른 기간.
+     한 번 누르면 시작일만 잡히고(end === null), 한 번 더 누르면 끝일까지 잡힌다.
+     시작일만 잡힌 상태에서 같은 날 또는 달력 바깥을 누르면 고르기를 접는다. */
+  const [pick, setPick] = useState<{ start: number; end: number | null } | null>(null);
+  const calRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
+
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>(EMPTY_FILTER);
@@ -232,6 +185,8 @@ export default function Calendar() {
   const shiftMonth = (step: number) => {
     const [y, m] = yearMonth.split("-").map(Number);
     const d = new Date(y, m - 1 + step, 1);
+    /* 고른 날은 그 달의 날이다. 달을 넘기면 뜻을 잃으므로 접는다 */
+    setPick(null);
     setYearMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   };
 
@@ -250,6 +205,55 @@ export default function Calendar() {
     shown.forEach((r) => (r.inout === 1 ? (inSum += r.net) : (outSum += r.net)));
     return { inSum, outSum, net: inSum - outSum };
   }, [shown]);
+
+  /** 날짜 한 칸을 눌렀을 때 */
+  const pickDay = useCallback((day: number) => {
+    setPick((prev) => {
+      /* 처음 누름 — 시작일 */
+      if (!prev) return { start: day, end: null };
+      /* 시작일만 잡혀 있을 때 */
+      if (prev.end === null) {
+        if (day === prev.start) return null; // 같은 날 다시 누르면 접는다
+        return { start: Math.min(prev.start, day), end: Math.max(prev.start, day) };
+      }
+      /* 기간이 다 잡힌 뒤 누르면 새로 고르기 시작 */
+      return { start: day, end: null };
+    });
+  }, []);
+
+  /* 시작일만 잡힌 채 달력 바깥을 누르면 접는다.
+     기간이 다 잡힌 뒤에는 [상세]를 눌러야 하므로 바깥 누름으로 접지 않는다. */
+  useEffect(() => {
+    if (!pick || pick.end !== null) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const el = calRef.current;
+      if (el && e.target instanceof Node && el.contains(e.target)) return;
+      /* [상세]는 달력 바깥이지만 접어서는 안 된다 — 누르는 순간 고르기가
+         풀리면 버튼이 사라져 클릭이 갈 곳을 잃는다 */
+      if (e.target instanceof Element && e.target.closest("[data-keep-pick]")) return;
+      setPick(null);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+    };
+  }, [pick]);
+
+  /** 고른 기간의 상세 화면으로 넘어간다 */
+  const openDetail = useCallback(() => {
+    if (!pick) return;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const from = `${yearMonth}-${pad(pick.start)}`;
+    /* 끝일을 고르지 않았으면 그 하루만 본다 */
+    const to = `${yearMonth}-${pad(pick.end ?? pick.start)}`;
+    const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
+    navigate(`/calendar/detail?from=${from}&to=${to}&src=${src}`, {
+      /* 걸린 조건도 함께 넘긴다 — 달력에 보이던 것과 상세가 어긋나면 안 된다 */
+      state: { filter: appliedFilter },
+    });
+  }, [pick, yearMonth, on, appliedFilter, navigate]);
 
   const closeFilter = useCallback(() => {
     setFilter(appliedFilter);
@@ -347,6 +351,21 @@ export default function Calendar() {
           </div>
 
           <div className="toolbar-btns">
+            {/* 날짜를 고르면 필터 왼쪽에 나타난다.
+                끝일을 고르지 않았으면 그 하루만 본다 */}
+            {pick && (
+              <button
+                type="button"
+                className="filter-pill on"
+                data-keep-pick
+                onClick={openDetail}
+                title={
+                  pick.end === null ? `${pick.start}일 내역을 본다.` : "고른 기간의 내역을 본다."
+                }
+              >
+                상세
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setFilterOpen(true)}
@@ -385,7 +404,7 @@ export default function Calendar() {
       </div>
 
       {/* 달력 */}
-      <div className="cal">
+      <div className="cal" ref={calRef}>
         <div className="cal__head">
           {WEEKDAYS.map((w, i) => (
             <span key={w} className={`cal__weekday${i === 0 ? " sun" : i === 6 ? " sat" : ""}`}>
@@ -409,10 +428,23 @@ export default function Calendar() {
             const dow = i % 7;
             const isToday = today.ym === yearMonth && today.day === day;
 
+            /* 고른 기간 표시 — 시작·끝은 끝을 둥글게, 사이는 이어지는 선으로 */
+            const lo = pick ? pick.start : 0;
+            const hi = pick ? pick.end ?? pick.start : 0;
+            const inRange = !!pick && day >= lo && day <= hi;
+            const rangeClass = inRange
+              ? ` is-in-range${day === lo ? " is-range-start" : ""}${day === hi ? " is-range-end" : ""}`
+              : "";
+
             return (
               <div
                 key={day}
-                className={`cal__cell${isToday ? " is-today" : ""}${items.length ? " has-items" : ""}`}
+                role="button"
+                tabIndex={0}
+                aria-pressed={inRange}
+                title={`${day}일`}
+                onClick={() => pickDay(day)}
+                className={`cal__cell cal__cell--pick${isToday ? " is-today" : ""}${items.length ? " has-items" : ""}${rangeClass}`}
               >
                 <span className={`cal__day${dow === 0 ? " sun" : dow === 6 ? " sat" : ""}`}>
                   {day}

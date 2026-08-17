@@ -53,6 +53,7 @@ const TABS: Tab[] = [
       "/pending-entries",
       "/scheduled-entries",
       "/calendar",
+      "/calendar/detail",
     ],
     icon: (
       <svg viewBox="0 0 24 24" {...stroke}>

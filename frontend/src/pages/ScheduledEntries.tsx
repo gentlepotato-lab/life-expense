@@ -15,8 +15,8 @@ import SplitRows from "./components/SplitRows";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import { groupByDate } from "../utils/dateGroup";
 
-type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?: number; inout?: number | null; is_active?: number };
-type CategoryL3Meta = { id: number; name: string; cat2_id?: number; is_active?: number };
+export type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?: number; inout?: number | null; is_active?: number };
+export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; is_active?: number };
 
 /**
  * 다음 예정일시는 서버가 next_run_at 에 들고 있다(scheduled_entries.next_run_at).
@@ -957,7 +957,7 @@ export default function ScheduledEntries() {
 // ------------------------------------
 // 스케줄 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다
 // ------------------------------------
-function ScheduleCard({
+export function ScheduleCard({
   s,
   cat1List,
   cat2Map,
@@ -965,6 +965,7 @@ function ScheduleCard({
   payList,
   toTimeString,
   onOpenEditor,
+  readOnly = false,
 }: {
   s: any;
   cat1List: { id: number; name: string }[];
@@ -972,9 +973,12 @@ function ScheduleCard({
   cat3Map: Record<number, CategoryL3Meta>;
   payList: { code: string; name: string }[];
   toTimeString: (hour?: number, minute?: number) => string;
-  onOpenEditor: (schedule: any) => void;
+  onOpenEditor?: (schedule: any) => void;
+  /* 보기만 하는 화면(기간 상세)에서는 꾹 눌러 편집하지 않는다.
+     기본값은 지금까지와 같으므로 이 화면의 동작은 그대로다. */
+  readOnly?: boolean;
 }) {
-  const openEditor = useCallback(() => onOpenEditor(s), [onOpenEditor, s]);
+  const openEditor = useCallback(() => onOpenEditor?.(s), [onOpenEditor, s]);
   const { pressing, handlers } = useLongPress(openEditor);
 
   const [revealed, setRevealed] = useState(false);
@@ -1004,9 +1008,9 @@ function ScheduleCard({
 
   return (
     <div
-      className={`card schedule-card card--pressable ${pressing ? "pressing" : ""}`}
-      {...handlers}
-      title="꾹 눌러서 편집"
+      className={`card schedule-card card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
+      {...(readOnly ? {} : handlers)}
+      title={readOnly ? undefined : "꾹 눌러서 편집"}
     >
       <div
         className={`inout-bar ${s.inout === 1 ? "in-bar" : s.inout === -1 ? "out-bar" : ""}`}

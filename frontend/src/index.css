@@ -7585,3 +7585,102 @@ html {
     min-height: 56px;
   }
 }
+
+/* ════════════════════════════════════════════════════════════
+   49. 달력에서 기간 고르기 · 기간 내역 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   날짜를 눌러 시작일과 끝일을 잡는다. 잡힌 기간은 칸 아래를 지나는
+   얇은 선 하나로만 말한다 — 칸 크기는 그대로 두어야 하기 때문이다.
+   ════════════════════════════════════════════════════════════ */
+
+.cal__cell--pick {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 시작일만 잡힌 동안에도 어디를 골랐는지 보여야 한다 */
+.cal__cell.is-in-range {
+  background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+/* 기간을 말하는 얇은 선. 칸 아래 끝에 붙어 옆 칸으로 이어진다 */
+.cal__cell.is-in-range::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-primary);
+}
+
+/* 양 끝은 조금 들여 끝을 둥글게 깎는다 */
+.cal__cell.is-range-start::after {
+  left: 4px;
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+
+.cal__cell.is-range-end::after {
+  right: 4px;
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+/* ─── 기간 내역 머리 ──────────────────────────────────────────
+   내역 세 화면의 월 넘기기와 같은 자리·같은 크기를 쓴다 */
+.cal-back {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cal-back__range {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cal-empty {
+  margin: var(--space-4) 0;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* ─── 보기만 하는 카드 ────────────────────────────────────────
+   기간 내역의 카드는 눌러 고칠 수 없다. 그렇다고 card--pressable 을
+   떼면 46절의 오밀조밀한 모양(줄 간격 · IN/OUT 알약)까지 함께 떨어져
+   나가 옛 모양으로 돌아간다. 그래서 클래스는 그대로 두고, 누를 수 있는
+   척하는 반응만 여기서 걷어 낸다. 끌어서 금액 보기는 그대로 산다. */
+.card--flat {
+  cursor: default;
+}
+
+.card--flat:active:not(.pressing) {
+  transform: none;
+}
+
+/* 마우스를 올려도 IN/OUT 알약이 자라지 않는다 — 누를 것이 없으니 */
+.card--flat:hover > .inout-bar {
+  height: 22px;
+}
+
+/* ─── 달력으로 돌아가기 ───────────────────────────────────────
+   화살표만 두었더니 무엇인지 알기 어려웠다. 이름을 붙인 알약으로 둔다 */
+.cal-back {
+  gap: 8px;
+}
+
+.cal-back .filter-pill {
+  padding-left: 8px;
+}
+
+.cal-back__arrow {
+  margin-right: 3px;
+  font-size: 14px;
+  line-height: 1;
+}

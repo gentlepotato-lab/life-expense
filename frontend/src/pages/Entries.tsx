@@ -1160,13 +1160,14 @@ export default function Entries() {
 // ------------------------------------
 // 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다
 // ------------------------------------
-function EntryCard({
+export function EntryCard({
   row,
   cat1List,
   cat2List,
   payList,
   onOpenEditor,
   onStartReveal,
+  readOnly = false,
 }: {
   row: any;
   cat1List: { id: number; name: string }[];
@@ -1174,6 +1175,9 @@ function EntryCard({
   payList: { code: string; name: string }[];
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
+  /* 보기만 하는 화면(기간 상세)에서는 꾹 눌러 편집하지 않는다.
+     기본값은 지금까지와 같으므로 이 화면의 동작은 그대로다. */
+  readOnly?: boolean;
 }) {
   const openEditor = useCallback(() => onOpenEditor(row), [onOpenEditor, row]);
   const { pressing, handlers } = useLongPress(openEditor);
@@ -1189,9 +1193,9 @@ function EntryCard({
 
   return (
     <article
-      className={`card card--pressable ${pressing ? "pressing" : ""}`}
-      {...handlers}
-      title="꾹 눌러서 편집"
+      className={`card card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
+      {...(readOnly ? {} : handlers)}
+      title={readOnly ? undefined : "꾹 눌러서 편집"}
     >
       {/* IN/OUT 색상 바 */}
       <div

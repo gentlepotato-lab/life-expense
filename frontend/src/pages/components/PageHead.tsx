@@ -17,13 +17,23 @@ function subTabsFor(pathname: string): string[] | null {
   return null;
 }
 
+/**
+ * 갈래 탭에 자기 자리가 없는 곁가지 화면은 어미 화면을 켠 것으로 본다.
+ * 그래야 머리말 높이가 그대로라 오갈 때 아래 내용이 튀지 않는다.
+ */
+const PARENT: Record<string, string> = {
+  "/calendar/detail": "/calendar",
+};
+
 export default function PageHead() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
   const title = PAGE_TITLE[pathname] ?? "돈을 쓰다";
-  const subs = subTabsFor(pathname);
-  const index = subs ? subs.indexOf(pathname) : -1;
+  /* 알약이 어디에 놓일지는 어미 화면으로 따진다 */
+  const tabKey = PARENT[pathname] ?? pathname;
+  const subs = subTabsFor(tabKey);
+  const index = subs ? subs.indexOf(tabKey) : -1;
 
   useEffect(() => {
     document.title = pathname === "/" ? "돈을 쓰다" : `${title} · 돈을 쓰다`;
@@ -55,8 +65,8 @@ export default function PageHead() {
               key={to}
               type="button"
               role="tab"
-              aria-selected={to === pathname}
-              className={`subtabs__item${to === pathname ? " on" : ""}`}
+              aria-selected={to === tabKey}
+              className={`subtabs__item${to === tabKey ? " on" : ""}`}
               onClick={() => to !== pathname && navigate(to)}
             >
               {PAGE_TITLE[to]}
