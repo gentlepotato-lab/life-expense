@@ -11,6 +11,8 @@ import SplitEditor from "./components/SplitEditor";
 import type { SplitDraft } from "./components/SplitEditor";
 import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
+import { CollapseAllButtons } from "./components/CollapseToggle";
+import SplitRows from "./components/SplitRows";
 import useLongPress from "../hooks/useLongPress";
 
 const EMPTY_FILTER = {
@@ -670,6 +672,16 @@ export default function PendingEntries() {
 
   // 날짜별 단 — 들어온 순서를 그대로 보존한다.
   // 소분류에 blur 가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
+  /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
+  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+  const toggleDay = (d: string) =>
+    setCollapsedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(d)) next.delete(d);
+      else next.add(d);
+      return next;
+    });
+
   const dateGroups = useMemo(
     () => groupByDate(rows, (r: any) => cat2List.find((c) => c.id === r.cat2_id)?.blur === 1),
     [rows, cat2List]
@@ -791,6 +803,10 @@ export default function PendingEntries() {
           </div>
 
           <div className="toolbar-btns">
+            <CollapseAllButtons
+              onExpandAll={() => setCollapsedDays(new Set())}
+              onCollapseAll={() => setCollapsedDays(new Set(dateGroups.map((g) => g.date)))}
+            />
             <button
               type="button"
               onClick={() => setFilterOpen(true)}
@@ -812,8 +828,14 @@ export default function PendingEntries() {
       <div className="card-list">
         {dateGroups.map((group) => (
           <section key={group.date || "no-date"} className="date-group">
-            <DateGroupHeader label={group.label} summary={group.summary} />
-            {group.items.map((row: any) => (
+            <DateGroupHeader
+              label={group.label}
+              summary={group.summary}
+              open={!collapsedDays.has(group.date)}
+              onToggle={() => toggleDay(group.date)}
+            />
+            {!collapsedDays.has(group.date) &&
+              group.items.map((row: any) => (
               <PendingCard
                 key={row.entry_id}
                 row={row}
@@ -1230,6 +1252,8 @@ function PendingCard({
 
   // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount 다.
   const hasSplit = (row.split_count ?? 0) > 0;
+  /* 쪼갠 몫을 펼쳤는지. 카드마다 따로 기억한다 */
+  const [open, setOpen] = useState(false);
   const shownAmount = hasSplit ? row.net_amount : row.amount;
 
   return (
@@ -1280,15 +1304,22 @@ function PendingCard({
       <div className="row-payment">
         <span className="pay-method-text">{payName}</span>
 
-        {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다 */}
+        {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다.
+            그 줄을 누르면 아래에 함께한 사람과 몫이 펼쳐진다 */}
         <span className="amount-stack">
           {hasSplit && (
             <span
-              className={`amount-split ${isBlur && !row.reveal_amount ? "masked" : "revealed"}`}
+              className={`amount-split ${isBlur && !row.reveal_amount ? "masked" : "revealed"} is-toggle${open ? " open" : ""}`}
+              role="button"
+              tabIndex={0}
+              data-no-longpress
+              title={open ? "몫 접기" : "함께한 사람 보기"}
+              onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
             >
               {row.amount.toLocaleString("ko-KR")}
               <span className="amount-split__op"> − </span>
               {row.split_amount.toLocaleString("ko-KR")}
+              <span className="amount-split__caret" aria-hidden="true">›</span>
             </span>
           )}
           <span
@@ -1305,11 +1336,19 @@ function PendingCard({
       </div>
 
       {/* 4행: 메모 */}
-      <div className="card-row row-bottom">
-        <div className="card-left">
-          <span className="memo-text">{row.memo || " "}</span>
+      {/* 메모가 없으면 줄도 만들지 않는다 — 빈 줄이 카드를 20px 씩 늘렸다 */}
+      {row.memo && (
+        <div className="card-row row-bottom">
+          <div className="card-left">
+            <span className="memo-text">{row.memo}</span>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* 펼쳤을 때만 — 함께한 사람과 몫 */}
+      {hasSplit && open && (
+        <SplitRows base="/pending-entries" ownerId={row.entry_id} />
+      )}
     </article>
   );
 }

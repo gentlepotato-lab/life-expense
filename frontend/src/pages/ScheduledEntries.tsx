@@ -11,6 +11,8 @@ import PlacePicker from "./components/PlacePicker";
 import useLongPress from "../hooks/useLongPress";
 import useRevealDrag from "../hooks/useRevealDrag";
 import DateGroupHeader from "./components/DateGroupHeader";
+import SplitRows from "./components/SplitRows";
+import { CollapseAllButtons } from "./components/CollapseToggle";
 import { groupByDate } from "../utils/dateGroup";
 
 type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?: number; inout?: number | null; is_active?: number };
@@ -350,6 +352,16 @@ export default function ScheduledEntries() {
   }, [schedules]);
 
   /** 예정일시의 날짜로 묶는다. 지출 내역·대기 내역과 같은 모양이 된다 */
+  /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
+  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+  const toggleDay = (d: string) =>
+    setCollapsedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(d)) next.delete(d);
+      else next.add(d);
+      return next;
+    });
+
   const dateGroups = useMemo(
     () =>
       groupByDate(
@@ -532,6 +544,10 @@ export default function ScheduledEntries() {
       <div className="toolbar-wrap">
         <div className="toolbar">
           <div className="toolbar-btns">
+            <CollapseAllButtons
+              onExpandAll={() => setCollapsedDays(new Set())}
+              onCollapseAll={() => setCollapsedDays(new Set(dateGroups.map((g) => g.date)))}
+            />
             <button
               onClick={() => setShowForm(!showForm)}
               className="ui-btn primary scheduled-toolbar__btn scheduled-toolbar__btn--new"
@@ -720,8 +736,14 @@ export default function ScheduledEntries() {
         <div className="scheduled-card-list">
           {dateGroups.map((group) => (
           <section key={group.date || "no-date"} className="date-group">
-            <DateGroupHeader label={group.label} summary={group.summary} />
-            {group.items.map((s: any) => (
+            <DateGroupHeader
+              label={group.label}
+              summary={group.summary}
+              open={!collapsedDays.has(group.date)}
+              onToggle={() => toggleDay(group.date)}
+            />
+            {!collapsedDays.has(group.date) &&
+              group.items.map((s: any) => (
             <ScheduleCard
               key={s.schedule_id}
               s={s}
@@ -957,6 +979,8 @@ function ScheduleCard({
 
   const [revealed, setRevealed] = useState(false);
   const startReveal = useRevealDrag(setRevealed);
+  /* 쪼갠 몫을 펼쳤는지. 카드마다 따로 기억한다 */
+  const [splitOpen, setSplitOpen] = useState(false);
 
   const cat1 = cat1List.find((c) => c.id === s.cat1_id);
   const cat2Id = s.cat2_id !== null && s.cat2_id !== undefined ? Number(s.cat2_id) : null;
@@ -1017,13 +1041,22 @@ function ScheduleCard({
         <div className="row-payment">
           <span className="pay-method-text">{pay?.name || "-"}</span>
 
-          {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다 */}
+          {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다.
+              그 줄을 누르면 아래에 함께한 사람과 몫이 펼쳐진다 */}
           <span className="amount-stack">
             {hasSplit && (
-              <span className={`amount-split ${isBlur && !revealed ? "masked" : "revealed"}`}>
+              <span
+                className={`amount-split ${isBlur && !revealed ? "masked" : "revealed"} is-toggle${splitOpen ? " open" : ""}`}
+                role="button"
+                tabIndex={0}
+                data-no-longpress
+                title={splitOpen ? "몫 접기" : "함께한 사람 보기"}
+                onClick={(e) => { e.stopPropagation(); setSplitOpen((v) => !v); }}
+              >
                 {s.amount.toLocaleString()}
                 <span className="amount-split__op"> − </span>
                 {s.split_amount.toLocaleString()}
+                <span className="amount-split__caret" aria-hidden="true">›</span>
               </span>
             )}
             <span
@@ -1049,6 +1082,11 @@ function ScheduleCard({
             {s.memo || "-"}
           </span>
         </div>
+
+        {/* 펼쳤을 때만 — 함께한 사람과 몫 */}
+        {hasSplit && splitOpen && (
+          <SplitRows base="/scheduled-entries" ownerId={s.schedule_id} />
+        )}
       </div>
     </div>
   );
