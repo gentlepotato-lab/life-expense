@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="30" viewBox="0 0 60 30">
+  <title>마스킹 테이프</title>
+  <!--
+    금액을 가리는 마스킹 테이프.
+    가로로 이어 붙여 쓰므로(background-repeat: repeat-x) 왼쪽 끝과 오른쪽 끝의
+    물결이 맞물리도록 60 폭에 물결 넷을 넣었다.
+    무늬는 가장자리에 걸치지 않게 안쪽에만 둔다 — 이어 붙였을 때 잘려 보이지 않는다.
+  -->
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FDF0E8"/>
+      <stop offset="1" stop-color="#FBE2D3"/>
+    </linearGradient>
+
+    <!-- 네 잎 꽃 모양 무늬 -->
+    <g id="petal">
+      <ellipse cx="0" cy="-3.2" rx="2" ry="2.8"/>
+      <ellipse cx="0" cy="3.2" rx="2" ry="2.8"/>
+      <ellipse cx="-3.2" cy="0" rx="2.8" ry="2"/>
+      <ellipse cx="3.2" cy="0" rx="2.8" ry="2"/>
+    </g>
+  </defs>
+
+  <!-- 몸통 — 위아래가 물결로 뜯긴 종이 테이프 -->
+  <path
+    d="M0 3.4 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0
+       L60 26.6 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 Z"
+    fill="url(#body)"/>
+
+  <!-- 옅은 무늬가 먼저, 진한 무늬가 그 위에 -->
+  <g fill="#FAD5BF">
+    <use href="#petal" transform="translate(9 21) rotate(18) scale(0.85)"/>
+    <use href="#petal" transform="translate(31 9) rotate(-12) scale(0.8)"/>
+    <use href="#petal" transform="translate(52 20) rotate(24) scale(0.9)"/>
+  </g>
+  <g fill="#F3A98D">
+    <use href="#petal" transform="translate(18 11) rotate(-20)"/>
+    <use href="#petal" transform="translate(41 20) rotate(14) scale(0.95)"/>
+  </g>
+</svg>

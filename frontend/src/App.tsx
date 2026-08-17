@@ -11,6 +11,7 @@ import Home from "./pages/Home";
 import Blank from "./pages/Blank";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
+import PageHead from "./pages/components/PageHead";
 import TabBar from "./pages/components/TabBar";
 
 /** 앞머리 화면이 떠 있는 시간. 사라지는 데 걸리는 320ms 는 여기에 포함하지 않는다 */
@@ -48,6 +49,10 @@ function App() {
     // 화면은 루트에 선다. API 가 모두 /api 아래로 들어가면서
     // 더 이상 /app/ 으로 비켜 서 있을 이유가 없어졌다.
     <BrowserRouter>
+      {/* 머리말은 화면 바깥에서 한 번만 그린다.
+          페이지마다 그리면 옮길 때 새로 만들어져 갈래 탭 알약이 튄다. */}
+      <PageHead />
+
       <Routes>
         {/* 홈: / — 들어가는 문만 낸 첫 화면 */}
         <Route path="/" element={<Home />} />

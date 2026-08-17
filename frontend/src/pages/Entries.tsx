@@ -1,4 +1,3 @@
-import PageHead from "./components/PageHead";
 import { visible } from "../utils/visible";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "../api/client";
@@ -14,6 +13,40 @@ import type { SplitDraft } from "./components/SplitEditor";
 import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
 import useLongPress from "../hooks/useLongPress";
+
+const EMPTY_FILTER = {
+  dateFrom: "",
+  dateTo: "",
+  cat1: [] as number[],
+  cat2: [] as number[],
+  cat3: [] as number[],
+  pay: [] as string[],
+  memo: "",
+  /* 지출을 적을 때 고를 수 있는 것은 모두 걸러 낼 수 있어야 한다 */
+  inout: 0,                 // 0 = 가리지 않음, 1 = 들어옴, -1 = 나감
+  amountMin: "",
+  amountMax: "",
+  place: "",
+  cp: [] as number[],       // 함께한 상대
+};
+
+/** 걸린 조건이 하나라도 있는지 */
+function hasCondition(f: typeof EMPTY_FILTER): boolean {
+  return (
+    f.dateFrom !== "" ||
+    f.dateTo !== "" ||
+    f.cat1.length > 0 ||
+    f.cat2.length > 0 ||
+    f.cat3.length > 0 ||
+    f.pay.length > 0 ||
+    f.memo.trim() !== "" ||
+    f.inout !== 0 ||
+    f.amountMin !== "" ||
+    f.amountMax !== "" ||
+    f.place.trim() !== "" ||
+    f.cp.length > 0
+  );
+}
 
 export default function Entries() {
   const [rows, setRows] = useState<any[]>([]);
@@ -37,23 +70,13 @@ export default function Entries() {
 
   /* 뒤로 가기 · Backspace 로 지금 열린 것만 닫는다.
      카드 편집 팝업은 CardEditModal 이 스스로 처리한다. */
-  useBackClose(filterOpen, () => setFilterOpen(false));
+  useBackClose(filterOpen, () => closeFilter());
   useBackClose(placePickerOpen, () => setPlacePickerOpen(false));
-  const [filter, setFilter] = useState({
-    dateFrom: "",
-    dateTo: "",
-    cat1: [] as number[],
-    cat2: [] as number[],
-    cat3: [] as number[],
-    pay: [] as string[],
-    memo: "",
-    /* 지출을 적을 때 고를 수 있는 것은 모두 걸러 낼 수 있어야 한다 */
-    inout: 0,                 // 0 = 가리지 않음, 1 = 들어옴, -1 = 나감
-    amountMin: "",
-    amountMax: "",
-    place: "",
-    cp: [] as number[],       // 함께한 상대
-  });
+  /* 팝업에서 고치는 중인 값(초안)과 실제로 걸려 있는 값을 나눠 둔다.
+     하나로 두면 팝업에서 값을 바꾸는 순간 뒤 화면의 버튼과 기간 표시가
+     먼저 바뀌어, [적용]을 누르기도 전에 적용된 것처럼 보였다. */
+  const [filter, setFilter] = useState(EMPTY_FILTER);
+  const [appliedFilter, setAppliedFilter] = useState(EMPTY_FILTER);
 
   /* 함께한 상대 목록 — 필터에서 고르기 위해 받아 둔다 */
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
@@ -85,6 +108,30 @@ export default function Entries() {
       document.documentElement.classList.remove("modal-open");
     }
   }, [filterOpen, calculatorOpen, draft, placePickerOpen]);
+
+  /* 화면에 들어오면, 그리고 달을 옮길 때마다 바로 불러온다.
+     예전에는 [조회]를 눌러야 카드가 나왔다. 필터가 걸려 있으면 그쪽이 우선이다. */
+  useEffect(() => {
+    if (isFilterActive) return;
+    axios
+      .get("/entries/month", { params: { ym: yearMonth } })
+      .then((r) => setRows(r.data.map((x: any) => ({ ...x, reveal_amount: false }))))
+      .catch(() => setRows([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yearMonth]);
+
+  /** 앞뒤 달로 옮긴다. 값이 바뀌면 아래 useEffect 가 바로 불러온다 */
+  const shiftMonth = (step: number) => {
+    const [y, m] = yearMonth.split("-").map(Number);
+    const d = new Date(y, m - 1 + step, 1);
+    setYearMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+
+  /** "2026-08" → "2026년 8월" */
+  const monthLabel = useMemo(() => {
+    const [y, m] = yearMonth.split("-").map(Number);
+    return `${y}년 ${m}월`;
+  }, [yearMonth]);
 
   // 월별 데이터 조회
   const loadData = async () => {
@@ -242,7 +289,8 @@ export default function Entries() {
         ? e.touches[0].clientX
         : e.clientX;
 
-      if (Math.abs(currentX - startX) > 30) {
+      /* 12px 만 끌어도 열리게 한다. 30px 는 뻑뻑했다 */
+      if (Math.abs(currentX - startX) > 12) {
         // 드래그 중 → 금액 표시
         setRows(prev =>
           prev.map(r =>
@@ -277,7 +325,28 @@ export default function Entries() {
     handleRevealDrag(id, startX);
   };
 
+  /* [적용]을 누르지 않고 닫으면 고치던 값은 버린다.
+     다시 열었을 때 지금 걸려 있는 조건이 그대로 보여야 한다. */
+  const closeFilter = () => {
+    setFilter(appliedFilter);
+    setFilterOpen(false);
+  };
+
   const applyFilter = async () => {
+    /* 조건을 모두 비운 채로 적용했다면 필터를 끄겠다는 뜻이다.
+       그대로 서버에 물으면 조건 없는 조회가 되어 전 기간이 쏟아진다.
+       보고 있던 달로 돌아간다. */
+    /* 초안을 그대로 확정한다 — 여기부터 화면에 반영된다 */
+    setAppliedFilter(filter);
+
+    if (!hasCondition(filter)) {
+      setFilterRangeLabel("");
+      setFilterOpen(false);
+      const back = await axios.get("/entries/month", { params: { ym: yearMonth } });
+      setRows(back.data.map((r: any) => ({ ...r, reveal_amount: false })));
+      return;
+    }
+
     const res = await axios.get("/entries/filter", {
       params: {
         date_from: filter.dateFrom || null,
@@ -629,56 +698,50 @@ export default function Entries() {
     [rows, cat2List]
   );
 
-  const isFilterActive = useMemo(() => {
-    return (
-      filter.dateFrom ||
-      filter.dateTo ||
-      filter.cat1.length > 0 ||
-      filter.cat2.length > 0 ||
-      filter.cat3.length > 0 ||
-      filter.pay.length > 0 ||
-      filter.memo.trim() !== "" ||
-      filter.inout !== 0 ||
-      filter.amountMin !== "" ||
-      filter.amountMax !== "" ||
-      filter.place.trim() !== "" ||
-      filter.cp.length > 0
-    );
-  }, [filter]);
+  /* 버튼과 기간 표시는 '적용된 값' 만 본다. 초안은 팝업 안에서만 산다 */
+  const isFilterActive = useMemo(() => hasCondition(appliedFilter), [appliedFilter]);
 
   return (
     <div className="page-wrap">
-      <PageHead />
 
-      {/* 월 선택 + 조회 */}
+      {/* 월 넘기기 — 화살표로 앞뒤 달을 오간다. 고르면 바로 불러오므로 조회 버튼이 없다 */}
       <div className="toolbar-wrap">
         <div className="toolbar">
-          {filterRangeLabel ? (
-            <div className="filter-range-label">
-              {filterRangeLabel}
-            </div>
+          {/* 필터가 걸리면 달 단위가 아니므로 월 넘기기를 감춘다.
+              날짜 범위를 정하지 않았으면 기간이 전체라는 뜻이다. */}
+          {isFilterActive ? (
+            <div className="filter-range-label">{filterRangeLabel || "전체 기간"}</div>
           ) : (
-            <input
-              type="month"
-              value={yearMonth}
-              onChange={(e) => setYearMonth(e.target.value)}
-              className="ui-input"
-            />
+            <div className="month-nav">
+              <button
+                type="button"
+                className="month-nav__arrow"
+                aria-label="지난달"
+                onClick={() => shiftMonth(-1)}
+              >
+                ‹
+              </button>
+              <span className="month-nav__label">{monthLabel}</span>
+              <button
+                type="button"
+                className="month-nav__arrow"
+                aria-label="다음 달"
+                onClick={() => shiftMonth(1)}
+              >
+                ›
+              </button>
+            </div>
           )}
 
           <div className="toolbar-btns">
-            <button onClick={() => setFilterOpen(true)} className="filter-btn">
-              {isFilterActive ? "☑ 필터" : "☐ 필터"}
-            </button>
             <button
-              onClick={() => {
-                if (!isFilterActive) {
-                  loadData();
-                }
-              }}
-              className="ui-btn"
+              type="button"
+              onClick={() => setFilterOpen(true)}
+              className={`filter-pill${isFilterActive ? " on" : ""}`}
+              aria-pressed={!!isFilterActive}
+              title={isFilterActive ? "필터가 걸려 있다. 눌러서 고친다." : "필터"}
             >
-              조회
+              필터
             </button>
           </div>
         </div>
@@ -823,165 +886,146 @@ export default function Entries() {
 
       {/* 팝업은 map() 밖에서 렌더링 */}
       {filterOpen && (
-        <div className="popup-overlay" onClick={() => setFilterOpen(false)}>
-          <div className="popup-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="popup-overlay" onClick={closeFilter}>
+          <div className="popup-panel popup-panel--framed" onClick={(e) => e.stopPropagation()}>
 
-            <h3>필터</h3>
+            {/* 머리·본문·바닥을 편집 팝업과 같은 짜임으로 */}
+            <header className="popup-head">
+              <h3 className="popup-head__title">필터</h3>
+            </header>
 
-            {/* 언제 */}
-            <div className="filter-group">
-              <div className="filter-group__label">기간</div>
-              <div className="filter-row">
-                <div className="filter-col">
-                  <label>시작일</label>
+            {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다 */}
+            <div className="popup-body edit-grid">
+              <EditField label="시작일" span={6}>
+                <input
+                  type="date"
+                  value={filter.dateFrom}
+                  onChange={(e) => setFilter({ ...filter, dateFrom: e.target.value })}
+                />
+              </EditField>
+
+              <EditField label="종료일" span={6}>
+                <input
+                  type="date"
+                  value={filter.dateTo}
+                  onChange={(e) => setFilter({ ...filter, dateTo: e.target.value })}
+                />
+              </EditField>
+
+              <EditDivider />
+
+              <EditField label="중분류" span={4}>
+                <MultiSelect
+                  options={cat1Options}
+                  selected={filter.cat1}
+                  onSpecialClick={cat1_onSpecialClick}
+                  onChange={cat1_onChange}
+                  isOptionChecked={cat1_isChecked}
+                  placeholder="(전체)"
+                />
+              </EditField>
+
+              <EditField label="소분류" span={4}>
+                <MultiSelect
+                  options={cat2Options}
+                  selected={filter.cat2}
+                  onSpecialClick={cat2_onSpecialClick}
+                  onChange={cat2_onChange}
+                  isOptionChecked={cat2_isChecked}
+                  placeholder="(전체)"
+                />
+              </EditField>
+
+              <EditField label="세분류" span={4}>
+                <MultiSelect
+                  options={cat3Options}
+                  selected={filter.cat3}
+                  onSpecialClick={cat3_onSpecialClick}
+                  onChange={cat3_onChange}
+                  isOptionChecked={cat3_isChecked}
+                  placeholder="(전체)"
+                />
+              </EditField>
+
+              <EditDivider />
+
+              <EditField label="IN/OUT" span={6}>
+                <SingleSelect
+                  options={[
+                    { value: "0", label: "(전체)" },
+                    { value: "-1", label: "OUT(−)" },
+                    { value: "1", label: "IN(+)" },
+                  ]}
+                  selected={String(filter.inout)}
+                  onChange={(v) => setFilter({ ...filter, inout: Number(v) })}
+                  placeholder="(전체)"
+                />
+              </EditField>
+
+              <EditField label="결제 수단" span={6}>
+                <MultiSelect
+                  options={payOptions}
+                  selected={filter.pay}
+                  onSpecialClick={pay_onSpecialClick}
+                  onChange={pay_onChange}
+                  isOptionChecked={pay_isChecked}
+                  placeholder="(전체)"
+                />
+              </EditField>
+
+              <EditField label="금액" span={12}>
+                <div className="filter-range">
                   <input
-                    type="date"
-                    value={filter.dateFrom}
-                    onChange={e => setFilter({ ...filter, dateFrom: e.target.value })}
+                    type="number"
+                    className="amount-input"
+                    value={filter.amountMin}
+                    placeholder="(최소)"
+                    onChange={(e) => setFilter({ ...filter, amountMin: e.target.value })}
+                  />
+                  <span className="filter-range__tilde">~</span>
+                  <input
+                    type="number"
+                    className="amount-input"
+                    value={filter.amountMax}
+                    placeholder="(최대)"
+                    onChange={(e) => setFilter({ ...filter, amountMax: e.target.value })}
                   />
                 </div>
-                <div className="filter-col">
-                  <label>종료일</label>
-                  <input
-                    type="date"
-                    value={filter.dateTo}
-                    onChange={e => setFilter({ ...filter, dateTo: e.target.value })}
-                  />
-                </div>
-              </div>
+              </EditField>
+
+              <EditDivider />
+
+              <EditField label="장소" span={6}>
+                <input
+                  type="text"
+                  value={filter.place}
+                  placeholder="(장소)"
+                  onChange={(e) => setFilter({ ...filter, place: e.target.value })}
+                />
+              </EditField>
+
+              <EditField label="함께한 상대" span={6}>
+                <MultiSelect
+                  options={cpOptions}
+                  selected={filter.cp}
+                  onSpecialClick={cp_onSpecialClick}
+                  onChange={cp_onChange}
+                  isOptionChecked={cp_isChecked}
+                  placeholder="(전체)"
+                />
+              </EditField>
+
+              <EditField label="메모" span={12}>
+                <input
+                  type="text"
+                  value={filter.memo}
+                  placeholder="(메모)"
+                  onChange={(e) => setFilter({ ...filter, memo: e.target.value })}
+                />
+              </EditField>
             </div>
 
-            {/* 무엇으로 */}
-            <div className="filter-group">
-              <div className="filter-group__label">분류</div>
-              <div className="filter-row">
-                <div className="filter-col">
-                  <label>중분류</label>
-                  <MultiSelect
-                    options={cat1Options}
-                    selected={filter.cat1}
-                    onSpecialClick={cat1_onSpecialClick}
-                    onChange={cat1_onChange}
-                    isOptionChecked={cat1_isChecked}
-                    placeholder="(전체)"
-                  />
-                </div>
-                <div className="filter-col">
-                  <label>소분류</label>
-                  <MultiSelect
-                    options={cat2Options}
-                    selected={filter.cat2}
-                    onSpecialClick={cat2_onSpecialClick}
-                    onChange={cat2_onChange}
-                    isOptionChecked={cat2_isChecked}
-                    placeholder="(전체)"
-                  />
-                </div>
-              </div>
-              <div className="filter-row">
-                <div className="filter-col">
-                  <label>세분류</label>
-                  <MultiSelect
-                    options={cat3Options}
-                    selected={filter.cat3}
-                    onSpecialClick={cat3_onSpecialClick}
-                    onChange={cat3_onChange}
-                    isOptionChecked={cat3_isChecked}
-                    placeholder="(전체)"
-                  />
-                </div>
-                <div className="filter-col">
-                  <label>결제 수단</label>
-                  <MultiSelect
-                    options={payOptions}
-                    selected={filter.pay}
-                    onSpecialClick={pay_onSpecialClick}
-                    onChange={pay_onChange}
-                    isOptionChecked={pay_isChecked}
-                    placeholder="(전체)"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 얼마나 */}
-            <div className="filter-group">
-              <div className="filter-group__label">금액</div>
-              <div className="filter-row">
-                <div className="filter-col">
-                  <label>IN/OUT</label>
-                  <SingleSelect
-                    options={[
-                      { value: "0", label: "(전체)" },
-                      { value: "-1", label: "OUT(−)" },
-                      { value: "1", label: "IN(+)" },
-                    ]}
-                    selected={String(filter.inout)}
-                    onChange={(v) => setFilter({ ...filter, inout: Number(v) })}
-                    placeholder="(전체)"
-                  />
-                </div>
-                <div className="filter-col filter-col--amount">
-                  <label>금액</label>
-                  <div className="filter-range">
-                    <input
-                      type="number"
-                      value={filter.amountMin}
-                      placeholder="(최소)"
-                      onChange={e => setFilter({ ...filter, amountMin: e.target.value })}
-                    />
-                    <span className="filter-range__tilde">~</span>
-                    <input
-                      type="number"
-                      value={filter.amountMax}
-                      placeholder="(최대)"
-                      onChange={e => setFilter({ ...filter, amountMax: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 어디서 · 누구와 · 무슨 말 */}
-            <div className="filter-group">
-              <div className="filter-group__label">장소 · 상대</div>
-              <div className="filter-row">
-                <div className="filter-col">
-                  <label>장소</label>
-                  <input
-                    type="text"
-                    value={filter.place}
-                    placeholder="(장소)"
-                    onChange={e => setFilter({ ...filter, place: e.target.value })}
-                  />
-                </div>
-                <div className="filter-col">
-                  <label>함께한 상대</label>
-                  <MultiSelect
-                    options={cpOptions}
-                    selected={filter.cp}
-                    onSpecialClick={cp_onSpecialClick}
-                    onChange={cp_onChange}
-                    isOptionChecked={cp_isChecked}
-                    placeholder="(전체)"
-                  />
-                </div>
-              </div>
-              <div className="filter-row">
-                <div className="filter-col filter-col--wide">
-                  <label>메모</label>
-                  <input
-                    type="text"
-                    value={filter.memo}
-                    placeholder="(메모)"
-                    onChange={e => setFilter({ ...filter, memo: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="btn-row">
-              <button className="ui-btn" onClick={() => setFilterOpen(false)}>닫기</button>
+            <div className="btn-row popup-foot">
               <button className="ui-btn" onClick={() =>
                 setFilter({
                   dateFrom: "",

@@ -1,4 +1,3 @@
-import PageHead from "./components/PageHead";
 import { visible } from "../utils/visible";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "../api/client";
@@ -10,182 +9,28 @@ import SplitEditor from "./components/SplitEditor";
 import type { SplitDraft } from "./components/SplitEditor";
 import PlacePicker from "./components/PlacePicker";
 import useLongPress from "../hooks/useLongPress";
+import useRevealDrag from "../hooks/useRevealDrag";
+import DateGroupHeader from "./components/DateGroupHeader";
+import { groupByDate } from "../utils/dateGroup";
 
-type CategoryL2Meta = { id: number; name: string; cat1_id?: number; inout?: number | null; is_active?: number };
+type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?: number; inout?: number | null; is_active?: number };
 type CategoryL3Meta = { id: number; name: string; cat2_id?: number; is_active?: number };
 
-interface Holiday {
-  dt: string;
-  is_holiday: number;
-}
-
-// Date를 YYYY-MM-DD 문자열로 변환 (로컬 시간대 기준)
-function formatDateLocal(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-// 휴일이 아닌 가장 가까운 날짜 찾기 (Backend 로직과 동일)
-function findNearestNonHoliday(
-  targetDate: Date,
-  holidayHandling: string,
-  holidays: Holiday[]
-): Date {
-  // holidays 데이터가 없으면 그대로 반환
-  if (holidays.length === 0) {
-    console.warn('⚠️ Holidays data not loaded yet');
-    return targetDate;
-  }
-
-  // UTC가 아닌 로컬 시간대 기준으로 날짜 문자열 생성
-  const dateStr = formatDateLocal(targetDate);
-  const holiday = holidays.find(h => h.dt === dateStr);
-  
-  console.log(`🔍 Checking ${dateStr}:`, {
-    targetDate: targetDate.toString(),
-    found: !!holiday,
-    is_holiday: holiday?.is_holiday,
-    holidayHandling,
-    totalHolidays: holidays.length
-  });
-  
-  // 휴일 여부 확인: holiday가 없거나 is_holiday === 0이면 평일
-  const isHoliday = holiday && holiday.is_holiday === 1;
-  
-  if (!isHoliday) {
-    // 평일이면 그대로 반환
-    console.log(`✅ ${dateStr} is a weekday (not a holiday)`);
-    return targetDate;
-  }
-  
-  console.log(`🚫 ${dateStr} is a holiday, finding nearest non-holiday...`);
-  
-  // 휴일인 경우
-  if (holidayHandling === 'on') {
-    // 당일 처리 (휴일이어도 그대로)
-    return targetDate;
-  } else if (holidayHandling === 'before') {
-    // 휴일 전 가장 가까운 평일 찾기
-    let current = new Date(targetDate);
-    for (let i = 0; i < 30; i++) {
-      current.setDate(current.getDate() - 1);
-      const currentStr = formatDateLocal(current);
-      const h = holidays.find(hol => hol.dt === currentStr);
-      console.log(`  Checking before: ${currentStr}, found: ${!!h}, is_holiday: ${h?.is_holiday}`);
-      // h가 있고 is_holiday === 0이면 평일
-      if (h && h.is_holiday === 0) {
-        console.log(`  ✅ Found weekday: ${currentStr}`);
-        return current;
-      }
-    }
-    console.warn(`  ⚠️ Could not find weekday before ${dateStr}`);
-    return targetDate; // 못 찾으면 원래 날짜 반환
-  } else { // 'after'
-    // 휴일 후 가장 가까운 평일 찾기
-    let current = new Date(targetDate);
-    for (let i = 0; i < 30; i++) {
-      current.setDate(current.getDate() + 1);
-      const currentStr = formatDateLocal(current);
-      const h = holidays.find(hol => hol.dt === currentStr);
-      console.log(`  Checking after: ${currentStr}, found: ${!!h}, is_holiday: ${h?.is_holiday}`);
-      // h가 있고 is_holiday === 0이면 평일
-      if (h && h.is_holiday === 0) {
-        console.log(`  ✅ Found weekday: ${currentStr}`);
-        return current;
-      }
-    }
-    console.warn(`  ⚠️ Could not find weekday after ${dateStr}`);
-    return targetDate; // 못 찾으면 원래 날짜 반환
-  }
-}
-
-// 다음 실행 예정일 계산 함수 (holiday_handling 반영)
-function calculateNextRun(
-  dayOfMonth: number,
-  time: string,
-  holidayHandling: string,
-  holidays: Holiday[]
-): string {
-  const now = new Date();
-  const [hours, minutes] = time.split(":").map(Number);
-  
-  console.log(`\n📅 calculateNextRun START: day=${dayOfMonth}, time=${time}, handling=${holidayHandling}`);
-  console.log(`⏰ Current time: ${now.toString()}`);
-  
-  // 이번 달 예정일
-  const thisMonth = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, hours, minutes);
-  
-  // 다음 달 예정일
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth, hours, minutes);
-  
-  console.log(`📌 thisMonth: ${thisMonth.toString()}, thisMonth > now: ${thisMonth > now}`);
-  console.log(`📌 nextMonth: ${nextMonth.toString()}`);
-  
-  // 이번 달 예정일이 아직 지나지 않았으면 이번 달, 지났으면 다음 달
-  let targetDate = thisMonth > now ? thisMonth : nextMonth;
-  console.log(`🎯 Initial targetDate: ${targetDate.toString()}`);
-  
-  // holiday_handling 적용
-  const beforeHoliday = new Date(targetDate);
-  targetDate = findNearestNonHoliday(targetDate, holidayHandling, holidays);
-  console.log(`🏖️ After holiday handling: ${beforeHoliday.toString()} → ${targetDate.toString()}`);
-  
-  // 휴일 처리 후 날짜가 현재 시간보다 과거가 되었다면 다음 달로 이동
-  if (targetDate <= now) {
-    console.log(`⚠️ targetDate is in the past, moving to next month...`);
-    // 다음 달 예정일을 다시 계산
-    const nextMonthBase = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth, hours, minutes);
-    console.log(`📌 nextMonthBase: ${nextMonthBase.toString()}`);
-    targetDate = findNearestNonHoliday(nextMonthBase, holidayHandling, holidays);
-    console.log(`🎯 Final targetDate after next month: ${targetDate.toString()}`);
-  }
-  
-  // 포맷: 2025-12-10 10:00 a.m.
-  const year = targetDate.getFullYear();
-  const month = String(targetDate.getMonth() + 1).padStart(2, "0");
-  const day = String(targetDate.getDate()).padStart(2, "0");
-  const hour = targetDate.getHours();
-  const minute = String(targetDate.getMinutes()).padStart(2, "0");
-  const ampm = hour >= 12 ? "p.m." : "a.m.";
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  
-  const result = `${year}-${month}-${day} ${displayHour}:${minute} ${ampm}`;
-  console.log(`✅ calculateNextRun RESULT: ${result}\n`);
-  
-  return result;
-}
-
-// 다음 실행 예정일을 Date 객체로 반환 (정렬용)
-function calculateNextRunDate(
-  dayOfMonth: number,
-  time: string,
-  holidayHandling: string,
-  holidays: Holiday[]
-): Date {
-  const now = new Date();
-  const [hours, minutes] = time.split(":").map(Number);
-  
-  // 이번 달 예정일
-  const thisMonth = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, hours, minutes);
-  
-  // 다음 달 예정일
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth, hours, minutes);
-  
-  // 이번 달 예정일이 아직 지나지 않았으면 이번 달, 지났으면 다음 달
-  let targetDate = thisMonth > now ? thisMonth : nextMonth;
-  
-  // holiday_handling 적용
-  targetDate = findNearestNonHoliday(targetDate, holidayHandling, holidays);
-  
-  // 휴일 처리 후 날짜가 현재 시간보다 과거가 되었다면 다음 달로 이동
-  if (targetDate <= now) {
-    const nextMonthBase = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth, hours, minutes);
-    targetDate = findNearestNonHoliday(nextMonthBase, holidayHandling, holidays);
-  }
-  
-  return targetDate;
+/**
+ * 다음 예정일시는 서버가 next_run_at 에 들고 있다(scheduled_entries.next_run_at).
+ * 예전에는 화면에서도 같은 셈을 따로 했는데, 두 셈이 어긋나면 "보이는 날짜"와
+ * "실제로 대기 내역으로 옮겨지는 시점"이 달라진다. 그래서 화면 계산은 걷어 내고
+ * 서버 값 하나만 쓴다.
+ *
+ * 값은 "2026-09-04 11:30:00" 꼴이고 시간대가 붙어 있지 않다. 서버도 이 PC 도
+ * 같은 시간대(Asia/Seoul)라 그대로 읽으면 된다. 다만 new Date(문자열) 은
+ * 브라우저마다 해석이 달라서, 숫자를 직접 떼어 만든다.
+ */
+function parseLocal(v: string | null | undefined): Date | null {
+  if (!v) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(v);
+  if (!m) return null;
+  return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
 }
 
 export default function ScheduledEntries() {
@@ -214,7 +59,6 @@ export default function ScheduledEntries() {
   const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
   const [cat2Map, setCat2Map] = useState<Record<number, CategoryL2Meta>>({});
   const [cat3Map, setCat3Map] = useState<Record<number, CategoryL3Meta>>({});
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
 
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다
@@ -276,50 +120,8 @@ export default function ScheduledEntries() {
     return res.data.place_id;
   };
 
-  // 휴일 데이터 로드
-  useEffect(() => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-    const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
-
-    console.log(`\n📅 ========== LOADING HOLIDAYS ==========`);
-    console.log(`📅 Requesting: ${currentYear}-${String(currentMonth).padStart(2, '0')} and ${nextYear}-${String(nextMonth).padStart(2, '0')}`);
-
-    // 이번 달과 다음 달의 휴일 데이터 가져오기
-    Promise.all([
-      axios.get(`/holidays?year=${currentYear}&month=${currentMonth}`),
-      axios.get(`/holidays?year=${nextYear}&month=${nextMonth}`)
-    ]).then(([current, next]) => {
-      const allHolidays = [...current.data, ...next.data];
-      console.log(`✅ Loaded holidays: ${allHolidays.length} records total`);
-      console.log(`  - ${currentYear}-${String(currentMonth).padStart(2, '0')}: ${current.data.length} records`);
-      console.log(`  - ${nextYear}-${String(nextMonth).padStart(2, '0')}: ${next.data.length} records`);
-      
-      // 12월 13, 14, 15일 데이터 상세 확인
-      ['2025-12-12', '2025-12-13', '2025-12-14', '2025-12-15'].forEach(dt => {
-        const h = allHolidays.find((item: any) => item.dt === dt);
-        if (h) {
-          console.log(`  📆 ${dt}: is_holiday=${h.is_holiday}, weekday=${h.weekday}, name=${h.holiday_name || 'none'}`);
-        } else {
-          console.warn(`  ⚠️ ${dt}: NOT FOUND`);
-        }
-      });
-      
-      // 1월 13일도 확인
-      const jan13 = allHolidays.find((h: any) => h.dt === '2026-01-13');
-      if (jan13) {
-        console.log(`  📆 2026-01-13: is_holiday=${jan13.is_holiday}, weekday=${jan13.weekday}`);
-      }
-      
-      console.log(`========================================\n`);
-      
-      setHolidays(allHolidays);
-    }).catch(err => {
-      console.error("❌ 휴일 데이터 로드 실패:", err);
-    });
-  }, []);
+  /* 휴일 표를 내려받던 자리. 화면이 예정일시를 스스로 셈할 때만 필요했다.
+     지금은 서버가 계산해 next_run_at 에 담아 주므로 받아 둘 이유가 없다. */
 
   // 메타데이터 로드
   useEffect(() => {
@@ -359,6 +161,8 @@ export default function ScheduledEntries() {
               id: item.id,
               name: item.name,
               cat1_id: item.cat1_id,
+              /* 소분류의 Blur 설정. 담지 않아서 정기 내역만 금액이 그대로 보였다 */
+              blur: item.blur ?? 0,
               inout: item.inout ?? null,
             };
           }
@@ -536,39 +340,28 @@ export default function ScheduledEntries() {
   // };
 
   // Next 날짜 기준으로 정렬된 schedules
+  /** 다음 예정일시가 이른 것부터. 값이 없으면 맨 뒤로 민다 */
   const sortedSchedules = useMemo(() => {
-    if (schedules.length === 0 || holidays.length === 0) {
-      return schedules;
-    }
-
     return [...schedules].sort((a, b) => {
-      const timeA = a.time || toTimeString(a.hour, a.minute);
-      const timeB = b.time || toTimeString(b.hour, b.minute);
-      
-      // day_of_month와 time이 없으면 맨 뒤로
-      if (!a.day_of_month || !timeA) return 1;
-      if (!b.day_of_month || !timeB) return -1;
-
-      try {
-        const dateA = calculateNextRunDate(
-          a.day_of_month,
-          timeA,
-          a.holiday_handling || "on",
-          holidays
-        );
-        const dateB = calculateNextRunDate(
-          b.day_of_month,
-          timeB,
-          b.holiday_handling || "on",
-          holidays
-        );
-        return dateA.getTime() - dateB.getTime();
-      } catch (err) {
-        console.error("정렬 중 오류:", err);
-        return 0;
-      }
+      const ta = parseLocal(a.next_run_at)?.getTime() ?? Infinity;
+      const tb = parseLocal(b.next_run_at)?.getTime() ?? Infinity;
+      return ta - tb;
     });
-  }, [schedules, holidays]);
+  }, [schedules]);
+
+  /** 예정일시의 날짜로 묶는다. 지출 내역·대기 내역과 같은 모양이 된다 */
+  const dateGroups = useMemo(
+    () =>
+      groupByDate(
+        sortedSchedules.map((s) => ({
+          ...s,
+          tx_date: (s.next_run_at || "").substring(0, 10),
+        })),
+        /* Blur 걸린 소분류가 섞인 날은 합계도 함께 가린다 */
+        (r: { cat2_id?: number | null }) => cat2Map[Number(r.cat2_id)]?.blur === 1
+      ),
+    [sortedSchedules, cat2Map]
+  );
 
   const buildSchedulePayload = (schedule: any) => {
     const [hour, minute] = (schedule.time || "00:00").split(":").map(Number);
@@ -732,7 +525,6 @@ export default function ScheduledEntries() {
 
   return (
     <div className="page-wrap">
-      <PageHead />
 
       {/* New & Save 툴바 */}
       {/* 툴바 껍데기는 쓴 내역 · 대기 내역과 같은 것을 쓴다.
@@ -744,7 +536,7 @@ export default function ScheduledEntries() {
               onClick={() => setShowForm(!showForm)}
               className="ui-btn primary scheduled-toolbar__btn scheduled-toolbar__btn--new"
             >
-              [+] 새 정기 결제
+              [+] 새 정기 지출
             </button>
           </div>
         </div>
@@ -770,23 +562,25 @@ export default function ScheduledEntries() {
           });
           setCat2List([]);
         }}>
-          <div className="popup-panel" onClick={(e) => e.stopPropagation()}>
-            <h3>스케줄</h3>
-            
+          <div className="popup-panel popup-panel--framed" onClick={(e) => e.stopPropagation()}>
+            {/* 머리·본문·바닥을 편집 팝업과 같은 짜임으로 */}
+            <header className="popup-head">
+              <h3 className="popup-head__title">새 정기 지출</h3>
+            </header>
+
             <form onSubmit={handleSubmit}>
-              {/* 매월 일 + 시간 */}
-              <div className="flex gap-2" style={{marginBottom: '6px', marginTop: '4px'}}>
-                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-                  <label className="form-label required">매월</label>
+              {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다 */}
+              <div className="popup-body edit-grid">
+                <EditField label="매월" span={4}>
                   <SingleSelect
-                    options={dayOptions.map(d => ({ value: String(d), label: `${d}일` }))}
+                    options={dayOptions.map((d) => ({ value: String(d), label: `${d}일` }))}
                     selected={form.day_of_month}
                     onChange={(value) => setForm({ ...form, day_of_month: value })}
                     placeholder="(일)"
                   />
-                </div>
-                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-                  <label className="form-label required">시간</label>
+                </EditField>
+
+                <EditField label="시간" span={4}>
                   <input
                     type="time"
                     name="time"
@@ -796,127 +590,121 @@ export default function ScheduledEntries() {
                     step="300"
                     required
                   />
-                </div>
-              </div>
+                </EditField>
 
-              {/* 휴일 처리 | 중분류 */}
-              <div className="flex gap-2" style={{marginBottom: '6px'}}>
-                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-                  <label className="form-label required">휴일 처리</label>
+                <EditField label="휴일 처리" span={4}>
                   <SingleSelect
                     options={[
                       { value: "before", label: "휴일 전" },
                       { value: "on", label: "당일" },
-                      { value: "after", label: "휴일 후" }
+                      { value: "after", label: "휴일 후" },
                     ]}
                     selected={form.holiday_handling}
-                    onChange={(value) => setForm({ ...form, holiday_handling: value as "before" | "on" | "after" })}
+                    onChange={(value) =>
+                      setForm({ ...form, holiday_handling: value as "before" | "on" | "after" })
+                    }
                     placeholder="(휴일 처리)"
                   />
-                </div>
-                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-                  <label className="form-label required">중분류</label>
+                </EditField>
+
+                <EditDivider />
+
+                <EditField label="중분류" span={4}>
                   <SingleSelect
                     options={visible(cat1List, (c) => String(c.id) === form.cat1_id)
-                      .map(c => ({ value: String(c.id), label: c.name }))}
+                      .map((c) => ({ value: String(c.id), label: c.name }))}
                     selected={form.cat1_id}
                     onChange={(value) => setForm({ ...form, cat1_id: value })}
                     placeholder="(중분류)"
                   />
-                </div>
-              </div>
+                </EditField>
 
-              {/* 소분류 | 세분류 */}
-              <div className="flex gap-2" style={{marginBottom: '6px'}}>
-                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-                  <label className="form-label required">소분류</label>
+                <EditField label="소분류" span={4}>
                   <SingleSelect
                     options={visible(cat2List, (c) => String(c.id) === form.cat2_id)
-                      .map(c => ({ value: String(c.id), label: c.name }))}
+                      .map((c) => ({ value: String(c.id), label: c.name }))}
                     selected={form.cat2_id}
                     onChange={(value) => setForm({ ...form, cat2_id: value })}
                     placeholder="(소분류)"
                   />
-                </div>
-                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-                  <label className="form-label">세분류</label>
+                </EditField>
+
+                <EditField label="세분류" span={4}>
                   <SingleSelect
                     options={visible(cat3List, (c) => String(c.id) === form.cat3_id)
-                      .map(c => ({ value: String(c.id), label: c.name }))}
+                      .map((c) => ({ value: String(c.id), label: c.name }))}
                     selected={form.cat3_id}
                     onChange={(value) => setForm({ ...form, cat3_id: value })}
                     placeholder="(세분류)"
                   />
-                </div>
-              </div>
+                </EditField>
 
-              {/* IN/OUT | 결제 수단 */}
-              <div className="flex gap-2" style={{marginBottom: '6px'}}>
-                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-                  <label className="form-label required">IN/OUT</label>
-                  <div className="ui-input" style={{ display: 'flex', alignItems: 'center', padding: '0 10px', height: '36px', background: 'var(--color-bg)', cursor: 'not-allowed' }}>
-                    {form.inout === "1" ? "IN(+)" : form.inout === "-1" ? "OUT(-)" : "—"}
-                  </div>
-                </div>
-                <div className="form-row" style={{flex: 1, marginBottom: 0}}>
-                  <label className="form-label required">결제 수단</label>
+                <EditDivider />
+
+                <EditField label="IN/OUT" span={4}>
+                  <span
+                    className={`inout-chip ${
+                      form.inout === "1" ? "in" : form.inout === "-1" ? "out" : ""
+                    }`}
+                  >
+                    {form.inout === "1" ? "IN(+)" : form.inout === "-1" ? "OUT(−)" : "—"}
+                  </span>
+                </EditField>
+
+                <EditField label="결제 수단" span={4}>
                   <SingleSelect
                     options={visible(payList, (p) => p.code === form.pay_method)
-                      .map(p => ({ value: p.code, label: p.name }))}
+                      .map((p) => ({ value: p.code, label: p.name }))}
                     selected={form.pay_method}
                     onChange={(value) => setForm({ ...form, pay_method: value })}
                     placeholder="(결제 수단)"
                   />
-                </div>
+                </EditField>
+
+                <EditField label="금액" span={4}>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={form.amount}
+                    onChange={handleChange}
+                    className="amount-input"
+                    required
+                    placeholder="(금액)"
+                  />
+                </EditField>
+
+                <EditDivider />
+
+                <EditField label="장소/가게" span={12}>
+                  <div className="edit-place">
+                    <span className="edit-place__name">📍 {formPlaceName || "—"}</span>
+                    <button
+                      type="button"
+                      className="ui-btn small"
+                      onClick={() => setPlacePickerFor("form")}
+                    >
+                      검색
+                    </button>
+                  </div>
+                </EditField>
+
+                <EditField label="메모" span={12}>
+                  <input
+                    type="text"
+                    name="memo"
+                    value={form.memo}
+                    onChange={handleChange}
+                    className="memo-input"
+                    placeholder="(메모)"
+                  />
+                </EditField>
               </div>
 
-              {/* 금액 */}
-              <div className="form-row" style={{marginBottom: '16px'}}>
-                <label className="form-label required">금액</label>
-                <input
-                  type="number"
-                  name="amount"
-                  value={form.amount}
-                  onChange={handleChange}
-                  className="ui-input"
-                  required
-                  placeholder="(금액)"
-                />
+              <div className="btn-row popup-foot">
+                <button type="submit" className="ui-btn primary">
+                  등록
+                </button>
               </div>
-
-              {/* 장소/가게 */}
-              <div className="form-row" style={{marginBottom: '6px'}}>
-                <label className="form-label">장소/가게</label>
-                <div className="edit-place">
-                  <span className="edit-place__name">
-                    📍 {formPlaceName || "—"}
-                  </span>
-                  <button
-                    type="button"
-                    className="ui-btn small"
-                    onClick={() => setPlacePickerFor("form")}
-                  >
-                    검색
-                  </button>
-                </div>
-              </div>
-
-              {/* 메모 */}
-              <div className="form-row" style={{marginBottom: '16px'}}>
-                <label className="form-label">메모</label>
-                <input
-                  type="text"
-                  name="memo"
-                  value={form.memo}
-                  onChange={handleChange}
-                  className="ui-input"
-                  placeholder="(메모)"
-                />
-              </div>
-
-              <button type="submit" className="ui-btn primary w-full">
-                등록
-              </button>
             </form>
           </div>
         </div>
@@ -930,7 +718,10 @@ export default function ScheduledEntries() {
         </div>
       ) : (
         <div className="scheduled-card-list">
-          {sortedSchedules.map((s) => (
+          {dateGroups.map((group) => (
+          <section key={group.date || "no-date"} className="date-group">
+            <DateGroupHeader label={group.label} summary={group.summary} />
+            {group.items.map((s: any) => (
             <ScheduleCard
               key={s.schedule_id}
               s={s}
@@ -938,10 +729,11 @@ export default function ScheduledEntries() {
               cat2Map={cat2Map}
               cat3Map={cat3Map}
               payList={payList}
-              holidays={holidays}
               toTimeString={toTimeString}
               onOpenEditor={openEditor}
             />
+            ))}
+          </section>
           ))}
         </div>
       )}
@@ -1060,7 +852,7 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            <EditField label="장소/가게" span={8}>
+            <EditField label="장소/가게" span={12}>
               <div className="edit-place">
                 <span className="edit-place__name">
                   📍 {draftPlace?.place_name || draft.place_name || "—"}
@@ -1149,7 +941,6 @@ function ScheduleCard({
   cat2Map,
   cat3Map,
   payList,
-  holidays,
   toTimeString,
   onOpenEditor,
 }: {
@@ -1158,17 +949,22 @@ function ScheduleCard({
   cat2Map: Record<number, CategoryL2Meta>;
   cat3Map: Record<number, CategoryL3Meta>;
   payList: { code: string; name: string }[];
-  holidays: Holiday[];
   toTimeString: (hour?: number, minute?: number) => string;
   onOpenEditor: (schedule: any) => void;
 }) {
   const openEditor = useCallback(() => onOpenEditor(s), [onOpenEditor, s]);
   const { pressing, handlers } = useLongPress(openEditor);
 
+  const [revealed, setRevealed] = useState(false);
+  const startReveal = useRevealDrag(setRevealed);
+
   const cat1 = cat1List.find((c) => c.id === s.cat1_id);
   const cat2Id = s.cat2_id !== null && s.cat2_id !== undefined ? Number(s.cat2_id) : null;
   const cat3Id = s.cat3_id !== null && s.cat3_id !== undefined ? Number(s.cat3_id) : null;
   const cat2Name = cat2Id !== null ? cat2Map[cat2Id]?.name : null;
+  /* 소분류에 Blur 가 걸려 있으면 금액을 테이프로 덮는다.
+     끌면 잠깐 보이는 동작은 지출·대기 내역과 같다 */
+  const isBlur = cat2Id !== null && cat2Map[cat2Id]?.blur === 1;
   const cat3Name = cat3Id !== null ? cat3Map[cat3Id]?.name : null;
   const pay = payList.find((p) => p.code === String(s.pay_method));
   const holidayLabel =
@@ -1192,18 +988,14 @@ function ScheduleCard({
         className={`inout-bar ${s.inout === 1 ? "in-bar" : s.inout === -1 ? "out-bar" : ""}`}
       ></div>
       <div className="schedule-card__body">
+        {/* 머리 한 줄 — 날짜·시각은 왼쪽, 휴일 처리는 오른쪽 끝.
+            다음 예정일시는 위 날짜 단 머리말이 이미 말하고 있어 뺐다. */}
         <div className="schedule-card__row schedule-card__row--header">
-          <div className="schedule-card__date-block">
-            <div className="schedule-card__date-line">
-              <span className="schedule-card__month">매월 {s.day_of_month}일</span>
-              <span className="schedule-card__time">{timeDisplay}</span>
-            </div>
-            {s.day_of_month && timeDisplay && (
-              <div className="schedule-card__next-run">
-                Next: {calculateNextRun(s.day_of_month, timeDisplay, s.holiday_handling, holidays)}
-              </div>
-            )}
+          <div className="schedule-card__date-line">
+            <span className="schedule-card__month">매월 {s.day_of_month}일</span>
+            <span className="schedule-card__month">{timeDisplay}</span>
           </div>
+          <span className="schedule-card__holiday">{holidayLabel}</span>
         </div>
 
         {/* 카테고리 행 */}
@@ -1228,7 +1020,7 @@ function ScheduleCard({
           {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다 */}
           <span className="amount-stack">
             {hasSplit && (
-              <span className="amount-split">
+              <span className={`amount-split ${isBlur && !revealed ? "masked" : "revealed"}`}>
                 {s.amount.toLocaleString()}
                 <span className="amount-split__op"> − </span>
                 {s.split_amount.toLocaleString()}
@@ -1237,16 +1029,14 @@ function ScheduleCard({
             <span
               className={`amount-text ${
                 s.inout === 1 ? "schedule-card__amount-value--in" : "schedule-card__amount-value--out"
-              }`}
+              } ${isBlur && !revealed ? "masked" : "revealed"}`}
+              title={isBlur ? "끌면 잠깐 보인다." : undefined}
+              onMouseDown={isBlur ? startReveal : undefined}
+              onTouchStart={isBlur ? startReveal : undefined}
             >
               {amountDisplay}
             </span>
           </span>
-        </div>
-
-        <div className="schedule-card__row schedule-card__row--meta-single">
-          <div className="schedule-card__label">휴일 처리</div>
-          <span className="schedule-card__meta-value">{holidayLabel}</span>
         </div>
 
         <div className="schedule-card__row schedule-card__row--meta-single">

@@ -1,4 +1,3 @@
-import PageHead from "./components/PageHead";
 import MenuList from "./components/MenuList";
 import { SETTING_TABS } from "../utils/pageTitles";
 
@@ -6,7 +5,6 @@ import { SETTING_TABS } from "../utils/pageTitles";
 export default function Settings() {
   return (
     <div className="page-wrap">
-      <PageHead />
       <MenuList paths={SETTING_TABS} />
     </div>
   );

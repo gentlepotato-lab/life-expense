@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import PageHead from "./components/PageHead";
 
 /**
  * 아직 속을 채우지 않은 화면.
@@ -13,7 +12,6 @@ export default function Blank() {
 
   return (
     <div className="page-wrap">
-      <PageHead />
 
       <div className="blank-page">
         <p className="blank-page__line">아직 비어 있다.</p>

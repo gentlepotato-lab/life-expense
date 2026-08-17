@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import PageHead from "./components/PageHead";
 import {
   ArtWrite,
   ArtProfile,
@@ -54,7 +53,6 @@ export default function Home() {
 
   return (
     <div className="page-wrap home">
-      <PageHead />
 
       {/* 위 한 행 — 둘이 나란히 */}
       <div className="home-row">

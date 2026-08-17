@@ -1,4 +1,3 @@
-import PageHead from "./components/PageHead";
 import { useEffect, useState } from "react";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
@@ -324,7 +323,6 @@ export default function PaymentMethods() {
 
   return (
     <div className="page-wrap">
-      <PageHead />
 
       <div className="cat-toolbar">
         <div className="pm-toolbar-row">

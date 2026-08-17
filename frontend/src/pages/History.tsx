@@ -1,4 +1,3 @@
-import PageHead from "./components/PageHead";
 import MenuList from "./components/MenuList";
 import { ENTRY_TABS } from "../utils/pageTitles";
 
@@ -6,7 +5,6 @@ import { ENTRY_TABS } from "../utils/pageTitles";
 export default function History() {
   return (
     <div className="page-wrap">
-      <PageHead />
       <MenuList paths={ENTRY_TABS} />
     </div>
   );

@@ -1,4 +1,3 @@
-import PageHead from "./components/PageHead";
 import { visible } from "../utils/visible";
 import React, { useEffect, useState } from "react";
 import axios from "../api/client";
@@ -192,7 +191,6 @@ export default function Write() {
 
   return (
     <div className="page-wrap">
-      <PageHead />
 
       {/* 카드 스타일 폼 컨테이너 */}
       <form onSubmit={handleSubmit} className="card entry-card-form"

@@ -6382,3 +6382,687 @@ body {
     display: inline;
   }
 }
+
+/* ─── 정기 내역 카드 — 라벨과 값 붙이기 ───────────────────────
+   "휴일 처리"는 왼쪽 끝, "당일"은 오른쪽 끝에 떨어져 있어 한 쌍으로 읽히지
+   않았다. 값을 라벨 바로 옆에 둔다. */
+.schedule-card__row--meta-single .schedule-card__meta-value {
+  flex: 0 1 auto;
+  text-align: left;
+}
+
+/* ─── 월 넘기기 ───────────────────────────────────────────────
+   달을 화살표로 오간다. 고르는 즉시 불러오므로 [조회] 버튼이 없어졌다. */
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.month-nav__arrow {
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.month-nav__arrow:hover {
+  background: var(--color-bg);
+  border: 0;
+  color: var(--color-primary);
+}
+
+.month-nav__label {
+  min-width: 88px;
+  text-align: center;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── 필터 버튼 — 감추기 알약과 같은 결 ────────────────────────
+   예전에는 ☐/☑ 기호로 걸림 여부를 알렸다. 설정 화면의 감추기·Blur 처럼
+   버튼 자체가 켜지고 꺼지게 해서, 누르는 자리와 상태 표시를 하나로 합친다. */
+.filter-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.filter-pill:hover {
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-primary);
+}
+
+/* 켜짐 — 지금 걸려 있는 필터가 있다 */
+.filter-pill.on {
+  border-color: transparent;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.filter-pill.on:hover {
+  background: var(--color-primary-dark);
+  color: #fff;
+}
+
+/* Excel 두 버튼은 붙여 둔다 — 한 쌍으로 읽힌다 */
+.excel-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─── 금액은 언제나 오른쪽 ─────────────────────────────────────
+   숫자는 자릿수가 맞아야 눈으로 견줄 수 있다. 적을 때도 보여 줄 때도 같다.
+   16절에서 편집 팝업의 칸을 모두 왼쪽으로 맞추면서 금액까지 딸려 갔던 것을
+   되돌린다 — 금액만 예외다. */
+.amount-input,
+.edit-field__control input.amount-input,
+.split-cell > input.amount-input,
+.amount-split,
+.date-group__sum,
+.split-editor__sum {
+  text-align: right;
+}
+
+/* 정기 등록 폼의 금액 칸은 .ui-input 을 쓰므로 따로 짚어 준다 */
+.amount-right {
+  text-align: right;
+}
+
+/* 세 내역 화면의 툴바 높이를 못 박는다. 안에 든 버튼 크기가 조금씩 달라
+   지출 내역만 2px 낮았다. */
+.toolbar {
+  min-height: 54px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   38. 넓은 화면 — 본문 폭 되돌리기 (2026-08)
+   ════════════════════════════════════════════════════════════ */
+
+/* 예전에는 툴바·카드 목록 같은 덩어리마다 max-width: 760px 이 붙어 있었다.
+   새로 만든 홈·진입 목록·머리말에는 그게 없어서 브라우저에서 끝까지 늘어났다.
+   덩어리마다 붙이는 대신 본문 전체를 한 번 잡아 가운데에 세운다. */
+.page-wrap {
+  max-width: 784px;   /* 760px 본문 + 좌우 여백 12px */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 아래 이동 막대는 바탕만 화면 끝까지 깔고, 누르는 자리는 본문과 같은 폭으로.
+   1400px 짜리 화면에서 탭 하나가 460px 이 되어 버리면 눌러야 할 곳이 흩어진다. */
+.tabbar {
+  justify-content: center;
+}
+
+.tabbar__item {
+  max-width: calc(784px / 3);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   39. 금액 가리개 — 마스킹 테이프 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   33절의 사선 줄무늬를 종이 마스킹 테이프로 바꾼다(public/tape.svg).
+
+   손댄 곳이 셋이다.
+   ① 카드가 뚱뚱해지던 것 — 가린 상태와 드러난 상태의 높이가 24px 대 34px 로
+      달라 카드가 10px 씩 들썩였다. 두 상태의 줄 높이를 같게 못 박는다.
+   ② 뻑뻑하던 것 — 30px 를 끌어야 반응했다. 12px 로 줄이고(코드),
+      테이프가 스르르 밀려나며 사라지게 한다.
+   ③ 날짜 합계 — 가려만 두고 끌 수 없었다. 이제 여기도 끌면 보인다.
+   ════════════════════════════════════════════════════════════ */
+
+.amount-text.masked,
+.amount-text.revealed,
+.amount-split.masked,
+.amount-split.revealed,
+.date-group__sum.masked {
+  position: relative;
+}
+
+/* ─── 공통 — 테이프 자체 ────────────────────────────────────── */
+.amount-text.masked::after,
+.amount-split.masked::after,
+.date-group__sum.masked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  background-image: url("/tape.svg");
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  filter: drop-shadow(0 1px 1px rgba(16, 24, 40, 0.10));
+  pointer-events: none;
+  /* 떼어질 때 오른쪽으로 스르르 밀려나며 옅어진다 */
+  opacity: 1;
+  transition: opacity 170ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ─── 카드 금액 ─────────────────────────────────────────────── */
+.amount-text.masked {
+  filter: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  /* 길이 고정 — 금액이 커도 작아도 테이프 폭은 같다 */
+  width: 96px;
+  min-width: 96px;
+  overflow: visible;
+  font-size: 0;
+  color: transparent;
+  cursor: ew-resize;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+/* 가린 상태와 드러난 상태의 줄 높이를 하나로 — 카드가 들썩이지 않는다 */
+.amount-text.masked,
+.amount-text.revealed {
+  height: 34px;
+  min-height: 34px;
+  line-height: 34px;
+}
+
+.amount-text.masked::after {
+  left: 0;
+  right: 0;
+  height: 26px;
+  transform: translateY(-50%) rotate(-1.4deg);
+}
+
+.amount-text.revealed {
+  filter: none;
+  width: auto;
+  min-width: 96px;
+  font-size: var(--font-size-2xl);
+  color: inherit;
+}
+
+/* 떼는 순간 — 오른쪽으로 밀려나며 사라진다 */
+.amount-text.revealed::after {
+  content: "";
+  position: absolute;
+  inset: 4px 0;
+  background: none;
+  opacity: 0;
+  transform: translateX(18px) rotate(-6deg);
+  pointer-events: none;
+}
+
+/* ─── 쪼갠 건의 작은 줄 ─────────────────────────────────────── */
+.amount-split.masked {
+  filter: none;
+  display: inline-flex;
+  align-items: center;
+  width: 70px;
+  min-width: 70px;
+  height: 16px;
+  overflow: visible;
+  font-size: 0;
+  color: transparent;
+  user-select: none;
+}
+
+.amount-split.masked::after {
+  left: 0;
+  right: 0;
+  height: 15px;
+  transform: translateY(-50%) rotate(-1.4deg);
+}
+
+.amount-split.revealed {
+  height: 16px;
+}
+
+/* ─── 날짜별 합계 ───────────────────────────────────────────── */
+.date-group__sum.masked {
+  filter: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100px;
+  min-width: 100px;
+  height: 22px;
+  overflow: visible;
+  font-size: 0;
+  color: transparent;
+  cursor: ew-resize;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+.date-group__sum.masked::after {
+  left: 0;
+  right: 0;
+  height: 20px;
+  transform: translateY(-50%) rotate(-1.1deg);
+}
+
+/* 날짜 합계도 끌면 보인다 */
+.date-group__sum.revealed {
+  min-width: 100px;
+  text-align: right;
+}
+
+/* 금액 칸의 최소 폭은 테이프 폭에 맞춘다 */
+.row-payment .amount-stack {
+  min-width: 96px;
+}
+
+/* ─── 정기 카드 머리 한 줄 ─────────────────────────────────────
+   "다음 오전 8:00" 을 빼고, 시각을 날짜와 같은 글씨로 올려 붙였다.
+   휴일 처리는 아래 따로 있던 줄에서 머리 오른쪽 끝으로 옮겼다.
+   카드가 두 줄 줄어든다. */
+.schedule-card__row--header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.schedule-card__date-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.schedule-card__holiday {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   40. 누르는 느낌 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   마우스를 올리면 살짝 떠오르는데, 손가락으로는 아무 반응이 없었다.
+   모바일에는 hover 가 없기 때문이다. 게다가 탭 막대는 브라우저 기본
+   강조까지 꺼 두어(-webkit-tap-highlight-color) 더 밋밋했다.
+   눌린 동안 살짝 눌러앉게 해서 손끝에 닿는 느낌을 만든다.
+   ════════════════════════════════════════════════════════════ */
+
+.home-card:active,
+.menu-card:active {
+  transform: scale(0.985);
+  box-shadow: var(--shadow-sm);
+  transition-duration: 80ms;
+}
+
+.tabbar__item:active,
+.subtabs__item:active {
+  transform: scale(0.94);
+  transition-duration: 80ms;
+}
+
+.tabbar__item,
+.subtabs__item {
+  transition: color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+/* 눌린 탭은 색도 잠깐 진해진다 */
+.tabbar__item:active {
+  color: var(--color-primary);
+}
+
+/* 손가락으로 누를 때 파랗게 번지는 기본 강조는 우리 반응으로 대신한다 */
+.home-card,
+.menu-card,
+.card--pressable,
+.filter-pill,
+.month-nav__arrow {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.filter-pill:active,
+.month-nav__arrow:active {
+  transform: scale(0.92);
+  transition-duration: 80ms;
+}
+
+/* 손가락으로 누르는 동안 카드가 살짝 가라앉는다.
+   꾹 누르기(.pressing)에 들어가면 반대로 커지는 기존 반응이 있으므로
+   그때는 비켜 준다 — 그러지 않으면 이 규칙이 뒤에 있어 덮어 버린다. */
+.card--pressable:active:not(.pressing) {
+  transform: scale(0.995);
+  transition-duration: 80ms;
+}
+
+/* 날짜 합계도 두 상태의 줄 높이를 같게 — 떼는 순간 단 머리말이 4px 내려앉았다 */
+.date-group__sum.masked,
+.date-group__sum.revealed {
+  height: 22px;
+  min-height: 22px;
+  line-height: 22px;
+}
+
+/* 단 머리말의 높이를 못 박는다.
+   가린 합계는 글자 크기가 0 이라 베이스라인이 달라져, 테이프를 떼는 순간
+   머리말 줄이 2px 내려앉고 그 아래가 통째로 밀렸다. */
+.date-group__head {
+  min-height: 30px;
+}
+
+.date-group__meta {
+  align-items: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   41. 머리말을 화면 바깥으로 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   갈래 탭 알약이 화면을 옮겨도 미끄러지게 하려면, 머리말이 페이지와 함께
+   사라졌다 다시 생기면 안 된다. App 이 한 번만 그리도록 올렸다.
+   그 바람에 머리말이 .page-wrap 밖으로 나갔으므로, 폭·여백을 여기서 준다.
+   ════════════════════════════════════════════════════════════ */
+
+/* 여백은 .page-wrap 이 쓰던 값을 그대로 물려받는다.
+   위쪽은 h1 이 제 여백(16px)을 갖고 있어 --space-3 만 준다 — 옮기기 전과 같은 자리다. */
+.page-head {
+  max-width: 784px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--space-3) var(--space-3) 0;
+}
+
+@media (max-width: 768px) {
+  .page-head {
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
+  }
+}
+
+/* 위 여백은 이제 머리말이 가진다. 본문은 머리말 아래에서 시작한다 */
+.page-wrap {
+  padding-top: 0;
+  min-height: 0;
+}
+
+/* 화면이 짧아도 아래 탭 막대까지 바탕이 이어지도록 */
+#root {
+  min-height: 100vh;
+}
+
+/* ─── 갈래 탭 알약 — 미끄러진다 ────────────────────────────── */
+.subtabs {
+  position: relative;
+}
+
+.subtabs__thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  /* 갈래는 늘 셋이라 폭 계산이 간단하다 */
+  width: calc((100% - 6px) / 3);
+  background: var(--color-surface);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+/* 알약은 이제 따로 있으므로 버튼 자신은 바탕을 그리지 않는다 */
+.subtabs__item {
+  position: relative;
+  z-index: 1;
+}
+
+.subtabs__item.on {
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .subtabs__thumb {
+    transition: none;
+  }
+}
+
+/* 목록이 긴 화면과 짧은 화면 사이를 오갈 때 세로 스크롤 막대가 생겼다 없어지며
+   본문 폭이 15px 씩 달라졌다. 막대 자리를 늘 비워 두면 어느 화면에서나 폭이 같다.
+   막대가 화면 위에 겹쳐 뜨는 기기(모바일)에서는 아무 일도 하지 않는다. */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* ─── 날짜별 건수 — 설정 화면의 항목 수 배지와 같은 모양 ───────
+   전에는 "1건" 이 합계 왼쪽에 글자로 떠 있어 날짜에도 합계에도 붙지 않았다.
+   날짜 바로 옆으로 옮기고, 값은 .set-group__count(21절)와 같게 맞춘다. */
+.date-group__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 알약이 생겼으므로 줄은 베이스라인이 아니라 가운데로 맞춘다 */
+.date-group__head {
+  align-items: center;
+}
+
+/* 합계는 오른쪽 끝을 지킨다 */
+.date-group__meta {
+  margin-left: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   42. 화면 옮길 때 끊기지 않게 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   화면을 옮기는 순간 새 목록을 그리느라 60ms 가량 본줄기(main thread)가
+   막힌다. 그동안 알약이 본줄기에 매여 있으면 그 자리에 얼어붙었다가 튄다.
+   빠른 기기에서는 한 프레임이라 티가 안 나지만 태블릿에서는 눈에 띈다.
+   ════════════════════════════════════════════════════════════ */
+
+/* 알약을 제 층으로 올려 둔다. 본줄기가 막혀 있어도 합성기가 알아서 민다.
+   자리 옮김은 PageHead 가 translate3d 로 주므로(그쪽이 인라인이라 이긴다)
+   여기서는 층만 예약한다. */
+.subtabs__thumb {
+  will-change: transform;
+}
+
+/* 아래 이동 막대의 실시간 블러는 화면이 넓을수록 비싸다.
+   막대 전체를 매 프레임 다시 흐리게 만들어야 해서, 옮기는 동안 함께 버벅인다.
+   거의 불투명한 바탕으로 바꾸면 보기에는 같고 그릴 일은 없다. */
+.tabbar {
+  background: color-mix(in srgb, var(--color-surface) 97%, transparent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* contain: layout 을 걸어 봤다가 도로 뺐다.
+   그 안의 position: fixed 팝업이 화면이 아니라 본문을 기준으로 잡혀
+   덮개가 430x900 대신 415x5855 가 됐다. 얻는 것보다 잃는 게 크다. */
+
+/* ═══════════════════════════════════════════════════════════════
+   43. 필터 · 정기 등록 팝업도 같은 격자로 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   편집 팝업만 12칸 격자였고 나머지 둘은 제각각이었다. 셋을 하나로 맞춘다.
+   .edit-grid 는 편집 팝업 안에서만 쓰이던 것이라, 팝업 판 안에서도
+   같은 여백과 폭을 갖도록 여기서 챙긴다.
+   ════════════════════════════════════════════════════════════ */
+
+.popup-panel > .edit-grid,
+.popup-panel form > .edit-grid {
+  margin-bottom: var(--space-4);
+}
+
+/* 격자 안의 입력 칸은 칸을 꽉 채운다 — 폭을 제각각 우기면 줄이 어긋난다 */
+.popup-panel .edit-field__control > input,
+.popup-panel .edit-field__control > .ms-wrap,
+.popup-panel .edit-field__control > .filter-range {
+  width: 100%;
+  min-width: 0;
+}
+
+/* 금액 구간 두 칸 */
+.popup-panel .filter-range > input.amount-input {
+  flex: 1 1 0;
+  width: auto;
+  max-width: none;
+}
+
+/* 아래 버튼 줄은 오른쪽에 붙인다 */
+.popup-foot {
+  justify-content: flex-end;
+}
+
+/* 월 이름은 그 화면에서 가장 자주 보는 값이라 조금 키운다 */
+.month-nav__label {
+  font-size: var(--font-size-lg);
+  min-width: 100px;
+}
+
+/* 등록 버튼 하나뿐인 줄은 늘어나지 않게 — 필터 팝업의 [적용]과 같은 크기로 */
+.popup-foot .ui-btn {
+  flex: 0 0 auto;
+  min-width: 96px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   44. 필터 · 정기 등록 팝업의 머리·바닥도 편집 팝업과 같게 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   둘만 제목이 가운데였고 위에 여백이 떠 있었다. 편집 팝업처럼
+   왼쪽 위에 붙이고, 아래에 가는 줄로 본문과 가른다.
+   ════════════════════════════════════════════════════════════ */
+
+/* 판 자체의 여백을 걷고, 머리·본문·바닥이 각자 여백을 갖는다 */
+.popup-panel--framed {
+  padding: 0;
+  overflow: hidden;
+}
+
+.popup-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* 값은 .edit-modal__title 과 같다 */
+.popup-head__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-align: left;
+  color: var(--color-text-primary);
+}
+
+.popup-body {
+  padding: var(--space-4);
+}
+
+/* 바닥 — 편집 팝업과 같은 결 */
+.popup-panel--framed .popup-foot {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+/* 본문이 아래 여백을 또 갖지 않도록 */
+.popup-panel--framed .popup-body {
+  margin-bottom: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   45. 내역 세 화면의 툴바 — 얇게, 바탕 없이 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   흰 카드로 떠 있어 갈래 탭 바로 아래에서 자리를 많이 먹었다.
+   바탕을 걷고 치수를 함께한 상대의 [편집] 버튼(11px/700, 24px)에 맞춘다.
+   ════════════════════════════════════════════════════════════ */
+
+.toolbar {
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin-bottom: var(--space-2);
+}
+
+/* 버튼은 모두 [편집] 과 같은 치수로 */
+.toolbar .ui-btn,
+.toolbar .filter-pill {
+  height: 24px;
+  min-height: 24px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.toolbar-btns,
+.toolbar .excel-btns {
+  gap: 6px;
+}
+
+/* 화살표도 함께 줄인다 */
+.month-nav__arrow {
+  width: 24px;
+  height: 24px;
+  font-size: 17px;
+}
+
+/* 달 이름은 그 화면에서 가장 자주 보는 값이라 크기를 지킨다 */
+.month-nav__label {
+  min-width: 92px;
+}
+
+/* 필터가 걸리면 월 넘기기 자리에 기간 표시가 들어선다. 그 둘의 키가 달라
+   툴바가 32px ↔ 40px 로 오르내렸고, 아래 카드가 통째로 8px 씩 밀렸다.
+   두 자리를 같은 키로 못 박는다. */
+.toolbar {
+  min-height: 24px;
+}
+
+.toolbar > .filter-range-label {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  /* 140~220px 로 못 박혀 있어 "전체 기간" 네 글자가 바 절반을 먹었다 */
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  flex: 0 0 auto;
+}

@@ -1,4 +1,3 @@
-import PageHead from "./components/PageHead";
 import { useEffect, useState } from "react";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
@@ -519,7 +518,6 @@ export default function Counterparts() {
 
   return (
     <div className="page-wrap">
-      <PageHead />
 
       <div className="cp-page">
         {/* 추가는 목록 아래에서 한다. 여기는 편집 여부와 목록 범위만 다룬다 */}

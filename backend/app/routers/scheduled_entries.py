@@ -176,6 +176,17 @@ def find_nearest_non_holiday(target_date: date, holiday_handling: str, db: Sessi
                 return current
         return target_date  # 못 찾으면 원래 날짜 반환
 
+def _first_of_next_month(d: date) -> date:
+    """다음 달 1일.
+
+    다음 실행일을 구할 때의 출발점이다. 예전에는 32일을 더했는데,
+    31일짜리 스케줄이 7월 31일에 돌면 8월 1일이 아니라 9월 1일로 건너뛰어
+    8월을 통째로 잃었다(9월에는 31일이 없어 다시 10월로 밀렸다).
+    달의 첫날로 옮기면 며칠짜리 달이든 한 달씩만 정확히 나아간다.
+    """
+    return date(d.year + 1, 1, 1) if d.month == 12 else date(d.year, d.month + 1, 1)
+
+
 def calculate_next_run_at(
     day_of_month: int,
     hour: int,
@@ -263,7 +274,7 @@ def process_scheduled_entries(db: Session):
                 schedule.minute,
                 schedule.holiday_handling,
                 db,
-                base_date=schedule.next_run_at.date() + timedelta(days=32)
+                base_date=_first_of_next_month(schedule.next_run_at.date())
             )
             continue
         
@@ -293,7 +304,7 @@ def process_scheduled_entries(db: Session):
             schedule.minute,
             schedule.holiday_handling,
             db,
-            base_date=schedule.next_run_at.date() + timedelta(days=32)
+            base_date=_first_of_next_month(schedule.next_run_at.date())
         )
     
     if created_count > 0:
