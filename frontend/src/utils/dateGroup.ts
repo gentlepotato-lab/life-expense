@@ -25,12 +25,17 @@ export type DateGroup<T> = {
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-/** YYYY-MM-DD → "2026. 8. 9.(일)" */
+/**
+ * YYYY-MM-DD → "2026. 8. 9. (일)"
+ *
+ * 여는 괄호는 앞말에 붙이는 것이 규칙이지만, 날짜 뒤의 요일은 예외다.
+ * 앞말이 마침표로 끝나 "9.(일)" 처럼 점과 괄호가 붙으면 답답해 보인다.
+ */
 export function formatDateLabel(date: string): string {
   if (!date) return "날짜 없음";
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return date;
-  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.(${WEEKDAYS[d.getDay()]})`;
+  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. (${WEEKDAYS[d.getDay()]})`;
 }
 
 type Summarizable = {

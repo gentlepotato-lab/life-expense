@@ -61,6 +61,9 @@ export default function CalendarDetail() {
     return new Set<Src>(raw.length ? raw : SRC_ORDER);
   }, [params]);
 
+  /* 달력에서 Blur 를 켠 채 넘어왔는지. 끄고 왔다면 가려 둔 갈래는 뺀다 */
+  const blurOn = params.get("blur") === "1";
+
   /* 달력에 걸려 있던 조건. 주소만으로 들어왔다면 조건 없이 본다 */
   const filter = useMemo<Filter>(
     () => (location.state as { filter?: Filter } | null)?.filter ?? EMPTY_FILTER,
@@ -177,6 +180,8 @@ export default function CalendarDetail() {
       if (!srcOn.has(src)) return;
       list.forEach((x) => {
         const date = dateOnly(x[dateField]);
+        /* 달력과 같은 셈이어야 한다 — 달력에서 뺀 것은 여기서도 뺀다 */
+        if (!blurOn && cat2Map[Number(x.cat2_id)]?.blur === 1) return;
         if (!passes(src, x, date)) return;
         out.push({
           src,
@@ -202,7 +207,7 @@ export default function CalendarDetail() {
           ? 1
           : -1
     );
-  }, [exRows, peRows, scRows, srcOn, passes]);
+  }, [exRows, peRows, scRows, srcOn, passes, blurOn, cat2Map]);
 
   const dateGroups = useMemo(
     () => groupByDate(items, (r) => cat2Map[Number(r.cat2_id)]?.blur === 1),

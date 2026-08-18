@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
+import useRevealDrag from "../hooks/useRevealDrag";
 import CalculatorPopup from "./components/CalculatorPopup";
 import MultiSelect from "./components/MultiSelect";
 import SingleSelect from "./components/SingleSelect";
@@ -59,6 +60,10 @@ export default function Calendar() {
 
   const [rows, setRows] = useState<Row[]>([]);
 
+  /* Blur 를 걸어 둔 갈래를 셈에 넣을지. 처음에는 빼 둔다 —
+     가릴 것이 아예 없으면 테이프도 뜨지 않는다. */
+  const [blurOn, setBlurOn] = useState(false);
+
   /* 눌러서 고른 기간.
      한 번 누르면 시작일만 잡히고(end === null), 한 번 더 누르면 끝일까지 잡힌다.
      시작일만 잡힌 상태에서 같은 날 또는 달력 바깥을 누르면 고르기를 접는다. */
@@ -73,7 +78,7 @@ export default function Calendar() {
 
   /* 고르는 목록들 */
   const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
-  const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; is_active?: number }[]>([]);
+  const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; is_active?: number }[]>([]);
   const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
@@ -146,10 +151,23 @@ export default function Calendar() {
     };
   }, [yearMonth]);
 
-  /* 켠 자료 + 걸린 조건을 통과한 줄만 */
+  /* Blur 가 걸린 소분류 — 그런 지출이 낀 날은 칸의 금액도 덮는다 */
+  const blurSet = useMemo(
+    () => new Set(cat2List.filter((c) => c.blur === 1).map((c) => c.id)),
+    [cat2List]
+  );
+
+  /* 켠 자료 + 걸린 조건을 통과한 줄만.
+     Blur 를 끄면 가려야 할 갈래는 셈에서 아예 뺀다 */
   const shown = useMemo(
-    () => rows.filter((r) => on[r.src] && pass(r, appliedFilter)),
-    [rows, on, appliedFilter]
+    () =>
+      rows.filter(
+        (r) =>
+          on[r.src] &&
+          (blurOn || !blurSet.has(Number(r.cat2_id))) &&
+          pass(r, appliedFilter)
+      ),
+    [rows, on, appliedFilter, blurOn, blurSet]
   );
 
   /* 날짜별로 모은다 */
@@ -198,13 +216,28 @@ export default function Calendar() {
     };
   }, []);
 
-  /* 한 달 합계 */
+  /* 끌면 그 날 하나만 잠깐 드러난다 — 카드·날짜 합계와 같은 손짓이다 */
+  const [revealDay, setRevealDay] = useState<number | null>(null);
+  const dragDay = useRef<number | null>(null);
+  const startReveal = useRevealDrag((on) => setRevealDay(on ? dragDay.current : null));
+
+  /* 한 달 합계. 가려야 할 줄이 하나라도 섞였으면 합계도 함께 덮는다 —
+     날마다 가려 놓고 합계로 드러나면 가린 뜻이 없다. */
   const monthSum = useMemo(() => {
     let inSum = 0;
     let outSum = 0;
-    shown.forEach((r) => (r.inout === 1 ? (inSum += r.net) : (outSum += r.net)));
-    return { inSum, outSum, net: inSum - outSum };
-  }, [shown]);
+    let hasBlur = false;
+    shown.forEach((r) => {
+      if (r.inout === 1) inSum += r.net;
+      else outSum += r.net;
+      if (blurSet.has(Number(r.cat2_id))) hasBlur = true;
+    });
+    return { inSum, outSum, net: inSum - outSum, hasBlur };
+  }, [shown, blurSet]);
+
+  const [sumRevealed, setSumRevealed] = useState(false);
+  const startSumReveal = useRevealDrag(setSumRevealed);
+  const sumMasked = monthSum.hasBlur && !sumRevealed;
 
   /** 날짜 한 칸을 눌렀을 때 */
   const pickDay = useCallback((day: number) => {
@@ -249,11 +282,11 @@ export default function Calendar() {
     /* 끝일을 고르지 않았으면 그 하루만 본다 */
     const to = `${yearMonth}-${pad(pick.end ?? pick.start)}`;
     const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
-    navigate(`/calendar/detail?from=${from}&to=${to}&src=${src}`, {
+    navigate(`/calendar/detail?from=${from}&to=${to}&src=${src}&blur=${blurOn ? 1 : 0}`, {
       /* 걸린 조건도 함께 넘긴다 — 달력에 보이던 것과 상세가 어긋나면 안 된다 */
       state: { filter: appliedFilter },
     });
-  }, [pick, yearMonth, on, appliedFilter, navigate]);
+  }, [pick, yearMonth, on, blurOn, appliedFilter, navigate]);
 
   const closeFilter = useCallback(() => {
     setFilter(appliedFilter);
@@ -393,9 +426,31 @@ export default function Calendar() {
           </label>
         ))}
 
+        {/* Blur 를 켜야 가려 둔 갈래까지 셈에 든다 */}
+        <button
+          type="button"
+          className={`cal-source cal-source--blur${blurOn ? " on" : ""}`}
+          aria-pressed={blurOn}
+          title={
+            blurOn
+              ? "가려 둔 갈래도 셈에 든다. 금액은 덮여 있고, 끌면 잠깐 보인다."
+              : "가려 둔 갈래는 셈에서 빠져 있다. 눌러서 넣는다."
+          }
+          onClick={() => setBlurOn((v) => !v)}
+        >
+          Blur
+        </button>
+
         <span className="cal-sum">
           {monthSum.net !== 0 && (
-            <span className={monthSum.net > 0 ? "cal-sum__in" : "cal-sum__out"}>
+            <span
+              className={`${monthSum.net > 0 ? "cal-sum__in" : "cal-sum__out"}${
+                monthSum.hasBlur ? (sumMasked ? " masked" : " revealed") : ""
+              }`}
+              title={monthSum.hasBlur ? "끌면 잠깐 보인다." : undefined}
+              onMouseDown={monthSum.hasBlur ? startSumReveal : undefined}
+              onTouchStart={monthSum.hasBlur ? startSumReveal : undefined}
+            >
               {monthSum.net > 0 ? "+" : "−"}
               {Math.abs(monthSum.net).toLocaleString("ko-KR")}
             </span>
@@ -419,11 +474,14 @@ export default function Calendar() {
 
             const items = byDay.get(day) ?? [];
             let net = 0;
+            let hasBlur = false;
             const kinds = new Set<Src>();
             items.forEach((r) => {
               net += r.inout === 1 ? r.net : -r.net;
               kinds.add(r.src);
+              if (blurSet.has(Number(r.cat2_id))) hasBlur = true;
             });
+            const netMasked = hasBlur && revealDay !== day;
 
             const dow = i % 7;
             const isToday = today.ym === yearMonth && today.day === day;
@@ -452,7 +510,30 @@ export default function Calendar() {
 
                 {items.length > 0 && (
                   <>
-                    <span className={`cal__net ${net > 0 ? "plus" : net < 0 ? "minus" : "zero"}`}>
+                    <span
+                      className={`cal__net ${net > 0 ? "plus" : net < 0 ? "minus" : "zero"}${
+                        hasBlur ? (netMasked ? " masked" : " revealed") : ""
+                      }`}
+                      title={hasBlur ? "끌면 잠깐 보인다." : undefined}
+                      /* 덮인 금액은 제 손짓이 있으므로 날짜 고르기로 넘기지 않는다 */
+                      onClick={hasBlur ? (e) => e.stopPropagation() : undefined}
+                      onMouseDown={
+                        hasBlur
+                          ? (e) => {
+                              dragDay.current = day;
+                              startReveal(e);
+                            }
+                          : undefined
+                      }
+                      onTouchStart={
+                        hasBlur
+                          ? (e) => {
+                              dragDay.current = day;
+                              startReveal(e);
+                            }
+                          : undefined
+                      }
+                    >
                       {net > 0 ? "+" : net < 0 ? "−" : ""}
                       {Math.abs(net).toLocaleString("ko-KR")}
                     </span>
