@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, text
 from sqlalchemy.exc import IntegrityError
 from app.deps import get_db, SessionLocal
 from app.models import Place
@@ -205,17 +205,86 @@ def create_place(payload: PlaceIn, db=Depends(get_db)):
 
 @router.get("/search")
 def search_places(q: str, db=Depends(get_db)):
+    """저장된 장소를 이름으로 찾는다.
+
+    순서는 최근에 간 곳 → 자주 간 곳 → 이름.
+    정렬을 두지 않았을 때는 63번 간 카페가 네 번째에 놓이는 식이라
+    한참 훑어야 했다.
+
+    쓴 횟수와 마지막 날짜는 지출·대기에서 그때그때 세어 낸다.
+    표에 세어 둔 값을 들고 있으면 내역을 고칠 때마다 맞춰 줘야 하고,
+    한 번 어긋나면 되돌리기 어렵다. 2,800건 남짓이라 셀 때마다 세도 빠르다.
+
+    정기는 빼 둔다 — 실제로 쓴 기록이 아니라 매달 도는 틀이라,
+    한 줄을 1회로 세면 실제 다녀온 횟수와 어긋난다.
+
+    대기는 아직 안 보낸 것(sended = 0)만 센다. 보내고 나면 지출에 같은 건이
+    생기는데 대기 쪽 줄도 그대로 남아 있어서, 거르지 않으면 한 번 쓴 것이
+    두 번으로 잡힌다.
+
+    이름은 글자가 순서대로 들어 있기만 하면 걸린다.
+    가게 이름은 `메가MGC커피 과천상상자이점` 인데 찾을 때는 `메가커피` 라고
+    치게 되는데, 통째로 든 것만 찾으면 하나도 안 걸렸다.
+    `%메%가%커%피%` 로 바꿔 두면 `스벅`→스타벅스, `맥날`→맥도날드 처럼
+    앞 글자만 따서 부르는 이름도 걸린다.
+
+    통째로 든 것을 먼저 세우고, 글자만 흩어져 든 것은 그 뒤에 붙인다.
+    그래야 `카페` 로 찾을 때 이름에 `카페` 가 있는 곳이 밀리지 않는다.
+
+    집계와 바깥 조인이 섞여 ORM 으로는 오히려 읽기 어려워 raw SQL 을 쓴다.
+    """
+    kw = q.strip()
+
+    def esc(s: str) -> str:
+        """LIKE 에서 뜻을 가지는 글자를 그냥 글자로 만든다"""
+        return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+    # 통째로 든 것
+    whole = f"%{esc(kw)}%"
+    # 글자가 순서대로만 들어 있으면 되는 것. 띄어쓰기는 무시한다
+    letters = [esc(c) for c in kw if not c.isspace()]
+    loose = "%" + "%".join(letters) + "%" if letters else "%"
+
     rows = db.execute(
-        select(Place).where(Place.place_name.ilike(f"%{q}%"))
-    ).scalars().all()
+        text(
+            """
+            SELECT p.place_id, p.place_name, p.city, p.district, p.town,
+                   p.lat, p.lng
+            FROM life_expense.places p
+            LEFT JOIN (
+                SELECT place_id,
+                       COUNT(*)   AS used_count,
+                       MAX(tx_date) AS last_used
+                FROM (
+                    SELECT place_id, tx_date
+                    FROM life_expense.entries
+                    WHERE place_id IS NOT NULL
+                    UNION ALL
+                    SELECT place_id, tx_date
+                    FROM life_expense.pending_entries
+                    WHERE place_id IS NOT NULL
+                      AND sended = 0
+                ) x
+                GROUP BY place_id
+            ) u ON u.place_id = p.place_id
+            WHERE p.place_name ILIKE :loose ESCAPE '\\'
+            ORDER BY CASE WHEN p.place_name ILIKE :whole ESCAPE '\\'
+                          THEN 0 ELSE 1 END,
+                     u.last_used DESC NULLS LAST,
+                     COALESCE(u.used_count, 0) DESC,
+                     p.place_name
+            """
+        ),
+        {"whole": whole, "loose": loose},
+    ).mappings().all()
 
     return [
         {
-            "place_id": r.place_id,
-            "place_name": r.place_name,
-            "address": f"{r.city or ''} {r.district or ''} {r.town or ''}".strip(),
-            "lat": r.lat,
-            "lng": r.lng,
+            "place_id": r["place_id"],
+            "place_name": r["place_name"],
+            "address": f"{r['city'] or ''} {r['district'] or ''} {r['town'] or ''}".strip(),
+            "lat": r["lat"],
+            "lng": r["lng"],
         }
         for r in rows
     ]
