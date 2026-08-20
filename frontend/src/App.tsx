@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Write from "./pages/Write";
 import Entries from "./pages/Entries";
@@ -13,6 +13,10 @@ import Home from "./pages/Home";
 import Blank from "./pages/Blank";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
+/* 씀씀이만 따로 떼어 낸다 — 그림 그리는 짐(Recharts)이 무거워서
+   이 화면에 들어갈 때만 받아 오게 한다. 다른 화면은 가벼운 그대로다. */
+const Charts = lazy(() => import("./pages/Charts"));
+
 import PageHead from "./pages/components/PageHead";
 import TabBar from "./pages/components/TabBar";
 
@@ -83,7 +87,14 @@ function App() {
         {/* 홈에서 문만 내 둔 화면들 — 속은 뒤에 채운다.
             이름은 PageHead 가 경로를 보고 붙인다(utils/pageTitles.ts) */}
         <Route path="/me" element={<Blank />} />
-        <Route path="/charts" element={<Blank />} />
+        <Route
+          path="/charts"
+          element={
+            <Suspense fallback={<div className="page-wrap" />}>
+              <Charts />
+            </Suspense>
+          }
+        />
         <Route path="/nudges" element={<Blank />} />
 
         {/* 존재하지 않는 경로 → 홈으로 */}

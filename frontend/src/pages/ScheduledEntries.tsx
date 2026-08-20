@@ -12,11 +12,12 @@ import useLongPress from "../hooks/useLongPress";
 import useRevealDrag from "../hooks/useRevealDrag";
 import DateGroupHeader from "./components/DateGroupHeader";
 import SplitRows from "./components/SplitRows";
+import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import { groupByDate } from "../utils/dateGroup";
 
 export type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?: number; inout?: number | null; is_active?: number };
-export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; is_active?: number };
+export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?: number; is_active?: number };
 
 /**
  * 다음 예정일시는 서버가 next_run_at 에 들고 있다(scheduled_entries.next_run_at).
@@ -53,7 +54,7 @@ export default function ScheduledEntries() {
     place_id: "",
   });
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; inout: number | null; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
   const [cat2All, setCat2All] = useState<CategoryL2Meta[]>([]);
@@ -362,6 +363,12 @@ export default function ScheduledEntries() {
       return next;
     });
 
+  /* Blur 는 중 · 소 · 세 어디에 걸려도 함께 덮인다 */
+  const blurSets = useMemo(
+    () => blurSetsFrom(cat1List, cat2All, cat3All),
+    [cat1List, cat2All, cat3All]
+  );
+
   const dateGroups = useMemo(
     () =>
       groupByDate(
@@ -369,10 +376,11 @@ export default function ScheduledEntries() {
           ...s,
           tx_date: (s.next_run_at || "").substring(0, 10),
         })),
-        /* Blur 걸린 소분류가 섞인 날은 합계도 함께 가린다 */
-        (r: { cat2_id?: number | null }) => cat2Map[Number(r.cat2_id)]?.blur === 1
+        /* Blur 걸린 갈래가 섞인 날은 합계도 함께 가린다 */
+        (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) =>
+          isBlurred(r, blurSets)
       ),
-    [sortedSchedules, cat2Map]
+    [sortedSchedules, blurSets]
   );
 
   const buildSchedulePayload = (schedule: any) => {
@@ -729,8 +737,8 @@ export default function ScheduledEntries() {
       {/* 등록된 스케줄 목록 */}
       {schedules.length === 0 ? (
         <div className="card text-center py-12">
-          <p className="text-gray-500 mb-2">등록된 스케줄이 없습니다.</p>
-          <p className="text-sm text-gray-400">위의 "[+] 새로운 스케줄" 버튼을 눌러 스케줄을 등록하세요.</p>
+          <p className="text-gray-500 mb-2">등록된 스케줄이 없다.</p>
+          <p className="text-sm text-gray-400">위의 [+] 새로운 스케줄 을 눌러 등록하면 된다.</p>
         </div>
       ) : (
         <div className="scheduled-card-list">
@@ -753,6 +761,7 @@ export default function ScheduledEntries() {
               payList={payList}
               toTimeString={toTimeString}
               onOpenEditor={openEditor}
+              blurred={isBlurred(s, blurSets)}
             />
             ))}
           </section>
@@ -965,6 +974,7 @@ export function ScheduleCard({
   payList,
   toTimeString,
   onOpenEditor,
+  blurred,
   readOnly = false,
 }: {
   s: any;
@@ -974,6 +984,9 @@ export function ScheduleCard({
   payList: { code: string; name: string }[];
   toTimeString: (hour?: number, minute?: number) => string;
   onOpenEditor?: (schedule: any) => void;
+  /* 중 · 소 · 세 어디에 Blur 가 걸렸는지는 화면이 셈해서 넘긴다.
+     넘기지 않으면 예전처럼 소분류만 본다. */
+  blurred?: boolean;
   /* 보기만 하는 화면(기간 상세)에서는 꾹 눌러 편집하지 않는다.
      기본값은 지금까지와 같으므로 이 화면의 동작은 그대로다. */
   readOnly?: boolean;
@@ -992,7 +1005,7 @@ export function ScheduleCard({
   const cat2Name = cat2Id !== null ? cat2Map[cat2Id]?.name : null;
   /* 소분류에 Blur 가 걸려 있으면 금액을 테이프로 덮는다.
      끌면 잠깐 보이는 동작은 지출·대기 내역과 같다 */
-  const isBlur = cat2Id !== null && cat2Map[cat2Id]?.blur === 1;
+  const isBlur = blurred ?? (cat2Id !== null && cat2Map[cat2Id]?.blur === 1);
   const cat3Name = cat3Id !== null ? cat3Map[cat3Id]?.name : null;
   const pay = payList.find((p) => p.code === String(s.pay_method));
   const holidayLabel =

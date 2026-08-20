@@ -531,6 +531,14 @@ export default function Counterparts() {
             감춘 항목 보기
           </label>
 
+          {/* 내역 세 화면처럼 오른쪽 끝 버튼과 같은 줄에 둔다 */}
+          <CollapseAllButtons
+            onExpandAll={() => setCollapsed(new Set())}
+            onCollapseAll={() =>
+              setCollapsed(new Set(groups.map((g) => groupLabel(g.cat))))
+            }
+          />
+
           <button
             className="ui-btn primary"
             onClick={() => (editMode ? handleSave() : enterEdit())}
@@ -546,13 +554,6 @@ export default function Counterparts() {
               <span className="set-add-btn__mark" aria-hidden="true">+</span>
               새 항목 추가
             </button>
-
-            <CollapseAllButtons
-              onExpandAll={() => setCollapsed(new Set())}
-              onCollapseAll={() =>
-                setCollapsed(new Set(groups.map((g) => groupLabel(g.cat))))
-              }
-            />
           </div>
 
           {/* 저장 전 항목 — 구분을 바꿔도 여기서 움직이지 않는다 */}
@@ -571,8 +572,8 @@ export default function Counterparts() {
 
           {saved.length === 0 && drafts.length === 0 && (
             <p className="cp-empty">
-              등록된 항목이 없습니다.
-              <span>위 [+] 새 항목 추가 를 누르거나, 분할을 편집할 때 바로 등록할 수 있습니다.</span>
+              등록된 항목이 없다.
+              <span>위 [+] 새 항목 추가 를 누르거나, 분할을 편집할 때 바로 등록하면 된다.</span>
             </p>
           )}
 
@@ -621,9 +622,7 @@ export default function Counterparts() {
                   <span className="cp-group__dot" />
                 )}
 
-                <span className="cp-group__name">{groupLabel(g.cat)}</span>
-
-                {/* 이모지는 이름 뒤에 */}
+                {/* 이모지는 이름 앞에 — 세 화면이 같은 순서다 */}
                 {g.cat && (
                   <EmojiPicker
                     value={g.cat.emoji ?? null}
@@ -638,6 +637,8 @@ export default function Counterparts() {
                     }
                   />
                 )}
+
+                <span className="cp-group__name">{groupLabel(g.cat)}</span>
 
                 <span className="cp-group__count">{g.items.length}</span>
 

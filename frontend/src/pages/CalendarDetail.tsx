@@ -4,7 +4,17 @@ import axios from "../api/client";
 import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import { groupByDate } from "../utils/dateGroup";
-import { EMPTY_FILTER, pass, type Filter, type Row as CalRow, type Src } from "../utils/calendarFilter";
+import {
+  EMPTY_FILTER,
+  blurSetsFrom,
+  excludeSetsFrom,
+  isBlurred,
+  isExcluded,
+  pass,
+  type Filter,
+  type Row as CalRow,
+  type Src,
+} from "../utils/calendarFilter";
 import { EntryCard } from "./Entries";
 import { PendingCard } from "./PendingEntries";
 import { ScheduleCard, type CategoryL2Meta, type CategoryL3Meta } from "./ScheduledEntries";
@@ -64,6 +74,9 @@ export default function CalendarDetail() {
   /* 달력에서 Blur 를 켠 채 넘어왔는지. 끄고 왔다면 가려 둔 갈래는 뺀다 */
   const blurOn = params.get("blur") === "1";
 
+  /* 달력에서 Exclude 를 켠 채 넘어왔는지. 주소에 없으면 켠 것으로 본다 */
+  const excludeOn = params.get("exclude") !== "0";
+
   /* 달력에 걸려 있던 조건. 주소만으로 들어왔다면 조건 없이 본다 */
   const filter = useMemo<Filter>(
     () => (location.state as { filter?: Filter } | null)?.filter ?? EMPTY_FILTER,
@@ -73,7 +86,7 @@ export default function CalendarDetail() {
   /* 고르는 목록 — 카드가 이름을 찾는 데 쓴다.
      결제 수단은 화면마다 코드를 숫자로도 문자로도 쓰고 있어 두 벌을 만든다.
      카드 안의 비교 방식을 건드리지 않으려면 이쪽에서 맞춰 주는 편이 낫다. */
-  const [cat1List, setCat1List] = useState<{ id: number; name: string }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; exclude?: number; blur?: number }[]>([]);
   const [cat2List, setCat2List] = useState<CategoryL2Meta[]>([]);
   const [cat3List, setCat3List] = useState<CategoryL3Meta[]>([]);
   const [payNum, setPayNum] = useState<{ code: string; name: string }[]>([]);
@@ -150,6 +163,17 @@ export default function CalendarDetail() {
     };
   }, [from, to]);
 
+  const excSets = useMemo(
+    () => excludeSetsFrom(cat1List, cat2List, cat3List),
+    [cat1List, cat2List, cat3List]
+  );
+
+  /* Blur 는 중 · 소 · 세 어디에 걸려도 함께 덮인다 */
+  const blurSets = useMemo(
+    () => blurSetsFrom(cat1List, cat2List, cat3List),
+    [cat1List, cat2List, cat3List]
+  );
+
   /* 달력이 쓰던 판정을 그대로 쓴다 — 달력 칸과 여기 카드가 어긋나지 않게 */
   const passes = useCallback(
     (src: Src, x: Record<string, unknown>, date: string) => {
@@ -181,7 +205,8 @@ export default function CalendarDetail() {
       list.forEach((x) => {
         const date = dateOnly(x[dateField]);
         /* 달력과 같은 셈이어야 한다 — 달력에서 뺀 것은 여기서도 뺀다 */
-        if (!blurOn && cat2Map[Number(x.cat2_id)]?.blur === 1) return;
+        if (!blurOn && isBlurred(x as { cat1_id?: number }, blurSets)) return;
+        if (excludeOn && isExcluded(x as { cat1_id?: number }, excSets)) return;
         if (!passes(src, x, date)) return;
         out.push({
           src,
@@ -207,11 +232,11 @@ export default function CalendarDetail() {
           ? 1
           : -1
     );
-  }, [exRows, peRows, scRows, srcOn, passes, blurOn, cat2Map]);
+  }, [exRows, peRows, scRows, srcOn, passes, blurOn, blurSets, excludeOn, excSets]);
 
   const dateGroups = useMemo(
-    () => groupByDate(items, (r) => cat2Map[Number(r.cat2_id)]?.blur === 1),
-    [items, cat2Map]
+    () => groupByDate(items, (r) => isBlurred(r.raw as { cat1_id?: number }, blurSets)),
+    [items, blurSets]
   );
 
   /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다 — 내역 세 화면과 같다 */
@@ -312,6 +337,7 @@ export default function CalendarDetail() {
                       payList={payNum}
                       onOpenEditor={noop}
                       onStartReveal={(id, e) => reveal(setExRows, id, e)}
+                      blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
                       readOnly
                     />
                   );
@@ -327,6 +353,7 @@ export default function CalendarDetail() {
                       payList={payNum}
                       onOpenEditor={noop}
                       onStartReveal={(id, e) => reveal(setPeRows, id, e)}
+                      blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
                       readOnly
                     />
                   );
@@ -340,6 +367,7 @@ export default function CalendarDetail() {
                     cat3Map={cat3Map}
                     payList={payStr}
                     toTimeString={toTimeString}
+                    blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
                     readOnly
                   />
                 );
@@ -349,7 +377,7 @@ export default function CalendarDetail() {
       </div>
 
       {loaded && dateGroups.length === 0 && (
-        <p className="cal-empty">이 기간에는 내역이 없다.</p>
+        <p className="cal-empty">조회된 내역이 없다.</p>
       )}
     </div>
   );

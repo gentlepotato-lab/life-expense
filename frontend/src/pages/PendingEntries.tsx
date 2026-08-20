@@ -14,6 +14,7 @@ import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import SplitRows from "./components/SplitRows";
 import useLongPress from "../hooks/useLongPress";
+import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
 
 const EMPTY_FILTER = {
   dateFrom: "",
@@ -53,9 +54,9 @@ export default function PendingEntries() {
   const [rows, setRows] = useState<any[]>([]);
   const [allRows, setAllRows] = useState<any[]>([]); // 필터용 원본
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout?: number | null; is_active?: number }[]>([]);
-  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; is_active?: number }[]>([]);
+  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; is_active?: number }[]>([]);
   const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
 
   const [filterOpen, setFilterOpen] = useState(false);
@@ -682,9 +683,15 @@ export default function PendingEntries() {
       return next;
     });
 
+  /* Blur 는 중 · 소 · 세 어디에 걸려도 함께 덮인다 */
+  const blurSets = useMemo(
+    () => blurSetsFrom(cat1List, cat2List, cat3List),
+    [cat1List, cat2List, cat3List]
+  );
+
   const dateGroups = useMemo(
-    () => groupByDate(rows, (r: any) => cat2List.find((c) => c.id === r.cat2_id)?.blur === 1),
-    [rows, cat2List]
+    () => groupByDate(rows, (r: any) => isBlurred(r, blurSets)),
+    [rows, blurSets]
   );
 
   // 클라이언트 사이드 필터 적용
@@ -846,6 +853,7 @@ export default function PendingEntries() {
                 onOpenEditor={openEditor}
                 onStartReveal={startReveal}
                 onSend={sendOne}
+                blurred={isBlurred(row, blurSets)}
               />
             ))}
           </section>
@@ -1231,6 +1239,7 @@ export function PendingCard({
   onOpenEditor,
   onStartReveal,
   onSend,
+  blurred,
   readOnly = false,
 }: {
   row: any;
@@ -1241,6 +1250,9 @@ export function PendingCard({
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
   onSend?: (row: any) => void;
+  /* 중 · 소 · 세 어디에 Blur 가 걸렸는지는 화면이 셈해서 넘긴다.
+     넘기지 않으면 예전처럼 소분류만 본다. */
+  blurred?: boolean;
   /* 보기만 하는 화면(기간 상세)에서는 편집도 전송도 하지 않는다.
      기본값은 지금까지와 같으므로 이 화면의 동작은 그대로다. */
   readOnly?: boolean;
@@ -1249,7 +1261,7 @@ export function PendingCard({
   const { pressing, handlers } = useLongPress(openEditor);
 
   const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
-  const isBlur = cat2List.find((c) => c.id === row.cat2_id)?.blur === 1;
+  const isBlur = blurred ?? (cat2List.find((c) => c.id === row.cat2_id)?.blur === 1);
 
   const payName =
     payList.find((p) => String(p.code) === String(row.pay_method))?.name ?? "";

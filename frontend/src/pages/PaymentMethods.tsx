@@ -335,6 +335,14 @@ export default function PaymentMethods() {
             감춘 항목 보기
           </label>
 
+          {/* 내역 세 화면처럼 오른쪽 끝 버튼과 같은 줄에 둔다 */}
+          <CollapseAllButtons
+            onExpandAll={() => setCollapsed(new Set())}
+            onCollapseAll={() =>
+              setCollapsed(new Set(groups.map((g) => groupLabel(g.cat))))
+            }
+          />
+
           <button
             className="ui-btn primary"
             onClick={() => {
@@ -363,13 +371,6 @@ export default function PaymentMethods() {
             <span className="set-add-btn__mark" aria-hidden="true">+</span>
             새 항목 추가
           </button>
-
-          <CollapseAllButtons
-            onExpandAll={() => setCollapsed(new Set())}
-            onCollapseAll={() =>
-              setCollapsed(new Set(groups.map((g) => groupLabel(g.cat))))
-            }
-          />
         </div>
 
         {addOpen && (
@@ -447,9 +448,8 @@ export default function PaymentMethods() {
               onToggle={() => toggleGroup(groupLabel(g.cat))}
               label={groupLabel(g.cat)}
             />
-            {/* 이모지는 이름 뒤에 — 없을 때 이름 앞이 비어 보이지 않게.
+            {/* 이모지는 이름 앞에 — 세 화면이 같은 순서다.
                 구분이 있는 묶음만 이모지를 붙일 수 있다. */}
-            <span className="set-group__name">{groupLabel(g.cat)}</span>
             {g.cat && (
               <EmojiPicker
                 value={g.cat.emoji ?? null}
@@ -464,6 +464,7 @@ export default function PaymentMethods() {
                 }
               />
             )}
+            <span className="set-group__name">{groupLabel(g.cat)}</span>
             <span className="set-group__count">{g.items.length}</span>
 
             {/* 비어 있는 구분만 지울 수 있다 */}

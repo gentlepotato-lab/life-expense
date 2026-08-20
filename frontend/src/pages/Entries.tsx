@@ -15,6 +15,7 @@ import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import SplitRows from "./components/SplitRows";
 import useLongPress from "../hooks/useLongPress";
+import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
 
 const EMPTY_FILTER = {
   dateFrom: "",
@@ -57,9 +58,9 @@ export default function Entries() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout: number | null; is_active?: number }[]>([]);
-  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; is_active?: number }[]>([]);
+  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; is_active?: number }[]>([]);
 
   const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
 
@@ -705,9 +706,15 @@ export default function Entries() {
       return next;
     });
 
+  /* Blur 는 중 · 소 · 세 어디에 걸려도 함께 덮인다 */
+  const blurSets = useMemo(
+    () => blurSetsFrom(cat1List, cat2List, cat3List),
+    [cat1List, cat2List, cat3List]
+  );
+
   const dateGroups = useMemo(
-    () => groupByDate(rows, (r: any) => cat2List.find((c) => c.id === r.cat2_id)?.blur === 1),
-    [rows, cat2List]
+    () => groupByDate(rows, (r: any) => isBlurred(r, blurSets)),
+    [rows, blurSets]
   );
 
   /* 버튼과 기간 표시는 '적용된 값' 만 본다. 초안은 팝업 안에서만 산다 */
@@ -783,6 +790,7 @@ export default function Entries() {
                 payList={payList}
                 onOpenEditor={openEditor}
                 onStartReveal={startReveal}
+                blurred={isBlurred(row, blurSets)}
               />
             ))}
           </section>
@@ -1167,6 +1175,7 @@ export function EntryCard({
   payList,
   onOpenEditor,
   onStartReveal,
+  blurred,
   readOnly = false,
 }: {
   row: any;
@@ -1175,6 +1184,9 @@ export function EntryCard({
   payList: { code: string; name: string }[];
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
+  /* 중 · 소 · 세 어디에 Blur 가 걸렸는지는 화면이 셈해서 넘긴다.
+     넘기지 않으면 예전처럼 소분류만 본다. */
+  blurred?: boolean;
   /* 보기만 하는 화면(기간 상세)에서는 꾹 눌러 편집하지 않는다.
      기본값은 지금까지와 같으므로 이 화면의 동작은 그대로다. */
   readOnly?: boolean;
@@ -1183,7 +1195,7 @@ export function EntryCard({
   const { pressing, handlers } = useLongPress(openEditor);
 
   const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
-  const isBlur = cat2List.find(c => c.id === row.cat2_id)?.blur === 1;
+  const isBlur = blurred ?? (cat2List.find(c => c.id === row.cat2_id)?.blur === 1);
 
   // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount 다.
   const hasSplit = (row.split_count ?? 0) > 0;

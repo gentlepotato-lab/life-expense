@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../api/client";
-import useBackClose from "../hooks/useBackClose";
 import useRevealDrag from "../hooks/useRevealDrag";
 import CalculatorPopup from "./components/CalculatorPopup";
-import MultiSelect from "./components/MultiSelect";
-import SingleSelect from "./components/SingleSelect";
-import { EditField, EditDivider } from "./components/CardEditModal";
-import { visible } from "../utils/visible";
+import EntryFilterPopup from "./components/EntryFilterPopup";
 import {
   EMPTY_FILTER,
+  blurSetsFrom,
+  excludeSetsFrom,
   hasCondition,
+  isBlurred,
+  isExcluded,
   pass,
   type Filter,
   type Row,
@@ -32,9 +32,6 @@ const SOURCES: { key: Src; label: string }[] = [
   { key: "pending", label: "대기" },
   { key: "scheduled", label: "정기" },
 ];
-
-/** [전체] 항목이 쓰는 값 — 실제 id 와 겹치지 않는다 */
-const ALL = -1;
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -64,6 +61,10 @@ export default function Calendar() {
      가릴 것이 아예 없으면 테이프도 뜨지 않는다. */
   const [blurOn, setBlurOn] = useState(false);
 
+  /* Exclude 를 걸어 둔 갈래를 뺄지. 처음에는 뺀다(켜짐) —
+     끄면 수입 · 저축까지 들어와 Net 이 보인다. */
+  const [excludeOn, setExcludeOn] = useState(true);
+
   /* 눌러서 고른 기간.
      한 번 누르면 시작일만 잡히고(end === null), 한 번 더 누르면 끝일까지 잡힌다.
      시작일만 잡힌 상태에서 같은 날 또는 달력 바깥을 누르면 고르기를 접는다. */
@@ -77,9 +78,9 @@ export default function Calendar() {
   const [appliedFilter, setAppliedFilter] = useState<Filter>(EMPTY_FILTER);
 
   /* 고르는 목록들 */
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
-  const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; is_active?: number }[]>([]);
-  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; exclude?: number; is_active?: number }[]>([]);
+  const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; exclude?: number; is_active?: number }[]>([]);
+  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; exclude?: number; is_active?: number }[]>([]);
   const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
 
@@ -151,23 +152,31 @@ export default function Calendar() {
     };
   }, [yearMonth]);
 
-  /* Blur 가 걸린 소분류 — 그런 지출이 낀 날은 칸의 금액도 덮는다 */
-  const blurSet = useMemo(
-    () => new Set(cat2List.filter((c) => c.blur === 1).map((c) => c.id)),
-    [cat2List]
+  /* Blur 가 걸린 갈래 — 그런 지출이 낀 날은 칸의 금액도 덮는다.
+     중 · 소 · 세 어디에 걸려도 함께 덮인다 */
+  const blurSets = useMemo(
+    () => blurSetsFrom(cat1List, cat2List, cat3List),
+    [cat1List, cat2List, cat3List]
+  );
+
+  const excSets = useMemo(
+    () => excludeSetsFrom(cat1List, cat2List, cat3List),
+    [cat1List, cat2List, cat3List]
   );
 
   /* 켠 자료 + 걸린 조건을 통과한 줄만.
-     Blur 를 끄면 가려야 할 갈래는 셈에서 아예 뺀다 */
+     Blur 를 끄면 가려야 할 갈래는 셈에서 아예 뺀다.
+     Exclude 가 켜져 있으면 집계에서 빼 둔 갈래도 뺀다. */
   const shown = useMemo(
     () =>
       rows.filter(
         (r) =>
           on[r.src] &&
-          (blurOn || !blurSet.has(Number(r.cat2_id))) &&
+          (blurOn || !isBlurred(r, blurSets)) &&
+          !(excludeOn && isExcluded(r, excSets)) &&
           pass(r, appliedFilter)
       ),
-    [rows, on, appliedFilter, blurOn, blurSet]
+    [rows, on, appliedFilter, blurOn, blurSets, excludeOn, excSets]
   );
 
   /* 날짜별로 모은다 */
@@ -230,10 +239,10 @@ export default function Calendar() {
     shown.forEach((r) => {
       if (r.inout === 1) inSum += r.net;
       else outSum += r.net;
-      if (blurSet.has(Number(r.cat2_id))) hasBlur = true;
+      if (isBlurred(r, blurSets)) hasBlur = true;
     });
     return { inSum, outSum, net: inSum - outSum, hasBlur };
-  }, [shown, blurSet]);
+  }, [shown, blurSets]);
 
   const [sumRevealed, setSumRevealed] = useState(false);
   const startSumReveal = useRevealDrag(setSumRevealed);
@@ -282,91 +291,18 @@ export default function Calendar() {
     /* 끝일을 고르지 않았으면 그 하루만 본다 */
     const to = `${yearMonth}-${pad(pick.end ?? pick.start)}`;
     const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
-    navigate(`/calendar/detail?from=${from}&to=${to}&src=${src}&blur=${blurOn ? 1 : 0}`, {
+    navigate(
+      `/calendar/detail?from=${from}&to=${to}&src=${src}&blur=${blurOn ? 1 : 0}&exclude=${excludeOn ? 1 : 0}`,
+      {
       /* 걸린 조건도 함께 넘긴다 — 달력에 보이던 것과 상세가 어긋나면 안 된다 */
       state: { filter: appliedFilter },
     });
-  }, [pick, yearMonth, on, blurOn, appliedFilter, navigate]);
+  }, [pick, yearMonth, on, blurOn, excludeOn, appliedFilter, navigate]);
 
   const closeFilter = useCallback(() => {
     setFilter(appliedFilter);
     setFilterOpen(false);
   }, [appliedFilter]);
-
-  useBackClose(filterOpen, closeFilter);
-
-  useEffect(() => {
-    if (filterOpen) document.documentElement.classList.add("modal-open");
-    else document.documentElement.classList.remove("modal-open");
-    return () => document.documentElement.classList.remove("modal-open");
-  }, [filterOpen]);
-
-  /* 고르기 목록 — 상위에서 고른 것만 아래로 좁힌다.
-     맨 위의 [전체]는 지출·대기 내역 필터와 같은 방식으로 다룬다 —
-     누르면 전부 켜지고, 이미 전부 켜져 있으면 전부 꺼진다. */
-  const cat1Pool = useMemo(() => visible(cat1List), [cat1List]);
-  const cat2Pool = useMemo(() => {
-    const base = filter.cat1.length
-      ? cat2List.filter((c) => filter.cat1.includes(c.cat1_id))
-      : cat2List;
-    return visible(base);
-  }, [cat2List, filter.cat1]);
-  const cat3Pool = useMemo(() => {
-    const base = filter.cat2.length
-      ? cat3List.filter((c) => filter.cat2.includes(c.cat2_id))
-      : cat3List;
-    return visible(base);
-  }, [cat3List, filter.cat2]);
-  const payPool = useMemo(() => visible(payList), [payList]);
-
-  const cat1Options = useMemo(
-    () => [{ value: ALL, label: "[전체]" }, ...cat1Pool.map((c) => ({ value: c.id, label: c.name }))],
-    [cat1Pool]
-  );
-  const cat2Options = useMemo(
-    () => [{ value: ALL, label: "[전체]" }, ...cat2Pool.map((c) => ({ value: c.id, label: c.name }))],
-    [cat2Pool]
-  );
-  const cat3Options = useMemo(
-    () => [{ value: ALL, label: "[전체]" }, ...cat3Pool.map((c) => ({ value: c.id, label: c.name }))],
-    [cat3Pool]
-  );
-  const payOptions = useMemo(
-    () => [{ value: "__ALL__", label: "[전체]" }, ...payPool.map((p) => ({ value: p.code, label: p.name }))],
-    [payPool]
-  );
-  const cpOptions = useMemo(
-    () => [{ value: ALL, label: "[전체]" }, ...cpList.map((c) => ({ value: c.counterpart_id, label: c.name }))],
-    [cpList]
-  );
-
-  /** [전체]를 눌렀을 때 — 전부 켜거나 전부 끈다 */
-  const toggleAll = useCallback(
-    <T,>(key: keyof Filter, all: T[]) =>
-      (v: T | number) => {
-        if (v !== ALL && v !== "__ALL__") return false;
-        setFilter((prev) => {
-          const cur = prev[key] as unknown as T[];
-          const next = cur.length === all.length ? [] : all;
-          /* 상위를 바꾸면 아래 갈래의 선택은 비운다 — 다른 화면과 같다 */
-          if (key === "cat1") return { ...prev, cat1: next as number[], cat2: [], cat3: [] };
-          if (key === "cat2") return { ...prev, cat2: next as number[], cat3: [] };
-          return { ...prev, [key]: next } as Filter;
-        });
-        return true;
-      },
-    []
-  );
-
-  const isAllChecked = useCallback(
-    <T,>(key: keyof Filter, all: T[]) =>
-      (v: T | number) => {
-        const cur = filter[key] as unknown as T[];
-        if (v === ALL || v === "__ALL__") return cur.length === all.length && all.length > 0;
-        return cur.includes(v as T);
-      },
-    [filter]
-  );
 
   return (
     <div className="page-wrap">
@@ -431,14 +367,18 @@ export default function Calendar() {
           type="button"
           className={`cal-source cal-source--blur${blurOn ? " on" : ""}`}
           aria-pressed={blurOn}
-          title={
-            blurOn
-              ? "가려 둔 갈래도 셈에 든다. 금액은 덮여 있고, 끌면 잠깐 보인다."
-              : "가려 둔 갈래는 셈에서 빠져 있다. 눌러서 넣는다."
-          }
           onClick={() => setBlurOn((v) => !v)}
         >
           Blur
+        </button>
+
+        <button
+          type="button"
+          className={`cal-source cal-source--exclude${excludeOn ? " on" : ""}`}
+          aria-pressed={excludeOn}
+          onClick={() => setExcludeOn((v) => !v)}
+        >
+          Exclude
         </button>
 
         <span className="cal-sum">
@@ -479,7 +419,7 @@ export default function Calendar() {
             items.forEach((r) => {
               net += r.inout === 1 ? r.net : -r.net;
               kinds.add(r.src);
-              if (blurSet.has(Number(r.cat2_id))) hasBlur = true;
+              if (isBlurred(r, blurSets)) hasBlur = true;
             });
             const netMasked = hasBlur && revealDay !== day;
 
@@ -550,145 +490,22 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* 필터 — 기간만 빼고 내역 화면과 같다 */}
+      {/* 필터 — 기간만 빼고 내역 화면과 같다. 씀씀이와 같은 부품을 쓴다 */}
       {filterOpen && (
-        <div className="popup-overlay" onClick={closeFilter}>
-          <div
-            className="popup-panel popup-panel--framed"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <header className="popup-head">
-              <h3 className="popup-head__title">필터</h3>
-            </header>
-
-            <div className="popup-body edit-grid">
-              <EditField label="중분류" span={4}>
-                <MultiSelect
-                  options={cat1Options}
-                  selected={filter.cat1}
-                  onSpecialClick={toggleAll("cat1", cat1Pool.map((c) => c.id))}
-                  isOptionChecked={isAllChecked("cat1", cat1Pool.map((c) => c.id))}
-                  onChange={(v: number[]) => setFilter({ ...filter, cat1: v })}
-                  placeholder="(전체)"
-                />
-              </EditField>
-
-              <EditField label="소분류" span={4}>
-                <MultiSelect
-                  options={cat2Options}
-                  selected={filter.cat2}
-                  onSpecialClick={toggleAll("cat2", cat2Pool.map((c) => c.id))}
-                  isOptionChecked={isAllChecked("cat2", cat2Pool.map((c) => c.id))}
-                  onChange={(v: number[]) => setFilter({ ...filter, cat2: v })}
-                  placeholder="(전체)"
-                />
-              </EditField>
-
-              <EditField label="세분류" span={4}>
-                <MultiSelect
-                  options={cat3Options}
-                  selected={filter.cat3}
-                  onSpecialClick={toggleAll("cat3", cat3Pool.map((c) => c.id))}
-                  isOptionChecked={isAllChecked("cat3", cat3Pool.map((c) => c.id))}
-                  onChange={(v: number[]) => setFilter({ ...filter, cat3: v })}
-                  placeholder="(전체)"
-                />
-              </EditField>
-
-              <EditDivider />
-
-              <EditField label="IN/OUT" span={6}>
-                <SingleSelect
-                  options={[
-                    { value: "0", label: "(전체)" },
-                    { value: "-1", label: "OUT(−)" },
-                    { value: "1", label: "IN(+)" },
-                  ]}
-                  selected={String(filter.inout)}
-                  onChange={(v) => setFilter({ ...filter, inout: Number(v) })}
-                  placeholder="(전체)"
-                />
-              </EditField>
-
-              <EditField label="결제 수단" span={6}>
-                <MultiSelect
-                  options={payOptions}
-                  selected={filter.pay}
-                  onSpecialClick={toggleAll("pay", payPool.map((p) => p.code))}
-                  isOptionChecked={isAllChecked("pay", payPool.map((p) => p.code))}
-                  onChange={(v: string[]) => setFilter({ ...filter, pay: v })}
-                  placeholder="(전체)"
-                />
-              </EditField>
-
-              <EditField label="금액" span={12}>
-                <div className="filter-range">
-                  <input
-                    type="number"
-                    className="amount-input"
-                    value={filter.amountMin}
-                    placeholder="(최소)"
-                    onChange={(e) => setFilter({ ...filter, amountMin: e.target.value })}
-                  />
-                  <span className="filter-range__tilde">~</span>
-                  <input
-                    type="number"
-                    className="amount-input"
-                    value={filter.amountMax}
-                    placeholder="(최대)"
-                    onChange={(e) => setFilter({ ...filter, amountMax: e.target.value })}
-                  />
-                </div>
-              </EditField>
-
-              <EditDivider />
-
-              <EditField label="장소" span={6}>
-                <input
-                  type="text"
-                  value={filter.place}
-                  placeholder="(장소)"
-                  onChange={(e) => setFilter({ ...filter, place: e.target.value })}
-                />
-              </EditField>
-
-              <EditField label="함께한 상대" span={6}>
-                <MultiSelect
-                  options={cpOptions}
-                  selected={filter.cp}
-                  onSpecialClick={toggleAll("cp", cpList.map((c) => c.counterpart_id))}
-                  isOptionChecked={isAllChecked("cp", cpList.map((c) => c.counterpart_id))}
-                  onChange={(v: number[]) => setFilter({ ...filter, cp: v })}
-                  placeholder="(전체)"
-                />
-              </EditField>
-
-              <EditField label="메모" span={12}>
-                <input
-                  type="text"
-                  value={filter.memo}
-                  placeholder="(메모)"
-                  onChange={(e) => setFilter({ ...filter, memo: e.target.value })}
-                />
-              </EditField>
-            </div>
-
-            <div className="btn-row popup-foot">
-              <button className="ui-btn" onClick={() => setFilter(EMPTY_FILTER)}>
-                초기화
-              </button>
-              <button
-                className="ui-btn primary"
-                onClick={() => {
-                  setAppliedFilter(filter);
-                  setFilterOpen(false);
-                }}
-              >
-                적용
-              </button>
-            </div>
-          </div>
-        </div>
+        <EntryFilterPopup
+          filter={filter}
+          setFilter={setFilter}
+          cat1List={cat1List}
+          cat2List={cat2List}
+          cat3List={cat3List}
+          payList={payList}
+          cpList={cpList}
+          onClose={closeFilter}
+          onApply={() => {
+            setAppliedFilter(filter);
+            setFilterOpen(false);
+          }}
+        />
       )}
 
       <button

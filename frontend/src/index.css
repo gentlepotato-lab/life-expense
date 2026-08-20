@@ -7680,7 +7680,7 @@ html {
 }
 
 .cal-back__arrow {
-  margin-right: 3px;
+  margin-right: -3px;
   font-size: 14px;
   line-height: 1;
 }
@@ -7758,8 +7758,9 @@ html {
   margin-left: 1px;
 }
 
+/* 줄 사이를 5px 로 맞춘 뒤에는 소분류와 같은 1px 이면 자리가 맞는다 */
 .cat3-row > .set-remove {
-  margin-left: -2px;
+  margin-left: 1px;
 }
 
 .pm-item .set-remove {
@@ -8109,4 +8110,929 @@ div:has(> .pm-item) {
 .cp-group__name {
   color: var(--color-text-primary);
   letter-spacing: -0.01em;
+}
+
+/* ════════════════════════════════════════════════════════════
+   54. 씀씀이 — 한 달을 그림으로 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   달력과 같은 조건으로 고른 한 달을 다섯 가지 그림으로 본다.
+   Recharts 가 SVG 로 그리므로 글꼴과 색은 우리 것을 그대로 쓴다.
+
+   좁은 화면에서는 한 줄에 하나, 넓은 화면에서는 두 칸으로 접는다.
+   가로로 긴 그림(날짜별 · 누적)은 넓어도 한 줄을 다 쓴다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 한 달 요약 세 칸 ────────────────────────────────────── */
+.chart-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: var(--space-2);
+}
+
+.chart-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  padding: 8px 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.chart-tile__label {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.chart-tile__value {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.chart-tile__sub {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 가려 둔 갈래가 섞였으면 숫자도 덮는다 — 달력의 한 달 합계와 같은 규칙 */
+.chart-tile__value.masked {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 86px;
+  height: 21px;
+  font-size: 0;
+  color: transparent;
+  cursor: ew-resize;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+.chart-tile__value.masked::after {
+  content: "";
+  position: absolute;
+  inset: 1px 0;
+  transform: rotate(-1.1deg);
+  background: repeating-linear-gradient(-45deg, #E7E9F5 0 6px, #D6DAF0 6px 12px);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.chart-tile__value.revealed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 86px;
+  height: 21px;
+}
+
+/* ─── 그림 판 배치 ────────────────────────────────────────── */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+}
+
+.chart-card {
+  min-width: 0;
+  padding: 10px 10px 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.chart-card__head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 0 2px;
+}
+
+.chart-card__title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.chart-card__note {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
+.chart-card__body {
+  height: 176px;
+  font-family: var(--font-family);
+}
+
+.chart-card__body--short {
+  height: 150px;
+}
+
+/* 가로 막대는 줄 수만큼 자란다 */
+.chart-card__body--rows {
+  height: calc(var(--rows, 4) * 34px + 12px);
+}
+
+/* ─── 도넛과 이름표 ───────────────────────────────────────── */
+.chart-donut {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-family);
+}
+
+.chart-donut__plot {
+  flex: 0 0 128px;
+  width: 128px;
+  height: 128px;
+}
+
+.chart-legend {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.chart-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chart-legend__key {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.chart-legend__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.chart-legend__pct {
+  flex: 0 0 auto;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── 말풍선 — 눌러도 뜨고, 부드럽게 따라온다 ───────────────── */
+.chart-tip {
+  padding: 7px 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lift);
+  font-size: var(--font-size-sm);
+  pointer-events: none;
+}
+
+.chart-tip__head {
+  margin-bottom: 3px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.chart-tip__row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chart-tip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+}
+
+.chart-tip__value {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Recharts 가 말풍선 상자를 옮길 때 튀지 않게 */
+.recharts-tooltip-wrapper {
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.chart-empty {
+  margin: var(--space-4) 0;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* ─── 넓은 화면 — 두 칸으로 접고 그림을 키운다 ───────────────
+   브라우저·태블릿에서 한 줄에 하나씩 늘어놓으면 좌우가 휑하다. */
+@media (min-width: 640px) {
+  .chart-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* 가로로 긴 그림은 두 칸을 다 쓴다 */
+  .chart-card--wide {
+    grid-column: 1 / -1;
+  }
+
+  .chart-card {
+    padding: 12px 12px 10px;
+  }
+
+  .chart-card__body {
+    height: 220px;
+  }
+
+  .chart-card__body--short {
+    height: 190px;
+  }
+
+  .chart-card__body--rows {
+    height: calc(var(--rows, 4) * 40px + 16px);
+  }
+
+  .chart-donut {
+    gap: 16px;
+  }
+
+  .chart-donut__plot {
+    flex: 0 0 176px;
+    width: 176px;
+    height: 176px;
+  }
+
+  .chart-legend {
+    gap: 8px;
+  }
+
+  .chart-legend__name,
+  .chart-legend__pct {
+    font-size: var(--font-size-base);
+  }
+
+  .chart-tiles {
+    gap: var(--space-2);
+  }
+
+  .chart-tile {
+    padding: 10px 14px;
+  }
+
+  .chart-tile__value {
+    font-size: var(--font-size-xl);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   55. Exclude — 집계에서 빼는 갈래 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   Blur · 감추기와 나란히 서는 세 번째 깃발이다.
+     · Blur    — 금액을 테이프로 덮는다. 셈에는 든다.
+     · 감추기  — 고르는 목록에서 뺀다. 지난 내역은 그대로다.
+     · Exclude — 셈에서 뺀다. 내역 카드에는 그대로 보인다.
+   ════════════════════════════════════════════════════════════ */
+
+/* 생김새는 Blur 단추와 같게. 자리만 IN/OUT 선택기가 쓰던 70px 를 물려받아
+   뒤따르는 Blur · 감추기 · × 가 1px 도 안 움직이게 못 박는다. */
+.set-exclude-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.set-exclude-btn:active {
+  transform: scale(0.94);
+  transition-duration: 80ms;
+}
+
+.set-exclude-btn.on {
+  border-color: var(--color-text-secondary);
+  background: var(--color-text-secondary);
+  color: #fff;
+}
+
+/* ─── 소분류 이름 앞의 IN/OUT ─────────────────────────────────
+   보기 모드는 예전 크기(7px) 그대로의 점, 편집 모드는 그 자리에 선
+   [＋] · [−] 부호. 자리 폭이 12px 로 같아 모드를 오가도 이름이 안 움직인다. */
+.cat2-inout {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  min-height: 12px;
+  max-height: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cat2-inout.in { color: #00C7BE; }
+.cat2-inout.out { color: #FF5C57; }
+
+/* 보기 모드 — 점은 예전 그대로 7px */
+span.cat2-inout::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+/* 편집 모드에서는 누를 수 있다. 보이는 크기는 그대로 두고
+   손가락 자리만 겹치는 판으로 24px 로 넓힌다 — 자리는 한 뼘도 안 늘어난다. */
+button.cat2-inout {
+  position: relative;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.cat2-inout::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
+button.cat2-inout:active {
+  transform: scale(0.9);
+}
+
+/* 점이 이름 안에 있던 자리를 대신하므로 이름 앞의 빈자리는 걷는다 */
+.cat2-name:not(:has(.inout-dot))::before {
+  content: none;
+}
+
+.cat2-header-row > .cat2-input {
+  margin-left: 0;
+}
+
+/* ─── 중분류 건수는 줄 맨 오른쪽에 ────────────────────────────
+   결제 수단 · 함께한 상대의 묶음 머리는 건수가 388~405 에 서는데
+   분류만 단추들 앞에 끼어 226 에 있었다. 셋을 같은 자리에 세운다.
+
+   남는 자리를 먹는 쪽(margin-left: auto)을 건수에서 Exclude 로 옮기면
+   보기 모드(건수뿐) · 편집 모드(단추 셋 + 건수) 어느 쪽이든
+   건수가 오른쪽 끝에 붙는다. */
+.cat1-head {
+  padding-right: 2px;
+}
+
+.cat1-head > .set-exclude-btn {
+  margin-left: auto;
+}
+
+/* 편집 모드에서는 Exclude 가 자리를 먹으므로 건수의 auto 는 걷는다 */
+.cat1-head:has(.set-exclude-btn) > .set-group__count {
+  margin-left: 0;
+}
+
+/* 세분류 줄은 사이가 8px 이라 단추들이 3px 씩 왼쪽으로 밀렸다.
+   소분류 줄과 같은 5px 로 맞춘다 — 그러면 네 단추가 같은 자리에 선다. */
+.cat3-row {
+  gap: 5px;
+}
+
+/* 집계 알약 — Blur 옆에 선다. 켜져 있으면 빼 둔 갈래가 빠진 상태다 */
+.cal-source--exclude {
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  border-style: dashed;
+}
+
+.cal-source--exclude.on {
+  border-style: solid;
+  border-color: var(--color-text-secondary);
+  background: var(--color-text-secondary);
+  color: #fff;
+}
+
+/* ════════════════════════════════════════════════════════════
+   56. 알약 줄이 틀어지지 않게 (2026-08)
+   ─────────────────────────────────────────────────────────────
+   Blur · Exclude 는 button 이라 전역 규칙(min-height: 32px)에 걸려
+   혼자 32px 이었고, 자리가 모자라면 지출·대기·정기가 눌려 글자가
+   두 줄로 접혔다. 합계에 테이프가 깔리면 폭이 더 늘어 넘치기까지 했다.
+
+   알약은 절대 눌리지도 접히지도 않게 못 박고, 남는 자리를 합계가
+   맡도록 돌린다. 좁아지면 테이프만 줄어든다.
+   ════════════════════════════════════════════════════════════ */
+
+.cal-source {
+  flex: 0 0 auto;
+  min-height: 24px;
+  max-height: 24px;
+  padding: 0 8px;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.cal-sources {
+  gap: 5px;
+  flex-wrap: nowrap;
+}
+
+/* 합계가 남는 자리를 맡는다 — 좁으면 스스로 줄어든다 */
+.cal-sum {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  overflow: hidden;
+}
+
+.cal-sum__in,
+.cal-sum__out {
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+/* 테이프도 남는 자리에 맞춰 줄어든다. 96px 는 지금 폭 그대로다 */
+.cal-sum__in.masked,
+.cal-sum__out.masked,
+.cal-sum__in.revealed,
+.cal-sum__out.revealed {
+  width: 100%;
+  min-width: 0;
+  max-width: 92px;
+  height: 20px;
+}
+
+/* 위 분류에서 걸려 이어받은 Exclude 는 누를 수 없다 — 위에서 풀어야 풀린다 */
+.set-exclude-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.set-exclude-btn:disabled:active {
+  transform: none;
+}
+
+/* ─── Exclude 단추를 Blur 와 같은 글꼴로 ──────────────────────
+   Exclude 만 10px · 자간 0.2px 이라 Blur(11px · 자간 없음)와 달라 보였다.
+   폭도 70px 로 잡아 글자에 비해 헐렁했다. Blur 와 같은 규격에 맞춘다. */
+.set-exclude-btn {
+  width: 62px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+/* 알약도 조금 좁힌다 — Exclude 가 길어 보이던 것을 여백에서 덜어 낸다 */
+.cal-source--blur,
+.cal-source--exclude {
+  padding: 0 7px;
+  letter-spacing: normal;
+}
+
+/* 건수가 한 자리냐 두 자리냐에 따라 앞의 단추들이 2px 씩 밀렸다.
+   두 자리가 들어갈 폭을 미리 잡아 어느 묶음에서나 같은 자리에 서게 한다. */
+.cat1-head > .set-group__count {
+  min-width: 22px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   57. 이름 입력란 폭 · 모드 전환 흔들림 (2026-08-19)
+   ────────────────────────────────────────────────────────────
+   입력란 폭이 남는 자리에 따라 143 · 144 · 70.5 · 88.1 처럼 떨어져
+   화면마다 제각각이었다. 폭은 5의 배수로 내려 못 박고, 이름 ↔ 입력란을
+   오갈 때 줄이 들썩이던 것도 함께 잡는다.
+   ═════════════════════════════════════════════════════════════ */
+
+/* ─── ① 소분류 · 세분류 — 143 · 144 → 140 ───────────────
+   180px 을 바라되 자리가 없으면 줄어드는 값이라 두 줄이 1px 어긋났다.
+   줄지도 늘지도 않는 140px 로 바꾼다. 뒤따르는 Exclude · Blur · 감추기 · × 는
+   줄 오른쪽에 붙어 있으므로(margin-left: auto) 폭을 줄여도 자리를 지킨다. */
+.cat2-header-row > .cat2-input,
+.cat3-row > .cat3-input {
+  flex: 0 0 140px;
+  width: 140px;
+  max-width: 140px;
+}
+
+/* ─── ② 중분류 입력란 — 90px ─────────────────────────────
+   남는 자리에 따라 93px 로 떨어지던 값을 5px 단위로 내려 못 박는다
+  (들어갈 수 있는 최대는 95px).
+
+   이모지가 이름 앞으로 옮겨진 뒤라(59절) 이름 뒤에는 오른쪽에 붙은
+   단추들뿐이다. 이름과 입력란의 폭이 달라도 밀리는 것이 없다. */
+.cat1-head__text > .cat1-input {
+  flex: 0 0 90px;
+  width: 90px;
+  max-width: 90px;
+}
+
+/* 이름은 31.6px(14px × 1.4 + 상하 6px), 입력란은 22px 이라 머리 높이가
+   33.6 → 24 로 내려앉으며 아래 목록이 통째로 10px 밀려 올라갔다.
+   줄 높이를 이름 쪽에 붙들어 두 모습이 같은 높이를 쓰게 한다. */
+.cat1-head__text {
+  min-height: 31.6px;
+}
+
+/* ─── ③ 함께한 사람 — 칸은 유동, 입력란은 5의 배수 ────────
+   이름 · 구분 · 메모는 화면 폭을 4:4:5 로 나눠 쓰는 격자라 70.5 · 88.1 처럼
+   떨어졌다. 격자는 그대로 두고 입력란만 제 칸 안에서 5px 단위로 내린다.
+   화면이 넓어지면 칸도 함께 넓어지되 폭은 늘 5의 배수다. */
+.cp-card__edit .cp-input,
+.cp-card__edit .cp-input--cat .ms-wrap,
+.cp-card__edit .cp-input--cat .ms-display {
+  width: round(down, 100%, 5px);
+}
+
+/* ─── ④ 구분 색 점 — 모드가 바뀌어도 크기 그대로 ─────────
+   편집 모드에 들어가면 점이 7 → 12px 로 부풀어 이름과 이모지를 5px 씩
+   오른쪽으로 밀어냈다. 점은 늘 7px 로 두고, 누를 자리만 보이지 않게 넓힌다
+   (분류의 +/− 단추와 같은 방식 — 겉모습은 그대로, 손가락 자리만 24px). */
+.color-pick__btn {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  min-height: 7px;
+  max-height: 7px;
+  border-width: 0;
+}
+
+.color-pick__btn:not(.readonly)::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+/* ─── ⑤ 소분류 · 세분류 — 단추 무리를 이름 폭에서 떼어 낸다 ─────
+   이름은 남는 자리를 다 먹고(flex: 1) 입력란은 140px 이라, 이름을 눌러
+   입력란이 뜨면 뒤따르던 Exclude · Blur · 감추기 · × 가 통째로 3px 왼쪽으로
+   끌려갔다. 남는 자리를 여백이 먹게 해 무리를 제자리(209 · 377)에 붙든다.
+   중분류 머리가 이미 같은 방식이다. */
+.cat2-header-row > .set-exclude-btn,
+.cat3-row > .set-exclude-btn {
+  margin-left: auto;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   58. Exclude 켜짐 빛깔 (2026-08-19)
+   ────────────────────────────────────────────────────────────
+   켜면 진회색(#6C757D) 바탕에 흰 글자라 줄에서 유난히 튀었다.
+   Blur 가 옅은 보라를 쓰는 것과 같은 결로, 옅은 청회색으로 낮춘다 —
+   켜진 것은 알아보되 옆 알약과 다투지 않는다.
+   빛깔은 Blur 와 겹치지 않게 보라 대신 청회색을 쓴다.
+   분류 단추와 달력 · 씀씀이 알약이 같은 빛깔을 쓴다.
+   ═════════════════════════════════════════════════════════════ */
+
+/* 분류 — Blur 단추와 같은 짜임(테두리 없음 · 옅은 바탕 · 진한 글자) */
+.set-exclude-btn.on {
+  border-color: transparent;
+  background: #E3E8EF;
+  color: #44505F;
+}
+
+/* 달력 · 씀씀이 알약 — Blur 알약처럼 켜지면 테두리를 실선으로 남긴다 */
+.cal-source--exclude.on {
+  border-style: solid;
+  border-color: #B7C2D0;
+  background: #E3E8EF;
+  color: #44505F;
+}
+
+/* 위 분류에서 이어받아 잠긴 것 — 바탕이 옅어져 0.55 로는 거의 지워졌다.
+   조금만 흐리게 해 켜진 상태가 그대로 읽히게 한다. */
+.set-exclude-btn.on:disabled {
+  opacity: 0.8;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   59. 이모지를 이름 앞으로 (2026-08-19)
+   ────────────────────────────────────────────────────────────
+   이름 뒤에 있던 이모지가 세 화면 모두 이름 앞으로 왔다. 붙이던 쪽도
+   따라 바꾼다 — 앞쪽 여백은 되돌리고, 이름과 맞닿는 오른쪽을 당긴다.
+   옮기기 전에는 중분류만 3px, 나머지 둘은 2px 을 당겨 사이가 2 대 3 으로
+   달랐다. 셋 다 3px 을 당겨 사이를 2px 로 맞춘다.
+
+   이모지가 앞에 서면서 편집 모드에서 이름 상자를 90px 로 묶을 이유도
+   사라졌다 — 이름 뒤에는 오른쪽에 붙은 단추들뿐이라 이름이 길든 짧든
+   아무것도 밀리지 않는다. 57절의 그 규칙과 말줄임은 걷었고,
+   덕분에 긴 이름도 편집 모드에서 잘리지 않는다.
+   ═════════════════════════════════════════════════════════════ */
+
+.cat1-head__text > .emoji-pick {
+  margin-left: 0;
+  margin-right: -3px;
+}
+
+.set-group__head > .emoji-pick,
+.cp-group__head > .emoji-pick {
+  margin-left: 0;
+  margin-right: -3px;
+}
+
+/* 고른 이모지가 없으면 일반 모드에서는 자리까지 걷는다 —
+   visibility: hidden 이라 빈 22px 이 남아 이름 앞이 붕 떠 보였다.
+   편집 모드에는 점선 [+] 가 그대로 남아 새로 고를 수 있다. */
+.emoji-pick:has(> .emoji-pick__btn.readonly:not(.has)) {
+  display: none;
+}
+
+/* 편집 모드에서는 단추 넷과 건수가 180 부터 서므로 가장 긴 이름
+  (`미용/목욕(사우나)` 99px)만 자리가 모자란다. 잘릴 때 말줄임이 붙게 한다 —
+   중분류 이름은 display: flex 라 글자에 text-overflow 가 먹지 않았다.
+   감춤 알약이 붙은 줄만 flex 로 남긴다(소분류 · 세분류와 같은 방식).
+   일반 모드에서는 이름이 제 글자만큼이라 잘릴 일이 없다. */
+.cat1-head__text > .cat1-name:not(:has(.set-hide-mark)) {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   60. 씀씀이 요약 숫자 — 덮어도 자리가 그대로 (2026-08-19)
+   ────────────────────────────────────────────────────────────
+   덮개(masked)에만 height: 21px 이 걸려 있어, 덮이는 순간 숫자 칸이
+   제 높이에서 21px 로 내려앉았다. 좁은 화면에서는 20.8 → 21 로 티가 안 났지만
+   넓은 화면(≥ 640px)에서는 글씨가 20px 로 커져 칸이 26 → 21, 판이 78 → 73 으로
+   5px 줄면서 아래 그림들이 통째로 올라갔다.
+
+   세 모습(그냥 · 덮임 · 걷힘)이 같은 상자를 쓰게 한 자리에서 못 박는다.
+   높이는 글씨 크기에서 끌어오므로 글씨를 바꾸면 함께 따라온다.
+   ═════════════════════════════════════════════════════════════ */
+
+.chart-tile__value,
+.chart-tile__value.masked,
+.chart-tile__value.revealed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 86px;
+  height: calc(var(--font-size-lg) * 1.3);
+}
+
+@media (min-width: 640px) {
+  .chart-tile__value,
+  .chart-tile__value.masked,
+  .chart-tile__value.revealed {
+    min-width: 104px;
+    height: calc(var(--font-size-xl) * 1.3);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   61. 마스킹 테이프는 반듯하게 · "모두 펼치기 | 접기" · 돌아가기 알약 (2026-08-19)
+   ────────────────────────────────────────────────────────────
+   ═════════════════════════════════════════════════════════════ */
+
+/* ─── ① 테이프 기울기를 걷는다 ─────────────────────
+   손으로 붙인 느낌을 내려고 1.1~1.6도씩 눕혀 두었던 것을 반듯하게 편다.
+   가운데 맞춤(translateY)은 그대로 둔다 — 그것까지 지우면 테이프가
+   글자 위로 올라가 버린다. 줄무늬 각도(-45deg)는 테이프 무늬라 건드리지 않는다. */
+.amount-text.masked::after,
+.amount-split.masked::after,
+.date-group__sum.masked::after {
+  transform: translateY(-50%);
+}
+
+.cal__net.masked::after,
+.cal-sum__in.masked::after,
+.cal-sum__out.masked::after,
+.chart-tile__value.masked::after {
+  transform: none;
+}
+
+/* ─── ② "모두" 는 글자로만 ────────────────────────
+   두 단추가 함께 이고 있는 말이라 단추 밖으로 뺐다. 생김새는 단추 글자와
+   같게 맞추고, 단추의 왼쪽 여백이 이미 자리를 내므로 줄 사이 여백은 지운다.
+   그래야 "모두 펼치기" 가 한 마디로 읽힌다. */
+.set-bulk__all {
+  flex: 0 0 auto;
+  margin-right: -6px; /* .set-bulk 의 gap 과 같은 값 */
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ─── ③ 달력으로 돌아가기 ───────────────────────
+   화살표를 -3px 로 당겨 두었더니 그 획 위에 "달" 이 겹쳐 찍혔다.
+   당기는 대신 살짝 띄운다. 알약이 5px 남짓 넓어질 뿐 자리는 그대로다. */
+.cal-back__arrow {
+  margin-right: 3px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   62. 테이프 기울기를 제각각으로 · "모두 펼치기|접기" (2026-08-19)
+   ────────────────────────────────────────────────────────────
+   ═════════════════════════════════════════════════════════════ */
+
+/* ─── ① 테이프 기울기 ───────────────────────────
+   −3.0° ~ +3.0° 사이를 제각각으로. 그때그때 주사위를 굴리면 목록을 다시
+   그릴 때마다 테이프가 들썩이므로, 자리에 따라 정해진 값을 돌린다 —
+   보기에는 아무렇게나 붙인 것 같고, 같은 줄은 늘 같은 각도라 흔들리지 않는다.
+
+   두 겹으로 돌린다.
+   · 바탕(--tape-tilt)은 날짜 묶음 · 달력 칸 · 요약 판마다 열한 가지
+   · 어긋남(--tape-shift)은 묶음 안의 줄마다 네 가지
+   합쳐 마흔네 가지라 한 화면에서 같은 각도가 눈에 띄게 겹치지 않는다.
+   한 겹만 쓰면 날짜 머리가 늘 묶음의 첫째 자식이라 죄다 같은 각도가 된다.
+   11 은 달력의 7칸과 서로 나누어떨어지지 않아 세로 줄무늬가 생기지 않는다.
+
+   각도는 테이프를 품은 줄에 걸고 그 안의 테이프가 물려받는다.
+   화면 파일은 건드리지 않는다. */
+:root {
+  --tape-tilt: -1.4deg;
+  --tape-shift: 0deg;
+}
+
+.amount-text.masked::after,
+.amount-split.masked::after,
+.date-group__sum.masked::after {
+  transform: translateY(-50%) rotate(calc(var(--tape-tilt) + var(--tape-shift)));
+}
+
+.cal__net.masked::after,
+.cal-sum__in.masked::after,
+.cal-sum__out.masked::after,
+.chart-tile__value.masked::after {
+  transform: rotate(calc(var(--tape-tilt) + var(--tape-shift)));
+}
+
+.date-group:nth-child(11n+1),
+.cal__cell:nth-child(11n+1),
+.chart-tile:nth-child(11n+1) {
+  --tape-tilt: -2deg;
+}
+
+.date-group:nth-child(11n+2),
+.cal__cell:nth-child(11n+2),
+.chart-tile:nth-child(11n+2) {
+  --tape-tilt: 1.3deg;
+}
+
+.date-group:nth-child(11n+3),
+.cal__cell:nth-child(11n+3),
+.chart-tile:nth-child(11n+3) {
+  --tape-tilt: -0.8deg;
+}
+
+.date-group:nth-child(11n+4),
+.cal__cell:nth-child(11n+4),
+.chart-tile:nth-child(11n+4) {
+  --tape-tilt: 2deg;
+}
+
+.date-group:nth-child(11n+5),
+.cal__cell:nth-child(11n+5),
+.chart-tile:nth-child(11n+5) {
+  --tape-tilt: -1.5deg;
+}
+
+.date-group:nth-child(11n+6),
+.cal__cell:nth-child(11n+6),
+.chart-tile:nth-child(11n+6) {
+  --tape-tilt: 0.6deg;
+}
+
+.date-group:nth-child(11n+7),
+.cal__cell:nth-child(11n+7),
+.chart-tile:nth-child(11n+7) {
+  --tape-tilt: -2.3deg;
+}
+
+.date-group:nth-child(11n+8),
+.cal__cell:nth-child(11n+8),
+.chart-tile:nth-child(11n+8) {
+  --tape-tilt: 1.7deg;
+}
+
+.date-group:nth-child(11n+9),
+.cal__cell:nth-child(11n+9),
+.chart-tile:nth-child(11n+9) {
+  --tape-tilt: -0.4deg;
+}
+
+.date-group:nth-child(11n+10),
+.cal__cell:nth-child(11n+10),
+.chart-tile:nth-child(11n+10) {
+  --tape-tilt: 2.3deg;
+}
+
+.date-group:nth-child(11n+11),
+.cal__cell:nth-child(11n+11),
+.chart-tile:nth-child(11n+11) {
+  --tape-tilt: -1.9deg;
+}
+
+.date-group > :nth-child(4n+1) {
+  --tape-shift: -0.7deg;
+}
+
+.date-group > :nth-child(4n+2) {
+  --tape-shift: 0.6deg;
+}
+
+.date-group > :nth-child(4n+3) {
+  --tape-shift: -0.3deg;
+}
+
+.date-group > :nth-child(4n+4) {
+  --tape-shift: 0.7deg;
+}
+
+/* ─── ② "모두 펼치기|접기" ──────────────────────
+   가름막 양옆이 12px 씩 벌어져 두 낱말이 따로 놀았다. 줄 사이 여백을 걷고,
+   가름막과 맞닿는 안쪽 여백만 2px 로 줄여 "펼치기|접기" 를 한 마디로 붙인다.
+   음수 여백으로 당기면 두 단추의 누를 자리가 3px 겹쳐 가름막 언저리에서
+   엉뚱한 쪽이 눌린다. 여백을 줄이는 쪽은 그럴 일이 없다.
+   바깥쪽 여백은 그대로라 손가락 자리도 크게 줄지 않는다. */
+.set-bulk {
+  gap: 0;
+}
+
+.set-bulk__all {
+  margin-right: 0;
+}
+
+.set-bulk__btn:first-of-type {
+  padding-right: 2px;
+}
+
+.set-bulk__btn:last-of-type {
+  padding-left: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   63. 설정 세 화면 — "모두 펼치기|접기" 를 단추 줄로 (2026-08-19)
+   ────────────────────────────────────────────────────────────
+   [+ 새 항목 추가] 줄에 있던 것을 내역 세 화면처럼 오른쪽 끝 단추와
+   같은 줄로 올렸다. 그 줄에는 이미 빈자리를 먹는 여백이 하나씩 있어,
+   묶음이 제 여백(margin-left: auto)까지 들고 가면 남는 자리가 반씩
+   나뉘어 줄 한가운데에 선다. 화면마다 누가 여백을 쥐고 있는지가 달라
+   따로 적는다.
+   ═════════════════════════════════════════════════════════════ */
+
+/* 분류 · 결제 수단 — 왼쪽 "감춘 항목 보기" 가 이미 밀어 준다 */
+.cat-toolbar-btns > .btn-row > .set-bulk,
+.pm-toolbar-row > .set-bulk {
+  margin-left: 0;
+}
+
+/* 함께한 상대 — 미는 일은 묶음이 맡고 단추는 뒤따르기만 한다 */
+.cp-toolbar > .ui-btn {
+  margin-left: 0;
 }
