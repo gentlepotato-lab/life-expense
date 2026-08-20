@@ -1078,7 +1078,11 @@ export function ScheduleCard({
             )}
             <span
               className={`amount-text ${
-                s.inout === 1 ? "schedule-card__amount-value--in" : "schedule-card__amount-value--out"
+                shownAmount === 0
+                  ? "zero"
+                  : s.inout === 1
+                  ? "schedule-card__amount-value--in"
+                  : "schedule-card__amount-value--out"
               } ${isBlur && !revealed ? "masked" : "revealed"}`}
               title={isBlur ? "끌면 잠깐 보인다." : undefined}
               onMouseDown={isBlur ? startReveal : undefined}

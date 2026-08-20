@@ -1341,7 +1341,9 @@ export function PendingCard({
             </span>
           )}
           <span
-            className={`amount-text ${isBlur && !row.reveal_amount ? "masked" : "revealed"}`}
+            className={`amount-text ${shownAmount === 0 ? "zero " : ""}${
+              isBlur && !row.reveal_amount ? "masked" : "revealed"
+            }`}
             data-no-longpress
             onMouseDown={(e) => isBlur && onStartReveal(row.entry_id, e)}
             onTouchStart={(e) => isBlur && onStartReveal(row.entry_id, e)}
