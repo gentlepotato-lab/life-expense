@@ -12,6 +12,8 @@ class CategoryL1(Base):
     emoji = Column(String(16))              # 묶음 머리말에 붙는 이모지
     sort_order = Column(Integer, default=0, nullable=True)
     is_active = Column(SmallInteger, nullable=False, default=1)   # 0 이면 고르는 목록에서 뺀다
+    blur_flag = Column(SmallInteger, nullable=False, default=0)     # 1 이면 금액을 덮는다
+    exclude_flag = Column(SmallInteger, nullable=False, default=0)  # 1 이면 집계에서 뺀다
 
 class CategoryL2(Base):
     __tablename__ = "categories_lvl2"
@@ -23,6 +25,7 @@ class CategoryL2(Base):
     blur_flag = Column(SmallInteger, default=0, nullable=False)
     inout = Column(SmallInteger, nullable=True)
     is_active = Column(SmallInteger, nullable=False, default=1)   # 0 이면 고르는 목록에서 뺀다
+    exclude_flag = Column(SmallInteger, nullable=False, default=0)  # 1 이면 집계에서 뺀다
 
 class CategoryL3(Base):
     __tablename__ = "categories_lvl3"
@@ -31,6 +34,8 @@ class CategoryL3(Base):
     cat2_id = Column(Integer, ForeignKey("categories_lvl2.cat2_id"), nullable=False)
     sort_order = Column(Integer, default=0, nullable=True)
     is_active = Column(SmallInteger, nullable=False, default=1)   # 0 이면 고르는 목록에서 뺀다
+    blur_flag = Column(SmallInteger, nullable=False, default=0)     # 1 이면 금액을 덮는다
+    exclude_flag = Column(SmallInteger, nullable=False, default=0)  # 1 이면 집계에서 뺀다
 
 class PaymentMethod(Base):
     __tablename__ = "payment_methods"

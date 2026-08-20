@@ -16,12 +16,15 @@ router = APIRouter()
 def cat1(db=Depends(get_db)):
     rows = db.execute(
         select(CategoryL1.cat1_id, CategoryL1.cat1_name, CategoryL1.emoji,
-               CategoryL1.is_active)
+               CategoryL1.is_active, CategoryL1.exclude_flag, CategoryL1.blur_flag)
         .order_by(CategoryL1.sort_order)
     ).all()
     # 감춘 것도 함께 준다. 지난 내역이 그 분류를 가리키고 있어 이름을 찾으려면
     # 목록에 있어야 하기 때문이다. 고르는 목록에서 빼는 일은 화면이 한다.
-    return [{"id": i, "name": n, "emoji": e, "is_active": a} for i, n, e, a in rows]
+    return [
+        {"id": i, "name": n, "emoji": e, "is_active": a, "exclude": x, "blur": b}
+        for i, n, e, a, x, b in rows
+    ]
 
 @router.get("/lvl2")
 def cat2(cat1_id: int | None = Query(None), db=Depends(get_db)):
@@ -35,7 +38,8 @@ def cat2(cat1_id: int | None = Query(None), db=Depends(get_db)):
         CategoryL2.cat1_id,
         CategoryL2.blur_flag,
         CategoryL2.inout,
-        CategoryL2.is_active
+        CategoryL2.is_active,
+        CategoryL2.exclude_flag
     ).order_by(CategoryL2.cat1_id, CategoryL2.sort_order)
 
     if cat1_id:
@@ -43,8 +47,9 @@ def cat2(cat1_id: int | None = Query(None), db=Depends(get_db)):
 
     rows = db.execute(stmt).all()
     return [
-        {"id": i, "name": n, "cat1_id": c1, "blur": b, "inout": io, "is_active": a}
-        for i, n, c1, b, io, a in rows
+        {"id": i, "name": n, "cat1_id": c1, "blur": b, "inout": io,
+         "is_active": a, "exclude": x}
+        for i, n, c1, b, io, a, x in rows
     ]
 
 @router.get("/lvl3")
@@ -54,13 +59,18 @@ def cat3(cat2_id: int | None = Query(None), db=Depends(get_db)):
         CategoryL3.cat3_name,
         CategoryL3.cat2_id,
         CategoryL3.is_active,
+        CategoryL3.exclude_flag,
+        CategoryL3.blur_flag,
     ).order_by(CategoryL3.cat2_id, CategoryL3.sort_order)
 
     if cat2_id is not None:
         stmt = stmt.where(CategoryL3.cat2_id == cat2_id)
 
     rows = db.execute(stmt).all()
-    return [{"id": i, "name": n, "cat2_id": c2, "is_active": a} for i, n, c2, a in rows]
+    return [
+        {"id": i, "name": n, "cat2_id": c2, "is_active": a, "exclude": x, "blur": b}
+        for i, n, c2, a, x, b in rows
+    ]
 
 @router.post("/add/lvl3")
 def add_cat3(cat2_id: int = Query(...), name: str = Query(...), db=Depends(get_db)):
@@ -111,6 +121,10 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
             }
             if "is_active" in item:
                 update_data["is_active"] = 1 if item["is_active"] else 0
+            if "exclude" in item:
+                update_data["exclude_flag"] = 1 if item["exclude"] else 0
+            if "blur" in item:
+                update_data["blur_flag"] = 1 if item["blur"] else 0
             # 키가 없으면 그대로 두고, 빈 값이면 지운다
             if "emoji" in item:
                 update_data["emoji"] = item.get("emoji") or None
@@ -142,6 +156,10 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
             }
             if "is_active" in item:
                 update_data["is_active"] = 1 if item["is_active"] else 0
+            if "exclude" in item:
+                update_data["exclude_flag"] = 1 if item["exclude"] else 0
+            if "blur" in item:
+                update_data["blur_flag"] = 1 if item["blur"] else 0
             if "inout" in item:
                 update_data["inout"] = inout_value
             db.query(CategoryL2).filter(CategoryL2.cat2_id == cid).update(update_data)
@@ -166,6 +184,10 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
             }
             if "is_active" in item:
                 update3["is_active"] = 1 if item["is_active"] else 0
+            if "exclude" in item:
+                update3["exclude_flag"] = 1 if item["exclude"] else 0
+            if "blur" in item:
+                update3["blur_flag"] = 1 if item["blur"] else 0
             db.query(CategoryL3).filter(CategoryL3.cat3_id == cid).update(update3)
 
     db.commit()

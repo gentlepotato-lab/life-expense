@@ -135,6 +135,8 @@ export default function Categories() {
         cat1_name: c.name,
         emoji: c.emoji ?? null,
         is_active: c.is_active ?? 1,
+        exclude: c.exclude ?? 0,
+        blur: c.blur ?? 0,
         editing: false
       })))
     );
@@ -147,6 +149,7 @@ export default function Categories() {
         blur: c.blur ?? 0, // blur 값 받기
         inout: c.inout ?? null, // inout 값 받기
         is_active: c.is_active ?? 1,
+        exclude: c.exclude ?? 0,
         editing: false
       })))
     );
@@ -157,10 +160,34 @@ export default function Categories() {
         cat3_name: c.name,
         cat2_id: c.cat2_id,
         is_active: c.is_active ?? 1,
+        exclude: c.exclude ?? 0,
+        blur: c.blur ?? 0,
         editing: false
       })))
     );
   }, []);
+
+  /* Exclude — 집계에서 뺀다. 저장을 눌러야 반영되는 것은 감추기와 같다 */
+  const toggleExclude1 = (id: number) =>
+    setCat1(cat1.map((x) => (x.cat1_id === id ? { ...x, exclude: x.exclude ? 0 : 1 } : x)));
+  const toggleExclude2 = (id: number) =>
+    setCat2(cat2.map((x) => (x.cat2_id === id ? { ...x, exclude: x.exclude ? 0 : 1 } : x)));
+  const toggleExclude3 = (id: number) =>
+    setCat3(cat3.map((x) => (x.cat3_id === id ? { ...x, exclude: x.exclude ? 0 : 1 } : x)));
+
+  /* Blur — Exclude 와 같이 저장을 눌러야 반영된다.
+     예전에는 소분류만 있었고 누르는 즉시 저장됐다. 되돌리기(뒤로 가기)가
+     듣지 않던 자리라 셋을 같은 방식으로 맞춘다. */
+  const toggleBlur1 = (id: number) =>
+    setCat1(cat1.map((x) => (x.cat1_id === id ? { ...x, blur: x.blur ? 0 : 1 } : x)));
+  const toggleBlur2 = (id: number) =>
+    setCat2(cat2.map((x) => (x.cat2_id === id ? { ...x, blur: x.blur ? 0 : 1 } : x)));
+  const toggleBlur3 = (id: number) =>
+    setCat3(cat3.map((x) => (x.cat3_id === id ? { ...x, blur: x.blur ? 0 : 1 } : x)));
+
+  /** 소분류의 IN/OUT 을 뒤집는다 — 값은 -1 아니면 1 둘뿐이다 */
+  const toggleInout = (id: number) =>
+    setCat2(cat2.map((x) => (x.cat2_id === id ? { ...x, inout: x.inout === 1 ? -1 : 1 } : x)));
 
   // 중분류 정렬
   const handleDragEndCat1 = (event: any) => {
@@ -221,13 +248,15 @@ export default function Categories() {
     }
 
     // 변경 체크 & 저장 로직 기존 그대로
+    /* Exclude 도 함께 본다 — 이것만 건드리고 저장하면
+       "변경된 내용이 없습니다" 로 되돌아가 버린다 */
     const changed =
-      JSON.stringify(beforeEditCat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active])) !==
-        JSON.stringify(cat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active])) ||
-      JSON.stringify(beforeEditCat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active])) !==
-        JSON.stringify(cat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active])) ||
-      JSON.stringify(beforeEditCat3.map(c => [c.cat3_id, c.cat3_name, c.is_active])) !==
-        JSON.stringify(cat3.map(c => [c.cat3_id, c.cat3_name, c.is_active]));
+      JSON.stringify(beforeEditCat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.exclude ?? 0, c.blur ?? 0])) !==
+        JSON.stringify(cat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.exclude ?? 0, c.blur ?? 0])) ||
+      JSON.stringify(beforeEditCat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active, c.exclude ?? 0])) !==
+        JSON.stringify(cat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active, c.exclude ?? 0])) ||
+      JSON.stringify(beforeEditCat3.map(c => [c.cat3_id, c.cat3_name, c.is_active, c.exclude ?? 0, c.blur ?? 0])) !==
+        JSON.stringify(cat3.map(c => [c.cat3_id, c.cat3_name, c.is_active, c.exclude ?? 0, c.blur ?? 0]));
 
     if (!changed) {
       alert("변경된 내용이 없습니다만...?");
@@ -241,6 +270,8 @@ export default function Categories() {
         cat1_name: c.cat1_name,
         emoji: c.emoji ?? "",
         is_active: c.is_active ?? 1,
+        exclude: c.exclude ?? 0,
+        blur: c.blur ?? 0,
         sort_order: idx + 1,
       })),
       cat2: cat1.flatMap(c1 =>
@@ -251,6 +282,8 @@ export default function Categories() {
             cat1_id: c1.cat1_id,
             cat2_name: c.cat2_name,
             is_active: c.is_active ?? 1,
+            exclude: c.exclude ?? 0,
+            blur: c.blur ?? 0,
             sort_order: idx + 1,
             inout: c.inout,
           }))
@@ -263,6 +296,8 @@ export default function Categories() {
             cat2_id: c2.cat2_id,
             cat3_name: c.cat3_name,
             is_active: c.is_active ?? 1,
+            exclude: c.exclude ?? 0,
+            blur: c.blur ?? 0,
             sort_order: idx + 1,
           }))
       )
@@ -533,6 +568,13 @@ export default function Categories() {
               />
               감춘 항목 보기
             </label>
+
+            {/* 내역 세 화면처럼 오른쪽 끝 버튼과 같은 줄에 둔다 */}
+            <CollapseAllButtons
+              onExpandAll={() => setCollapsed(new Set())}
+              onCollapseAll={() => setCollapsed(new Set(allCollapsibleKeys()))}
+            />
+
             <button
               className="ui-btn primary"
               onClick={() => {
@@ -566,11 +608,6 @@ export default function Categories() {
             <span className="set-add-btn__mark" aria-hidden="true">+</span>
             새 항목 추가
           </button>
-
-          <CollapseAllButtons
-            onExpandAll={() => setCollapsed(new Set())}
-            onCollapseAll={() => setCollapsed(new Set(allCollapsibleKeys()))}
-          />
         </div>
 
         {addOpen && (
@@ -698,6 +735,16 @@ export default function Categories() {
                         setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, editing: true } : x))
                       }
                     >
+                      {/* 이모지는 이름 앞에 — 세 화면이 같은 순서다 */}
+                      <EmojiPicker
+                        value={c1.emoji ?? null}
+                        disabled={!editMode}
+                        title={`${c1.cat1_name} 이모지`}
+                        onChange={(v) =>
+                          setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, emoji: v } : x))
+                        }
+                      />
+
                       {editMode && c1.editing ? (
                         <input
                           className="cat1-input"
@@ -717,22 +764,27 @@ export default function Categories() {
                         </span>
                       )}
 
-                      {/* 이모지는 이름 뒤에 — 없을 때 이름 앞이 비어 보이지 않게 */}
-                      <EmojiPicker
-                        value={c1.emoji ?? null}
-                        disabled={!editMode}
-                        title={`${c1.cat1_name} 이모지`}
-                        onChange={(v) =>
-                          setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, emoji: v } : x))
-                        }
-                      />
-
                     </div>
 
-                    {/* 건수는 오른쪽 끝에 — 세 화면 공통 */}
-                    <span className="set-group__count">
-                      {cat2View.filter((c) => c.cat1_id === c1.cat1_id).length}
-                    </span>
+                    {editMode && (
+                      <button
+                        type="button"
+                        className={`set-exclude-btn ${c1.exclude ? "on" : ""}`}
+                        onClick={() => toggleExclude1(c1.cat1_id)}
+                      >
+                        Exclude
+                      </button>
+                    )}
+
+                    {editMode && (
+                      <button
+                        type="button"
+                        className={`set-blur-btn ${c1.blur ? "on" : ""}`}
+                        onClick={() => toggleBlur1(c1.cat1_id)}
+                      >
+                        Blur
+                      </button>
+                    )}
 
                     {editMode && (
                       <button
@@ -756,6 +808,11 @@ export default function Categories() {
                         ×
                       </button>
                     )}
+
+                    {/* 건수는 줄 맨 오른쪽 — 결제 수단 · 함께한 상대와 같은 자리(388~405) */}
+                    <span className="set-group__count">
+                      {cat2View.filter((c) => c.cat1_id === c1.cat1_id).length}
+                    </span>
                   </div>
                 </SortableItem>
 
@@ -783,6 +840,25 @@ export default function Categories() {
                                 hidden={!cat3View.some((c) => c.cat2_id === c2.cat2_id)}
                                 label={c2.cat2_name}
                               />
+                              {/* IN/OUT 자리 — 보기는 색점, 편집은 누르는 [+]/[−].
+                                  두 모드가 같은 폭을 쓰므로 이름이 움직이지 않는다 */}
+                              {editMode ? (
+                                <button
+                                  type="button"
+                                  className={`cat2-inout ${c2.inout === 1 ? "in" : "out"}`}
+                                  title={c2.inout === 1 ? "IN — 눌러서 OUT 으로" : "OUT — 눌러서 IN 으로"}
+                                  aria-label={c2.inout === 1 ? "IN" : "OUT"}
+                                  onClick={() => toggleInout(c2.cat2_id)}
+                                >
+                                  {c2.inout === 1 ? "＋" : "−"}
+                                </button>
+                              ) : (
+                                <span
+                                  className={`cat2-inout ${c2.inout === 1 ? "in" : "out"}`}
+                                  aria-label={c2.inout === 1 ? "IN" : "OUT"}
+                                />
+                              )}
+
                               {editMode && c2.editing ? (
                                 <input
                                   className="cat2-input"
@@ -812,59 +888,29 @@ export default function Categories() {
                                     }
                                   }}
                                 >
-                                  {!editMode && c2.inout !== null && (
-                                    /* 색은 그대로 두고 모양만 묶음 머리말의 점과 맞춘다 */
-                                    <span
-                                      className="set-group__dot inout-dot"
-                                      style={{
-                                        background: c2.inout === 1 ? "#00C7BE" : "#FF5C57",
-                                      }}
-                                      aria-label={c2.inout === 1 ? "IN" : "OUT"}
-                                    />
-                                  )}
                                   {c2.cat2_name}
                                   {!c2.is_active && <span className="set-hide-mark">감춤</span>}
                                 </span>
                               )}
 
                               {editMode && (
-                                <div className="inout-select-wrap">
-                                  <SingleSelect
-                                    options={[
-                                      { value: "1", label: "IN(+)" },
-                                      { value: "-1", label: "OUT(-)" }
-                                    ]}
-                                    selected={c2.inout === null ? "" : String(c2.inout)}
-                                    onChange={(value) => {
-                                      const parsed = value === "" ? null : Number(value);
-                                      setCat2(cat2.map(x =>
-                                        x.cat2_id === c2.cat2_id ? { ...x, inout: parsed } : x
-                                      ));
-                                    }}
-                                    placeholder="(IN/OUT)"
-                                  />
-                                </div>
+                                <button
+                                  type="button"
+                                  className={`set-exclude-btn ${c1.exclude || c2.exclude ? "on" : ""}`}
+                                  disabled={!!c1.exclude}
+                                  onClick={() => toggleExclude2(c2.cat2_id)}
+                                >
+                                  Exclude
+                                </button>
                               )}
 
                               {editMode && (
-                                /* Blur 는 금액을 흐리게 가리는 것. 감추기와는 다르다 */
+                                /* Blur 는 금액을 테이프로 덮는 것. 감추기와는 다르다 */
                                 <button
                                   type="button"
-                                  className={`set-blur-btn ${c2.blur === 1 ? "on" : ""}`}
-                                  title={
-                                    c2.blur === 1
-                                      ? "금액을 흐리게 가리는 중"
-                                      : "금액을 흐리게 가린다."
-                                  }
-                                  onClick={() => {
-                                    const next = c2.blur === 1 ? 0 : 1;
-                                    axios.post("/categories/blur/set", null, {
-                                      params: { cat1_id: c2.cat1_id, cat2_id: c2.cat2_id, enabled: next === 1 }
-                                    });
-                                    setCat2(cat2.map(x =>
-                                      x.cat2_id === c2.cat2_id ? { ...x, blur: next } : x
-                                    ));
-                                  }}
+                                  className={`set-blur-btn ${c1.blur || c2.blur ? "on" : ""}`}
+                                  disabled={!!c1.blur}
+                                  onClick={() => toggleBlur2(c2.cat2_id)}
                                 >
                                   Blur
                                 </button>
@@ -967,6 +1013,28 @@ export default function Categories() {
                                             {c3.cat3_name}
                                             {!c3.is_active && <span className="set-hide-mark">감춤</span>}
                                           </span>
+                                        )}
+
+                                        {editMode && (
+                                          <button
+                                            type="button"
+                                            className={`set-exclude-btn ${c1.exclude || c2.exclude || c3.exclude ? "on" : ""}`}
+                                            disabled={!!c1.exclude || !!c2.exclude}
+                                            onClick={() => toggleExclude3(c3.cat3_id)}
+                                          >
+                                            Exclude
+                                          </button>
+                                        )}
+
+                                        {editMode && (
+                                          <button
+                                            type="button"
+                                            className={`set-blur-btn ${c1.blur || c2.blur || c3.blur ? "on" : ""}`}
+                                            disabled={!!c1.blur || !!c2.blur}
+                                            onClick={() => toggleBlur3(c3.cat3_id)}
+                                          >
+                                            Blur
+                                          </button>
                                         )}
 
                                         {editMode && (
