@@ -40,6 +40,7 @@ export default function EntryFilterPopup({
   cpList,
   onClose,
   onApply,
+  showInout = true,
 }: {
   filter: Filter;
   setFilter: React.Dispatch<React.SetStateAction<Filter>>;
@@ -51,6 +52,8 @@ export default function EntryFilterPopup({
   /** 적용하지 않고 닫을 때 — 고치던 값을 되돌리는 것은 부르는 쪽 몫이다 */
   onClose: () => void;
   onApply: () => void;
+  /** IN/OUT 칸을 둘지. 씀씀이는 나가는 돈만 다루므로 고를 것이 없다 */
+  showInout?: boolean;
 }) {
   useBackClose(true, onClose);
 
@@ -259,20 +262,23 @@ export default function EntryFilterPopup({
 
           <EditDivider />
 
-          <EditField label="IN/OUT" span={6}>
-            <SingleSelect
-              options={[
-                { value: "0", label: "(전체)" },
-                { value: "-1", label: "OUT(−)" },
-                { value: "1", label: "IN(+)" },
-              ]}
-              selected={String(filter.inout)}
-              onChange={(v) => setFilter({ ...filter, inout: Number(v) })}
-              placeholder="(전체)"
-            />
-          </EditField>
+          {showInout && (
+            <EditField label="IN/OUT" span={6}>
+              <SingleSelect
+                options={[
+                  { value: "0", label: "(전체)" },
+                  { value: "-1", label: "OUT(−)" },
+                  { value: "1", label: "IN(+)" },
+                ]}
+                selected={String(filter.inout)}
+                onChange={(v) => setFilter({ ...filter, inout: Number(v) })}
+                placeholder="(전체)"
+              />
+            </EditField>
+          )}
 
-          <EditField label="결제 수단" span={6}>
+          {/* IN/OUT 이 빠지면 혼자 남으므로 줄을 다 쓴다 */}
+          <EditField label="결제 수단" span={showInout ? 6 : 12}>
             <MultiSelect
               options={payOptions}
               selected={filter.pay}

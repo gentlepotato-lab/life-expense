@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -221,7 +221,7 @@ export default function Charts() {
   const [cat1List, setCat1List] = useState<{ id: number; name: string; exclude?: number; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout?: number | null; exclude?: number; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; exclude?: number; is_active?: number }[]>([]);
-  const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
+  const [payList, setPayList] = useState<{ code: string; name: string; category?: string; is_active?: number }[]>([]);
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
 
   const isFilterActive = useMemo(() => hasCondition(appliedFilter), [appliedFilter]);
@@ -233,11 +233,20 @@ export default function Charts() {
     axios.get("/counterparts").then((r) => setCpList(r.data));
     axios.get("/payment-methods").then((r) =>
       setPayList(
-        r.data.map((p: { method_id: number; method_name: string; is_active?: number }) => ({
-          code: String(p.method_id),
-          name: p.method_name,
-          is_active: p.is_active,
-        }))
+        r.data.map(
+          (p: {
+            method_id: number;
+            method_name: string;
+            category?: string;
+            is_active?: number;
+          }) => ({
+            code: String(p.method_id),
+            name: p.method_name,
+            /* 카드 실적은 구분이 `카드` 인 것만 센다 */
+            category: p.category,
+            is_active: p.is_active,
+          })
+        )
       )
     );
   }, []);
@@ -413,6 +422,87 @@ export default function Charts() {
 
   const catTotal = useMemo(() => byCat.reduce((s, c) => s + c.value, 0), [byCat]);
 
+  /* ─── 카드 실적 ───────────────────────────────────────────────
+     쓴 돈이 아니라 카드에 그은 돈이다. 열 명이 먹은 값 10만 원을 내가
+     긁고 2만 원만 부담했다면, 실적은 10만 원이고 내 몫은 2만 원이다.
+     그래서 여기서만 r.amount(원래 결제액)를 쓴다 — 다른 그림은 모두
+     r.net(쪼갠 뒤 내 몫)을 본다.
+
+     결제 수단 구분이 `카드` 인 것만 센다. 걸러 낸 조건 · Exclude · Blur 는
+     다른 그림과 똑같이 받는다(shown 을 그대로 쓴다). */
+  const byCard = useMemo(() => {
+    const cards = payList.filter((p) => p.category === "카드");
+    if (!cards.length) return [];
+    const seen = new Map<string, { charged: number; mine: number; count: number; hasBlur: boolean }>();
+    shown.forEach((r) => {
+      const code = String(r.pay_method);
+      if (!cards.some((c) => c.code === code)) return;
+      const cur = seen.get(code) ?? { charged: 0, mine: 0, count: 0, hasBlur: false };
+      cur.charged += r.amount;
+      cur.mine += r.net;
+      cur.count += 1;
+      if (isBlurred(r, blurSets)) cur.hasBlur = true;
+      seen.set(code, cur);
+    });
+    return cards.map((c) => ({
+      code: c.code,
+      name: c.name,
+      ...(seen.get(c.code) ?? { charged: 0, mine: 0, count: 0, hasBlur: false }),
+    }));
+  }, [shown, payList, blurSets]);
+
+  /* 카드 실적은 접어 둔다. 요약 판과 그림 사이에 늘 펼쳐져 있으면
+     지출 흐름을 읽다가 다른 얘기에 걸려 넘어진다. 볼 때만 편다. */
+  const [cardOpen, setCardOpen] = useState(false);
+
+  /* 지금 보고 있는 카드 — 옆으로 넘겨 하나씩 본다 */
+  const [cardAt, setCardAt] = useState(0);
+  const cardStripRef = useRef<HTMLDivElement | null>(null);
+
+  /* 카드 수가 줄면 보던 자리가 목록 밖으로 나갈 수 있다 */
+  useEffect(() => {
+    if (cardAt > byCard.length - 1) setCardAt(0);
+  }, [byCard.length, cardAt]);
+
+  /* 넓은 화면에서는 한 장이 판 전체를 차지하지 않고 요약 판 한 칸 너비다.
+     그래서 넘김 단위는 화면 너비가 아니라 "한 장 + 사이 여백" 이다. */
+  const cardStep = () => {
+    const el = cardStripRef.current;
+    const first = el?.firstElementChild as HTMLElement | null;
+    if (!el || !first) return 1;
+    const gap = parseFloat(getComputedStyle(el).columnGap || "0") || 0;
+    return first.getBoundingClientRect().width + gap;
+  };
+
+  /** 넘긴 만큼 점을 옮긴다 — 손가락으로 쓸든 단추를 누르든 한 곳에서 센다 */
+  const onCardScroll = useCallback(() => {
+    const el = cardStripRef.current;
+    if (!el) return;
+    setCardAt(Math.round(el.scrollLeft / cardStep()));
+  }, []);
+
+  const goCard = useCallback((i: number) => {
+    const el = cardStripRef.current;
+    if (!el) return;
+    el.scrollTo({ left: i * cardStep(), behavior: "smooth" });
+  }, []);
+
+  /* 다 들어가면 넘길 것이 없다 — 그때는 점도 화살표도 두지 않는다.
+     카드가 둘인데 넉넉한 화면에서 점 두 개가 떠 있으면 못 본 장이 있는 줄 안다. */
+  const [cardOverflow, setCardOverflow] = useState(false);
+  useEffect(() => {
+    const el = cardStripRef.current;
+    if (!cardOpen || !el) {
+      setCardOverflow(false);
+      return;
+    }
+    const check = () => setCardOverflow(el.scrollWidth > el.clientWidth + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [cardOpen, byCard.length]);
+
   /** 한 달 중 가장 많이 쓴 하루 */
   const peak = useMemo(
     () => byDay.reduce((best, d) => (d.지출 > best.지출 ? d : best), { day: 0, 지출: 0 }),
@@ -488,6 +578,96 @@ export default function Charts() {
         </button>
       </div>
 
+      {/* ─── 카드 실적 — 한 장씩 옆으로 넘겨 본다 ───────────────── */}
+      {byCard.length > 0 && (
+        <section className={`card-perf${cardOpen ? " open" : ""}`}>
+          <header className="card-perf__head">
+            <button
+              type="button"
+              className="card-perf__toggle"
+              aria-expanded={cardOpen}
+              onClick={() => {
+                /* 다시 펼 때는 첫 장부터 — 접힌 사이 자리가 어긋나 있을 수 있다 */
+                if (!cardOpen) setCardAt(0);
+                setCardOpen((v) => !v);
+              }}
+            >
+              <span className="card-perf__caret" aria-hidden="true">
+                ›
+              </span>
+              <h3 className="card-perf__title">카드 실적</h3>
+            </button>
+            {cardOpen && cardOverflow && byCard.length > 1 && (
+              <span className="card-perf__nav">
+                <button
+                  type="button"
+                  className="card-perf__arrow"
+                  aria-label="이전 카드"
+                  disabled={cardAt === 0}
+                  onClick={() => goCard(cardAt - 1)}
+                >
+                  ‹
+                </button>
+                <span className="card-perf__dots" aria-hidden="true">
+                  {byCard.map((c, i) => (
+                    <span key={c.code} className={`card-perf__dot${i === cardAt ? " on" : ""}`} />
+                  ))}
+                </span>
+                <button
+                  type="button"
+                  className="card-perf__arrow"
+                  aria-label="다음 카드"
+                  disabled={cardAt >= byCard.length - 1}
+                  onClick={() => goCard(cardAt + 1)}
+                >
+                  ›
+                </button>
+              </span>
+            )}
+          </header>
+
+          {cardOpen && (
+          <div
+            className="card-perf__strip"
+            ref={cardStripRef}
+            onScroll={onCardScroll}
+          >
+            {byCard.map((c) => (
+              <article key={c.code} className="card-perf__item">
+                <div className="card-perf__line">
+                  <span className="card-perf__name">{c.name}</span>
+                  <MaskedAmount
+                    className="card-perf__value"
+                    hide={c.hasBlur}
+                    value={Math.round(c.charged).toLocaleString("ko-KR")}
+                  />
+                </div>
+
+                {/* 넓은 줄을 숫자 하나로 비워 두지 않고, 이 판이 말하려는 바로
+                    그것을 담는다 — 그은 돈 가운데 얼마가 내 돈이었는지.
+                    비율만 보이고 금액은 드러나지 않으므로 덮개가 덮여 있어도 그린다. */}
+                <div className="card-perf__bar" aria-hidden="true">
+                  <span
+                    className="card-perf__bar-fill"
+                    style={{
+                      width: `${c.charged > 0 ? Math.min(100, (c.mine / c.charged) * 100) : 0}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="card-perf__line card-perf__line--sub">
+                  <span className="card-perf__sub">{c.count}건</span>
+                  <span className="card-perf__sub">
+                    내 몫 {Math.round(c.mine).toLocaleString("ko-KR")}
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+          )}
+        </section>
+      )}
+
       {/* 한 달 요약 — 이 화면은 나간 돈만 센다 */}
       <div className="chart-tiles">
         <div className="chart-tile">
@@ -518,6 +698,7 @@ export default function Charts() {
           <span className="chart-tile__sub">{peak.day ? `${peak.day}일` : " "}</span>
         </div>
       </div>
+
 
       {empty ? (
         <p className="chart-empty">지출 내역이 없다.</p>
@@ -705,6 +886,8 @@ export default function Charts() {
           cat3List={cat3List}
           payList={payList}
           cpList={cpList}
+          /* 이 화면은 나가는 돈만 다룬다 — 고를 것이 없어 칸을 빼 둔다 */
+          showInout={false}
           onClose={closeFilter}
           onApply={() => {
             setAppliedFilter(filter);

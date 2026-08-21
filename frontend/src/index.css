@@ -9089,3 +9089,282 @@ button.cat2-inout:active {
 .card:has(.amount-text.zero) > .out-bar {
   background: linear-gradient(180deg, var(--color-zero) 0%, var(--color-zero-dark) 100%);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   65. 카드 실적 — 한 장씩 넘겨 보기 (2026-08-20)
+   ────────────────────────────────────────────────────────────
+   카드를 한 줄에 다 늘어놓으면 장 수가 늘 때마다 좁아진다.
+   가로로 한 장씩 넘겨 보게 한다 — 스크롤 스냅이라 손가락으로 쓸면
+   딱 한 장씩 걸린다. 라이브러리는 쓰지 않는다.
+   요약 판(chart-tiles)과 같은 결로 두어 위아래가 겉돌지 않게 한다.
+   ═════════════════════════════════════════════════════════════ */
+
+/* 요약 판 위에 서는 줄이라 아래와 조금 띄운다.
+   붙여 두면 아래 판의 소제목처럼 읽힌다. */
+.card-perf {
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.card-perf.open {
+  margin-bottom: var(--space-2);
+}
+
+.card-perf__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+  min-height: 22px;
+}
+
+/* 펼쳤을 때만 판과 사이를 띄운다 — 접혀 있으면 한 줄로 얇게 남는다 */
+.card-perf.open > .card-perf__head {
+  padding-bottom: 4px;
+}
+
+/* 이름표 전체가 누르는 자리다 — 손가락으로 겨누기 쉽게 */
+.card-perf__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 접힘 "›" · 펼침 "⌄" — 90° 돌리기만 하므로 자리가 안 흔들린다 */
+.card-perf__caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.card-perf.open .card-perf__caret {
+  transform: rotate(90deg);
+}
+
+.card-perf__title {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.02em;
+}
+
+/* 몇 장 중 몇 번째인지 — 넘길 것이 둘 이상일 때만 그린다 */
+.card-perf__dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.card-perf__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-border);
+  transition: background 140ms ease;
+}
+
+.card-perf__dot.on {
+  background: var(--color-primary);
+}
+
+/* 넘기는 자리 — 한 장이 판을 꽉 채우고 스냅으로 걸린다 */
+.card-perf__strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.card-perf__strip::-webkit-scrollbar {
+  display: none;
+}
+
+.card-perf__item {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  box-sizing: border-box;
+  /* 긴 카드 이름이 칸을 밀어 넓히지 못하게 — 없으면 두 번째 장만 커진다 */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* 위 요약 판과 높이를 맞춘다 — 두 띠가 나란히 보이는 자리다 */
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 이름은 왼쪽, 숫자는 오른쪽 — 한 줄에 둬서 빈 자리를 없앤다 */
+.card-perf__line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.card-perf__line--sub {
+  align-items: center;
+}
+
+/* 카드 이름은 길어도 줄을 늘리지 않는다 — 판 높이가 장마다 달라진다 */
+.card-perf__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* 판의 주인 이름이라 이름표보다 크게 — 금액(16px) 바로 아래 크기 */
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-perf__value {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 86px;
+  height: calc(var(--font-size-lg) * 1.3);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.card-perf__sub {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 그은 돈 대비 내 몫 — 옅은 바탕이 카드에 그은 값, 채워진 만큼이 내 돈이다.
+   눈금도 숫자도 붙이지 않는다. 정확한 값은 바로 위아래 줄에 이미 있고,
+   여기서는 "얼마나 돌려받았나" 가 한눈에 들어오면 된다. */
+.card-perf__bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+/* 채움은 남보라 — 그림들이 쓰는 다섯 빛깔(분홍 · 하늘 · 민트 · 라벤더 · 살구)과
+   겹치지 않는 유일한 색이다. 그림 팔레트를 짤 때 알약 색 셋을 일부러 피해
+   두었으므로, 거꾸로 알약 색은 어느 그림에도 안 나온다.
+   분홍은 날짜별 막대와 도넛 첫 조각이 이미 쓰고 있어 걷었다. */
+.card-perf__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+  transition: width 200ms ease;
+}
+
+/* 덮개 — 요약 판과 같은 규칙. 덮여도 자리가 그대로여야 한다 */
+.card-perf__value.masked {
+  position: relative;
+  color: transparent;
+  font-size: 0;
+  cursor: ew-resize;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+.card-perf__value.masked::after {
+  content: "";
+  position: absolute;
+  inset: 1px 0;
+  transform: rotate(var(--tape-tilt));
+  background: repeating-linear-gradient(-45deg, #E7E9F5 0 6px, #D6DAF0 6px 12px);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+/* 넘기는 단추 — 머릿줄 점 양옆에 둔다.
+   판 위에 여옌놓았더니 금액 끝자리를 가렸다. */
+.card-perf__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.card-perf__dots {
+  margin-left: 0;
+}
+
+.card-perf__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--color-text-tertiary);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.card-perf__arrow:hover:not(:disabled) {
+  color: var(--color-primary);
+}
+
+/* 끝에 닿으면 자리만 남기고 숨긴다 — 줄이 밀리지 않도록 */
+.card-perf__arrow:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+@media (min-width: 640px) {
+  /* 넓은 화면에서 한 장이 판을 가로질러 760px 로 늘어나 있었다.
+     위 요약 판과 같은 칸 너비(세 칸 격자)로 맞춰 두 띠가 같은 결로 읽히게 한다.
+     카드가 셋 이하면 다 보이니 넘길 일도 없다. */
+  /* 넓은 화면에서도 한 장은 요약 판 한 칸 너비 그대로다.
+     카드가 많아지면 줄을 바꿔 쌓지 않고 옆으로 넘긴다 — 카드 하나가
+     한 칸이라는 규칙이 흐트러지지 않고, 위 요약 판과 줄이 맞는다. */
+  .card-perf__strip {
+    gap: var(--space-2);
+  }
+
+  .card-perf__item {
+    flex: 0 0 calc((100% - 2 * var(--space-2)) / 3);
+    padding: 10px 14px;
+  }
+
+  .card-perf__value {
+    min-width: 104px;
+    height: calc(var(--font-size-xl) * 1.3);
+    font-size: var(--font-size-xl);
+  }
+}
