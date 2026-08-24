@@ -4,6 +4,8 @@ import axios from "../api/client";
 import useRevealDrag from "../hooks/useRevealDrag";
 import CalculatorPopup from "./components/CalculatorPopup";
 import EntryFilterPopup from "./components/EntryFilterPopup";
+import WriteEntryModal from "./components/WriteEntryModal";
+import PenIcon from "./components/PenIcon";
 import {
   EMPTY_FILTER,
   blurSetsFrom,
@@ -73,6 +75,10 @@ export default function Calendar() {
   const navigate = useNavigate();
 
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  /* 적기 팭업 — 쓰기 화면으로 넘어가지 않고 이 자리에서 한 건 적는다 */
+  const [writeOpen, setWriteOpen] = useState(false);
+  /* 적고 나면 그 날 칸에 바로 드러나야 한다 — 한 달치를 다시 읽는다 */
+  const [reloadKey, setReloadKey] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>(EMPTY_FILTER);
   const [appliedFilter, setAppliedFilter] = useState<Filter>(EMPTY_FILTER);
@@ -150,7 +156,7 @@ export default function Calendar() {
     return () => {
       alive = false;
     };
-  }, [yearMonth]);
+  }, [yearMonth, reloadKey]);
 
   /* Blur 가 걸린 갈래 — 그런 지출이 낀 날은 칸의 금액도 덮는다.
      중 · 소 · 세 어디에 걸려도 함께 덮인다 */
@@ -508,6 +514,14 @@ export default function Calendar() {
         />
       )}
 
+      {/* 계산기 왼편에 나란히 둔다 — 단추는 둘 다 떠 있다 */}
+      <button
+        className="calculator-trigger-button write-trigger-button"
+        onClick={() => setWriteOpen(true)}
+        aria-label="쓰기"
+      >
+        <PenIcon />
+      </button>
       <button
         className="calculator-trigger-button"
         onClick={() => setCalculatorOpen(!calculatorOpen)}
@@ -515,6 +529,12 @@ export default function Calendar() {
       >
         계산기
       </button>
+      {writeOpen && (
+        <WriteEntryModal
+          onClose={() => setWriteOpen(false)}
+          onSaved={() => setReloadKey((k) => k + 1)}
+        />
+      )}
       {calculatorOpen && (
         <CalculatorPopup onClose={() => setCalculatorOpen(false)} />
       )}

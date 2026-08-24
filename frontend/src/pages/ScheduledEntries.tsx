@@ -14,6 +14,8 @@ import DateGroupHeader from "./components/DateGroupHeader";
 import SplitRows from "./components/SplitRows";
 import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
 import { CollapseAllButtons } from "./components/CollapseToggle";
+import WriteEntryModal from "./components/WriteEntryModal";
+import PenIcon from "./components/PenIcon";
 import { groupByDate } from "../utils/dateGroup";
 
 export type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?: number; inout?: number | null; is_active?: number };
@@ -63,6 +65,8 @@ export default function ScheduledEntries() {
   const [cat2Map, setCat2Map] = useState<Record<number, CategoryL2Meta>>({});
   const [cat3Map, setCat3Map] = useState<Record<number, CategoryL3Meta>>({});
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  /* 적기 팭업 — 쓰기 화면으로 넘어가지 않고 이 자리에서 한 건 적는다 */
+  const [writeOpen, setWriteOpen] = useState(false);
 
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다
   const [draft, setDraft] = useState<any | null>(null);
@@ -81,7 +85,7 @@ export default function ScheduledEntries() {
 
   // 팝업 열림/닫힘 시 배경 스크롤 제어
   useEffect(() => {
-    if (showForm || calculatorOpen || draft || placePickerFor) {
+    if (showForm || calculatorOpen || draft || placePickerFor || writeOpen) {
       document.documentElement.classList.add("modal-open");
       // showForm일 때만 pointerEvents 설정(calculatorOpen은 CalculatorPopup에서 처리)
       if (showForm) {
@@ -96,7 +100,7 @@ export default function ScheduledEntries() {
       document.documentElement.classList.remove("modal-open");
       document.body.style.pointerEvents = "auto";
     };
-  }, [showForm, calculatorOpen, draft, placePickerFor]);
+  }, [showForm, calculatorOpen, draft, placePickerFor, writeOpen]);
 
   /**
    * 저장 직전에 place_id 를 확정한다.
@@ -924,6 +928,14 @@ export default function ScheduledEntries() {
           )}
         </CardEditModal>
       )}
+      {/* 계산기 왼편에 나란히 둔다 — 단추는 둘 다 떠 있다 */}
+      <button
+        className="calculator-trigger-button write-trigger-button"
+        onClick={() => setWriteOpen(true)}
+        aria-label="쓰기"
+      >
+        <PenIcon />
+      </button>
       <button
         className="calculator-trigger-button"
         onClick={() => setCalculatorOpen(!calculatorOpen)}
@@ -931,6 +943,7 @@ export default function ScheduledEntries() {
       >
         계산기
       </button>
+      {writeOpen && <WriteEntryModal onClose={() => setWriteOpen(false)} />}
       {calculatorOpen && (
         <CalculatorPopup onClose={() => setCalculatorOpen(false)} />
       )}

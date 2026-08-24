@@ -9368,3 +9368,45 @@ button.cat2-inout:active {
     font-size: var(--font-size-xl);
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   66. 지출 내역에서 바로 적기 (2026-08-21)
+   ────────────────────────────────────────────────────────────
+   계산기 왼편에 만년필 단추를 하나 더 띄운다. 생김새 · 크기 · 그림자는
+   계산기 단추를 그대로 물려받고(같은 클래스), 자리와 속만 다르다.
+   ═════════════════════════════════════════════════════════════ */
+
+/* 계산기 단추 왼편. 계산기가 오른쪽 끝에서 60px 자리를 쓰므로
+   그만큼과 사이 여백을 더해 비켜 세운다. 글자가 아니라 그림이라
+   폭은 정사각으로 잡아 둔다. */
+.write-trigger-button {
+  right: calc(var(--space-4) + 60px + 6px);
+  min-width: 34px;
+  width: 34px;
+  padding: 0;
+  color: var(--color-primary);
+}
+
+.write-trigger-button svg {
+  display: block;
+}
+
+@media (max-width: 400px) {
+  .write-trigger-button {
+    right: calc(var(--space-2) + 50px + 6px);
+    min-width: 30px;
+    width: 30px;
+  }
+}
+
+/* ─── 팝업 안의 입력 칸 묶음 ────────────────────────
+   쓰기 화면에서는 폼이 카드였지만, 팝업 안에서는 이미 팝업이 카드다.
+   테두리 · 그림자 · 바탕을 걷고 칸만 남긴다.
+   날짜 줄은 팝업 머리말 아래 자리와 같은 모양이라 위 여백만 걷는다. */
+.entry-form--modal {
+  gap: 0;
+}
+
+.entry-form--modal > .entry-form__headfields {
+  padding-top: 0;
+}
