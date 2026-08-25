@@ -1,8 +1,8 @@
 /**
  * 새로 고침 — 한 바퀴 도는 화살표.
  *
- * 만년필과 나란히 서므로 톤을 맞춘다. 만년필은 채운 그림이고 이쪽은 선이라,
- * 다 그렸을 때 두께가 비슷해 보이도록 잡았다(24 상자에 2.4 → 18px 에서 1.8px).
+ * 만년필 · 계산기와 나란히 서므로 톤을 맞춘다. 선 두께는 계산기와 같은
+ * 값이다(24 상자에 2 → 18px 에서 1.5px).
  * 빛깔은 currentColor 라 부르는 쪽 글자색을 따라간다.
  */
 export default function RefreshIcon({ size = 18 }: { size?: number }) {
@@ -13,7 +13,7 @@ export default function RefreshIcon({ size = 18 }: { size?: number }) {
       height={size}
       fill="none"
       stroke="currentColor"
-      strokeWidth={2.4}
+      strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"

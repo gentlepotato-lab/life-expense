@@ -14,6 +14,12 @@ export default function PenIcon({ size = 18 }: { size?: number }) {
       width={size}
       height={size}
       fill="currentColor"
+      /* 로고에서 떼어 온 그림이라 선이 0.92px 로, 옆에 선 새로 고침 · 계산기의
+         1.5px 보다 가늘었다. 같은 빛깔로 테를 둘러 그 차이만큼 살찌운다
+         (31 × 0.01842 = 0.57px). */
+      stroke="currentColor"
+      strokeWidth={31}
+      strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
     >

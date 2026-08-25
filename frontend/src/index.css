@@ -9678,29 +9678,57 @@ button.cat2-inout:active {
   }
 }
 
-/* 자리는 묶음이 잡는다. 단추는 저마다 붙어 있던 좌표를 놓는다 */
+/* 자리는 묶음이 잡는다. 단추는 저마다 붙어 있던 좌표를 놓는다.
+   셋 다 글자 없이 그림만 들었으므로 크기도 여기서 한 번에 준다 —
+   단추마다 따로 적어 두면 또 어긋난다. */
 .quick-actions > .calculator-trigger-button {
   position: static;
   top: auto;
   right: auto;
   z-index: auto;
-}
-
-/* 새로 고침 — 만년필과 같은 정사각 그림 단추 */
-.refresh-trigger-button {
   min-width: 34px;
   width: 34px;
   padding: 0;
   color: var(--color-primary);
 }
 
-.refresh-trigger-button svg {
+.quick-actions > .calculator-trigger-button > svg {
   display: block;
 }
 
 @media (max-width: 400px) {
-  .refresh-trigger-button {
+  .quick-actions > .calculator-trigger-button {
     min-width: 30px;
     width: 30px;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   69. 계산기 작은 줄 — 키를 키우고 숫자판에 맞춰 세운다 (2026-08-25)
+   ────────────────────────────────────────────────────────────
+   % · ± · Copy 줄만 26px 이라 아래 숫자판(46px)과 견주어 붕 떠 보였다.
+   36px 으로 키운다 — 칸 안에 12.2px 이 남아 있어 아래가 밀리지 않는다.
+
+   480px 이하에서는 숫자판 줄에만 좌우 12px 이 들어가 있어 이 줄이 혼자
+   더 넓었다. 같은 만큼 물려 세로줄을 맞춘다.
+   ═════════════════════════════════════════════════════════════ */
+
+.calculator-util {
+  height: 36px;
+  min-height: 36px;
+  font-size: var(--font-size-xs);
+}
+
+@media (max-width: 480px) {
+  .calculator-utils {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+/* 못 베꼈을 때 — 잠깐만 붉게 알린다 */
+.calculator-util.is-failed {
+  border-color: transparent;
+  background: #FDE7E6;
+  color: var(--color-danger-dark);
 }

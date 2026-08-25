@@ -16,6 +16,56 @@ type HistoryItem = {
 const HISTORY_MAX = 10;
 let sharedHistory: HistoryItem[] = [];
 
+/**
+ * 클립보드가 없는 자리에서 쓰는 옛 방법.
+ *
+ * navigator.clipboard 는 안전한 자리(https · localhost)에서만 있다. 집 밖에서
+ * 휴대폰으로 IP 를 찍어 들어오면 http 라 아예 없다. 그때는 눈에 안 보이는
+ * 칸을 만들어 골라 놓고 execCommand 로 베낀다.
+ *
+ * iOS 는 그냥 select() 로는 안 골라진다. contentEditable 로 열어 두고
+ * Range 로 고른 뒤 setSelectionRange 까지 해 줘야 한다. readOnly 는 자판이
+ * 올라오지 않게 막는 것이다.
+ */
+function legacyCopy(text: string): boolean {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.readOnly = true;
+  ta.style.cssText =
+    "position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:none;opacity:0;";
+  document.body.appendChild(ta);
+
+  const sel = window.getSelection();
+  const prev = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+
+  if (/iP(hone|ad|od)/.test(navigator.userAgent)) {
+    /* iOS 는 select() 로 안 골라진다. 편집 가능으로 열어 두고 Range 로 고른다 */
+    ta.contentEditable = "true";
+    const range = document.createRange();
+    range.selectNodeContents(ta);
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  } else {
+    ta.focus();
+    ta.select();
+  }
+  ta.setSelectionRange(0, text.length);
+
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+
+  document.body.removeChild(ta);
+  if (sel) {
+    sel.removeAllRanges();
+    if (prev) sel.addRange(prev);
+  }
+  return ok;
+}
+
 interface CalculatorPopupProps {
   onClose: () => void;
 }
@@ -397,18 +447,25 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
     setIsCalculated(true);
   };
 
-  /** 결과를 복사한다 — 금액 칸에 붙여 넣으려고 쓴다 */
-  const [copied, setCopied] = useState(false);
-  const copyResult = async () => {
+  /** 결과를 복사한다 — 금액 칸에 붙여 넣으려고 쓴다.
+      async 로 두지 않는다. 클립보드가 없는 자리에서 await 를 한 번이라도
+      거치면 "사용자가 방금 눌렀다" 는 표식이 풀려 옛 방법마저 막힌다. */
+  const [copyState, setCopyState] = useState<"idle" | "done" | "fail">("idle");
+  const flashCopy = (ok: boolean) => {
+    setCopyState(ok ? "done" : "fail");
+    window.setTimeout(() => setCopyState("idle"), 1200);
+  };
+
+  const copyResult = () => {
     const text = display.replace(/,/g, "");
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      /* 클립보드를 못 쓰는 환경에서는 조용히 넘어간다 */
+    if (window.isSecureContext && navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(
+        () => flashCopy(true),
+        () => flashCopy(legacyCopy(text))
+      );
       return;
     }
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1200);
+    flashCopy(legacyCopy(text));
   };
 
   const clear = () => {
@@ -513,11 +570,13 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
             </button>
             <button
               type="button"
-              className={`calculator-util${copied ? " is-copied" : ""}`}
+              className={`calculator-util${
+                copyState === "done" ? " is-copied" : copyState === "fail" ? " is-failed" : ""
+              }`}
               onClick={copyResult}
               title="결과 복사"
             >
-              {copied ? "복사됨" : "복사"}
+              {copyState === "done" ? "Copied" : copyState === "fail" ? "Failed" : "Copy"}
             </button>
           </div>
 

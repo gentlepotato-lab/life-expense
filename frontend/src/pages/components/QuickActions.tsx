@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import CalculatorIcon from "./CalculatorIcon";
 import CalculatorPopup from "./CalculatorPopup";
 import PenIcon from "./PenIcon";
 import RefreshIcon from "./RefreshIcon";
@@ -49,7 +50,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
           onClick={() => setCalculatorOpen(!calculatorOpen)}
           aria-label="Calculator"
         >
-          계산기
+          <CalculatorIcon />
         </button>
       </div>
 
