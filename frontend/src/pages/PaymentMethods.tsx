@@ -21,6 +21,7 @@ import {
   useSortable
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import QuickActions from "./components/QuickActions";
 
 function SortableItem({ id, children, dragHandle = false }: any) {
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -608,6 +609,8 @@ export default function PaymentMethods() {
         </SortableContext>
         </DndContext>
       </div>
+
+      <QuickActions />
     </div>
   );
 }

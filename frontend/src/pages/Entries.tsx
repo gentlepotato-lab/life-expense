@@ -6,7 +6,6 @@ import useBackClose from "../hooks/useBackClose";
 import PlacePicker from "./components/PlacePicker";
 import MultiSelect from "./components/MultiSelect";
 import SingleSelect from "./components/SingleSelect";
-import CalculatorPopup from "./components/CalculatorPopup";
 import CardEditModal, { EditField, EditDivider } from "./components/CardEditModal";
 import SplitEditor from "./components/SplitEditor";
 import type { SplitDraft } from "./components/SplitEditor";
@@ -14,8 +13,7 @@ import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import SplitRows from "./components/SplitRows";
-import WriteEntryModal from "./components/WriteEntryModal";
-import PenIcon from "./components/PenIcon";
+import QuickActions from "./components/QuickActions";
 import useLongPress from "../hooks/useLongPress";
 import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
 
@@ -86,9 +84,6 @@ export default function Entries() {
   /* 함께한 상대 목록 — 필터에서 고르기 위해 받아 둔다 */
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
   const [filterRangeLabel, setFilterRangeLabel] = useState("");
-  const [calculatorOpen, setCalculatorOpen] = useState(false);
-  /* 적기 팭업 — 쓰기 화면으로 넘어가지 않고 이 자리에서 한 건 적는다 */
-  const [writeOpen, setWriteOpen] = useState(false);
 
   // 메타데이터 불러오기
   useEffect(() => {
@@ -109,12 +104,12 @@ export default function Entries() {
 
   // 팝업 열렸을 때 뒤 화면 스크롤/인터랙션 막기
   useEffect(() => {
-    if (filterOpen || calculatorOpen || draft || placePickerOpen || writeOpen) {
+    if (filterOpen || draft || placePickerOpen) {
       document.documentElement.classList.add("modal-open");
     } else {
       document.documentElement.classList.remove("modal-open");
     }
-  }, [filterOpen, calculatorOpen, draft, placePickerOpen, writeOpen]);
+  }, [filterOpen, draft, placePickerOpen]);
 
   /* 화면에 들어오면, 그리고 달을 옮길 때마다 바로 불러온다.
      예전에는 [조회]를 눌러야 카드가 나왔다. 필터가 걸려 있으면 그쪽이 우선이다. */
@@ -1155,27 +1150,7 @@ export default function Entries() {
           onClose={() => setPlacePickerOpen(false)}
         />
       )}
-      {/* 계산기 왼편에 나란히 둔다 — 단추는 둘 다 떠 있다 */}
-      <button
-        className="calculator-trigger-button write-trigger-button"
-        onClick={() => setWriteOpen(true)}
-        aria-label="새 지출 적기"
-      >
-        <PenIcon />
-      </button>
-      <button
-        className="calculator-trigger-button"
-        onClick={() => setCalculatorOpen(!calculatorOpen)}
-        aria-label="Calculator"
-      >
-        계산기
-      </button>
-      {writeOpen && (
-        <WriteEntryModal onClose={() => setWriteOpen(false)} onSaved={reload} />
-      )}
-      {calculatorOpen && (
-        <CalculatorPopup onClose={() => setCalculatorOpen(false)} />
-      )}
+      <QuickActions onSaved={reload} />
     </div>
   );
 }

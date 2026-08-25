@@ -22,6 +22,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import QuickActions from "./components/QuickActions";
 
 type Counterpart = {
   counterpart_id: number;
@@ -691,6 +692,8 @@ export default function Counterparts() {
 
         </div>
       </div>
+
+      <QuickActions />
     </div>
   );
 }

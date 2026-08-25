@@ -9410,3 +9410,297 @@ button.cat2-inout:active {
 .entry-form--modal > .entry-form__headfields {
   padding-top: 0;
 }
+
+/* ─── ⑥ 중분류 도넛을 눌러 파고들기 ──────────────────
+   조각을 누를 수 있다는 것을 손 모양으로만 알린다 — 빛깔이나 크기를 건드리면
+   도넛이 딴 그림이 된다. */
+.chart-pie--pickable path {
+  cursor: pointer;
+}
+
+/* 팝업 머리말에 그 중분류 빛깔을 점으로 하나 얹는다.
+   범례 점은 flex 칸 안에서만 쓰이던 것이라 글줄 안에서는 자리를 못 잡는다.
+   여기서만 블록으로 세워 준다. */
+.popup-head__title > .chart-legend__key {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* 도넛에서 고른 중분류를 파고드는 단추. 머리말 오른쪽 끝에 서고,
+   고른 것이 있을 때만 나온다. 알약 생김새는 필터 알약을 따른다. */
+.chart-drill-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: 60%;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+
+.chart-drill-btn:hover {
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-primary);
+}
+
+.chart-drill-btn__caret {
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+}
+
+/* 고른 것이 없을 때 — 자리는 그대로 두고 보이지만 않게 한다.
+   아예 그리지 않으면 단추가 뜰 때마다 머리말이 19.6 → 22px 로 자라
+   도넛과 범례가 2.4px 씩 들썩인다. */
+.chart-drill-btn.is-empty {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* 단추가 들고 나도 머리말 키는 늘 같다 */
+.chart-card__head--drill {
+  min-height: 22px;
+}
+
+/* 추이에서 볼 개월 수 손잡이. 이 앱에서 미끄럼 손잡이를 쓰는 첫 자리라
+   브라우저 기본 모양을 걷고 알약 · 단추와 같은 결로 그린다.
+   머리말에 늘 있으므로 들고 나며 줄 높이가 달라질 일은 없다. */
+/* 손잡이와 양 끝 이름표를 한 덩어리로 — 어디서 어디까지인지 보여 준다 */
+.chart-range-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.chart-range__end {
+  flex: 0 0 auto;
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chart-range {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 0 1 auto;
+  /* 브라우저가 끼워 넣는 2px 여백 — 그대로 두면 머리말만 26px 로 자란다 */
+  margin: 0;
+  width: 84px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.chart-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.chart-range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.chart-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 2px solid var(--color-surface);
+  border-radius: 999px;
+  background: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.chart-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-surface);
+  border-radius: 999px;
+  background: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   67. 소분류를 한 번 더 파고들기 (2026-08-25)
+   ────────────────────────────────────────────────────────────
+   소분류 막대를 누르면 그 안의 세분류가 오른쪽에 펼쳐진다.
+   판은 90% · 최대 500px 이라 430px 화면에서 속폭이 355px 이다. 둘로 갈라
+   나란히 세우면 이름 칸 92 와 값 자리 52 를 뺀 27px 만 막대에 남아 그림이
+   되지 않는다. 그래서 나란히가 아니라 한 폭씩 옆으로 밀어 보인다.
+   ═════════════════════════════════════════════════════════════ */
+
+.chart-drill {
+  display: flex;
+  align-items: flex-start;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  /* 줄 높이가 막대 수로 정해져 있어 가로 막대가 끼면 그림이 잘린다.
+     되돌아가는 길은 머리말의 갈랫길(중분류 이름)이 맡는다. */
+  scrollbar-width: none;
+}
+
+.chart-drill::-webkit-scrollbar {
+  display: none;
+}
+
+.chart-drill__pane {
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+/* ─── 머리말의 갈랫길 ────────────────────────────────
+   "중분류 › 소분류". 왼쪽을 누르면 펼친 자리가 접힌다.
+   좁아지면 지금 보고 있는 오른쪽을 살리고 왼쪽부터 줄인다. */
+.popup-head__title--crumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.popup-head__title--crumb > .chart-legend__key {
+  flex: 0 0 auto;
+  margin-right: 2px;
+}
+
+.chart-crumb {
+  flex: 0 3 auto;
+  min-width: 0;
+  /* 단추의 기본 키(--control-h)를 걷는다. 그대로 두면 머리말만 25.2 → 32px
+     로 자라 펼칠 때 판이 들썩인다. 말줄임도 block 이라야 걸린다. */
+  display: block;
+  height: auto;
+  min-height: 0;
+  line-height: inherit;
+  padding: 0 1px 0 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.chart-crumb:hover {
+  color: var(--color-text-secondary);
+}
+
+.chart-crumb__caret {
+  flex: 0 0 auto;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+}
+
+/* 소분류 이름은 중분류보다 길 수 있다. 알약이 60% 에서 멈추므로
+   그 안에서는 말줄임으로 접는다 — 꺾쇠는 늘 끝에 남는다. */
+.chart-drill-btn__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-crumb__now {
+  flex: 0 1 auto;
+  min-width: 0;
+  /* 자간이 -0.01em 이라 글자 상자가 실제 획보다 좁다. overflow:hidden 이
+     그 차이만큼 마지막 글자의 오른쪽 모서리를 깎아 먹는다. */
+  padding-right: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   68. 떠 있는 단추 묶음 — 한 줄로, 기둥 끝에 맞춰 (2026-08-25)
+   ────────────────────────────────────────────────────────────
+   새로 고침 · 만년필 · 계산기가 저마다 창 오른쪽 끝에서 몇 픽셀인지를
+   따로 들고 있었다. 셋의 폭과 중단점이 제각각이라 창 폭에 따라 사이가
+   6px 이 되기도, 23.5px 이 되기도 했다. 이제 한 줄(flex)에 세우고 사이는
+   gap 하나로 정한다 — 어떤 폭에서도 같다.
+
+   묶음의 오른쪽 끝은 내용 기둥의 오른쪽 안쪽 끝에 맞춘다. 기둥은
+   `max-width: 784px` 로 가운데 서고 좌우에 여백을 두므로, 그 끝은 창
+   오른쪽에서 `50% - 392px + 여백`이다. 기둥이 아직 창을 다 쓰는 좁은
+   화면에서는 여백 쪽이 더 크므로 max() 가 받는다.
+   ═════════════════════════════════════════════════════════════ */
+
+.quick-actions {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-2);
+  z-index: 2001;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 769px 이상에서는 기둥 여백이 12px 이고, 창이 808px 을 넘으면
+   기둥이 가운데로 물러선다 */
+@media (min-width: 769px) {
+  .quick-actions {
+    right: max(var(--space-3), calc(50% - 380px));
+  }
+}
+
+@media (max-width: 480px) {
+  .quick-actions {
+    top: var(--space-2);
+  }
+}
+
+/* 자리는 묶음이 잡는다. 단추는 저마다 붙어 있던 좌표를 놓는다 */
+.quick-actions > .calculator-trigger-button {
+  position: static;
+  top: auto;
+  right: auto;
+  z-index: auto;
+}
+
+/* 새로 고침 — 만년필과 같은 정사각 그림 단추 */
+.refresh-trigger-button {
+  min-width: 34px;
+  width: 34px;
+  padding: 0;
+  color: var(--color-primary);
+}
+
+.refresh-trigger-button svg {
+  display: block;
+}
+
+@media (max-width: 400px) {
+  .refresh-trigger-button {
+    min-width: 30px;
+    width: 30px;
+  }
+}

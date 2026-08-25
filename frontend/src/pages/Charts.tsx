@@ -6,6 +6,8 @@ import {
   BarChart,
   Cell,
   LabelList,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -15,6 +17,8 @@ import {
 } from "recharts";
 import axios from "../api/client";
 import useRevealDrag from "../hooks/useRevealDrag";
+import useBackClose from "../hooks/useBackClose";
+import QuickActions from "./components/QuickActions";
 import EntryFilterPopup from "./components/EntryFilterPopup";
 import {
   EMPTY_FILTER,
@@ -62,7 +66,13 @@ const SPEND = "#FF7FA8";
 const ACC = "#B47CFF";
 const WEEKDAY = "#E3D3FF";
 
-const AXIS = { fontSize: 10, fill: "#ADB5BD" };
+/* 축 눈금. 10 은 그림 옆에 두면 유난히 작아 보여 한 단 올렸다 —
+   본문 가장 작은 글씨(--font-size-xs)와 같은 크기다. */
+const AXIS = { fontSize: 11, fill: "#ADB5BD" };
+
+/* 추이에서 볼 수 있는 달 수. 받아 오는 것은 늘 이 최대치다 */
+const TREND_MIN = 2;
+const TREND_MAX = 18;
 
 /** 1,234,567 → "123만". 축에는 자리가 없다 */
 function shortWon(v: number): string {
@@ -125,6 +135,7 @@ function Tip({
   label,
   suffix = "",
   useSliceName = false,
+  labelFormat,
 }: {
   active?: boolean;
   payload?: TipItem[];
@@ -132,9 +143,15 @@ function Tip({
   suffix?: string;
   /** 도넛처럼 이름이 조각에 붙어 있는 그림 */
   useSliceName?: boolean;
+  /** 축에 담긴 값과 말풍선에 쓸 말이 다를 때 */
+  labelFormat?: (v: string | number) => string;
 }) {
   if (!active || !payload?.length) return null;
-  const head = useSliceName ? payload[0]?.payload?.name : `${label ?? ""}${suffix}`;
+  const head = useSliceName
+    ? payload[0]?.payload?.name
+    : labelFormat
+    ? labelFormat(label ?? "")
+    : `${label ?? ""}${suffix}`;
   return (
     <div className="chart-tip">
       {head && <div className="chart-tip__head">{head}</div>}
@@ -317,18 +334,22 @@ export default function Charts() {
     [cat1List, cat2List, cat3List]
   );
 
+  /* 셈에 넣을 줄인지 가리는 잣대. 이 달 그림과 12개월 추이가 같은 것을 봐야
+     끝점이 위 요약 판과 어긋나지 않는다. */
+  const keep = useCallback(
+    (r: Row) =>
+      on[r.src] &&
+      r.inout !== 1 &&
+      !inSet.has(Number(r.cat2_id)) &&
+      (blurOn || !isBlurred(r, blurSets)) &&
+      !(excludeOn && isExcluded(r, excSets)) &&
+      pass(r, appliedFilter),
+    [on, inSet, blurOn, blurSets, excludeOn, excSets, appliedFilter]
+  );
+
   const shown = useMemo(
-    () =>
-      rows.filter(
-        (r) =>
-          on[r.src] &&
-          r.inout !== 1 &&
-          !inSet.has(Number(r.cat2_id)) &&
-          (blurOn || !isBlurred(r, blurSets)) &&
-          !(excludeOn && isExcluded(r, excSets)) &&
-          pass(r, appliedFilter)
-      ),
-    [rows, on, appliedFilter, blurOn, blurSets, inSet, excludeOn, excSets]
+    () => rows.filter(keep),
+    [rows, keep]
   );
 
   const monthLabel = useMemo(() => {
@@ -406,6 +427,158 @@ export default function Charts() {
     });
     return topN(m, 5).map((s, i) => ({ ...s, color: colorOf(s.name, i) }));
   }, [shown, payList]);
+
+  /* ─── 12개월 추이 ─────────────────────────────────────────────
+     고른 달을 끝으로 열두 달. 달마다 따로 물어 와서 이 화면이 쓰는 잣대(keep)로
+     똑같이 거른다. 서버에서 미리 합쳐 오면 걸러 내기 · Exclude · Blur 규칙을
+     양쪽에 두 벌로 두게 되고, 언젠가 한쪽만 고쳐져 끝점이 위 요약 판과 어긋난다. */
+  /* 몇 달을 볼지. 손잡이를 옮길 때마다 다시 물어 오면 한 칸에 열여덟 번을
+     묻게 되므로, 받는 것은 늘 최대치(18달)로 두고 그중 뒤에서 몇 달만 잘라 쓴다. */
+  const [monthCount, setMonthCount] = useState(12);
+
+  const allMonths = useMemo(() => {
+    const [y, m] = yearMonth.split("-").map(Number);
+    const out: string[] = [];
+    for (let i = TREND_MAX - 1; i >= 0; i -= 1) {
+      const d = new Date(y, m - 1 - i, 1);
+      out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return out;
+  }, [yearMonth]);
+
+  const months = useMemo(
+    () => allMonths.slice(TREND_MAX - monthCount),
+    [allMonths, monthCount]
+  );
+
+  const [trendRows, setTrendRows] = useState<(Row & { ym: string })[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+
+    Promise.all([
+      ...allMonths.map((ym) =>
+        axios.get("/entries/month", { params: { ym } }).then((r) => r.data).catch(() => [])
+      ),
+      axios.get("/pending-entries").then((r) => r.data).catch(() => []),
+      axios.get("/scheduled-entries").then((r) => r.data).catch(() => []),
+    ]).then((res) => {
+      if (!alive) return;
+      const out: (Row & { ym: string })[] = [];
+
+      type Raw = Record<string, unknown>;
+      const push = (src: Src, list: Raw[], dateField: string, idField: string, ym: string) => {
+        list.forEach((x) => {
+          const raw = String(x[dateField] ?? "");
+          if (!raw.startsWith(ym)) return;
+          const d = dayOf(raw);
+          if (!d) return;
+          out.push({
+            key: `${ym}-${src}-${x[idField]}`,
+            src,
+            ym,
+            day: d,
+            inout: (x.inout as number) ?? null,
+            net: Number(x.net_amount ?? x.amount ?? 0),
+            amount: Number(x.amount ?? 0),
+            cat1_id: x.cat1_id as number,
+            cat2_id: x.cat2_id as number,
+            cat3_id: x.cat3_id as number,
+            pay_method: x.pay_method as number,
+            memo: x.memo as string,
+            place_name: x.place_name as string,
+            counterpart_ids: (x.counterpart_ids as number[]) ?? [],
+          });
+        });
+      };
+
+      allMonths.forEach((ym, i) => {
+        push("expense", res[i] as Raw[], "tx_date", "entry_id", ym);
+        push("pending", res[TREND_MAX] as Raw[], "tx_date", "entry_id", ym);
+        push("scheduled", res[TREND_MAX + 1] as Raw[], "next_run_at", "schedule_id", ym);
+      });
+      setTrendRows(out);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [allMonths]);
+
+  const byMonth = useMemo(() => {
+    const sums = new Map<string, number>();
+    months.forEach((ym) => sums.set(ym, 0));
+    trendRows.forEach((r) => {
+      if (keep(r)) sums.set(r.ym, (sums.get(r.ym) ?? 0) + r.net);
+    });
+    /* 열쇠는 연-월 그대로 둔다. "8월" 로 두면 열두 달을 넘길 때
+       작년 8월과 올해 8월이 같은 칸으로 뭉쳐 값이 더해진다. */
+    return months.map((ym) => ({
+      ym,
+      지출: Math.round(sums.get(ym) ?? 0),
+    }));
+  }, [months, trendRows, keep]);
+
+  /* ─── 중분류 하나를 골랐을 때 ─────────────────────────────────
+     누르자마자 팝업이 덮으면 도넛을 더 들여다볼 수가 없다.
+     누르는 것은 고르는 데까지고, 파고드는 것은 머리말에 뜨는 단추로 한다.
+     막대 빛깔은 도넛에서 그 중분류가 쓰던 것 그대로다. */
+  const [pickedCat, setPickedCat] = useState<{ name: string; color: string } | null>(null);
+  const [drillOpen, setDrillOpen] = useState(false);
+
+  const byCat2 = useMemo(() => {
+    if (!pickedCat) return [];
+    const cat1Of = new Map(cat1List.map((c) => [c.id, c.name]));
+    const cat2Of = new Map(cat2List.map((c) => [c.id, c.name]));
+    const m = new Map<string, number>();
+    shown.forEach((r) => {
+      if ((cat1Of.get(Number(r.cat1_id)) ?? "분류 없음") !== pickedCat.name) return;
+      const k = cat2Of.get(Number(r.cat2_id)) ?? "소분류 없음";
+      m.set(k, (m.get(k) ?? 0) + r.net);
+    });
+    return [...m.entries()]
+      .map(([name, value]) => ({ name, value: Math.round(value), color: pickedCat.color }))
+      .filter((x) => x.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [pickedCat, shown, cat1List, cat2List]);
+
+  /* 소분류 하나를 더 파고들었을 때 쓸 세분류 묶음 — 소분류 이름으로 찾는다.
+     세분류를 아예 안 쓰는 소분류는 여기에 담지 않는다. 그래야 팝업에서
+     "펼칠 것이 있는 줄" 과 없는 줄을 가릴 수 있다.
+     하나라도 세분류가 붙어 있으면 나머지는 "세분류 없음" 으로 모아 둔다 —
+     그러지 않으면 펼친 쪽 합이 왼쪽 막대보다 작아 보인다. */
+  const byCat3 = useMemo(() => {
+    const out = new Map<string, { name: string; value: number; color: string }[]>();
+    if (!pickedCat) return out;
+    const cat1Of = new Map(cat1List.map((c) => [c.id, c.name]));
+    const cat2Of = new Map(cat2List.map((c) => [c.id, c.name]));
+    const cat3Of = new Map(cat3List.map((c) => [c.id, c.name]));
+
+    const nested = new Map<string, Map<string, number>>();
+    const named = new Set<string>();
+    shown.forEach((r) => {
+      if ((cat1Of.get(Number(r.cat1_id)) ?? "분류 없음") !== pickedCat.name) return;
+      const k2 = cat2Of.get(Number(r.cat2_id)) ?? "소분류 없음";
+      const n3 = cat3Of.get(Number(r.cat3_id));
+      if (n3) named.add(k2);
+      const inner = nested.get(k2) ?? new Map<string, number>();
+      inner.set(n3 ?? "세분류 없음", (inner.get(n3 ?? "세분류 없음") ?? 0) + r.net);
+      nested.set(k2, inner);
+    });
+
+    nested.forEach((inner, k2) => {
+      if (!named.has(k2)) return;
+      const list = [...inner.entries()]
+        .map(([name, value]) => ({ name, value: Math.round(value), color: pickedCat.color }))
+        .filter((x) => x.value > 0)
+        .sort((a, b) => b.value - a.value);
+      if (list.length) out.set(k2, list);
+    });
+    return out;
+  }, [pickedCat, shown, cat1List, cat2List, cat3List]);
+
+  /* 파고들 것이 있는지 — 단추를 살릴지 자리만 남길지 가른다 */
+  const ready = !!pickedCat && byCat2.length > 0;
 
   /* ─── 요일별 ──────────────────────────────────────────────── */
   const byDow = useMemo(() => {
@@ -713,7 +886,7 @@ export default function Charts() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={byDay} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
                   <XAxis dataKey="day" tick={AXIS} tickLine={false} axisLine={false} interval={4} />
-                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={44} tickFormatter={shortWon} />
+                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
                   <Tooltip {...TIP_PROPS} content={<Tip suffix="일" />} />
                   <Bar dataKey="지출" fill={SPEND} radius={[4, 4, 0, 0]} maxBarSize={18} />
                 </BarChart>
@@ -736,7 +909,7 @@ export default function Charts() {
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="day" tick={AXIS} tickLine={false} axisLine={false} interval={4} />
-                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={44} tickFormatter={shortWon} />
+                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
                   <Tooltip {...TIP_PROPS} cursor={{ stroke: WEEKDAY, strokeWidth: 2 }} content={<Tip suffix="일까지" />} />
                   <Area
                     type="monotone"
@@ -752,10 +925,81 @@ export default function Charts() {
             </div>
           </section>
 
+          {/* ─── 12개월 추이 ──────────────────────────────────── */}
+          <section className="chart-card chart-card--wide">
+            <header className="chart-card__head">
+              <h3 className="chart-card__title">{monthCount}개월 추이</h3>
+              <span className="chart-range-wrap">
+                <span className="chart-range__end">최근 {TREND_MIN}개월</span>
+                <input
+                  type="range"
+                  className="chart-range"
+                  min={TREND_MIN}
+                  max={TREND_MAX}
+                  step={1}
+                  value={monthCount}
+                  onChange={(e) => setMonthCount(Number(e.target.value))}
+                  aria-label="볼 개월 수"
+                />
+                <span className="chart-range__end">{TREND_MAX}개월</span>
+              </span>
+            </header>
+            <div className="chart-card__body">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={byMonth} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
+                  <XAxis
+                    dataKey="ym"
+                    tick={AXIS}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v: string) => `${Number(String(v).slice(5))}월`}
+                  />
+                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
+                  <Tooltip
+                    {...TIP_PROPS}
+                    content={<Tip labelFormat={(v) => `${String(v).slice(0, 4)}. ${Number(String(v).slice(5))}.`} />}
+                  />
+                  <Line
+                    type="linear"
+                    dataKey="지출"
+                    /* 열두 달을 훑는 그림이라 이 달을 말하는 그림들과 톤을 갈라 둔다.
+                       팔레트의 회색은 갈래 색이 아니라 눈에 덜 띄어야 하는 자리의 것이다. */
+                    stroke={ETC_COLOR}
+                    strokeWidth={3}
+                    strokeLinejoin="miter"
+                    dot={{ r: 4, fill: ETC_COLOR, stroke: "#FFFFFF", strokeWidth: 2 }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: "#FFFFFF" }}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+
           {/* ─── 중분류별 ─────────────────────────────────────── */}
           <section className="chart-card">
-            <header className="chart-card__head">
+            <header className="chart-card__head chart-card__head--drill">
               <h3 className="chart-card__title">중분류별</h3>
+              {/* 고른 것이 없어도 자리는 늘 잡아 둔다 — 단추가 나타났다 사라질 때마다
+                  머리말 높이가 달라지면 아래 그림이 그만큼 들썩인다 */}
+              <button
+                type="button"
+                className={`chart-drill-btn${ready ? "" : " is-empty"}`}
+                onClick={() => setDrillOpen(true)}
+                disabled={!ready}
+                aria-hidden={!ready}
+                tabIndex={ready ? 0 : -1}
+              >
+                <span
+                  className="chart-legend__key"
+                  style={{ background: pickedCat?.color ?? "transparent" }}
+                  aria-hidden="true"
+                />
+                {pickedCat?.name ?? ""}
+                <span className="chart-drill-btn__caret" aria-hidden="true">
+                  ›
+                </span>
+              </button>
             </header>
             <div className="chart-donut">
               <div className="chart-donut__plot">
@@ -771,6 +1015,16 @@ export default function Charts() {
                       paddingAngle={2}
                       stroke="none"
                       isAnimationActive={false}
+                      className="chart-pie--pickable"
+                      onClick={(slice: { name?: string; color?: string }) => {
+                        /* "기타" 는 여러 갈래를 묶은 것이라 더 쪼갤 것이 없다 */
+                        if (!slice?.name || slice.name === "기타") return;
+                        setPickedCat((prev) =>
+                          prev?.name === slice.name
+                            ? null
+                            : { name: slice.name as string, color: slice.color ?? ETC_COLOR }
+                        );
+                      }}
                     >
                       {byCat.map((c) => (
                         <Cell key={c.name} fill={c.color} />
@@ -835,7 +1089,7 @@ export default function Charts() {
                         position="right"
                         offset={8}
                         formatter={(v: unknown) => shortWon(Number(v))}
-                        style={{ fontSize: 13, fontWeight: 700, fill: "#6C757D" }}
+                        style={{ fontSize: 14, fontWeight: 700, fill: "#6C757D" }}
                       />
                     )}
                   </Bar>
@@ -853,7 +1107,7 @@ export default function Charts() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={byDow} margin={{ top: wide ? 18 : 8, right: 6, bottom: 0, left: -6 }}>
                   <XAxis dataKey="요일" tick={AXIS} tickLine={false} axisLine={false} />
-                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={44} tickFormatter={shortWon} />
+                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
                   <Tooltip {...TIP_PROPS} content={<Tip suffix="요일" />} />
                   <Bar dataKey="지출" radius={[8, 8, 0, 0]} maxBarSize={44}>
                     {byDow.map((d) => (
@@ -865,7 +1119,7 @@ export default function Charts() {
                         position="top"
                         offset={6}
                         formatter={(v: unknown) => (Number(v) ? shortWon(Number(v)) : "")}
-                        style={{ fontSize: 13, fontWeight: 700, fill: "#6C757D" }}
+                        style={{ fontSize: 14, fontWeight: 700, fill: "#6C757D" }}
                       />
                     )}
                   </Bar>
@@ -895,6 +1149,219 @@ export default function Charts() {
           }}
         />
       )}
+
+      {drillOpen && pickedCat && byCat2.length > 0 && (
+        <CatDrillPopup
+          cat={pickedCat}
+          rows={byCat2}
+          sub={byCat3}
+          onClose={() => setDrillOpen(false)}
+        />
+      )}
+
+      <QuickActions />
+    </div>
+  );
+}
+
+/**
+ * 중분류 하나를 눌렀을 때 그 안을 소분류로 쪼개 보여 주는 팝업.
+ *
+ * 껍데기는 필터 팝업과 같은 틀(popup-overlay · popup-panel--framed)을 쓴다.
+ * 막대는 결제 수단별 그림과 같은 가로 막대이고, 빛깔은 도넛에서 그 중분류가
+ * 쓰던 것 하나로 통일한다 — 여기 있는 것은 모두 그 갈래에 딸린 것이라
+ * 서로 다른 색으로 갈라 놓을 이유가 없다.
+ */
+function CatDrillPopup({
+  cat,
+  rows,
+  sub,
+  onClose,
+}: {
+  cat: { name: string; color: string };
+  rows: { name: string; value: number; color: string }[];
+  sub: Map<string, { name: string; value: number; color: string }[]>;
+  onClose: () => void;
+}) {
+  useBackClose(true, onClose);
+
+  useEffect(() => {
+    document.documentElement.classList.add("modal-open");
+    return () => document.documentElement.classList.remove("modal-open");
+  }, []);
+
+  /* 고른 소분류와, 그것을 펼쳤는지. 도넛에서와 같이 누르는 것은 고르는 데까지고
+     넘어가는 것은 머리말 단추로 한다 — 누르자마자 넘어가면 소분류 그림을
+     들여다볼 수가 없다. 세분류가 붙어 있는 줄에서만 골라진다. */
+  const [picked, setPicked] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const subRows = open && picked ? sub.get(picked) ?? null : null;
+
+  /* 뒤로 가기는 한 걸음씩 — 펼친 자리를 먼저 접고, 그다음이 팝업이다.
+     위 useBackClose 보다 뒤에 걸리므로 겹칠 때 이쪽이 먼저 답한다.
+     접어도 고른 것은 남긴다. 단추가 그대로 있어야 다시 넘어갈 수 있다. */
+  const foldSub = useCallback(() => setOpen(false), []);
+  useBackClose(!!subRows, foldSub);
+
+  /* 펼친 자리를 눈에 넣어 준다. 판이 좁아 두 그림을 나란히 세우면 막대가
+     남는 폭이 30px 도 안 되므로, 옆으로 밀어 보이는 쪽을 택했다. */
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    el.scrollTo({ left: subRows ? el.scrollWidth : 0, behavior: "smooth" });
+  }, [subRows]);
+
+  return (
+    <div className="popup-overlay" onClick={onClose}>
+      <div
+        className="popup-panel popup-panel--framed"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={cat.name}
+      >
+        <header className="popup-head">
+          <h3 className="popup-head__title popup-head__title--crumb">
+            <span className="chart-legend__key" style={{ background: cat.color }} />
+            {subRows ? (
+              <>
+                <button type="button" className="chart-crumb" onClick={foldSub}>
+                  {cat.name}
+                </button>
+                <span className="chart-crumb__caret" aria-hidden="true">
+                  ›
+                </span>
+                <span className="chart-crumb__now">{picked}</span>
+              </>
+            ) : (
+              <span className="chart-crumb__now">{cat.name}</span>
+            )}
+          </h3>
+
+          {/* 넘어가는 단추와 돌아오는 단추가 한자리를 나눠 쓴다.
+              이름은 늘 갈 곳을 적는다 — 들어갈 때는 그 소분류, 나올 때는 중분류다.
+              고른 것이 없을 때도 자리는 남겨 둬야 머리말이 들썩이지 않는다. */}
+          <button
+            type="button"
+            className={`chart-drill-btn${picked ? "" : " is-empty"}`}
+            onClick={() => setOpen((v) => !v)}
+          >
+            {subRows ? (
+              <>
+                <span className="chart-drill-btn__caret" aria-hidden="true">
+                  ‹
+                </span>
+                <span className="chart-drill-btn__name">{cat.name}</span>
+              </>
+            ) : (
+              <>
+                <span className="chart-drill-btn__name">{picked ?? ""}</span>
+                <span className="chart-drill-btn__caret" aria-hidden="true">
+                  ›
+                </span>
+              </>
+            )}
+          </button>
+        </header>
+
+        <div className="popup-body chart-drill" ref={scroller}>
+          <section
+            className="chart-drill__pane chart-card__body chart-card__body--rows"
+            style={{ "--rows": rows.length } as React.CSSProperties}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={rows} layout="vertical" margin={{ top: 0, right: 52, bottom: 0, left: 0 }}>
+                <XAxis type="number" hide />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ ...AXIS, fill: "#6C757D" }}
+                  tickLine={false}
+                  axisLine={false}
+                  /* 소분류가 하나뿐이면 눈금이 통째로 빠져 이름이 안 보였다 */
+                  interval={0}
+                  width={92}
+                  tickFormatter={(v: string) => (v.length <= 10 ? v : `${v.slice(0, 9)}…`)}
+                />
+                <Tooltip {...TIP_PROPS} content={<Tip />} />
+                <Bar
+                  dataKey="value"
+                  name="지출"
+                  radius={[0, 8, 8, 0]}
+                  maxBarSize={22}
+                  isAnimationActive={false}
+                  onClick={(d: { payload?: { name?: string }; name?: string }) => {
+                    const n = d?.payload?.name ?? d?.name;
+                    if (!n || !sub.has(n)) return;
+                    setOpen(false);
+                    setPicked((p) => (p === n ? null : n));
+                  }}
+                >
+                  {rows.map((r) => (
+                    <Cell
+                      key={r.name}
+                      fill={r.color}
+                      /* 더 쪼갤 것이 있는 줄만 손 모양으로 알린다 */
+                      style={{ cursor: sub.has(r.name) ? "pointer" : "default" }}
+                    />
+                  ))}
+                  {/* 결제 수단별과 같은 이름표 — 이름만 있고 값이 없으면 글씨가 유난히 작아 보인다 */}
+                  <LabelList
+                    dataKey="value"
+                    position="right"
+                    offset={8}
+                    formatter={(v: unknown) => shortWon(Number(v))}
+                    style={{ fontSize: 14, fontWeight: 700, fill: "#6C757D" }}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </section>
+
+          {subRows && (
+            <section
+              className="chart-drill__pane chart-card__body chart-card__body--rows"
+              style={{ "--rows": subRows.length } as React.CSSProperties}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={subRows} layout="vertical" margin={{ top: 0, right: 52, bottom: 0, left: 0 }}>
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ ...AXIS, fill: "#6C757D" }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval={0}
+                    width={92}
+                    tickFormatter={(v: string) => (v.length <= 10 ? v : `${v.slice(0, 9)}…`)}
+                  />
+                  <Tooltip {...TIP_PROPS} content={<Tip />} />
+                  <Bar dataKey="value" name="지출" radius={[0, 8, 8, 0]} maxBarSize={22} isAnimationActive={false}>
+                    {subRows.map((r) => (
+                      <Cell key={r.name} fill={r.color} />
+                    ))}
+                    <LabelList
+                      dataKey="value"
+                      position="right"
+                      offset={8}
+                      formatter={(v: unknown) => shortWon(Number(v))}
+                      style={{ fontSize: 14, fontWeight: 700, fill: "#6C757D" }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </section>
+          )}
+        </div>
+
+        <div className="btn-row popup-foot">
+          <button className="ui-btn" onClick={onClose}>
+            닫기
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

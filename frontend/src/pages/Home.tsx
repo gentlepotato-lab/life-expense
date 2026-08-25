@@ -5,6 +5,7 @@ import {
   ArtChart,
   ArtNudge,
 } from "./components/HomeArt";
+import QuickActions from "./components/QuickActions";
 
 /**
  * 첫 화면.
@@ -87,6 +88,8 @@ export default function Home() {
           <span className="home-card__art">{d.art}</span>
         </button>
       ))}
+
+      <QuickActions />
     </div>
   );
 }

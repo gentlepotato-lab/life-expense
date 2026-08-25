@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import QuickActions from "./components/QuickActions";
 
 /**
  * 아직 속을 채우지 않은 화면.
@@ -19,6 +20,8 @@ export default function Blank() {
           홈으로
         </button>
       </div>
+
+      <QuickActions />
     </div>
   );
 }

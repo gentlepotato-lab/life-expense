@@ -5,15 +5,13 @@ import useBackClose from "../hooks/useBackClose";
 import PlacePicker from "./components/PlacePicker";
 import MultiSelect from "./components/MultiSelect";
 import SingleSelect from "./components/SingleSelect";
-import CalculatorPopup from "./components/CalculatorPopup";
 import CardEditModal, { EditField, EditDivider } from "./components/CardEditModal";
 import SplitEditor from "./components/SplitEditor";
 import type { SplitDraft } from "./components/SplitEditor";
 import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
-import WriteEntryModal from "./components/WriteEntryModal";
-import PenIcon from "./components/PenIcon";
+import QuickActions from "./components/QuickActions";
 import SplitRows from "./components/SplitRows";
 import useLongPress from "../hooks/useLongPress";
 import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
@@ -76,9 +74,6 @@ export default function PendingEntries() {
   const [draft, setDraft] = useState<any | null>(null);
   const [splits, setSplits] = useState<SplitDraft[]>([]);
   const [placePickerOpen, setPlacePickerOpen] = useState(false);
-  const [calculatorOpen, setCalculatorOpen] = useState(false);
-  /* 적기 팭업 — 쓰기 화면으로 넘어가지 않고 이 자리에서 한 건 적는다 */
-  const [writeOpen, setWriteOpen] = useState(false);
 
   /* 뒤로 가기 · Backspace 로 지금 열린 것만 닫는다.
      카드 편집 팝업은 CardEditModal 이 스스로 처리한다. */
@@ -103,12 +98,12 @@ export default function PendingEntries() {
 
   // 팝업 열렸을 때 뒤 화면 스크롤/인터랙션 막기
   useEffect(() => {
-    if (filterOpen || calculatorOpen || draft || placePickerOpen || writeOpen) {
+    if (filterOpen || draft || placePickerOpen) {
       document.documentElement.classList.add("modal-open");
     } else {
       document.documentElement.classList.remove("modal-open");
     }
-  }, [filterOpen, calculatorOpen, draft, placePickerOpen, writeOpen]);
+  }, [filterOpen, draft, placePickerOpen]);
 
   // Pending 데이터 전체 조회 → sended = FALSE
   const loadData = async () => {
@@ -1217,25 +1212,7 @@ export default function PendingEntries() {
           onClose={() => setPlacePickerOpen(false)}
         />
       )}
-      {/* 계산기 왼편에 나란히 둔다 — 단추는 둘 다 떠 있다 */}
-      <button
-        className="calculator-trigger-button write-trigger-button"
-        onClick={() => setWriteOpen(true)}
-        aria-label="쓰기"
-      >
-        <PenIcon />
-      </button>
-      <button
-        className="calculator-trigger-button"
-        onClick={() => setCalculatorOpen(!calculatorOpen)}
-        aria-label="Calculator"
-      >
-        계산기
-      </button>
-      {writeOpen && <WriteEntryModal onClose={() => setWriteOpen(false)} />}
-      {calculatorOpen && (
-        <CalculatorPopup onClose={() => setCalculatorOpen(false)} />
-      )}
+      <QuickActions />
     </div>
   );
 }

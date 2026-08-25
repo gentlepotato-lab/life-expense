@@ -18,6 +18,7 @@ import {
 import { EntryCard } from "./Entries";
 import { PendingCard } from "./PendingEntries";
 import { ScheduleCard, type CategoryL2Meta, type CategoryL3Meta } from "./ScheduledEntries";
+import QuickActions from "./components/QuickActions";
 
 /**
  * 달력에서 고른 기간의 상세.
@@ -379,6 +380,8 @@ export default function CalendarDetail() {
       {loaded && dateGroups.length === 0 && (
         <p className="cal-empty">조회된 내역이 없다.</p>
       )}
+
+      <QuickActions />
     </div>
   );
 }

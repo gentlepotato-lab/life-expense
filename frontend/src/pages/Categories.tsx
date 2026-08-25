@@ -18,6 +18,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import QuickActions from "./components/QuickActions";
 
 type SortableItemProps = {
   id: string | number;
@@ -1076,6 +1077,8 @@ export default function Categories() {
           </SortableContext>
         </DndContext>
       </div>
+
+      <QuickActions />
     </div>
   );
 }
