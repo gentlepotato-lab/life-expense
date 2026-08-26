@@ -6040,7 +6040,7 @@ textarea::placeholder {
 }
 
 /* ─── 홈 ─────────────────────────────────────────────────────
-   위 한 행에 둘(쓰기 · 쓰는 사람), 그 아래 한 줄씩 둘(씀씀이 · 잔소리).
+   위 한 행에 둘(쓰기 · 돈쓴이), 그 아래 한 줄씩 둘(씀씀이 · 잔소리).
    속이 아직 비어 있는 화면들이라 칸마다 그림으로 무엇이 들어올지 보여 준다.
 
    홈은 여백을 줄여 화면을 넓게 쓴다. 칸이 크고 그림이 커야 눈에 들어온다. */
@@ -9731,4 +9731,392 @@ button.cat2-inout:active {
   border-color: transparent;
   background: #FDE7E6;
   color: var(--color-danger-dark);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   70. 잔소리 (2026-08-25)
+   ────────────────────────────────────────────────────────────
+   묶음 껍데기는 씀씀이의 그림 칸(.chart-card)을 그대로 쓴다 — 두 화면
+   모두 "모아 놓고 읽는" 자리라 따로 만들 이유가 없다.
+
+   한 줄은 내역 카드의 어법을 빌린다. 왼쪽에 세로 색 막대를 세우고
+   그만큼 안쪽 여백을 밀어 둔다. 빛깔은 이미 정해 둔 것만 쓴다 —
+   챙길 것은 지출의 빨강, 눈여겨볼 것은 0원의 파스텔 보라, 잘한 것은
+   수입의 청록이다. 새 빛깔을 들이면 다른 화면과 어긋난다.
+   ═════════════════════════════════════════════════════════════ */
+
+.nudge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nudge {
+  position: relative;
+  padding: 8px 10px 8px 16px;
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.nudge__bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 5px;
+  height: 100%;
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.nudge__say {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--color-text-primary);
+  word-break: keep-all;
+}
+
+/* 근거는 한 발 물러나 있는다 — 읽는 사람이 먼저 볼 것은 위 한 줄이다 */
+.nudge__meta {
+  margin: 3px 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.nudge--bad > .nudge__bar {
+  background: linear-gradient(180deg, var(--color-danger) 0%, var(--color-danger-dark) 100%);
+}
+
+.nudge--watch > .nudge__bar {
+  background: linear-gradient(180deg, var(--color-zero) 0%, var(--color-zero-dark) 100%);
+}
+
+.nudge--good > .nudge__bar {
+  background: linear-gradient(180deg, var(--color-success) 0%, var(--color-success-dark) 100%);
+}
+
+/* ─── 종 단추와 팝업 ─────────────────────────────────
+   배지는 자리를 잡아먹지 않는 absolute 라, 단추 줄의 오른쪽 끝이 내용
+   기둥과 맞춰 둔 자리에서 밀리지 않는다. */
+.quick-actions > .nudge-trigger-button {
+  position: relative;
+}
+
+.nudge-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--color-surface);
+}
+
+/* 팝업 안에서는 묶음을 카드로 또 감싸지 않는다 — 팝업이 이미 카드다.
+   둘 이상이면 사이를 벌려 어디서 갈라지는지 보이게 한다. */
+.nudge-popup > .chart-card__head + .nudge-list + .chart-card__head {
+  margin-top: var(--space-4);
+}
+
+/* 항목 수 알약 — 날짜별 건수(.date-group__count) · 설정 화면의 항목 수
+   (.set-group__count)와 같은 값이다. 자리는 지금처럼 줄 오른쪽 끝이다. */
+.nudge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 알약이 들어왔으니 줄은 베이스라인이 아니라 가운데로 맞춘다 */
+.chart-card__head.nudge-head {
+  align-items: center;
+}
+
+/* 아무 말도 할 게 없을 때 */
+.nudge-none {
+  padding: 28px var(--space-3);
+  text-align: center;
+  font-size: var(--font-size-base);
+  color: var(--color-text-tertiary);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   71. 잔소리 — 가린 줄 · 꾹 누르기 · 상세 (2026-08-25)
+   ────────────────────────────────────────────────────────────
+   가려 둔 갈래도 셈에는 들어가고 화면에서만 덮는다. 덮개는 두 번째
+   마스킹 테이프(public/tape-dot.svg) — 연노랑 바탕에 흰 땡땡이다.
+   첫 테이프와 헷갈리지 않도록 무늬를 달리했을 뿐, 걷는 손놀림은 같다.
+   옆으로 조금 끌면 스르르 밀려나며 잠깐 걷힌다.
+   ═════════════════════════════════════════════════════════════ */
+
+/* 단추 줄과 그림 칸 사이 — 씀씀이가 쓰는 간격과 같다 */
+.page-wrap > .cal-sources + .chart-grid {
+  margin-top: var(--space-2);
+}
+
+.nudge__body {
+  position: relative;
+}
+
+/* 테이프 — 줄 전체를 덮는다. 한 줄 안에 이름과 금액이 섞여 있어
+   금액만 도려낼 자리가 없다. */
+.nudge__tape {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 50%;
+  height: calc(100% - 4px);
+  max-height: 34px;
+  transform: translateY(-50%) rotate(calc(var(--tape-tilt) + var(--tape-shift)));
+  background-image: url("/tape-dot.svg");
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  filter: drop-shadow(0 1px 1px rgba(16, 24, 40, 0.10));
+  pointer-events: none;
+  transition: opacity 170ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 덮인 동안에는 글씨를 읽히지 않게 한다 — 테이프 밑으로 비쳐 보이면
+   가린 뜻이 없다 */
+.nudge--taped:not(.is-revealed) .nudge__say,
+.nudge--taped:not(.is-revealed) .nudge__meta {
+  color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.nudge--taped .nudge__body {
+  cursor: ew-resize;
+  touch-action: pan-y;
+}
+
+/* 꾹 누르는 동안 살짝 눌러 준다 — 내역 카드와 같은 반응 */
+.nudge.is-pressing {
+  transform: scale(0.985);
+  transition: transform 120ms ease;
+}
+
+/* ─── 상세 팝업 ──────────────────────────────────── */
+
+/* 제목은 잔소리 한 줄을 그대로 쓴다. 길어질 수 있어 줄바꿈을 연다 */
+.nudge-detail__title {
+  white-space: normal;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+
+.nudge-detail__meta {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.nudge-detail__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+/* 한 줄 — 왼쪽에 날짜 · 분류 · 메모를 쌓고 오른쪽 끝에 금액 */
+.nudge-detail__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 7px 8px;
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.nudge-detail__what {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nudge-detail__amount {
+  position: relative;
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* 가려 둔 갈래는 금액만 덮는다 — 무엇이 몇 건인지는 보여야
+   상세를 여는 뜻이 있다 */
+.nudge-detail__amount.is-taped {
+  color: transparent;
+  cursor: ew-resize;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.nudge-detail__amount > .nudge__tape {
+  left: -6px;
+  right: -6px;
+  height: 26px;
+  max-height: 26px;
+}
+
+.nudge-detail__date {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.nudge-detail__cat {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  word-break: keep-all;
+}
+
+.nudge-detail__memo {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 건너뛰는 단추는 왼쪽 끝에. 이름은 떼고 그 화면의 그림과 화살표만 남긴다 —
+   화살표가 "여기서 저기로 간다" 를 말해 준다. */
+.popup-foot > .nudge-detail__go {
+  margin-right: auto;
+  /* 오른쪽 끝의 닫기와 같은 폭으로. 닫기는 글자만큼(44.5px)이라 셈으로는
+     맞출 수가 없어 그 값을 여기 적어 둔다. */
+  width: 44.5px;
+  min-width: 44.5px;
+  gap: 0;
+  padding: 0;
+}
+
+.nudge-detail__go-icon,
+.nudge-detail__go-arrow {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-secondary);
+}
+
+.nudge-detail__go-arrow {
+  /* 화살표 그림 안쪽에 여백이 있어, 그만큼 당겨 그림에 붙인다 */
+  margin-left: -4px;
+  color: var(--color-text-tertiary);
+}
+
+.nudge-detail__go-icon > svg,
+.nudge-detail__go-arrow > svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 닫기는 쓰기 · 카드 편집 팝업의 닫기와 같은 폭으로 — 글자만큼만 */
+.popup-foot > .nudge-detail__close {
+  min-width: 0;
+  padding: 0 10px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   72. 땡땡이 테이프도 아무렇게나 붙인 듯이 (2026-08-26)
+   ────────────────────────────────────────────────────────────
+   62절이 내역에 쓰는 방식을 그대로 가져온다. 값도 거는 자리도 같다.
+   · 바탕(--tape-tilt)은 묶음마다 열한 가지 — 내역의 .date-group 자리
+   · 어긋남(--tape-shift)은 묶음 안의 줄마다 네 가지 — 그 자식들 자리
+   각도는 테이프를 품은 줄에 걸고 그 안의 테이프가 물려받는다.
+   ═════════════════════════════════════════════════════════════ */
+
+.chart-grid > .chart-card:nth-child(11n+1),
+.nudge-detail__list:nth-child(11n+1) {
+  --tape-tilt: -2deg;
+}
+
+.chart-grid > .chart-card:nth-child(11n+2),
+.nudge-detail__list:nth-child(11n+2) {
+  --tape-tilt: 1.3deg;
+}
+
+.chart-grid > .chart-card:nth-child(11n+3),
+.nudge-detail__list:nth-child(11n+3) {
+  --tape-tilt: -0.8deg;
+}
+
+.chart-grid > .chart-card:nth-child(11n+4),
+.nudge-detail__list:nth-child(11n+4) {
+  --tape-tilt: 2deg;
+}
+
+.chart-grid > .chart-card:nth-child(11n+5),
+.nudge-detail__list:nth-child(11n+5) {
+  --tape-tilt: -1.5deg;
+}
+
+.chart-grid > .chart-card:nth-child(11n+6),
+.nudge-detail__list:nth-child(11n+6) {
+  --tape-tilt: 0.6deg;
+}
+
+.chart-grid > .chart-card:nth-child(11n+7),
+.nudge-detail__list:nth-child(11n+7) {
+  --tape-tilt: -2.3deg;
+}
+
+.chart-grid > .chart-card:nth-child(11n+8),
+.nudge-detail__list:nth-child(11n+8) {
+  --tape-tilt: 1.7deg;
+}
+
+.chart-grid > .chart-card:nth-child(11n+9),
+.nudge-detail__list:nth-child(11n+9) {
+  --tape-tilt: -0.4deg;
+}
+
+.chart-grid > .chart-card:nth-child(11n+10),
+.nudge-detail__list:nth-child(11n+10) {
+  --tape-tilt: 2.3deg;
+}
+
+.chart-grid > .chart-card:nth-child(11n+11),
+.nudge-detail__list:nth-child(11n+11) {
+  --tape-tilt: -1.9deg;
+}
+
+.nudge-list > :nth-child(4n+1),
+.nudge-detail__list > :nth-child(4n+1) {
+  --tape-shift: -0.7deg;
+}
+
+.nudge-list > :nth-child(4n+2),
+.nudge-detail__list > :nth-child(4n+2) {
+  --tape-shift: 0.6deg;
+}
+
+.nudge-list > :nth-child(4n+3),
+.nudge-detail__list > :nth-child(4n+3) {
+  --tape-shift: -0.3deg;
+}
+
+.nudge-list > :nth-child(4n+4),
+.nudge-detail__list > :nth-child(4n+4) {
+  --tape-shift: 0.7deg;
 }

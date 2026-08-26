@@ -11,6 +11,7 @@ import Calendar from "./pages/Calendar";
 import CalendarDetail from "./pages/CalendarDetail";
 import Home from "./pages/Home";
 import Blank from "./pages/Blank";
+import Nudges from "./pages/Nudges";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
 /* 씀씀이만 따로 떼어 낸다 — 그림 그리는 짐(Recharts)이 무거워서
@@ -84,7 +85,7 @@ function App() {
         <Route path="/payment-methods" element={<PaymentMethods />} />
         {/* 함께한 상대 페이지 — 금액 쪼개기의 상대 목록 */}
         <Route path="/counterparts" element={<Counterparts />} />
-        {/* 홈에서 문만 내 둔 화면들 — 속은 뒤에 채운다.
+        {/* 홈에서 문만 내 둔 화면 — 속은 뒤에 채운다.
             이름은 PageHead 가 경로를 보고 붙인다(utils/pageTitles.ts) */}
         <Route path="/me" element={<Blank />} />
         <Route
@@ -95,7 +96,7 @@ function App() {
             </Suspense>
           }
         />
-        <Route path="/nudges" element={<Blank />} />
+        <Route path="/nudges" element={<Nudges />} />
 
         {/* 존재하지 않는 경로 → 홈으로 */}
         <Route path="*" element={<Navigate to="/" replace />} />

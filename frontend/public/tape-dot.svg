@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="30" viewBox="0 0 60 30">
+  <title>마스킹 테이프 — 땡땡이</title>
+  <!--
+    잔소리에서 쓰는 두 번째 마스킹 테이프. 연노랑 바탕에 흰 땡땡이다.
+    가로로 이어 붙여 쓰므로(background-repeat: repeat-x) 왼쪽 끝과 오른쪽 끝의
+    물결이 맞물리도록 60 폭에 물결 넷을 넣었다 — 첫 테이프(tape.svg)와 같은 결이다.
+
+    땡땡이는 크기를 모두 같게(r 1.6) 두고 가로 10 · 세로 8 간격으로 어긋나게
+    찍는다. 위아래 줄은 뜯긴 가장자리에 걸치는데, 몸통 모양으로 오려 내므로
+    (clipPath) 가장자리를 따라 잘린 채로 보인다 — 진짜 테이프를 자른 것처럼.
+    좌우 끝의 점도 반씩 걸치지만 이어 붙이면 두 반쪽이 한 점으로 맞물린다.
+  -->
+  <defs>
+    <linearGradient id="dotBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FDF6DA"/>
+      <stop offset="1" stop-color="#F8E9B0"/>
+    </linearGradient>
+
+    <!-- 몸통 — 위아래가 물결로 뜯긴 종이 테이프 -->
+    <path id="dotShape"
+      d="M0 3.4 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0
+         L60 26.6 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 Z"/>
+
+    <clipPath id="dotClip">
+      <use href="#dotShape"/>
+    </clipPath>
+  </defs>
+
+  <use href="#dotShape" fill="url(#dotBody)"/>
+
+  <g fill="#FFFFFF" clip-path="url(#dotClip)">
+    <circle cx="0" cy="3" r="1.6"/>
+    <circle cx="10" cy="3" r="1.6"/>
+    <circle cx="20" cy="3" r="1.6"/>
+    <circle cx="30" cy="3" r="1.6"/>
+    <circle cx="40" cy="3" r="1.6"/>
+    <circle cx="50" cy="3" r="1.6"/>
+    <circle cx="60" cy="3" r="1.6"/>
+
+    <circle cx="5" cy="11" r="1.6"/>
+    <circle cx="15" cy="11" r="1.6"/>
+    <circle cx="25" cy="11" r="1.6"/>
+    <circle cx="35" cy="11" r="1.6"/>
+    <circle cx="45" cy="11" r="1.6"/>
+    <circle cx="55" cy="11" r="1.6"/>
+
+    <circle cx="0" cy="19" r="1.6"/>
+    <circle cx="10" cy="19" r="1.6"/>
+    <circle cx="20" cy="19" r="1.6"/>
+    <circle cx="30" cy="19" r="1.6"/>
+    <circle cx="40" cy="19" r="1.6"/>
+    <circle cx="50" cy="19" r="1.6"/>
+    <circle cx="60" cy="19" r="1.6"/>
+
+    <circle cx="5" cy="27" r="1.6"/>
+    <circle cx="15" cy="27" r="1.6"/>
+    <circle cx="25" cy="27" r="1.6"/>
+    <circle cx="35" cy="27" r="1.6"/>
+    <circle cx="45" cy="27" r="1.6"/>
+    <circle cx="55" cy="27" r="1.6"/>
+  </g>
+</svg>

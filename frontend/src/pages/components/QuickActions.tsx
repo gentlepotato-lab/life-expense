@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
+import BellIcon from "./BellIcon";
 import CalculatorIcon from "./CalculatorIcon";
 import CalculatorPopup from "./CalculatorPopup";
+import NudgePopup from "./NudgePopup";
 import PenIcon from "./PenIcon";
 import RefreshIcon from "./RefreshIcon";
 import WriteEntryModal from "./WriteEntryModal";
+import useNudges, { invalidateNudges } from "../../hooks/useNudges";
 
 /**
- * 어느 화면에서나 오른쪽 위에 떠 있는 단추 세 개 — 새로 고침 · 만년필(쓰기) · 계산기.
+ * 어느 화면에서나 오른쪽 위에 떠 있는 단추 넷 —
+ * 새로 고침 · 만년필(쓰기) · 계산기 · 종(잔소리).
  *
  * 자리 · 생김새 · 여는 팝업이 화면마다 어긋나면 안 되므로 한자리에 모아 두고
- * 화면들은 이것만 부른다. 셋을 한 줄(flex)에 세워 사이 간격을 CSS 한 곳에서
+ * 화면들은 이것만 부른다. 넷을 한 줄(flex)에 세워 사이 간격을 CSS 한 곳에서
  * 정한다 — 각자 오른쪽 끝에서 몇 픽셀인지 따로 세면 창 폭이 바뀔 때마다
  * 어긋난다.
  *
@@ -18,15 +22,23 @@ import WriteEntryModal from "./WriteEntryModal";
 export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
   const [writeOpen, setWriteOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [nudgeOpen, setNudgeOpen] = useState(false);
+
+  /* 한 건 적고 나면 잔소리도 달라진다 — 그때만 다시 센다 */
+  const [nudgeKey, setNudgeKey] = useState(0);
+  const { nudges, ready } = useNudges({ reloadKey: nudgeKey });
+
+  /* 배지에 세는 것은 "챙길 것" 뿐이다. 칭찬까지 세면 붉은 점이 늘 켜져 있다 */
+  const mind = nudges.filter((n) => n.level !== "good").length;
 
   /* 팝업이 떠 있는 동안 뒤 화면이 밀리지 않게 한다.
      열려 있을 때만 손을 대므로, 이 화면의 다른 팝업이 걸어 둔 것을
      지우고 나가는 일이 없다. */
   useEffect(() => {
-    if (!writeOpen && !calculatorOpen) return;
+    if (!writeOpen && !calculatorOpen && !nudgeOpen) return;
     document.documentElement.classList.add("modal-open");
     return () => document.documentElement.classList.remove("modal-open");
-  }, [writeOpen, calculatorOpen]);
+  }, [writeOpen, calculatorOpen, nudgeOpen]);
 
   return (
     <>
@@ -52,13 +64,33 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
         >
           <CalculatorIcon />
         </button>
+        <button
+          className="calculator-trigger-button nudge-trigger-button"
+          onClick={() => setNudgeOpen(true)}
+          aria-label="잔소리"
+        >
+          <BellIcon />
+          {ready && mind > 0 && (
+            <span className="nudge-badge">{mind > 9 ? "9+" : mind}</span>
+          )}
+        </button>
       </div>
 
       {writeOpen && (
-        <WriteEntryModal onClose={() => setWriteOpen(false)} onSaved={onSaved} />
+        <WriteEntryModal
+          onClose={() => setWriteOpen(false)}
+          onSaved={() => {
+            invalidateNudges();
+            setNudgeKey((k) => k + 1);
+            onSaved?.();
+          }}
+        />
       )}
       {calculatorOpen && (
         <CalculatorPopup onClose={() => setCalculatorOpen(false)} />
+      )}
+      {nudgeOpen && (
+        <NudgePopup nudges={nudges} ready={ready} onClose={() => setNudgeOpen(false)} />
       )}
     </>
   );

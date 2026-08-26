@@ -9,7 +9,7 @@ export const PAGE_TITLE: Record<string, string> = {
 
   /* 홈에 딸린 화면들 */
   "/write": "쓰기",
-  "/me": "쓰는 사람",
+  "/me": "돈쓴이",
   "/charts": "씀씀이",
   "/nudges": "잔소리",
 

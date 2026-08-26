@@ -17,7 +17,7 @@ export function ArtWrite() {
   );
 }
 
-/** 쓰는 사람 — 프로필 */
+/** 돈쓴이 — 프로필 */
 export function ArtProfile() {
   return (
     <svg className="home-art home-art--profile" viewBox="0 0 96 72" aria-hidden="true">
