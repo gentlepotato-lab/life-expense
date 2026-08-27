@@ -7,6 +7,7 @@ import PenIcon from "./PenIcon";
 import RefreshIcon from "./RefreshIcon";
 import WriteEntryModal from "./WriteEntryModal";
 import useNudges, { invalidateNudges } from "../../hooks/useNudges";
+import { closeOverlays } from "../../hooks/useBackClose";
 
 /**
  * 어느 화면에서나 오른쪽 위에 떠 있는 단추 넷 —
@@ -33,6 +34,27 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
      배지가 답해야 할 물음이다. */
   const mind = nudges.length;
 
+  /**
+   * 한 번에 하나만 띄운다.
+   *
+   * 네 단추가 팝업 위에도 떠 있으므로, 팝업이 열린 채로 다른 단추를 누르는
+   * 일이 생긴다. 그때 둘이 겹쳐 뜨면 뒤로 가기 차례도 눈에 보이는 것도
+   * 엉킨다. 열려 있던 것은 무엇이든 — 이 화면이 연 것까지 — 먼저 닫는다.
+   *
+   * 같은 단추를 다시 누르면 닫기만 한다. 계산기가 원래 그랬다.
+   */
+  const only = (which: "write" | "calc" | "nudge") => {
+    const already =
+      (which === "write" && writeOpen) ||
+      (which === "calc" && calculatorOpen) ||
+      (which === "nudge" && nudgeOpen);
+    void closeOverlays().then(() => {
+      setWriteOpen(!already && which === "write");
+      setCalculatorOpen(!already && which === "calc");
+      setNudgeOpen(!already && which === "nudge");
+    });
+  };
+
   /* 팝업이 떠 있는 동안 뒤 화면이 밀리지 않게 한다.
      열려 있을 때만 손을 대므로, 이 화면의 다른 팝업이 걸어 둔 것을
      지우고 나가는 일이 없다. */
@@ -54,21 +76,21 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
         </button>
         <button
           className="calculator-trigger-button write-trigger-button"
-          onClick={() => setWriteOpen(true)}
+          onClick={() => only("write")}
           aria-label="새 지출 적기"
         >
           <PenIcon />
         </button>
         <button
           className="calculator-trigger-button"
-          onClick={() => setCalculatorOpen(!calculatorOpen)}
+          onClick={() => only("calc")}
           aria-label="Calculator"
         >
           <CalculatorIcon />
         </button>
         <button
           className="calculator-trigger-button nudge-trigger-button"
-          onClick={() => setNudgeOpen(true)}
+          onClick={() => only("nudge")}
           aria-label="잔소리"
         >
           <BellIcon />

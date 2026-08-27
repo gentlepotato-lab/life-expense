@@ -25,7 +25,48 @@ import { useEffect, useRef } from "react";
  * 닫게 한다. 팝업 안에서 장소 고르기를 열고 하나 고르면 팝업까지 함께
  * 닫히던 것이 이 때문이었다.
  */
-const openStack: object[] = [];
+const openStack: { close: () => void }[] = [];
+
+/**
+ * 지금 열려 있는 것을 모두 닫는다 — 나중에 열린 것부터.
+ *
+ * 화면 위에 늘 떠 있는 네 단추(새로 고침 · 쓰기 · 계산기 · 잔소리)가
+ * 팝업 위에서도 눌리게 되면서 필요해졌다. 팝업이 떠 있는데 다른 단추를
+ * 누르면 두 팝업이 겹쳐 뜨는 대신 앞것이 물러나야 한다.
+ *
+ * 닫는 일은 저마다 자기 방식이 있으므로(고르던 것 되돌리기 · 기록 칸
+ * 걷어 내기) 여기서는 그 함수를 부르기만 한다.
+ */
+export function closeOverlays(): Promise<void> {
+  const waiting = openStack.length;
+  /* 닫으면 목록이 줄어드니 베껴 두고 돈다 */
+  [...openStack].reverse().forEach((t) => t.close());
+  if (waiting === 0) return Promise.resolve();
+
+  /* 다 걷힐 때까지 기다렸다가 알린다.
+     닫히는 쪽은 끼워 둔 칸을 history.back() 으로 걷는데 그게 늦게 오고,
+     여는 쪽의 pushState 는 먼저 간다. 그대로 두면 늦게 온 back 이 새로 끼운
+     칸을 도로 걷어 버려, 새 팝업이 떠 있는데 뒤로 가기로는 닫을 수 없게 된다.
+     걷는 만큼 popstate 가 울리니 그 수를 세고 나서 다음 것을 연다. */
+  return new Promise((done) => {
+    let seen = 0;
+    const finish = () => {
+      window.removeEventListener("popstate", onPop);
+      clearTimeout(timer);
+      done();
+    };
+    const onPop = () => {
+      /* 닫힌 쪽은 이미 귀를 닫았다 — 삼키려고 올려 둔 수를 여기서 내린다.
+         그대로 두면 다음에 열린 팝업이 진짜 뒤로 가기 한 번을 삼켜버린다. */
+      if (unwinding > 0) unwinding -= 1;
+      seen += 1;
+      if (seen >= waiting) finish();
+    };
+    window.addEventListener("popstate", onPop);
+    /* 걷을 칸이 없어 울림이 오지 않는 경우도 있다 — 마냥 기다리지 않는다 */
+    const timer = setTimeout(finish, 400);
+  });
+}
 
 /**
  * 우리가 스스로 걷어 내는 중인 칸의 수.
@@ -53,8 +94,8 @@ export default function useBackClose(
     window.history.pushState(mark, "");
     let popped = false;
 
-    /* 차례를 가리는 이름표 — 값은 쓰지 않고 누구인지만 본다 */
-    const token = {};
+    /* 차례를 가리는 이름표. 밖에서 닫을 수 있도록 닫는 함수도 함께 든다 */
+    const token = { close: () => closeRef.current() };
     openStack.push(token);
 
     const onPop = () => {
