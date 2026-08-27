@@ -43,6 +43,16 @@ type Loaded = {
   cat1List: Cat[];
   cat2List: (Cat & { cat1_id: number; inout?: number | null })[];
   cat3List: (Cat & { cat2_id: number })[];
+  /** 실적 구간을 적어 둔 카드 */
+  cards: {
+    key: string;
+    name: string;
+    code: string;
+    tiers: {
+      threshold: number;
+      benefits: { content: string; memo: string; limit: number | null }[];
+    }[];
+  }[];
 };
 
 let cached: Loaded | null = null;
@@ -65,7 +75,37 @@ async function load(): Promise<Loaded> {
     axios.get("/categories/lvl1").then((r) => r.data).catch(() => []),
     axios.get("/categories/lvl2").then((r) => r.data).catch(() => []),
     axios.get("/categories/lvl3").then((r) => r.data).catch(() => []),
+    axios.get("/payment-methods").then((r) => r.data).catch(() => []),
   ]);
+
+  /* 실적 구간은 카드에만 딸린다. 카드가 몇 장뿐이라 그것만 따로 물어 온다 */
+  type RawMethod = { method_id: number; method_name: string; category: string | null };
+  type RawTier = {
+    threshold: number;
+    benefits?: { content: string; memo: string | null; limit: number | null }[];
+  };
+
+  const cardList = (res[MONTHS + 5] as RawMethod[]).filter((p) => p.category === "카드");
+  const cards = await Promise.all(
+    cardList.map(async (p) => ({
+      key: `card-${p.method_id}`,
+      name: p.method_name,
+      code: String(p.method_id),
+      tiers: await axios
+        .get(`/payment-methods/${p.method_id}/tiers`)
+        .then((r) =>
+          (r.data as RawTier[]).map((t) => ({
+            threshold: Number(t.threshold),
+            benefits: (t.benefits ?? []).map((b) => ({
+              content: b.content ?? "",
+              memo: b.memo ?? "",
+              limit: b.limit ?? null,
+            })),
+          }))
+        )
+        .catch(() => []),
+    }))
+  );
 
   /* 씀씀이 · 달력과 같은 세 갈래를 모은다.
      지출만 세면 아직 안 보낸 대기가 통째로 빠져 그 달만 유난히 적어 보인다.
@@ -143,6 +183,7 @@ async function load(): Promise<Loaded> {
     cat1List: res[MONTHS + 2] as Cat[],
     cat2List: res[MONTHS + 3] as (Cat & { cat1_id: number; inout?: number | null })[],
     cat3List: res[MONTHS + 4] as (Cat & { cat2_id: number })[],
+    cards,
   };
 }
 
@@ -225,6 +266,7 @@ export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]
           .filter(Boolean)
           .join(" > "),
       pending,
+      cards: data.cards,
       /* 예고도 화면의 단추를 따른다 — Exclude 를 켜 두고 저축이 "빠져나갑니다"
          라고 뜨면 같은 화면이 두 가지 잣대로 말하는 셈이 된다 */
       upcoming: data.upcoming.filter(

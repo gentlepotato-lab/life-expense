@@ -28,8 +28,10 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
   const [nudgeKey, setNudgeKey] = useState(0);
   const { nudges, ready } = useNudges({ reloadKey: nudgeKey });
 
-  /* 배지에 세는 것은 "챙길 것" 뿐이다. 칭찬까지 세면 붉은 점이 늘 켜져 있다 */
-  const mind = nudges.filter((n) => n.level !== "good").length;
+  /* 배지는 잔소리 전체를 센다. "챙길 것" 만 세면 화면에 넉 줄이 떠 있는데
+     배지에는 둘이라 적혀 서로 어긋나 보인다 — 종을 눌러 볼 것이 몇 가지인지가
+     배지가 답해야 할 물음이다. */
+  const mind = nudges.length;
 
   /* 팝업이 떠 있는 동안 뒤 화면이 밀리지 않게 한다.
      열려 있을 때만 손을 대므로, 이 화면의 다른 팝업이 걸어 둔 것을

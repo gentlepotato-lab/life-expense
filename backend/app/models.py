@@ -43,6 +43,8 @@ class PaymentMethod(Base):
     method_name = Column(String, nullable=False, unique=True)
     # 구분은 payment_method_categories 행을 가리킨다
     category_id = Column(Integer, ForeignKey("payment_method_categories.category_id", ondelete="SET NULL"))
+    # 카드 연회비. 카드가 아닌 것은 비워 둔다
+    annual_fee = Column(Numeric(14, 2))
     sort_order = Column(Integer, default=0, nullable=True)
 
 class Entry(Base):
@@ -364,3 +366,53 @@ class CounterpartCategory(Base):
             "sort_order": self.sort_order,
             "is_active": self.is_active,
         }
+class CardTier(Base):
+    """
+    카드 실적 구간.
+
+    구간 하나에 혜택이 여럿 붙으므로 혜택은 card_benefits 로 따로 뺐다.
+    한 행에 몰아 담으면 나중에 하나만 고치거나 순서를 바꿀 수가 없다.
+    """
+    __tablename__ = "card_tiers"
+
+    tier_id = Column(Integer, primary_key=True, autoincrement=True)
+    method_id = Column(Integer, ForeignKey("payment_methods.method_id", ondelete="CASCADE"), nullable=False)
+    threshold = Column(Numeric(14, 2), nullable=False)
+    sort_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class CardBenefit(Base):
+    """
+    구간 하나가 주는 혜택 한 줄.
+
+    content 는 항목 이름, memo 는 그 옆에 적는 상세다 —
+    "커피 할인" 만으로는 어느 가게에서 얼마인지가 남지 않는다.
+    """
+    __tablename__ = "card_benefits"
+
+    benefit_id = Column(Integer, primary_key=True, autoincrement=True)
+    tier_id = Column(Integer, ForeignKey("card_tiers.tier_id", ondelete="CASCADE"), nullable=False)
+    content = Column(String(200), nullable=False)
+    memo = Column(String(200))
+    # 월간 통합 할인한도. 없는 혜택도 있어 비울 수 있다
+    limit_amount = Column(Numeric(14, 2))
+    sort_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class CardBenefitTarget(Base):
+    """
+    혜택 하나가 걸리는 대상.
+
+    "디지털 구독 할인" 아래에 OTT → 넷플릭스·유튜브프리미엄, 음원 → 멜론·지니
+    처럼 영역과 가맹점이 짝으로 붙는다. 영역 구분이 없는 혜택도 있어 area 는 비울 수 있다.
+    """
+    __tablename__ = "card_benefit_targets"
+
+    target_id = Column(Integer, primary_key=True, autoincrement=True)
+    benefit_id = Column(Integer, ForeignKey("card_benefits.benefit_id", ondelete="CASCADE"), nullable=False)
+    area = Column(String(60))
+    stores = Column(String(400), nullable=False)
+    sort_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, server_default=func.now())

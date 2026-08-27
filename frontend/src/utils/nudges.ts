@@ -14,6 +14,7 @@
 
 import type { Row } from "./calendarFilter";
 import { formatDateLabel } from "./dateGroup";
+import { manwon } from "./amount";
 
 /** 잔소리 한 줄이 딸린 자리 */
 export type Level = "bad" | "watch" | "good";
@@ -69,6 +70,17 @@ export type NudgeSource = {
   pending: (Cats & { key: string; date: string; name: string; amount: number; memo?: string; blur?: boolean })[];
   /** 앞으로 일주일 안에 빠져나갈 정기 지출 */
   upcoming: (Cats & { key: string; name: string; amount: number; date: string; memo?: string })[];
+  /** 실적 구간을 적어 둔 카드 */
+  cards: {
+    key: string;
+    name: string;
+    /** 결제 수단 번호 — 이 달에 그 카드로 그은 것을 고르는 데 쓴다 */
+    code: string;
+    tiers: {
+      threshold: number;
+      benefits: { content: string; memo: string; limit: number | null }[];
+    }[];
+  }[];
 };
 
 /* ─── 말투 ──────────────────────────────────────────────────── */
@@ -209,13 +221,16 @@ export function buildNudges(src: NudgeSource): Nudge[] {
   const now = nowRows.reduce((s, r) => s + r.net, 0);
   const before = upToDay(lastYm).reduce((s, r) => s + r.net, 0);
   if (before > 0 && now > 0) {
-    const rate = Math.round(((now - before) / before) * 100);
+    /* 소수 한 자리까지 — 정수로 끊으면 27% 가 26.5 인지 27.4 인지 알 수 없다 */
+    const rate = Math.round(((now - before) / before) * 1000) / 10;
     if (rate !== 0) {
       out.push(
         line(
           "pace",
           rate > 0 ? "bad" : "good",
-          `이번 달 ${won(now)}으로, 지난 달 같은 기간보다 ${Math.abs(rate)}% ${rate > 0 ? "많습니다" : "적습니다"}`,
+          `이번 달 지출은 ${won(now)}으로, 지난 달 같은 기간보다 ${won(
+            Math.abs(now - before)
+          )}(${Math.abs(rate).toFixed(1)}%) ${rate > 0 ? "많습니다" : "적습니다"}`,
           `1일부터 ${day}일까지 · 지난 달 같은 기간 ${won(before)}`,
           {
             blur: nowRows.some(isMasked),
@@ -333,6 +348,39 @@ export function buildNudges(src: NudgeSource): Nudge[] {
       out.push(line("rest", "good", `어제까지 ${rest}일 연속 한 푼도 쓰지 않았습니다`));
     }
   }
+
+  /* ⑦ 카드 실적을 채웠다.
+     쓴 돈이 아니라 카드에 그은 돈(N빵 전 결제액)을 센다 — 씀씀이의 카드 실적과
+     같은 잣대다. 채운 구간이 여럿이면 가장 높은 하나만 말한다. 낮은 구간의
+     혜택은 높은 구간에도 딸려 오므로 줄줄이 늘어놓을 이유가 없다. */
+  src.cards.forEach((card) => {
+    const spent = rows
+      .filter((r) => r.date.startsWith(thisYm) && String(r.pay_method) === card.code)
+      .reduce((sum, r) => sum + r.amount, 0);
+    if (spent <= 0) return;
+
+    const done = card.tiers
+      .filter((t) => t.threshold > 0 && spent >= t.threshold)
+      .sort((a, b) => b.threshold - a.threshold)[0];
+    if (!done) return;
+
+    out.push(
+      line(
+        `perf-${card.key}-${done.threshold}`,
+        "good",
+        `${card.name}, ${manwon(done.threshold)} 구간을 채웠습니다`,
+        `이번 달 실적 ${won(spent)}`,
+        {
+          items: done.benefits.map((b, i) => ({
+            key: `perf-${card.key}-${done.threshold}-${i}`,
+            cat: b.content,
+            memo: b.memo || undefined,
+            amount: b.limit ?? undefined,
+          })),
+        }
+      )
+    );
+  });
 
   const order: Record<Level, number> = { bad: 0, watch: 1, good: 2 };
   return out.sort((a, b) => order[a.level] - order[b.level]);
