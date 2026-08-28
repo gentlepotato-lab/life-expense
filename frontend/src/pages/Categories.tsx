@@ -621,6 +621,7 @@ export default function Categories() {
           </div>
 
           <SingleSelect
+            noun="중분류"
             options={[
               { value: "NEW", label: "[+] 새 항목 추가" },
               { value: "", label: "(중분류)" },
@@ -661,6 +662,7 @@ export default function Categories() {
               중분류를 새로 만드는 중이면 고를 기존 소분류가 없으므로 입력칸만 둔다. */}
           {selectedCat1ForAdd && !addCat1Mode && (
             <SingleSelect
+              noun="소분류"
               options={[
                 { value: "NEW", label: "[+] 새 항목 추가" },
                 { value: "", label: "(소분류)" },

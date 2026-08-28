@@ -229,6 +229,7 @@ export default function EntryFilterPopup({
         <div className="popup-body edit-grid">
           <EditField label="중분류" span={4}>
             <MultiSelect
+              noun="중분류"
               options={cat1Options}
               selected={filter.cat1}
               onSpecialClick={toggleAll("cat1", cat1Pool.map((c) => c.id))}
@@ -240,6 +241,7 @@ export default function EntryFilterPopup({
 
           <EditField label="소분류" span={4}>
             <MultiSelect
+              noun="소분류"
               options={cat2Options}
               selected={filter.cat2}
               onSpecialClick={nestedSpecial("cat2", cat2Pool, cat2Children)}
@@ -251,6 +253,7 @@ export default function EntryFilterPopup({
 
           <EditField label="세분류" span={4}>
             <MultiSelect
+              noun="세분류"
               options={cat3Options}
               selected={filter.cat3}
               onSpecialClick={nestedSpecial("cat3", cat3Pool, cat3Children)}
@@ -280,6 +283,7 @@ export default function EntryFilterPopup({
           {/* IN/OUT 이 빠지면 혼자 남으므로 줄을 다 쓴다 */}
           <EditField label="결제 수단" span={showInout ? 6 : 12}>
             <MultiSelect
+              noun="결제 수단"
               options={payOptions}
               selected={filter.pay}
               onSpecialClick={toggleAll("pay", payPool.map((p) => p.code))}
@@ -322,6 +326,7 @@ export default function EntryFilterPopup({
 
           <EditField label="함께한 상대" span={6}>
             <MultiSelect
+              noun="사람"
               options={cpOptions}
               selected={filter.cp}
               onSpecialClick={toggleAll("cp", cpList.map((c) => c.counterpart_id))}

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { narrowOptions, nothingFound, FIND_FROM } from "../../utils/narrowOptions";
 
 export interface MultiSelectOption<T> {
   value: T;
@@ -12,6 +13,8 @@ interface MultiSelectProps<T> {
   placeholder?: string;
   onSpecialClick?: (value: T) => boolean;
   isOptionChecked?: (value: T) => boolean;
+  /** 고르는 것이 무엇인지 — 찾은 게 없을 때 그 말로 알린다 */
+  noun?: string;
 }
 
 export default function MultiSelect<T>({
@@ -20,9 +23,13 @@ export default function MultiSelect<T>({
   onChange,
   placeholder = "",
   onSpecialClick,
-  isOptionChecked
+  isOptionChecked,
+  noun = "것"
 }: MultiSelectProps<T>) {
   const [open, setOpen] = useState(false);
+  /* 친 글자 — 닫으면 비운다. 지난번 친 것이 남아 있으면
+     다음에 열었을 때 목록이 비어 보인다 */
+  const [query, setQuery] = useState("");
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const ref = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -114,6 +121,13 @@ export default function MultiSelect<T>({
     };
   }, [open]);
 
+  /* 목록을 닫으면 친 글자도 지운다 */
+  useEffect(() => {
+    if (!open) setQuery("");
+  }, [open]);
+
+  const shown = narrowOptions(options, query);
+
   return (
     <div className="ms-wrap" ref={wrapRef}>
       {/* 표시 영역 */}
@@ -136,7 +150,18 @@ export default function MultiSelect<T>({
       {/* 드롭다운 */}
       {open && (
         <div className="ms-dropdown" style={dropdownStyle}>
-          {options.map((opt) => (
+          {options.length >= FIND_FROM && (
+            <input
+              type="text"
+              className="ms-find"
+              value={query}
+              placeholder="(찾기)"
+              onChange={(e) => setQuery(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
+          {shown.length === 0 && <div className="ms-none">{nothingFound(noun)}</div>}
+          {shown.map((opt) => (
             <label className="ms-option" key={String(opt.value)}>
               <input
                 type="checkbox"

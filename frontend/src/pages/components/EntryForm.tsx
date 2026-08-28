@@ -232,6 +232,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
         {/* 1행 — 분류 3단 */}
         <EditField label="중분류" span={4}>
           <SingleSelect
+            noun="중분류"
             options={visible(cat1List, (c) => String(c.id) === form.cat1_id)
               .map(c => ({ value: String(c.id), label: c.name }))}
             selected={form.cat1_id}
@@ -245,7 +246,9 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
 
         <EditField label="소분류" span={4}>
           <SingleSelect
-            options={cat2List.map(c => ({ value: String(c.id), label: c.name }))}
+            noun="소분류"
+            options={visible(cat2List, (c) => String(c.id) === form.cat2_id)
+              .map(c => ({ value: String(c.id), label: c.name }))}
             selected={form.cat2_id}
             onChange={(value) => {
               setForm({ ...form, cat2_id: value });
@@ -257,7 +260,9 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
 
         <EditField label="세분류" span={4}>
           <SingleSelect
-            options={cat3List.map(c => ({ value: String(c.id), label: c.name }))}
+            noun="세분류"
+            options={visible(cat3List, (c) => String(c.id) === form.cat3_id)
+              .map(c => ({ value: String(c.id), label: c.name }))}
             selected={form.cat3_id}
             onChange={(value) => {
               setForm({ ...form, cat3_id: value });
@@ -276,6 +281,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
 
         <EditField label="결제 수단" span={4}>
           <SingleSelect
+            noun="결제 수단"
             options={visible(payList, (p) => p.code === form.pay_method)
               .map(p => ({ value: p.code, label: p.name }))}
             selected={form.pay_method}

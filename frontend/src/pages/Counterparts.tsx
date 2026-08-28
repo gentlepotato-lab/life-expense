@@ -451,6 +451,7 @@ export default function Counterparts() {
                   />
                   <div className="cp-input--cat">
                     <SingleSelect
+                      noun="구분"
                       options={[
                         { value: NEW_CATEGORY, label: "[+] 새 항목 추가" },
                         { value: "", label: "(구분 없음)" },

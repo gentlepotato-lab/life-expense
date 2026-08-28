@@ -596,6 +596,7 @@ export default function ScheduledEntries() {
               <div className="popup-body edit-grid">
                 <EditField label="매월" span={4}>
                   <SingleSelect
+                    noun="날짜"
                     options={dayOptions.map((d) => ({ value: String(d), label: `${d}일` }))}
                     selected={form.day_of_month}
                     onChange={(value) => setForm({ ...form, day_of_month: value })}
@@ -634,6 +635,7 @@ export default function ScheduledEntries() {
 
                 <EditField label="중분류" span={4}>
                   <SingleSelect
+                    noun="중분류"
                     options={visible(cat1List, (c) => String(c.id) === form.cat1_id)
                       .map((c) => ({ value: String(c.id), label: c.name }))}
                     selected={form.cat1_id}
@@ -644,6 +646,7 @@ export default function ScheduledEntries() {
 
                 <EditField label="소분류" span={4}>
                   <SingleSelect
+                    noun="소분류"
                     options={visible(cat2List, (c) => String(c.id) === form.cat2_id)
                       .map((c) => ({ value: String(c.id), label: c.name }))}
                     selected={form.cat2_id}
@@ -654,6 +657,7 @@ export default function ScheduledEntries() {
 
                 <EditField label="세분류" span={4}>
                   <SingleSelect
+                    noun="세분류"
                     options={visible(cat3List, (c) => String(c.id) === form.cat3_id)
                       .map((c) => ({ value: String(c.id), label: c.name }))}
                     selected={form.cat3_id}
@@ -676,6 +680,7 @@ export default function ScheduledEntries() {
 
                 <EditField label="결제 수단" span={4}>
                   <SingleSelect
+                    noun="결제 수단"
                     options={visible(payList, (p) => p.code === form.pay_method)
                       .map((p) => ({ value: p.code, label: p.name }))}
                     selected={form.pay_method}
@@ -782,6 +787,7 @@ export default function ScheduledEntries() {
             <>
               <EditField label="매월" span={6}>
                 <SingleSelect
+                  noun="날짜"
                   options={dayOptions.map((d) => ({ value: String(d), label: `${d}일` }))}
                   selected={String(draft.day_of_month ?? "")}
                   onChange={(value) => setField("day_of_month", value ? Number(value) : null)}
@@ -804,6 +810,7 @@ export default function ScheduledEntries() {
             {/* 1행 — 분류 3단 */}
             <EditField label="중분류" span={4}>
               <SingleSelect
+                noun="중분류"
                 options={visible(cat1List, (c) => c.id === draft.cat1_id)
                   .map((c) => ({ value: String(c.id), label: c.name }))}
                 selected={String(draft.cat1_id ?? "")}
@@ -814,6 +821,7 @@ export default function ScheduledEntries() {
 
             <EditField label="소분류" span={4}>
               <SingleSelect
+                noun="소분류"
                 options={visible(cat2All, (c) => c.id === draft.cat2_id)
                   .filter((c) => c.cat1_id === draft.cat1_id)
                   .map((c) => ({ value: String(c.id), label: c.name }))}
@@ -825,6 +833,7 @@ export default function ScheduledEntries() {
 
             <EditField label="세분류" span={4}>
               <SingleSelect
+                noun="세분류"
                 options={[
                   { value: "", label: "(세분류)" },
                   ...visible(cat3All, (c) => c.id === draft.cat3_id)
@@ -846,6 +855,7 @@ export default function ScheduledEntries() {
 
             <EditField label="결제 수단" span={4}>
               <SingleSelect
+                noun="결제 수단"
                 options={visible(payList, (p) => String(p.code) === String(draft.pay_method))
                   .map((p) => ({ value: p.code, label: p.name }))}
                 selected={

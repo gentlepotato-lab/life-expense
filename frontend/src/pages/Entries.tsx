@@ -818,6 +818,7 @@ export default function Entries() {
             {/* 1행 — 분류 3단 */}
             <EditField label="중분류" span={4}>
               <SingleSelect
+                noun="중분류"
                 options={visible(cat1List, (c) => c.id === draft.cat1_id)
                   .map(c => ({ value: String(c.id), label: c.name }))}
                 selected={draft.cat1_id ? String(draft.cat1_id) : ""}
@@ -828,6 +829,7 @@ export default function Entries() {
 
             <EditField label="소분류" span={4}>
               <SingleSelect
+                noun="소분류"
                 options={visible(cat2List, (c) => c.id === draft.cat2_id)
                   .filter((c) => c.cat1_id === draft.cat1_id)
                   .map(c => ({ value: String(c.id), label: c.name }))}
@@ -839,6 +841,7 @@ export default function Entries() {
 
             <EditField label="세분류" span={4}>
               <SingleSelect
+                noun="세분류"
                 options={visible(cat3List, (c) => c.id === draft.cat3_id)
                   .filter((c) => c.cat2_id === draft.cat2_id)
                   .map(c => ({ value: String(c.id), label: c.name }))}
@@ -857,6 +860,7 @@ export default function Entries() {
 
             <EditField label="결제 수단" span={4}>
               <SingleSelect
+                noun="결제 수단"
                 options={visible(payList, (p) => p.code === draft.pay_method)
                   .map(p => ({ value: p.code, label: p.name }))}
                 selected={draft.pay_method || ""}
@@ -945,6 +949,7 @@ export default function Entries() {
 
               <EditField label="중분류" span={4}>
                 <MultiSelect
+                  noun="중분류"
                   options={cat1Options}
                   selected={filter.cat1}
                   onSpecialClick={cat1_onSpecialClick}
@@ -956,6 +961,7 @@ export default function Entries() {
 
               <EditField label="소분류" span={4}>
                 <MultiSelect
+                  noun="소분류"
                   options={cat2Options}
                   selected={filter.cat2}
                   onSpecialClick={cat2_onSpecialClick}
@@ -967,6 +973,7 @@ export default function Entries() {
 
               <EditField label="세분류" span={4}>
                 <MultiSelect
+                  noun="세분류"
                   options={cat3Options}
                   selected={filter.cat3}
                   onSpecialClick={cat3_onSpecialClick}
@@ -993,6 +1000,7 @@ export default function Entries() {
 
               <EditField label="결제 수단" span={6}>
                 <MultiSelect
+                  noun="결제 수단"
                   options={payOptions}
                   selected={filter.pay}
                   onSpecialClick={pay_onSpecialClick}
@@ -1035,6 +1043,7 @@ export default function Entries() {
 
               <EditField label="함께한 상대" span={6}>
                 <MultiSelect
+                  noun="사람"
                   options={cpOptions}
                   selected={filter.cp}
                   onSpecialClick={cp_onSpecialClick}

@@ -166,6 +166,7 @@ export default function SplitEditor({
                   </div>
                 ) : (
                   <SingleSelect
+                    noun="사람"
                     options={options}
                     selected={row.counterpart_id ? String(row.counterpart_id) : ""}
                     onChange={(v) => {

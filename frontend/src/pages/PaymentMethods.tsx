@@ -514,6 +514,7 @@ export default function PaymentMethods() {
               {/* 만들 때 구분까지 정해 둘 수 있다. 여기서도 새 구분을 만들 수 있다. */}
               <div className="set-add-form__cat">
                 <SingleSelect
+                  noun="구분"
                   options={[
                     { value: NEW_CATEGORY, label: "[+] 새 항목 추가" },
                     { value: "", label: "(구분 없음)" },
@@ -669,6 +670,7 @@ export default function PaymentMethods() {
                       {editMode && (
                         <div className="pm-cat-select">
                           <SingleSelect
+                            noun="구분"
                             options={[
                               { value: NEW_CATEGORY, label: "[+] 새 항목 추가" },
                               { value: "", label: "(구분 없음)" },
