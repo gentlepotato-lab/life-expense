@@ -61,10 +61,10 @@ type Category = {
   sort_order: number;
 };
 
-/** 이 구분에 든 것만 실적 구간을 적을 수 있다 — 씀씀이의 카드 실적과 같은 잣대다 */
+/** 이 구분에 든 것만 실적 구간을 적을 수 있다 — 씀씀이의 카드 실적과 같은 잣대다. */
 const CARD_CATEGORY = "카드";
 
-/** 드롭다운에서 "새로 만들기" 를 뜻하는 값 */
+/** 드롭다운에서 "새로 만들기"를 뜻하는 값 */
 const NEW_CATEGORY = "__new__";
 
 const groupLabel = (c: Category | null) => c?.name ?? "구분 없음";
@@ -98,7 +98,7 @@ export default function PaymentMethods() {
       prev.map((x) => (x.method_id === methodId ? { ...x, annual_fee: value } : x))
     );
 
-  /** 카드 한 장의 구간을 다시 읽는다 */
+  /** 카드 한 장의 구간을 다시 읽는다. */
   const loadTiers = async (methodId: number) => {
     try {
       type RawTarget = { area: string | null; stores: string };
@@ -131,7 +131,7 @@ export default function PaymentMethods() {
     }
   };
 
-  /* 펼칠 때 처음 한 번만 받아 온다 — 카드가 몇 장뿐이라 미리 다 받을 이유가 없다 */
+  /* 펼칠 때 처음 한 번만 받아 온다 — 카드가 몇 장뿐이라 미리 다 받을 이유가 없다. */
   const toggleCard = (methodId: number) => {
     setOpenCards((prev) => {
       const next = new Set(prev);
@@ -144,7 +144,7 @@ export default function PaymentMethods() {
     });
   };
 
-  /** 구간 하나를 지운다. 다른 항목을 지우는 것과 같이 바로 묻고 바로 지운다 */
+  /** 구간 하나를 지운다. 다른 항목을 지우는 것과 같이 바로 묻고 바로 지운다. */
   const deleteTier = async (methodId: number, index: number) => {
     if (!window.confirm("이 구간을 제거할까요?")) return;
     const list = (tiers[methodId] ?? []).filter((_, i) => i !== index);
@@ -204,7 +204,7 @@ export default function PaymentMethods() {
   const [beforeEdit, setBeforeEdit] = useState<any[]>([]);
   const [beforeCategories, setBeforeCategories] = useState<Category[]>([]);
 
-  /* 뒤로 가기 · Backspace 로 편집을 무른다 — 편집 전 상태로 되돌린다 */
+  /* 뒤로 가기 · Backspace로 편집을 무른다 — 편집 전 상태로 되돌린다. */
   useBackClose(editMode, () => {
     setList(beforeEdit);
     setCategories(beforeCategories);
@@ -249,10 +249,10 @@ export default function PaymentMethods() {
 
   /**
    * 화면에 뿌릴 구분별 묶음.
-   * list 의 상대 순서를 그대로 유지하므로, 구분을 바꾸면 그 줄이
+   * list의 상대 순서를 그대로 유지하므로, 구분을 바꾸면 그 줄이
    * 자동으로 다른 묶음으로 옮겨 간다.
    */
-  /** 감춘 항목은 저장 대상에는 그대로 두고 보이기만 뺀다 */
+  /** 감춘 항목은 저장 대상에는 그대로 두고 보이기만 뺀다. */
   const listView = showInactive ? list : list.filter((x) => x.is_active !== 0);
 
   const groups = [...categories, null]
@@ -274,7 +274,7 @@ export default function PaymentMethods() {
     list.filter((x) => (x.category_id ?? null) === (cat?.category_id ?? null))
   );
 
-  /** 구분(묶음) 자체의 순서를 바꾼다 */
+  /** 구분(묶음) 자체의 순서를 바꾼다. */
   const handleGroupDragEnd = (event: {
     active: { id: unknown };
     over: { id: unknown } | null;
@@ -292,7 +292,7 @@ export default function PaymentMethods() {
     });
   };
 
-  // 드래그 정렬 — 같은 묶음 안에서만 자리를 바꾼다
+  // 드래그 정렬 — 같은 묶음 안에서만 자리를 바꾼다.
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -306,7 +306,7 @@ export default function PaymentMethods() {
     setList(reordered);
   };
 
-  /** 감추기 — 고르는 목록에서 뺀다. 지난 내역은 그대로 이 수단을 가리킨다 */
+  /** 감추기 — 고르는 목록에서 뺀다. 지난 내역은 그대로 이 수단을 가리킨다. */
   const toggleHidden = (methodId: number) =>
     setList((prev) =>
       prev.map((x) =>
@@ -319,7 +319,7 @@ export default function PaymentMethods() {
       prev.map((x) => (x.method_id === methodId ? { ...x, category_id: categoryId } : x))
     );
 
-  /** 추가 폼에서 구분을 새로 만든다. 만든 즉시 그 폼의 선택값이 된다 */
+  /** 추가 폼에서 구분을 새로 만든다. 만든 즉시 그 폼의 선택값이 된다. */
   const createCategoryForAdd = async () => {
     const name = window.prompt("새 구분 이름을 입력하세요.")?.trim();
     if (!name) return;
@@ -333,7 +333,7 @@ export default function PaymentMethods() {
     }
   };
 
-  /** 구분을 새로 만들고 그 자리에서 해당 결제 수단에 배정한다 */
+  /** 구분을 새로 만들고 그 자리에서 해당 결제 수단에 배정한다. */
   const createCategory = async (assignTo: number) => {
     const name = window.prompt("새 구분 이름을 입력하세요.")?.trim();
     if (!name) return;
@@ -398,7 +398,7 @@ export default function PaymentMethods() {
       return;
     }
 
-    // 화면에 보이는 순서(묶음 → 묶음 안 순서) 그대로 sort_order 를 매긴다
+    // 화면에 보이는 순서(묶음 → 묶음 안 순서) 그대로 sort_order를 매긴다.
     const payload = orderedForSave.map((x, i) => ({
       method_id: x.method_id,
       method_name: x.method_name,
@@ -408,7 +408,7 @@ export default function PaymentMethods() {
     }));
 
     await axios.post("/payment-methods/save", payload);
-    // 이모지는 분류 행에 저장한다
+    // 이모지는 분류 행에 저장한다.
     await axios.post(
       "/payment-methods/categories/save",
       categories.map((c, i) => ({
@@ -454,7 +454,7 @@ export default function PaymentMethods() {
             감춘 항목 보기
           </label>
 
-          {/* 내역 세 화면처럼 오른쪽 끝 버튼과 같은 줄에 둔다 */}
+          {/* 내역 세 화면처럼 오른쪽 끝 버튼과 같은 줄에 둔다. */}
           <CollapseAllButtons
             onExpandAll={() => setCollapsed(new Set())}
             onCollapseAll={() =>
@@ -541,7 +541,7 @@ export default function PaymentMethods() {
           </div>
         )}
 
-        {/* 구분 자체의 순서 바꾸기. 안쪽에는 줄 순서용 DndContext 가 따로 있다 */}
+        {/* 구분 자체의 순서 바꾸기. 안쪽에는 줄 순서용 DndContext가 따로 있다. */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -586,7 +586,7 @@ export default function PaymentMethods() {
             <span className="set-group__name">{groupLabel(g.cat)}</span>
             <span className="set-group__count">{g.items.length}</span>
 
-            {/* 비어 있는 구분만 지울 수 있다 */}
+            {/* 비어 있는 구분만 지울 수 있다. */}
             {editMode && g.cat && g.items.length === 0 && (
               <button
                 type="button"
@@ -600,7 +600,7 @@ export default function PaymentMethods() {
             )}
           </div>
 
-        {/* 접힌 묶음은 줄을 그리지 않는다 */}
+        {/* 접힌 묶음은 줄을 그리지 않는다. */}
         {!collapsed.has(groupLabel(g.cat)) && (
         <DndContext
           sensors={sensors}
@@ -730,7 +730,7 @@ export default function PaymentMethods() {
 
                 {g.cat?.name === CARD_CATEGORY && openCards.has(m.method_id) && (
                   <div className="pm-tiers">
-                    {/* 연회비는 구간이 아니라 카드 한 장의 값이라 맨 위에 둔다 */}
+                    {/* 연회비는 구간이 아니라 카드 한 장의 값이라 맨 위에 둔다. */}
                     <div className="pm-tier pm-fee">
                       <span className="pm-tier__amount">연회비</span>
                       <input
@@ -770,7 +770,7 @@ export default function PaymentMethods() {
                       </div>
                     ))}
 
-                    {/* 테두리 없는 글자 단추 — "모두 펼치기|접기" 와 같은 결이다 */}
+                    {/* 테두리 없는 글자 단추 — "모두 펼치기|접기"와 같은 결이다. */}
                     {!editMode && (
                       <button
                         type="button"

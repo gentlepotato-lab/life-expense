@@ -44,7 +44,7 @@ class PendingUpdate(BaseModel):
         return v
 
 # -------------------------
-# 공통 처리 유틸 추가 (Entries와 동일)
+# 공통 처리 유틸 추가(Entries와 동일)
 # -------------------------
 
 def _split_address(addr: str | None):
@@ -155,7 +155,7 @@ def list_pending_entries(db: SessionDep = Depends()):
              , COALESCE(vn.split_amount, 0) AS split_amount
              , COALESCE(vn.net_amount, p.amount) AS net_amount
              , COALESCE(vn.split_count, 0) AS split_count
-             -- 화면에서 "함께한 상대" 로 걸러 낼 수 있도록 상대 ID 를 함께 보낸다.
+             -- 화면에서 "함께한 상대"로 걸러 낼 수 있도록 상대 ID를 함께 보낸다.
              -- 목록을 한 번만 읽고 화면에서 거르는 구조라, 행마다 들려 있어야 한다.
              , COALESCE(
                    (SELECT array_agg(DISTINCT s.counterpart_id)
@@ -181,7 +181,7 @@ from app.routers.splits import copy_splits
 
 
 def _carry_splits(db, pending_id: int, entry_id: int) -> None:
-    """Pending 의 분할을 새로 만든 Entry 로 옮겨 적는다"""
+    """Pending의 분할을 새로 만든 Entry로 옮겨 적는다."""
     copy_splits(db, PendingEntrySplit, "pending_id", pending_id,
                 EntrySplit, "entry_id", entry_id)
 
@@ -205,7 +205,7 @@ def send_pending(entry_id: int, db: SessionDep = Depends()):
     )
 
     db.add(new_entry)
-    db.flush()                      # entry_id 를 받아야 분할을 붙일 수 있다
+    db.flush()                      # entry_id를 받아야 분할을 붙일 수 있다.
     _carry_splits(db, p.entry_id, new_entry.entry_id)
     p.sended = True
     db.commit()
@@ -214,7 +214,7 @@ def send_pending(entry_id: int, db: SessionDep = Depends()):
 
 @router.post("/send-all")
 def send_all_pending(db: SessionDep = Depends()):
-    """모든 pending entries를 entries로 전송 (sended = 0인 항목만)"""
+    """모든 pending entries를 entries로 전송(sended = 0인 항목만)"""
     
     # sended = 0인 모든 pending entries 조회
     pending_items = db.query(PendingEntry).filter(PendingEntry.sended == 0).all()
@@ -239,7 +239,7 @@ def send_all_pending(db: SessionDep = Depends()):
         )
         
         db.add(new_entry)
-        db.flush()                  # entry_id 를 받아야 분할을 붙일 수 있다
+        db.flush()                  # entry_id를 받아야 분할을 붙일 수 있다.
         _carry_splits(db, p.entry_id, new_entry.entry_id)
         p.sended = True
         sent_count += 1
@@ -284,7 +284,7 @@ def send_filtered_pending(payload: SendFilteredRequest, db: SessionDep = Depends
         )
         
         db.add(new_entry)
-        db.flush()                  # entry_id 를 받아야 분할을 붙일 수 있다
+        db.flush()                  # entry_id를 받아야 분할을 붙일 수 있다.
         _carry_splits(db, p.entry_id, new_entry.entry_id)
         p.sended = True
         sent_count += 1
@@ -295,7 +295,7 @@ def send_filtered_pending(payload: SendFilteredRequest, db: SessionDep = Depends
 
 from typing import List
 
-# ⚠ bulk 라우트를 먼저 선언해야 /bulk 가 /{entry_id} 보다 우선 매칭됨
+# ⚠ bulk 라우트를 먼저 선언해야 /bulk가 /{entry_id} 보다 우선 매칭됨
 @router.put("/bulk")
 def bulk_update_pending(payload: List[PendingUpdate], db: SessionDep = Depends()):
     """
@@ -326,7 +326,7 @@ def bulk_update_pending(payload: List[PendingUpdate], db: SessionDep = Depends()
             if exists:
                 place_id = exists.place_id
 
-        # ③ 좌표로 검색 (kakao_id가 없을 때만)
+        # ③ 좌표로 검색(kakao_id가 없을 때만)
         if not place_id and not kakao_id and lat and lng:
             # 원래 좌표와 미세 조정된 좌표(±0.000001) 모두 확인
             exists = db.execute(text("""
@@ -347,9 +347,9 @@ def bulk_update_pending(payload: List[PendingUpdate], db: SessionDep = Depends()
             if exists:
                 place_id = exists.place_id
         
-        # kakao_id가 있으면 좌표 미세 조정하여 새로 생성 (같은 건물 내 다른 가게)
+        # kakao_id가 있으면 좌표 미세 조정하여 새로 생성(같은 건물 내 다른 가게)
         if not place_id and kakao_id and lat and lng:
-            # 기존에 같은 좌표의 장소가 있는지 확인 (미세 조정 전)
+            # 기존에 같은 좌표의 장소가 있는지 확인(미세 조정 전)
             exists_original = db.execute(text("""
                 SELECT place_id FROM life_expense.places
                  WHERE ROUND(lat::numeric, 6) = ROUND(CAST(:lat AS numeric), 6)
@@ -468,7 +468,7 @@ def bulk_update_pending(payload: List[PendingUpdate], db: SessionDep = Depends()
 @router.put("/{entry_id}")
 def update_pending(entry_id: int, payload: PendingUpdate, db: SessionDep = Depends()):
     """
-    Pending 항목 수정 (장소 정보 포함) - 단건
+    Pending 항목 수정(장소 정보 포함) - 단건
     """
 
     place_id = payload.place_id

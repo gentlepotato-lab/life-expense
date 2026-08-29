@@ -1,5 +1,5 @@
 ﻿<#
-  life / expense — 서비스 제어 스크립트 (네이티브 실행, Docker 미사용)
+  life / expense — 서비스 제어 스크립트(네이티브 실행, Docker 미사용)
 
   사용법:
     .\lab.ps1 api        백엔드(uvicorn) 포그라운드 실행 :18101
@@ -33,8 +33,8 @@ switch ($Action) {
 
   'api' {
     Set-Location $BackendDir
-    # --reload 는 쓰지 않는다. main.py 가 임포트 시점에 스케줄러 3개를 띄우기 때문에
-    # 리로드가 걸릴 때마다 잡이 중복 등록될 수 있다. (AS-IS 의 알려진 문제)
+    # --reload는 쓰지 않는다. main.py가 임포트 시점에 스케줄러 3개를 띄우기 때문에
+    # 리로드가 걸릴 때마다 잡이 중복 등록될 수 있다. (AS-IS의 알려진 문제)
     & $Py -m uvicorn app.main:app --host 0.0.0.0 --port $ApiPort
   }
 

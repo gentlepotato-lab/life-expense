@@ -68,7 +68,7 @@ function detailOf(
   };
 }
 
-/** 목표 한 줄. 꾹 누르기를 걸어야 해서 따로 떼어 둔다 */
+/** 목표 한 줄. 꾹 누르기를 걸어야 해서 따로 떼어 둔다. */
 function GoalRowView({
   st,
   editMode,
@@ -165,7 +165,7 @@ function GoalRowView({
 }
 
 export default function Goals() {
-  /* 한 건 고치면 셈이 달라진다 — 그때만 다시 받는다 */
+  /* 한 건 고치면 셈이 달라진다 — 그때만 다시 받는다. */
   const [reloadKey, setReloadKey] = useState(0);
   const { goals, rows, masked, today, catPath, ready } = useGoalBoard({ reloadKey });
 
@@ -206,7 +206,7 @@ export default function Goals() {
   }, []);
 
   /* 금액 칸은 화면이 들고 있다가 칸을 떠날 때 그 줄만 저장한다 —
-     연회비와 같은 방식이다 */
+     연회비와 같은 방식이다. */
   const [draft, setDraft] = useState<Record<number, string>>({});
   const [memoDraft, setMemoDraft] = useState<Record<number, string>>({});
   useEffect(() => {
@@ -245,8 +245,8 @@ export default function Goals() {
     }
   };
 
-  /* 다른 설정 화면처럼 고친 것은 [저장] 을 눌러야 담긴다.
-     칸을 떠나자마자 보내면 편집 모드가 있는 뜻이 없다 */
+  /* 다른 설정 화면처럼 고친 것은 [저장]을 눌러야 담긴다.
+     칸을 떠나자마자 보내면 편집 모드가 있는 뜻이 없다. */
   const saveAmount = async (goalId: number, value: string) => {
     const before = goals.find((g) => g.goal_id === goalId);
     if (!before || String(before.amount) === value.trim()) return;
@@ -272,7 +272,7 @@ export default function Goals() {
   };
 
   /* 고친 금액을 모아 보내고 편집을 닫는다.
-     칸을 떠날 때 이미 보낸 것은 값이 같으니 그냥 지나간다 */
+     칸을 떠날 때 이미 보낸 것은 값이 같으니 그냥 지나간다. */
   const saveAll = async () => {
     const amountChanged = goals.filter((g) => {
       const v = draft[g.goal_id];
@@ -283,7 +283,7 @@ export default function Goals() {
       return m != null && m.trim() !== (g.memo ?? "");
     });
 
-    /* 손댄 것이 없으면 다른 설정 화면과 같은 말로 알린다 */
+    /* 손댄 것이 없으면 다른 설정 화면과 같은 말로 알린다. */
     if (amountChanged.length === 0 && memoChanged.length === 0) {
       alert("변경된 내용이 없습니다만...?");
       setEditMode(false);
@@ -305,7 +305,7 @@ export default function Goals() {
     }
   };
 
-  /* 고른 중분류 아래의 것만. 감춘 분류는 새로 고를 때 빼는 기존 규칙 그대로다 */
+  /* 고른 중분류 아래의 것만. 감춘 분류는 새로 고를 때 빼는 기존 규칙 그대로다. */
   const cat2Options = visible(cat2List).filter((c) => String(c.cat1_id) === cat1);
   const cat3Options = visible(cat3List).filter((c) => String(c.cat2_id) === cat2);
 
@@ -357,8 +357,8 @@ export default function Goals() {
                 />
               </div>
 
-              {/* 아래 두 칸은 처음부터 자리를 지킨다 — 중분류를 고를 때마다
-                  칸이 생겼다 없어졌다 하면 줄이 들썩인다 */}
+              {/* 아래 두 칸은 처음부터 자리를 지킨다 — 중분류를 고를 때마다.
+                  칸이 생겼다 없어졌다 하면 줄이 들썩인다. */}
               <div className="goal-add__cat">
                 <SingleSelect
                   noun="소분류"

@@ -17,14 +17,14 @@ export default function WriteEntryModal({
 }: {
   onClose: () => void;
   /** 저장한 뒤 목록을 다시 읽으라고 알린다.
-      적힌 것이 그 화면 목록에 안 드러나는 곳(대기 · 정기)은 넘기지 않는다 */
+      적힌 것이 그 화면 목록에 안 드러나는 곳(대기 · 정기)은 넘기지 않는다. */
   onSaved?: () => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [dirty, setDirty] = useState(false);
 
   /* 바닥의 저장 단추가 폼의 전송을 대신 누른다.
-     requestSubmit 이라 폼이 들고 있는 필수값 검사가 그대로 돈다. */
+     requestSubmit이라 폼이 들고 있는 필수값 검사가 그대로 돈다. */
   const save = useCallback(() => {
     formRef.current?.requestSubmit();
   }, []);

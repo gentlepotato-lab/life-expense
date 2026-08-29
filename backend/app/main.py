@@ -35,7 +35,7 @@ def add_inout_columns():
                 ADD COLUMN IF NOT EXISTS inout SMALLINT NULL
             """))
             
-            # categories_lvl3에서 inout 컬럼 제거 (이미 제거되어 있을 수 있음)
+            # categories_lvl3에서 inout 컬럼 제거(이미 제거되어 있을 수 있음)
             conn.execute(text("""
                 ALTER TABLE life_expense.categories_lvl3
                 DROP COLUMN IF EXISTS inout
@@ -54,10 +54,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API 는 모두 /api 아래로 모은다.
+# API는 모두 /api 아래로 모은다.
 #
-# 전에는 /meta, /entries 처럼 루트를 쓰고 있었다. 그래서 화면(SPA)을 루트에 올리면
-# 라우트와 API 가 부딪혀, 화면을 /app/ 으로 밀어 둘 수밖에 없었다.
+# 전에는 /meta, /entries처럼 루트를 쓰고 있었다. 그래서 화면(SPA)을 루트에 올리면
+# 라우트와 API가 부딪혀, 화면을 /app/으로 밀어 둘 수밖에 없었다.
 # 여기 한 자리로 모으면서 그 제약이 풀린다.
 #
 # 판(v1, v2 …)은 나누지 않는다. 쓰는 사람이 하나뿐이라 갈래를 늘릴 이유가 없고,
@@ -88,7 +88,7 @@ app.include_router(scheduled_entries.router, prefix=f"{API}/scheduled-entries", 
 app.include_router(places.router, prefix=f"{API}/places", tags=["places"])
 app.include_router(holidays.router, prefix=f"{API}/holidays", tags=["holidays"])
 
-# 금액 쪼개기 — 세 자원에 똑같이 /{id}/splits 로 붙는다
+# 금액 쪼개기 — 세 자원에 똑같이 /{id}/splits로 붙는다.
 app.include_router(splits.router, prefix=f"{API}/entries", tags=["splits"])
 app.include_router(splits.pending_router, prefix=f"{API}/pending-entries", tags=["splits"])
 app.include_router(splits.scheduled_router, prefix=f"{API}/scheduled-entries", tags=["splits"])

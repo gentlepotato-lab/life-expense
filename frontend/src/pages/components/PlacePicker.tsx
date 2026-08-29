@@ -35,7 +35,7 @@ const overlayStyle: React.CSSProperties = {
   overflowY: "auto",
   overflowX: "hidden",
   padding: "32px 0",
-  zIndex: 12000, // 편집 팝업(.popup-overlay, 9999) 위에 떠야 한다
+  zIndex: 12000, // 편집 팝업(.popup-overlay, 9999) 위에 떠야 한다.
   WebkitOverflowScrolling: "touch",
   pointerEvents: "auto",
 };
@@ -83,7 +83,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
   const [apiResults, setApiResults] = useState<KakaoPlace[]>([]);
   const [selected, setSelected] = useState<any>(null);
 
-  // 저장된 장소와 새 장소를 한 영역에 번갈아 보여 준다
+  // 저장된 장소와 새 장소를 한 영역에 번갈아 보여 준다.
   const [source, setSource] = useState<PlaceSource>("db");
   const [searched, setSearched] = useState(false);
 
@@ -189,7 +189,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
     onClose();
   };
 
-  // 저장된 장소와 새 장소를 한 영역에 번갈아 표시한다
+  // 저장된 장소와 새 장소를 한 영역에 번갈아 표시한다.
   const results: any[] = source === "db" ? dbResults : apiResults;
   const listTitle = source === "db" ? "저장된 장소/가게" : "새로운 장소/가게";
 
@@ -222,7 +222,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
           }}
         />
 
-        {/* 출처 전환 — 누른 쪽으로 목록과 제목이 바뀐다 */}
+        {/* 출처 전환 — 누른 쪽으로 목록과 제목이 바뀐다. */}
         <div className="place-picker__tabs">
           <button
             type="button"
@@ -245,7 +245,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
           {searched && <span className="place-picker__count">{results.length}건</span>}
         </div>
 
-        {/* 결과 목록 — 한 영역만 쓴다 */}
+        {/* 결과 목록 — 한 영역만 쓴다. */}
         <div className="place-picker__list">
           {results.length === 0 ? (
             <div className="popup-empty">
@@ -286,7 +286,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
           )}
         </div>
 
-        {/* 지도 — 영역은 항상 잡아 두고, 선택 전에는 안내를 띄운다 */}
+        {/* 지도 — 영역은 항상 잡아 두고, 선택 전에는 안내를 띄운다. */}
         <div className="place-picker__mapwrap">
           <div id="popup-map" className="place-picker__map"></div>
           {!selected && (

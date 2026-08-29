@@ -28,7 +28,7 @@ export default function CollapseToggle({
       aria-label={open ? `${label} 접기` : `${label} 펼치기`}
       aria-expanded={open}
       onClick={(e) => {
-        // 머리말 전체가 이름 편집 영역인 화면이 있어 여기서 끊는다
+        // 머리말 전체가 이름 편집 영역인 화면이 있어 여기서 끊는다.
         e.stopPropagation();
         onToggle();
       }}
@@ -53,8 +53,8 @@ export default function CollapseToggle({
  * "모두 펼치기 | 접기".
  * 목록 맨 위 추가 버튼과 같은 줄에 둔다.
  *
- * "모두" 는 두 단추가 함께 이고 있는 말이라 글자로만 두고, 누르는 자리는
- * "펼치기" 와 "접기" 뿐이다. 좁은 화면에서 "모두" 를 두 번 적을 자리가
+ * "모두"는 두 단추가 함께 이고 있는 말이라 글자로만 두고, 누르는 자리는
+ * "펼치기"와 "접기" 뿐이다. 좁은 화면에서 "모두"를 두 번 적을 자리가
  * 없어 줄 끝이 잘리던 것도 이걸로 사라진다.
  */
 export function CollapseAllButtons({

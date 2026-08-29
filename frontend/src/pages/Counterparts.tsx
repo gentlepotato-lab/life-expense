@@ -31,7 +31,7 @@ type Counterpart = {
   memo: string | null;
   sort_order: number;
   is_active: number;
-  /** 아직 저장 전인 행. 저장 시 PUT 이 아니라 POST 로 보낸다 */
+  /** 아직 저장 전인 행. 저장 시 PUT이 아니라 POST로 보낸다. */
   isNew?: boolean;
 };
 
@@ -48,7 +48,7 @@ type Category = {
   sort_order: number;
 };
 
-/** 드롭다운에서 "새로 만들기" 를 뜻하는 값 */
+/** 드롭다운에서 "새로 만들기"를 뜻하는 값 */
 const NEW_CATEGORY = "__new__";
 
 const groupLabel = (c: Category | null) => c?.name ?? "구분 없음";
@@ -91,7 +91,7 @@ function SortableRow({
 }
 
 /** 비교용 지문 — 저장 시 "정말 바뀐 게 있는지" 판단한다.
-    배열 순서를 그대로 쓰므로 순서만 바꿔도 "변경됨" 으로 잡힌다. */
+    배열 순서를 그대로 쓰므로 순서만 바꿔도 "변경됨"으로 잡힌다. */
 const fingerprint = (list: Counterpart[]) =>
   JSON.stringify(
     list.map((c) => [
@@ -105,21 +105,21 @@ const fingerprint = (list: Counterpart[]) =>
   );
 
 /**
- * 금액 쪼개기에서 "누구에게 돌려받았는지"(Who?) 를 고르기 위한 목록 관리.
+ * 금액 쪼개기에서 "누구에게 돌려받았는지"(Who?)를 고르기 위한 목록 관리.
  * 분할 편집 중에 즉석 등록도 되지만, 구분·메모 정리와 오타 수정은 여기서 한다.
  */
 export default function Counterparts() {
   const [list, setList] = useState<Counterpart[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
-  // 편집 진입 시점의 상태 — 변경 여부 판단에만 쓴다
+  // 편집 진입 시점의 상태 — 변경 여부 판단에만 쓴다.
   const [beforeEdit, setBeforeEdit] = useState("");
   /** 접어 둔 묶음. 비어 있으면 전부 펼쳐진 상태다(기존과 같은 모습) */
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [categories, setCategories] = useState<Category[]>([]);
   const [beforeCategories, setBeforeCategories] = useState<Category[]>([]);
 
-  /* 뒤로 가기 · Backspace 로 편집을 무른다.
+  /* 뒤로 가기 · Backspace로 편집을 무른다.
      여기는 편집 전 목록을 지문으로만 들고 있어 되돌릴 수 없으므로
      서버에서 다시 읽어 손댄 내용을 버린다. */
   useBackClose(editMode, () => {
@@ -143,7 +143,7 @@ export default function Counterparts() {
 
   /**
    * 화면에 뿌릴 구분별 묶음.
-   * list 의 상대 순서를 그대로 유지하므로, 구분을 바꾸면 그 줄이
+   * list의 상대 순서를 그대로 유지하므로, 구분을 바꾸면 그 줄이
    * 자동으로 다른 묶음으로 옮겨 간다.
    */
   /**
@@ -164,7 +164,7 @@ export default function Counterparts() {
     // 편집 중에는 빈 구분도 보여 준다. 그래야 이모지·색을 붙이거나 지울 수 있다.
     .filter((g) => g.items.length > 0 || (editMode && g.cat));
 
-  /** 저장할 때 쓰는 최종 순서 — 화면에 보이는 그대로다 */
+  /** 저장할 때 쓰는 최종 순서 — 화면에 보이는 그대로다. */
   /**
    * 저장할 때 쓰는 최종 순서 — 화면에 보이는 그대로다.
    * 대기 중인 행은 묶음에 들어 있지 않으므로 여기서 뒤에 붙여 준다.
@@ -172,7 +172,7 @@ export default function Counterparts() {
    */
   const orderedForSave = [...groups.flatMap((g) => g.items), ...drafts];
 
-  /** 구분(묶음) 자체의 순서를 바꾼다 */
+  /** 구분(묶음) 자체의 순서를 바꾼다. */
   const handleGroupDragEnd = (event: { active: { id: unknown }; over: { id: unknown } | null }) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -242,7 +242,7 @@ export default function Counterparts() {
     }
 
     if (!editMode) {
-      // 편집 진입 기준점은 행을 붙이기 전에 잡아야 "변경됨" 으로 판정된다
+      // 편집 진입 기준점은 행을 붙이기 전에 잡아야 "변경됨"으로 판정된다.
       setBeforeEdit(fingerprint(list));
       setBeforeCategories(JSON.parse(JSON.stringify(categories)));
       setEditMode(true);
@@ -250,7 +250,7 @@ export default function Counterparts() {
     setList((prev) => [
       ...prev,
       {
-        counterpart_id: -Date.now(),   // 임시 키. 저장 시 서버가 진짜 ID 를 준다
+        counterpart_id: -Date.now(),   // 임시 키. 저장 시 서버가 진짜 ID를 준다.
         name: "",
         category_id: null,
         memo: null,
@@ -267,12 +267,12 @@ export default function Counterparts() {
     setEditMode(true);
   };
 
-  /** 편집 모드에서 바꾼 이름·구분·메모를 한 번에 반영한다 */
+  /** 편집 모드에서 바꾼 이름·구분·메모를 한 번에 반영한다. */
   const handleSave = async () => {
-    // 이름이 빈 신규 행은 그냥 버린다. 이름이 빈 기존 행은 되돌릴 수 없으니 막는다
+    // 이름이 빈 신규 행은 그냥 버린다. 이름이 빈 기존 행은 되돌릴 수 없으니 막는다.
     const rows = list.filter((c) => !(c.isNew && !c.name.trim()));
 
-    // 빈 행을 걷어낸 뒤에 판정해야, [+] 만 눌렀다 만 경우도 "변경 없음" 으로 잡힌다
+    // 빈 행을 걷어낸 뒤에 판정해야, [+]만 눌렀다 만 경우도 "변경 없음"으로 잡힌다.
     const categoriesChanged =
       JSON.stringify(beforeCategories.map((c) => [c.category_id, c.emoji, c.color])) !==
       JSON.stringify(categories.map((c) => [c.category_id, c.emoji, c.color]));
@@ -296,7 +296,7 @@ export default function Counterparts() {
       return;
     }
 
-    // 화면에 보이는 순서 그대로 sort_order 를 매긴다
+    // 화면에 보이는 순서 그대로 sort_order를 매긴다.
     const ordered = orderedForSave.filter((c) => rows.includes(c));
 
     try {
@@ -315,7 +315,7 @@ export default function Counterparts() {
           await axios.put(`/counterparts/${c.counterpart_id}`, body);
         }
       }
-      // 구분의 이모지·색은 분류 행에 저장한다
+      // 구분의 이모지·색은 분류 행에 저장한다.
       await axios.post(
         "/counterparts/categories/save",
         categories.map((c, i) => ({
@@ -335,7 +335,7 @@ export default function Counterparts() {
   };
 
   const handleDelete = async (id: number) => {
-    // 아직 저장 전인 행은 화면에서 지우면 끝이다
+    // 아직 저장 전인 행은 화면에서 지우면 끝이다.
     if (id < 0) {
       setList((prev) => prev.filter((x) => x.counterpart_id !== id));
       return;
@@ -351,7 +351,7 @@ export default function Counterparts() {
       } else {
         alert("제거 완료-!! ;-)");
       }
-      // 목록이 바뀌었으니 변경 판정 기준도 새로 잡는다
+      // 목록이 바뀌었으니 변경 판정 기준도 새로 잡는다.
       const next = await refresh();
       setBeforeEdit(fingerprint(next));
     } catch (err) {
@@ -425,7 +425,7 @@ export default function Counterparts() {
               editMode ? "editing" : ""
             } ${c.isNew ? "is-new" : ""}`}
           >
-            {/* 아바타는 두 모드에 공통 — 편집에 들어가도 좌우 위치가 그대로다 */}
+            {/* 아바타는 두 모드에 공통 — 편집에 들어가도 좌우 위치가 그대로다. */}
             <span
               className="cp-avatar"
               style={{
@@ -445,7 +445,7 @@ export default function Counterparts() {
                     className="cp-input cp-input--name"
                     value={c.name}
                     placeholder="(이름)"
-                    /* 방금 붙인 빈 행이면 바로 타이핑할 수 있게 한다 */
+                    /* 방금 붙인 빈 행이면 바로 타이핑할 수 있게 한다. */
                     autoFocus={c.isNew}
                     onChange={(e) => patch(c.counterpart_id, "name", e.target.value)}
                   />
@@ -522,7 +522,7 @@ export default function Counterparts() {
     <div className="page-wrap">
 
       <div className="cp-page">
-        {/* 추가는 목록 아래에서 한다. 여기는 편집 여부와 목록 범위만 다룬다 */}
+        {/* 추가는 목록 아래에서 한다. 여기는 편집 여부와 목록 범위만 다룬다. */}
         <div className="cp-toolbar">
           <label className="cp-toggle">
             <input
@@ -533,7 +533,7 @@ export default function Counterparts() {
             감춘 항목 보기
           </label>
 
-          {/* 내역 세 화면처럼 오른쪽 끝 버튼과 같은 줄에 둔다 */}
+          {/* 내역 세 화면처럼 오른쪽 끝 버튼과 같은 줄에 둔다. */}
           <CollapseAllButtons
             onExpandAll={() => setCollapsed(new Set())}
             onCollapseAll={() =>
@@ -558,7 +558,7 @@ export default function Counterparts() {
             </button>
           </div>
 
-          {/* 저장 전 항목 — 구분을 바꿔도 여기서 움직이지 않는다 */}
+          {/* 저장 전 항목 — 구분을 바꿔도 여기서 움직이지 않는다. */}
           {drafts.length > 0 && (
             <section className="cp-draft">
               <div className="cp-draft__head">
@@ -581,7 +581,7 @@ export default function Counterparts() {
             </p>
           )}
 
-          {/* 구분 자체의 순서 바꾸기. 안쪽에는 줄 순서용 DndContext 가 따로 있다 */}
+          {/* 구분 자체의 순서 바꾸기. 안쪽에는 줄 순서용 DndContext가 따로 있다. */}
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -626,7 +626,7 @@ export default function Counterparts() {
                   <span className="cp-group__dot" />
                 )}
 
-                {/* 이모지는 이름 앞에 — 세 화면이 같은 순서다 */}
+                {/* 이모지는 이름 앞에 — 세 화면이 같은 순서다. */}
                 {g.cat && (
                   <EmojiPicker
                     value={g.cat.emoji ?? null}
@@ -646,7 +646,7 @@ export default function Counterparts() {
 
                 <span className="cp-group__count">{g.items.length}</span>
 
-                {/* 비어 있는 구분만 지울 수 있다 */}
+                {/* 비어 있는 구분만 지울 수 있다. */}
                 {editMode && g.cat && g.items.length === 0 && (
                   <button
                     type="button"
@@ -660,10 +660,10 @@ export default function Counterparts() {
                 )}
               </div>
 
-              {/* 접힌 묶음은 줄을 그리지 않는다 */}
+              {/* 접힌 묶음은 줄을 그리지 않는다. */}
               {!collapsed.has(groupLabel(g.cat)) && (
               <>
-              {/* 순서 변경은 같은 묶음 안에서만 — 구분을 바꾸면 묶음이 바뀐다 */}
+              {/* 순서 변경은 같은 묶음 안에서만 — 구분을 바꾸면 묶음이 바뀐다. */}
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}

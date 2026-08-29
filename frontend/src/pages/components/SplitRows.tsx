@@ -22,7 +22,7 @@ export default function SplitRows({
   base,
   ownerId,
 }: {
-  /** "/entries" 처럼 자원 자리. 뒤에 /{id}/splits 가 붙는다 */
+  /** "/entries"처럼 자원 자리. 뒤에 /{id}/splits가 붙는다. */
   base: string;
   ownerId: number;
 }) {

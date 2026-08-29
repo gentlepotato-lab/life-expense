@@ -1,7 +1,7 @@
 """
 분류(3뎁스) — 중분류 · 소분류 · 세분류.
 
-자리는 main.py 에서 /api/categories 로 붙인다.
+자리는 main.py에서 /api/categories로 붙인다.
 """
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import select, text
@@ -102,7 +102,7 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
 
     id_map_cat1 = {}
 
-    # 중분류 처리 (신규 + 기존)
+    # 중분류 처리(신규 + 기존)
     for item in cat1_list:
         cid = item["cat1_id"]
         if isinstance(cid, str) and cid.startswith("new_"):
@@ -125,12 +125,12 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
                 update_data["exclude_flag"] = 1 if item["exclude"] else 0
             if "blur" in item:
                 update_data["blur_flag"] = 1 if item["blur"] else 0
-            # 키가 없으면 그대로 두고, 빈 값이면 지운다
+            # 키가 없으면 그대로 두고, 빈 값이면 지운다.
             if "emoji" in item:
                 update_data["emoji"] = item.get("emoji") or None
             db.query(CategoryL1).filter(CategoryL1.cat1_id == cid).update(update_data)
 
-    # 소분류 처리 (신규 + 기존)
+    # 소분류 처리(신규 + 기존)
     for item in cat2_list:
         cid = item["cat2_id"]
         parent = id_map_cat1.get(item["cat1_id"], item["cat1_id"])

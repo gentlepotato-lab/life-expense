@@ -11,7 +11,7 @@ interface SingleSelectProps<T> {
   selected: T;
   onChange: (value: T) => void;
   placeholder?: string;
-  /** 고르는 것이 무엇인지 — 찾은 게 없을 때 그 말로 알린다 */
+  /** 고르는 것이 무엇인지 — 찾은 게 없을 때 그 말로 알린다. */
   noun?: string;
 }
 
@@ -19,18 +19,18 @@ export default function SingleSelect<T>({
   options,
   selected,
   onChange,
-  /* 안내 문구는 앱 전체에서 "(무엇)" 꼴로 맞춘다 */
+  /* 안내 문구는 앱 전체에서 "(무엇)" 꼴로 맞춘다. */
   placeholder = "(선택)",
   noun = "것"
 }: SingleSelectProps<T>) {
   const [open, setOpen] = useState(false);
   /* 친 글자 — 닫으면 비운다. 지난번 친 것이 남아 있으면
-     다음에 열었을 때 목록이 비어 보인다 */
+     다음에 열었을 때 목록이 비어 보인다. */
   const [query, setQuery] = useState("");
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
-  // 드롭다운 위치 계산 — 화면 밖으로 나가지 않도록 가둔다
+  // 드롭다운 위치 계산 — 화면 밖으로 나가지 않도록 가둔다.
   useEffect(() => {
     if (!open || !wrapRef.current) return;
 
@@ -43,20 +43,20 @@ export default function SingleSelect<T>({
       const MIN_W = 200;     // 읽을 수 있는 최소 너비
       const MAX_H = 260;
 
-      // 칸이 좁아도 최소 너비는 확보하되, 화면을 넘지 않게 자른다
+      // 칸이 좁아도 최소 너비는 확보하되, 화면을 넘지 않게 자른다.
       const width = Math.min(
         Math.max(rect.width, MIN_W),
         window.innerWidth - GUTTER * 2
       );
 
-      // 오른쪽으로 삐져나가면 왼쪽으로 당긴다
+      // 오른쪽으로 삐져나가면 왼쪽으로 당긴다.
       let left = rect.left;
       if (left + width > window.innerWidth - GUTTER) {
         left = window.innerWidth - GUTTER - width;
       }
       if (left < GUTTER) left = GUTTER;
 
-      // 아래 공간이 부족하면 위로 펼친다
+      // 아래 공간이 부족하면 위로 펼친다.
       const below = window.innerHeight - rect.bottom - GUTTER;
       const above = rect.top - GUTTER;
       const openUp = below < 140 && above > below;
@@ -102,7 +102,7 @@ export default function SingleSelect<T>({
     setOpen(false);
   };
 
-  /* 목록을 닫으면 친 글자도 지운다 */
+  /* 목록을 닫으면 친 글자도 지운다. */
   useEffect(() => {
     if (!open) setQuery("");
   }, [open]);

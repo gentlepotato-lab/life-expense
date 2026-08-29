@@ -23,10 +23,10 @@ import type { Goal } from "../utils/goalStand";
  * 단추를 눌러 켜고 끌 때 다시 받아 오지 않는다.
  */
 
-/** 앞뒤로 몇 달치를 보고 셈할지 — 평균을 내려면 한 달로는 모자란다 */
+/** 앞뒤로 몇 달치를 보고 셈할지 — 평균을 내려면 한 달로는 모자란다. */
 const MONTHS = 3;
 
-/** 정기 지출은 일주일 앞까지만 미리 알린다 */
+/** 정기 지출은 일주일 앞까지만 미리 알린다. */
 const AHEAD_DAYS = 7;
 
 type Raw = Record<string, unknown>;
@@ -35,7 +35,7 @@ type Cat = { id: number; name: string; blur?: number; exclude?: number };
 const ymd = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-/** 받아 온 그대로 — 아직 아무것도 걸러 내지 않았다 */
+/** 받아 온 그대로 — 아직 아무것도 걸러 내지 않았다. */
 type Loaded = {
   today: string;
   rows: NRow[];
@@ -82,7 +82,7 @@ async function load(): Promise<Loaded> {
     axios.get("/goals").then((r) => r.data).catch(() => []),
   ]);
 
-  /* 실적 구간은 카드에만 딸린다. 카드가 몇 장뿐이라 그것만 따로 물어 온다 */
+  /* 실적 구간은 카드에만 딸린다. 카드가 몇 장뿐이라 그것만 따로 물어 온다. */
   type RawMethod = { method_id: number; method_name: string; category: string | null };
   type RawTier = {
     threshold: number;
@@ -113,7 +113,7 @@ async function load(): Promise<Loaded> {
 
   /* 씀씀이 · 달력과 같은 세 갈래를 모은다.
      지출만 세면 아직 안 보낸 대기가 통째로 빠져 그 달만 유난히 적어 보인다.
-     실제로 2026-08 은 대기가 15건(600,710원), 2026-07 은 2건(166,050원)이라
+     실제로 2026-08은 대기가 15건(600,710원), 2026-07은 2건(166,050원)이라
      지출만으로 견주면 이번 달이 61% 적게, 셋을 다 세면 33% 적게 나왔다. */
   const rows: NRow[] = [];
   const push = (src: Src, list: Raw[], dateField: string, idField: string, ym?: string) => {
@@ -145,7 +145,7 @@ async function load(): Promise<Loaded> {
     push("scheduled", res[MONTHS + 1] as Raw[], "next_run_at", "schedule_id", ym);
   });
 
-  /* 아직 보내지 않은 것만 밀린 것으로 센다 — 보낸 뒤에도 행은 남는다 */
+  /* 아직 보내지 않은 것만 밀린 것으로 센다 — 보낸 뒤에도 행은 남는다. */
   const pending = (res[MONTHS] as Raw[])
     .filter((x) => Number(x.sended ?? 0) === 0)
     .map((x) => ({
@@ -209,7 +209,7 @@ function ensure(): Promise<Loaded | null> {
   return inflight;
 }
 
-/** 한 건 적고 나면 셈이 달라진다 — 다음에 볼 때 다시 받도록 비운다 */
+/** 한 건 적고 나면 셈이 달라진다 — 다음에 볼 때 다시 받도록 비운다. */
 export function invalidateNudges() {
   cached = null;
   inflight = null;
@@ -242,8 +242,8 @@ function refine(data: Loaded, blurOn: boolean, excludeOn: boolean) {
   return {
     rows,
     pending,
-    /* 예고도 화면의 단추를 따른다 — Exclude 를 켜 두고 저축이 "빠져나갑니다"
-       라고 뜨면 같은 화면이 두 가지 잣대로 말하는 새이 된다 */
+    /* 예고도 화면의 단추를 따른다 — Exclude를 켜 두고 저축이 "빠져나갑니다"
+       라고 뜨면 같은 화면이 두 가지 잣대로 말하는 새이 된다. */
     upcoming: data.upcoming.filter(
       (s) => s.inout !== 1 && !income.has(Number(s.cat2_id)) && keep(s)
     ),
@@ -255,7 +255,7 @@ function refine(data: Loaded, blurOn: boolean, excludeOn: boolean) {
 }
 
 export type NudgeOptions = {
-  /** 가려 둔 갈래를 셈에 넣을지. 넣되 화면에서는 테이프로 덮는다 */
+  /** 가려 둔 갈래를 셈에 넣을지. 넣되 화면에서는 테이프로 덮는다. */
   blurOn?: boolean;
   /** 집계에서 빼 둔 갈래를 뺄지 */
   excludeOn?: boolean;
@@ -310,7 +310,7 @@ export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]
 export function useGoalBoard(options: NudgeOptions = {}): {
   goals: Goal[];
   rows: NRow[];
-  /** 가려 둔 갈래에서 온 줄 — 상세에서 금액에만 테이프를 붙인다 */
+  /** 가려 둔 갈래에서 온 줄 — 상세에서 금액에만 테이프를 붙인다. */
   masked: Set<string>;
   today: string;
   catPath: (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) => string;

@@ -1,12 +1,12 @@
 -- ═══════════════════════════════════════════════════════════════
--- 금액 쪼개기를 Pending / Scheduled 로 확장
+-- 금액 쪼개기를 Pending / Scheduled로 확장
 -- 2026-08-14
 -- ─────────────────────────────────────────────────────────────
 -- 내역은 다음 순서로 흘러간다.
 --
 --     scheduled_entries ──(스케줄러)──> pending_entries ──(전송)──> entries
 --
--- entry_splits 는 entries 를 가리키는 FK 라서 앞단에서는 쓸 수 없다.
+-- entry_splits는 entries를 가리키는 FK라서 앞단에서는 쓸 수 없다.
 -- 각 단계에 같은 모양의 표를 하나씩 두고, 내역이 다음 단계로 넘어갈 때
 -- 분할도 함께 복사한다. 그래야 매달 나가는 지출의 "N빵" 설정을
 -- 한 번만 해 두면 계속 따라온다.
@@ -80,7 +80,7 @@ CREATE INDEX IF NOT EXISTS scheduled_entry_splits_schedule_idx
     ON life_expense.scheduled_entry_splits (schedule_id);
 
 -- ─── 3) 실지출 조회용 뷰 ──────────────────────────────────────
--- entries 쪽 v_entries_net 과 같은 모양으로 맞춘다.
+-- entries 쪽 v_entries_net과 같은 모양으로 맞춘다.
 CREATE OR REPLACE VIEW life_expense.v_pending_entries_net AS
 SELECT
     p.entry_id,

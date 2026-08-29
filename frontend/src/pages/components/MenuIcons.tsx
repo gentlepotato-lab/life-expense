@@ -24,18 +24,18 @@ export const PAGE_ICON: Record<string, React.ReactNode> = {
     </svg>
   ),
 
-  /* 모래시계 — 아래에 모래가 조금 쌓였다 */
+  /* 모래시계 — 아래에 모래가 조금 쌓였다. */
   "/pending-entries": (
     <svg viewBox="0 0 32 32" {...stroke}>
       {/* 위아래 테 */}
       <path d="M9 5h14M9 27h14" />
-      {/* 유리 — 가운데가 잘록하다 */}
+      {/* 유리 — 가운데가 잘록하다. */}
       <path d="M11 5v3.4c0 3.6 5 5.6 5 7.6s-5 4-5 7.6V27" />
       <path d="M21 5v3.4c0 3.6-5 5.6-5 7.6s5 4 5 7.6V27" />
       {/* 아래에 쌓인 모래.
-          위쪽에도 남은 모래를 그려 봤지만, 26px 에서는 잘록한 목의 선과 붙어
-          덩어리로 보였다. 목의 틈이 0.5px 도 안 돼 떼어 놓을 수가 없다.
-          아래에 쌓인 것만으로도 "모래가 내려앉는 중" 은 충분히 읽힌다. */}
+          위쪽에도 남은 모래를 그려 봤지만, 26px에서는 잘록한 목의 선과 붙어
+          덩어리로 보였다. 목의 틈이 0.5px도 안 돼 떼어 놓을 수가 없다.
+          아래에 쌓인 것만으로도 "모래가 내려앉는 중"은 충분히 읽힌다. */}
       <path d="M12 25.7c0-3.1 2.3-4.8 4-4.8s4 1.7 4 4.8z" fill="currentColor" stroke="none" />
     </svg>
   ),
@@ -79,7 +79,7 @@ export const PAGE_ICON: Record<string, React.ReactNode> = {
     </svg>
   ),
 
-  /* 과녁 — 가운데를 맞히면 이긴다. 목표라는 말과 가장 곶바로 이어진다 */
+  /* 과녁 — 가운데를 맞히면 이긴다. 목표라는 말과 가장 곶바로 이어진다. */
   "/goals": (
     <svg viewBox="0 0 32 32" {...stroke}>
       <circle cx="16" cy="16" r="11" />
@@ -88,7 +88,7 @@ export const PAGE_ICON: Record<string, React.ReactNode> = {
     </svg>
   ),
 
-  /* 종 — 단추의 것(BellIcon)과 같은 종이되, 여기 그림들과 같은 선으로 다시 그렸다 */
+  /* 종 — 단추의 것(BellIcon)과 같은 종이되, 여기 그림들과 같은 선으로 다시 그렸다. */
   "/nudges": (
     <svg viewBox="0 0 32 32" {...stroke}>
       <path d="M16 4v2.6" />

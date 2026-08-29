@@ -16,11 +16,11 @@ import { EMPTY_FILTER, type Filter } from "../../utils/calendarFilter";
  * 여기서 다시 부르면 같은 것을 두 번 묻게 된다.
  */
 
-/** [전체] 항목이 쓰는 값 — 실제 id 와 겹치지 않는다 */
+/** [전체] 항목이 쓰는 값 — 실제 id와 겹치지 않는다. */
 const ALL = -1;
 
-/** "(식비 전체)" 처럼 한 부모의 자식을 통째로 집는 항목의 값.
-    실제 id 와 겹치지 않도록 −1000 아래로 내려 둔다 — 내역 세 화면과 같은 규칙이다. */
+/** "(식비 전체)"처럼 한 부모의 자식을 통째로 집는 항목의 값.
+    실제 id와 겹치지 않도록 −1000 아래로 내려 둔다 — 내역 세 화면과 같은 규칙이다. */
 const parentAll = (id: number) => -(1000 + id);
 const parentOf = (v: number) => -(v + 1000);
 
@@ -49,10 +49,10 @@ export default function EntryFilterPopup({
   cat3List: Cat3[];
   payList: Pay[];
   cpList: Cp[];
-  /** 적용하지 않고 닫을 때 — 고치던 값을 되돌리는 것은 부르는 쪽 몫이다 */
+  /** 적용하지 않고 닫을 때 — 고치던 값을 되돌리는 것은 부르는 쪽 몫이다. */
   onClose: () => void;
   onApply: () => void;
-  /** IN/OUT 칸을 둘지. 씀씀이는 나가는 돈만 다루므로 고를 것이 없다 */
+  /** IN/OUT 칸을 둘지. 씀씀이는 나가는 돈만 다루므로 고를 것이 없다. */
   showInout?: boolean;
 }) {
   useBackClose(true, onClose);
@@ -86,7 +86,7 @@ export default function EntryFilterPopup({
     [cat3List, filter.cat2]
   );
 
-  /** 부모별로 "(부모 전체)" 를 앞세우고 그 자식을 잇는다 */
+  /** 부모별로 "(부모 전체)"를 앞세우고 그 자식을 잇는다. */
   function nested<P extends { id: number; name: string }>(
     parentIds: number[],
     parents: P[],
@@ -130,7 +130,7 @@ export default function EntryFilterPopup({
     [cpList]
   );
 
-  /** [전체]를 눌렀을 때 — 전부 켜거나 전부 끈다 */
+  /** [전체]를 눌렀을 때 — 전부 켜거나 전부 끈다. */
   const toggleAll = useCallback(
     <T,>(key: keyof Filter, all: T[]) =>
       (v: T | number) => {
@@ -138,7 +138,7 @@ export default function EntryFilterPopup({
         setFilter((prev) => {
           const cur = prev[key] as unknown as T[];
           const next = cur.length === all.length ? [] : all;
-          /* 상위를 바꾸면 아래 갈래의 선택은 비운다 — 다른 화면과 같다 */
+          /* 상위를 바꾸면 아래 갈래의 선택은 비운다 — 다른 화면과 같다. */
           if (key === "cat1") return { ...prev, cat1: next as number[], cat2: [], cat3: [] };
           if (key === "cat2") return { ...prev, cat2: next as number[], cat3: [] };
           return { ...prev, [key]: next } as Filter;
@@ -158,7 +158,7 @@ export default function EntryFilterPopup({
     [filter]
   );
 
-  /* 소분류 · 세분류는 [전체] 말고 "(부모 전체)" 도 함께 다룬다.
+  /* 소분류 · 세분류는 [전체] 말고 "(부모 전체)"도 함께 다룬다.
      그 항목을 누르면 그 부모에 딸린 것만 통째로 켜지고 꺼진다. */
   const cat2Children = useCallback(
     (pid: number) => visible(cat2List.filter((c) => c.cat1_id === pid)).map((c) => c.id),
@@ -213,7 +213,7 @@ export default function EntryFilterPopup({
     [filter]
   );
 
-  /** 고르기 값에서 가짜 항목([전체] · (부모 전체))은 걸러 낸다 */
+  /** 고르기 값에서 가짜 항목([전체] · (부모 전체))은 걸러 낸다. */
   const realIds = (v: number[]) => v.filter((x) => x > 0);
 
   return (
@@ -280,7 +280,7 @@ export default function EntryFilterPopup({
             </EditField>
           )}
 
-          {/* IN/OUT 이 빠지면 혼자 남으므로 줄을 다 쓴다 */}
+          {/* IN/OUT이 빠지면 혼자 남으므로 줄을 다 쓴다. */}
           <EditField label="결제 수단" span={showInout ? 6 : 12}>
             <MultiSelect
               noun="결제 수단"

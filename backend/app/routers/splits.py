@@ -4,9 +4,9 @@
 설계 요지
   · 원본 금액(amount)은 결제 총액 그대로 둔다. 여기서는 건드리지 않는다.
   · 실지출 = amount - SUM(splits) 이며, 정의는 v_*_net 뷰에 있다.
-  · 분할은 자기 자신을 쪼갤 수 없으므로 깊이는 항상 1 이다.
+  · 분할은 자기 자신을 쪼갤 수 없으므로 깊이는 항상 1이다.
 
-내역은 scheduled → pending → entries 로 흘러가고 각 단계에 같은 모양의
+내역은 scheduled → pending → entries로 흘러가고 각 단계에 같은 모양의
 분할 표가 있다. 세 단계가 다른 점은 "어느 표의 어느 컬럼을 보느냐" 뿐이라
 라우터를 하나의 공장 함수로 찍어 낸다.
 """
@@ -136,7 +136,7 @@ def make_split_router(owner_model, owner_pk, split_model, split_fk):
     return router
 
 
-# main.py 가 각각 /entries, /pending-entries, /scheduled-entries 아래에 붙인다
+# main.py가 각각 /entries, /pending-entries, /scheduled-entries 아래에 붙인다.
 router = make_split_router(Entry, "entry_id", EntrySplit, "entry_id")
 pending_router = make_split_router(
     PendingEntry, "entry_id", PendingEntrySplit, "pending_id"
@@ -149,7 +149,7 @@ scheduled_router = make_split_router(
 def copy_splits(db, src_model, src_fk, src_id, dst_model, dst_fk, dst_id) -> int:
     """
     분할을 다음 단계로 옮겨 적는다.
-    스케줄 → Pending → Entry 로 내역이 넘어갈 때 함께 불린다.
+    스케줄 → Pending → Entry로 내역이 넘어갈 때 함께 불린다.
     호출한 쪽에서 commit 한다.
     """
     rows = db.query(src_model).filter(getattr(src_model, src_fk) == src_id).all()

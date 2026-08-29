@@ -15,21 +15,21 @@ import { closeOverlays } from "../../hooks/useBackClose";
  *
  * 자리 · 생김새 · 여는 팝업이 화면마다 어긋나면 안 되므로 한자리에 모아 두고
  * 화면들은 이것만 부른다. 넷을 한 줄(flex)에 세워 사이 간격을 CSS 한 곳에서
- * 정한다 — 각자 오른쪽 끝에서 몇 픽셀인지 따로 세면 창 폭이 바뀔 때마다
+ * 정한다 — 각자 오른쪽 끝에서 몇 픽셀인지 따로 세면 창 폭이 바뀔 때마다.
  * 어긋난다.
  *
- * 적은 것이 그 화면 목록에 바로 드러나야 하면 onSaved 로 다시 읽으라고 알린다.
+ * 적은 것이 그 화면 목록에 바로 드러나야 하면 onSaved로 다시 읽으라고 알린다.
  */
 export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
   const [writeOpen, setWriteOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [nudgeOpen, setNudgeOpen] = useState(false);
 
-  /* 한 건 적고 나면 잔소리도 달라진다 — 그때만 다시 센다 */
+  /* 한 건 적고 나면 잔소리도 달라진다 — 그때만 다시 센다. */
   const [nudgeKey, setNudgeKey] = useState(0);
   const { nudges, ready } = useNudges({ reloadKey: nudgeKey });
 
-  /* 배지는 잔소리 전체를 센다. "챙길 것" 만 세면 화면에 넉 줄이 떠 있는데
+  /* 배지는 잔소리 전체를 센다. "챙길 것"만 세면 화면에 넉 줄이 떠 있는데
      배지에는 둘이라 적혀 서로 어긋나 보인다 — 종을 눌러 볼 것이 몇 가지인지가
      배지가 답해야 할 물음이다. */
   const mind = nudges.length;

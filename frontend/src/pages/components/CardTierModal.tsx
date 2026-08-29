@@ -4,8 +4,8 @@ import CardEditModal from "./CardEditModal";
 /**
  * 실적 구간 하나를 적는 팝업.
  *
- * 결제 수단 화면에서 카드 줄을 펼치고 [+] 를 누르거나, 이미 적어 둔 구간의
- * [상세] 를 누르면 열린다. 한 번에 한 구간만 다룬다 — 여러 구간을 한 판에
+ * 결제 수단 화면에서 카드 줄을 펼치고 [+]를 누르거나, 이미 적어 둔 구간의
+ * [상세]를 누르면 열린다. 한 번에 한 구간만 다룬다 — 여러 구간을 한 판에
  * 늘어놓으면 판이 늘었다 줄었다 하고, 지금 무엇을 고치는지도 흐려진다.
  *
  * 두 단이 딸린다.
@@ -17,14 +17,14 @@ import CardEditModal from "./CardEditModal";
  */
 
 export type TierTarget = { area: string; stores: string };
-/** limit 는 월간 통합 할인한도. 없는 혜택도 있어 빈 글일 수 있다 */
+/** limit는 월간 통합 할인한도. 없는 혜택도 있어 빈 글일 수 있다. */
 export type TierBenefit = { content: string; memo: string; limit: string; targets: TierTarget[] };
 export type TierDraft = { threshold: string; benefits: TierBenefit[] };
 
-/** 이미 적어 둔 혜택 한 벌 — 고르면 내용까지 그대로 옮겨 온다 */
+/** 이미 적어 둔 혜택 한 벌 — 고르면 내용까지 그대로 옮겨 온다. */
 export type BenefitHint = { label: string; benefit: TierBenefit };
 
-/** 화면 안에서만 쓰는 줄 번호 — 저장하면 서버가 새로 매긴다 */
+/** 화면 안에서만 쓰는 줄 번호 — 저장하면 서버가 새로 매긴다. */
 let seq = 0;
 const nextKey = () => {
   seq += 1;
@@ -56,7 +56,7 @@ export default function CardTierModal({
   cardName: string;
   /** 고칠 구간. 새로 만들 때는 null */
   tier: TierDraft | null;
-  /** 이 카드에 이미 적어 둔 혜택들 — 고르면 내용까지 그대로 채운다 */
+  /** 이 카드에 이미 적어 둔 혜택들 — 고르면 내용까지 그대로 채운다. */
   hints: BenefitHint[];
   onClose: () => void;
   onSave: (next: TierDraft) => void;
@@ -171,7 +171,7 @@ export default function CardTierModal({
       saveDisabled={!dirty || threshold.trim() === ""}
     >
       {/* 키를 미리 잡아 둔다 — 혜택을 늘리고 줄일 때마다 판이 들썩이면
-          지금 무엇을 고치고 있었는지 눈이 놓친다 */}
+          지금 무엇을 고치고 있었는지 눈이 놓친다. */}
       <div className="tier-pop" onScroll={followHints}>
         <div className="tier-pop__amount">
           <input
@@ -222,12 +222,12 @@ export default function CardTierModal({
                   <div
                     key={h.label}
                     className="ms-option"
-                    /* 누르는 순간 칸이 focus 를 잃어 목록이 먼저 닫힌다.
-                       mousedown 은 blur 보다 먼저라 여기서 받는다. */
+                    /* 누르는 순간 칸이 focus를 잃어 목록이 먼저 닫힌다.
+                       mousedown은 blur보다 먼저라 여기서 받는다. */
                     onMouseDown={(e) => {
                       e.preventDefault();
                       /* 이름만이 아니라 적어 둔 것을 통째로 물어 온다 —
-                         같은 이름이라도 구간마다 내용과 대상이 다르다 */
+                         같은 이름이라도 구간마다 내용과 대상이 다르다. */
                       patch(b.key, (x) => ({
                         ...x,
                         content: h.benefit.content,
@@ -257,7 +257,7 @@ export default function CardTierModal({
               onChange={(e) => patch(b.key, (x) => ({ ...x, memo: e.target.value }))}
             />
 
-            {/* 월간 통합 할인한도 — 상세 글에 섞어 적으면 셈에 쓸 수가 없다 */}
+            {/* 월간 통합 할인한도 — 상세 글에 섞어 적으면 셈에 쓸 수가 없다. */}
             <div className="benefit__limit">
               <span className="edit-field__label">한도</span>
               <input

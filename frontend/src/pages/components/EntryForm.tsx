@@ -17,11 +17,11 @@ import PlacePicker from "./PlacePicker";
  */
 
 type Props = {
-  /** 저장한 뒤 할 일. 팝업은 이때 닫고 목록을 다시 읽는다 */
+  /** 저장한 뒤 할 일. 팝업은 이때 닫고 목록을 다시 읽는다. */
   onSaved?: () => void;
-  /** 폼 안에 전송 단추를 둘지. 팝업은 바닥에 따로 두므로 끈다 */
+  /** 폼 안에 전송 단추를 둘지. 팝업은 바닥에 따로 두므로 끈다. */
   showSubmit?: boolean;
-  /** 손댄 것이 있는지 알린다 — 팝업의 저장 단추를 켜고 끄는 데 쓴다 */
+  /** 손댄 것이 있는지 알린다 — 팝업의 저장 단추를 켜고 끄는 데 쓴다. */
   onDirtyChange?: (dirty: boolean) => void;
   className?: string;
 };
@@ -49,14 +49,14 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
 
   const [showPlacePicker, setShowPlacePicker] = useState(false);
 
-  /* 뒤로 가기 · Backspace 로 장소 고르기를 닫는다 */
+  /* 뒤로 가기 · Backspace로 장소 고르기를 닫는다. */
   useBackClose(showPlacePicker, () => setShowPlacePicker(false));
   const [selectedPlaceName, setSelectedPlaceName] = useState("");
   const [selectedPlace, setSelectedPlace] = useState<any>(null);
 
   const [isDirty, setIsDirty] = useState(false);
 
-  /* 손댄 여부를 부르는 쪽에도 알린다 */
+  /* 손댄 여부를 부르는 쪽에도 알린다. */
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
@@ -215,7 +215,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       className={className}
       style={{ display: 'flex', flexDirection: 'column' }}
     >
-      {/* 날짜는 편집 팝업의 머리말과 같은 자리에 둔다 */}
+      {/* 날짜는 편집 팝업의 머리말과 같은 자리에 둔다. */}
       <div className="edit-modal__headfields entry-form__headfields">
         <EditField label="날짜" span={12}>
           <input
@@ -272,7 +272,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           />
         </EditField>
 
-        {/* 2행 — 거래 속성. IN/OUT 은 소분류가 결정하므로 분류 바로 아래 */}
+        {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래 */}
         <EditField label="IN/OUT" span={4}>
           <span className={`inout-chip ${form.inout === "1" ? "in" : form.inout === "-1" ? "out" : ""}`}>
             {form.inout === "1" ? "IN(+)" : form.inout === "-1" ? "OUT(−)" : "—"}

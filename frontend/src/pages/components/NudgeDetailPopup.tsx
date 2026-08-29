@@ -14,7 +14,7 @@ import type { Nudge, NudgeItem, NudgeLink } from "../../utils/nudges";
  */
 
 /** 한 줄 — 왼쪽에 날짜 · 분류 · 메모, 오른쪽에 금액.
-    가려 둔 갈래는 금액에만 테이프를 붙인다. 옆으로 끌면 잠깐 걷힌다 */
+    가려 둔 갈래는 금액에만 테이프를 붙인다. 옆으로 끌면 잠깐 걷힌다. */
 function DetailRow({ item }: { item: NudgeItem }) {
   const [revealed, setRevealed] = useState(false);
   const onDrag = useRevealDrag(setRevealed);

@@ -6,7 +6,7 @@ import QuickActions from "./components/QuickActions";
  *
  * 홈에서 문은 냈지만 안에 무엇을 둘지는 뒤에 정하기로 했다.
  * 빈 화면에 덩그러니 떨어지지 않도록, 이름과 돌아가는 길만 둔다.
- * 이름은 PageHead 가 경로를 보고 알아서 붙인다.
+ * 이름은 PageHead가 경로를 보고 알아서 붙인다.
  */
 export default function Blank() {
   const navigate = useNavigate();

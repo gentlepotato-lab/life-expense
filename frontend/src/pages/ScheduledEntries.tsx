@@ -20,13 +20,13 @@ export type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?
 export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?: number; is_active?: number };
 
 /**
- * 다음 예정일시는 서버가 next_run_at 에 들고 있다(scheduled_entries.next_run_at).
+ * 다음 예정일시는 서버가 next_run_at에 들고 있다(scheduled_entries.next_run_at).
  * 예전에는 화면에서도 같은 셈을 따로 했는데, 두 셈이 어긋나면 "보이는 날짜"와
  * "실제로 대기 내역으로 옮겨지는 시점"이 달라진다. 그래서 화면 계산은 걷어 내고
  * 서버 값 하나만 쓴다.
  *
- * 값은 "2026-09-04 11:30:00" 꼴이고 시간대가 붙어 있지 않다. 서버도 이 PC 도
- * 같은 시간대(Asia/Seoul)라 그대로 읽으면 된다. 다만 new Date(문자열) 은
+ * 값은 "2026-09-04 11:30:00" 꼴이고 시간대가 붙어 있지 않다. 서버도 이 PC도
+ * 같은 시간대(Asia/Seoul)라 그대로 읽으면 된다. 다만 new Date(문자열)은
  * 브라우저마다 해석이 달라서, 숫자를 직접 떼어 만든다.
  */
 function parseLocal(v: string | null | undefined): Date | null {
@@ -63,17 +63,17 @@ export default function ScheduledEntries() {
   const [cat2Map, setCat2Map] = useState<Record<number, CategoryL2Meta>>({});
   const [cat3Map, setCat3Map] = useState<Record<number, CategoryL3Meta>>({});
 
-  // 편집 팝업 상태 — 카드를 꾹 누르면 열린다
+  // 편집 팝업 상태 — 카드를 꾹 누르면 열린다.
   const [draft, setDraft] = useState<any | null>(null);
   const [splits, setSplits] = useState<SplitDraft[]>([]);
 
   // 장소 선택 — 편집 팝업(draft)과 신규 등록 폼(form) 중 어디에 반영할지
   const [placePickerFor, setPlacePickerFor] = useState<"draft" | "form" | null>(null);
 
-  /* 뒤로 가기 · Backspace 로 지금 열린 것만 닫는다 */
+  /* 뒤로 가기 · Backspace로 지금 열린 것만 닫는다. */
   useBackClose(showForm, () => setShowForm(false));
   useBackClose(placePickerFor !== null, () => setPlacePickerFor(null));
-  // 아직 DB 에 없는 카카오 장소는 저장 직전에 등록해야 하므로 원본을 들고 있는다
+  // 아직 DB에 없는 카카오 장소는 저장 직전에 등록해야 하므로 원본을 들고 있는다.
   const [draftPlace, setDraftPlace] = useState<any | null>(null);
   const [formPlace, setFormPlace] = useState<any | null>(null);
   const [formPlaceName, setFormPlaceName] = useState("");
@@ -98,9 +98,9 @@ export default function ScheduledEntries() {
   }, [showForm, draft, placePickerFor]);
 
   /**
-   * 저장 직전에 place_id 를 확정한다.
-   * 새로 고른 카카오 장소는 아직 DB 에 없으므로 먼저 등록하고 발급된 id 를 쓴다.
-   * (백엔드가 kakao_id 로 중복을 걸러 준다)
+   * 저장 직전에 place_id를 확정한다.
+   * 새로 고른 카카오 장소는 아직 DB에 없으므로 먼저 등록하고 발급된 id를 쓴다.
+   * (백엔드가 kakao_id로 중복을 걸러 준다)
    */
   const ensurePlaceId = async (picked: any, currentId: any) => {
     if (!picked) return currentId ? Number(currentId) : null;
@@ -123,7 +123,7 @@ export default function ScheduledEntries() {
   };
 
   /* 휴일 표를 내려받던 자리. 화면이 예정일시를 스스로 셈할 때만 필요했다.
-     지금은 서버가 계산해 next_run_at 에 담아 주므로 받아 둘 이유가 없다. */
+     지금은 서버가 계산해 next_run_at에 담아 주므로 받아 둘 이유가 없다. */
 
   // 메타데이터 로드
   useEffect(() => {
@@ -163,7 +163,7 @@ export default function ScheduledEntries() {
               id: item.id,
               name: item.name,
               cat1_id: item.cat1_id,
-              /* 소분류의 Blur 설정. 담지 않아서 정기 내역만 금액이 그대로 보였다 */
+              /* 소분류의 Blur 설정. 담지 않아서 정기 내역만 금액이 그대로 보였다. */
               blur: item.blur ?? 0,
               inout: item.inout ?? null,
             };
@@ -280,8 +280,8 @@ export default function ScheduledEntries() {
 
   const openEditor = useCallback((schedule: any) => {
     setDraft({ ...schedule });
-    setDraftPlace(null);          // 이번 편집에서 새로 고른 장소만 추적한다
-    // 분할은 목록 조회에 합계만 실려 오므로, 편집할 때 상세를 따로 가져온다
+    setDraftPlace(null);          // 이번 편집에서 새로 고른 장소만 추적한다.
+    // 분할은 목록 조회에 합계만 실려 오므로, 편집할 때 상세를 따로 가져온다.
     setSplits([]);
     if (schedule.split_count > 0) {
       axios
@@ -342,7 +342,7 @@ export default function ScheduledEntries() {
   // };
 
   // Next 날짜 기준으로 정렬된 schedules
-  /** 다음 예정일시가 이른 것부터. 값이 없으면 맨 뒤로 민다 */
+  /** 다음 예정일시가 이른 것부터. 값이 없으면 맨 뒤로 민다. */
   const sortedSchedules = useMemo(() => {
     return [...schedules].sort((a, b) => {
       const ta = parseLocal(a.next_run_at)?.getTime() ?? Infinity;
@@ -351,7 +351,7 @@ export default function ScheduledEntries() {
     });
   }, [schedules]);
 
-  /** 예정일시의 날짜로 묶는다. 지출 내역·대기 내역과 같은 모양이 된다 */
+  /** 예정일시의 날짜로 묶는다. 지출 내역·대기 내역과 같은 모양이 된다. */
   /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const toggleDay = (d: string) =>
@@ -362,7 +362,7 @@ export default function ScheduledEntries() {
       return next;
     });
 
-  /* Blur 는 중 · 소 · 세 어디에 걸려도 함께 덮인다 */
+  /* Blur는 중 · 소 · 세 어디에 걸려도 함께 덮인다. */
   const blurSets = useMemo(
     () => blurSetsFrom(cat1List, cat2All, cat3All),
     [cat1List, cat2All, cat3All]
@@ -375,7 +375,7 @@ export default function ScheduledEntries() {
           ...s,
           tx_date: (s.next_run_at || "").substring(0, 10),
         })),
-        /* Blur 걸린 갈래가 섞인 날은 합계도 함께 가린다 */
+        /* Blur 걸린 갈래가 섞인 날은 합계도 함께 가린다. */
         (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) =>
           isBlurred(r, blurSets)
       ),
@@ -412,7 +412,7 @@ export default function ScheduledEntries() {
     );
   };
 
-  // 팝업에서 저장 — 해당 스케줄만 반영한다
+  // 팝업에서 저장 — 해당 스케줄만 반영한다.
   const saveDraft = async () => {
     if (!draft) return;
 
@@ -421,7 +421,7 @@ export default function ScheduledEntries() {
       return;
     }
 
-    // 분할 검증 — 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다
+    // 분할 검증 — 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다.
     const cleanSplits = splits.filter(
       (x) => x.amount !== "" && Number(x.amount) > 0
     );
@@ -592,7 +592,7 @@ export default function ScheduledEntries() {
             </header>
 
             <form onSubmit={handleSubmit}>
-              {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다 */}
+              {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다. */}
               <div className="popup-body edit-grid">
                 <EditField label="매월" span={4}>
                   <SingleSelect
@@ -846,7 +846,7 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            {/* 2행 — 거래 속성. IN/OUT 은 소분류가 결정하므로 분류 바로 아래에 둔다 */}
+            {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
             <EditField label="IN/OUT" span={4}>
               <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
                 {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
@@ -920,7 +920,7 @@ export default function ScheduledEntries() {
           </div>
 
           {/* 금액 쪼개기 — 지출일 때만 의미가 있다.
-              여기에 걸어 둔 분할은 스케줄이 돌 때마다 Pending 으로 따라간다. */}
+              여기에 걸어 둔 분할은 스케줄이 돌 때마다 Pending으로 따라간다. */}
           {Number(draft.inout) === -1 && (
             <>
               <EditDivider />
@@ -935,7 +935,7 @@ export default function ScheduledEntries() {
       )}
       <QuickActions />
 
-      {/* 장소 선택 — 편집 팝업과 신규 등록 폼이 함께 쓴다 */}
+      {/* 장소 선택 — 편집 팝업과 신규 등록 폼이 함께 쓴다. */}
       {placePickerFor && (
         <PlacePicker
           onSelect={(place) => {
@@ -964,7 +964,7 @@ export default function ScheduledEntries() {
 }
 
 // ------------------------------------
-// 스케줄 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다
+// 스케줄 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다.
 // ------------------------------------
 export function ScheduleCard({
   s,
@@ -984,7 +984,7 @@ export function ScheduleCard({
   payList: { code: string; name: string }[];
   toTimeString: (hour?: number, minute?: number) => string;
   onOpenEditor?: (schedule: any) => void;
-  /* 중 · 소 · 세 어디에 Blur 가 걸렸는지는 화면이 셈해서 넘긴다.
+  /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
      넘기지 않으면 예전처럼 소분류만 본다. */
   blurred?: boolean;
   /* 보기만 하는 화면(기간 상세)에서는 꾹 눌러 편집하지 않는다.
@@ -996,15 +996,15 @@ export function ScheduleCard({
 
   const [revealed, setRevealed] = useState(false);
   const startReveal = useRevealDrag(setRevealed);
-  /* 쪼갠 몫을 펼쳤는지. 카드마다 따로 기억한다 */
+  /* 쪼갠 몫을 펼쳤는지. 카드마다 따로 기억한다. */
   const [splitOpen, setSplitOpen] = useState(false);
 
   const cat1 = cat1List.find((c) => c.id === s.cat1_id);
   const cat2Id = s.cat2_id !== null && s.cat2_id !== undefined ? Number(s.cat2_id) : null;
   const cat3Id = s.cat3_id !== null && s.cat3_id !== undefined ? Number(s.cat3_id) : null;
   const cat2Name = cat2Id !== null ? cat2Map[cat2Id]?.name : null;
-  /* 소분류에 Blur 가 걸려 있으면 금액을 테이프로 덮는다.
-     끌면 잠깐 보이는 동작은 지출·대기 내역과 같다 */
+  /* 소분류에 Blur가 걸려 있으면 금액을 테이프로 덮는다.
+     끌면 잠깐 보이는 동작은 지출·대기 내역과 같다. */
   const isBlur = blurred ?? (cat2Id !== null && cat2Map[cat2Id]?.blur === 1);
   const cat3Name = cat3Id !== null ? cat3Map[cat3Id]?.name : null;
   const pay = payList.find((p) => p.code === String(s.pay_method));
@@ -1059,7 +1059,7 @@ export function ScheduleCard({
           <span className="pay-method-text">{pay?.name || "-"}</span>
 
           {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다.
-              그 줄을 누르면 아래에 함께한 사람과 몫이 펼쳐진다 */}
+              그 줄을 누르면 아래에 함께한 사람과 몫이 펼쳐진다. */}
           <span className="amount-stack">
             {hasSplit && (
               <span

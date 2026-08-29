@@ -7,13 +7,13 @@
  */
 export const FIND_FROM = 6;
 
-/** 친 글자가 든 것만. 대소문자는 가리지 않는다 */
+/** 친 글자가 든 것만. 대소문자는 가리지 않는다. */
 export function narrowOptions<T extends { label: string }>(list: T[], query: string): T[] {
   const q = query.trim().toLowerCase();
   if (!q) return list;
   return list.filter(
     /* "[+] 새로 등록" 같은 더하기 줄은 남긴다 — 찾는 것이 없어서
-       새로 적으려는 참이 대부분이다 */
+       새로 적으려는 참이 대부분이다. */
     (o) => o.label.startsWith("[+]") || o.label.toLowerCase().includes(q)
   );
 }

@@ -5,7 +5,7 @@
  * 그중 만년필만 떼어 왔다 — 단추에 들어갈 크기에서는 나머지가 뭉개진다.
  * 선 굵기와 모서리는 로고 그대로이고, 잘라 낸 상자(viewBox)만 만년필에 맞췄다.
  *
- * 빛깔은 currentColor 라 부르는 쪽 글자색을 따라간다.
+ * 빛깔은 currentColor라 부르는 쪽 글자색을 따라간다.
  */
 export default function PenIcon({ size = 18 }: { size?: number }) {
   return (
@@ -14,8 +14,8 @@ export default function PenIcon({ size = 18 }: { size?: number }) {
       width={size}
       height={size}
       fill="currentColor"
-      /* 로고에서 떼어 온 그림이라 선이 0.92px 로, 옆에 선 새로 고침 · 계산기의
-         1.5px 보다 가늘었다. 같은 빛깔로 테를 둘러 그 차이만큼 살찌운다
+      /* 로고에서 떼어 온 그림이라 선이 0.92px로, 옆에 선 새로 고침 · 계산기의
+         1.5px보다 가늘었다. 같은 빛깔로 테를 둘러 그 차이만큼 살찌운다.
          (31 × 0.01842 = 0.57px). */
       stroke="currentColor"
       strokeWidth={31}

@@ -5,7 +5,7 @@
  * 두 곳에서 따로 세면 같은 달인데 숫자가 다른 일이 반드시 생긴다.
  *
  * 세는 잣대는 씀씀이·잔소리와 같다 — 지출·대기·정기 세 갈래를 모두 세고,
- * N빵 뒤 내 몫(net)을 센다. 수입과 Exclude 는 부르는 쪽에서 이미 걸러 낸 뒤다.
+ * N빵 뒤 내 몫(net)을 센다. 수입과 Exclude는 부르는 쪽에서 이미 걸러 낸 뒤다.
  */
 
 /** 걸어 둔 목표 하나 */
@@ -15,9 +15,9 @@ export type Goal = {
   cat2_id: number | null;
   cat3_id: number | null;
   amount: number;
-  /** 왜 이 목표를 걸었는지 — 금액만으로는 남지 않는다 */
+  /** 왜 이 목표를 걸었는지 — 금액만으로는 남지 않는다. */
   memo: string | null;
-  /** "식비 > 점심" — 서버가 붙여 준다 */
+  /** "식비 > 점심" — 서버가 붙여 준다. */
   path: string;
   emoji: string | null;
 };
@@ -30,12 +30,12 @@ export type GoalRow = {
   cat1_id?: number | null;
   cat2_id?: number | null;
   cat3_id?: number | null;
-  /* 상세에 무엇을 샀는지 적으려면 이 둘이 필요하다 */
+  /* 상세에 무엇을 샀는지 적으려면 이 둘이 필요하다. */
   place_name?: string | null;
   memo?: string | null;
 };
 
-/** 달 후반부터만 칭찬한다 — 3일차에 "목표까지 47만 원 남았습니다" 는 아무 말도 아니다 */
+/** 달 후반부터만 칭찬한다 — 3일차에 "목표까지 47만 원 남았습니다"는 아무 말도 아니다. */
 export const PRAISE_FROM_DAY = 20;
 
 /**
@@ -62,11 +62,11 @@ export type GoalStand = {
   ratio: number;
   /** 지금 속도로 달을 마치면 얼마가 될지 */
   pace: number;
-  /** 이미 넘겼다 */
+  /** 이미 넘겼다. */
   over: boolean;
-  /** 아직 안 넘겼지만 이대로면 넘긴다 */
+  /** 아직 안 넘겼지만 이대로면 넘긴다. */
   willOver: boolean;
-  /** 그 목표에 든 줄들 — 상세에 펼친다 */
+  /** 그 목표에 든 줄들 — 상세에 펼친다. */
   rows: GoalRow[];
 };
 
@@ -78,7 +78,7 @@ function daysInMonth(ym: string): number {
 /**
  * 목표 하나를 이번 달 줄들과 견준다.
  *
- * @param today "YYYY-MM-DD" — 오늘까지 며칠이 지났는지로 남은 속도를 어림한다
+ * @param today "YYYY-MM-DD" — 오늘까지 며칠이 지났는지로 남은 속도를 어림한다.
  */
 export function standOf(goal: Goal, rows: GoalRow[], today: string): GoalStand {
   const ym = today.slice(0, 7);
@@ -86,7 +86,7 @@ export function standOf(goal: Goal, rows: GoalRow[], today: string): GoalStand {
   const spent = mine.reduce((sum, r) => sum + r.net, 0);
 
   const day = Number(today.slice(8, 10));
-  /* 하루 평균으로 달 끝을 어림한다. 잔소리의 견줌 규칙이 쓰는 방식 그대로다 */
+  /* 하루 평균으로 달 끝을 어림한다. 잔소리의 견줌 규칙이 쓰는 방식 그대로다. */
   const pace = day > 0 ? Math.round((spent / day) * daysInMonth(ym)) : spent;
 
   const over = spent > goal.amount;
@@ -102,7 +102,7 @@ export function standOf(goal: Goal, rows: GoalRow[], today: string): GoalStand {
   };
 }
 
-/** 걸어 둔 차례 그대로 형편을 낸다 */
+/** 걸어 둔 차례 그대로 형편을 낸다. */
 export function standsOf(goals: Goal[], rows: GoalRow[], today: string): GoalStand[] {
   return goals.map((g) => standOf(g, rows, today));
 }

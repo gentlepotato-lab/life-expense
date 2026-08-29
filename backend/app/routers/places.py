@@ -55,7 +55,7 @@ def create_place(payload: PlaceIn, db=Depends(get_db)):
         if row:
             return {"place_id": row.place_id}
     
-    # ② 좌표로 중복 검사 (kakao_id가 없을 때만)
+    # ② 좌표로 중복 검사(kakao_id가 없을 때만)
     if not payload.kakao_id and payload.lat is not None and payload.lng is not None:
         # 원래 좌표와 미세 조정된 좌표(±0.000001) 모두 확인
         from sqlalchemy import or_
@@ -80,9 +80,9 @@ def create_place(payload: PlaceIn, db=Depends(get_db)):
         if row:
             return {"place_id": row.place_id}
     
-    # kakao_id가 있으면 좌표 미세 조정하여 새로 생성 (같은 건물 내 다른 가게)
+    # kakao_id가 있으면 좌표 미세 조정하여 새로 생성(같은 건물 내 다른 가게)
     if payload.kakao_id and payload.lat is not None and payload.lng is not None:
-        # 기존에 같은 좌표의 장소가 있는지 확인 (미세 조정 전)
+        # 기존에 같은 좌표의 장소가 있는지 확인(미세 조정 전)
         row = db.execute(
             select(Place).where(
                 and_(
@@ -145,7 +145,7 @@ def create_place(payload: PlaceIn, db=Depends(get_db)):
         lat=round(payload.lat, 6) if payload.lat else None,
         lng=round(payload.lng, 6) if payload.lng else None,
 
-        # 행정 구역 (address_name 기준)
+        # 행정 구역(address_name 기준)
         city=city,
         district=district,
         town=town,
@@ -174,7 +174,7 @@ def create_place(payload: PlaceIn, db=Depends(get_db)):
     except IntegrityError:
         db.rollback()
 
-        # 새로운 세션으로 재조회 (좌표로, 원래 좌표와 미세 조정된 좌표 모두 확인)
+        # 새로운 세션으로 재조회(좌표로, 원래 좌표와 미세 조정된 좌표 모두 확인)
         if payload.lat is not None and payload.lng is not None:
             with SessionLocal() as new_db:
                 # 원래 좌표와 미세 조정된 좌표(±0.000001) 모두 확인
@@ -231,17 +231,17 @@ def search_places(q: str, db=Depends(get_db)):
     통째로 든 것을 먼저 세우고, 글자만 흩어져 든 것은 그 뒤에 붙인다.
     그래야 `카페` 로 찾을 때 이름에 `카페` 가 있는 곳이 밀리지 않는다.
 
-    집계와 바깥 조인이 섞여 ORM 으로는 오히려 읽기 어려워 raw SQL 을 쓴다.
+    집계와 바깥 조인이 섞여 ORM 으로는 오히려 읽기 어려워 raw SQL을 쓴다.
     """
     kw = q.strip()
 
     def esc(s: str) -> str:
-        """LIKE 에서 뜻을 가지는 글자를 그냥 글자로 만든다"""
+        """LIKE에서 뜻을 가지는 글자를 그냥 글자로 만든다."""
         return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
     # 통째로 든 것
     whole = f"%{esc(kw)}%"
-    # 글자가 순서대로만 들어 있으면 되는 것. 띄어쓰기는 무시한다
+    # 글자가 순서대로만 들어 있으면 되는 것. 띄어쓰기는 무시한다.
     letters = [esc(c) for c in kw if not c.isspace()]
     loose = "%" + "%".join(letters) + "%" if letters else "%"
 

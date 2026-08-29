@@ -3,7 +3,7 @@ import axios from "../../api/client";
 import { apiErrorMessage } from "../../utils/apiError";
 import SingleSelect from "./SingleSelect";
 
-/** 편집 중인 분할 한 줄. 저장 전이므로 split_id 는 없을 수 있다. */
+/** 편집 중인 분할 한 줄. 저장 전이므로 split_id는 없을 수 있다. */
 export type SplitDraft = {
   amount: number | "";
   counterpart_id: number | null;
@@ -12,7 +12,7 @@ export type SplitDraft = {
 
 type Counterpart = { counterpart_id: number; name: string };
 
-/** "[+] 새로 등록" 을 고르면 그 줄이 이름 입력 모드로 바뀐다 */
+/** "[+] 새로 등록"을 고르면 그 줄이 이름 입력 모드로 바뀐다. */
 const NEW_VALUE = "__new__";
 
 const won = (n: number) => n.toLocaleString("ko-KR");
@@ -21,7 +21,7 @@ const won = (n: number) => n.toLocaleString("ko-KR");
  * 결제한 금액 중 남에게 돌려받은 몫을 떼어내는 편집기.
  *
  * 결제 총액(entries.amount)은 그대로 두고 뺄 금액만 여기에 쌓는다.
- * 분할은 다시 쪼갤 수 없으므로 depth 는 항상 1 이다.
+ * 분할은 다시 쪼갤 수 없으므로 depth는 항상 1이다.
  */
 export default function SplitEditor({
   grossAmount,
@@ -106,7 +106,7 @@ export default function SplitEditor({
 
   return (
     <div className="split-editor">
-      {/* 머리말 — 팝업의 다른 라벨과 같은 급으로 보이게 한다 */}
+      {/* 머리말 — 팝업의 다른 라벨과 같은 급으로 보이게 한다. */}
       <div className="split-editor__head">
         <span className="split-editor__title">N빵(돌려받음)</span>
         <button type="button" className="ui-btn small" onClick={addRow}>
@@ -114,7 +114,7 @@ export default function SplitEditor({
         </button>
       </div>
 
-      {/* 위쪽 본문과 같은 12칸 그리드 — Who?·금액·메모가 분류 3단과 열을 맞춘다 */}
+      {/* 위쪽 본문과 같은 12칸 그리드 — Who?·금액·메모가 분류 3단과 열을 맞춘다. */}
       {value.length > 0 && (
         <div className="split-grid">
           <span className="split-grid__label">Who?</span>

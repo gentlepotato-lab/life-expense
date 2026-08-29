@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from app.deps import SessionDep
 
-# 자리는 main.py 에서 /api/goals 로 붙인다
+# 자리는 main.py에서 /api/goals로 붙인다.
 router = APIRouter()
 
 
@@ -12,7 +12,7 @@ def list_goals(db: SessionDep = Depends()):
     걸어 둔 목표를 분류 이름까지 붙여 돌려준다.
 
     이름을 함께 보내는 것은 화면이 분류 세 벌을 따로 받아 짝을 맞추지 않아도
-    되게 하려는 것이다. 이름이 바뀌어도 FK 로 따라오므로 어긋나지 않는다.
+    되게 하려는 것이다. 이름이 바뀌어도 FK로 따라오므로 어긋나지 않는다.
     """
     rows = db.execute(text("""
         SELECT g.goal_id
@@ -39,7 +39,7 @@ def list_goals(db: SessionDep = Depends()):
         "amount": float(r["amount"]),
         "memo": r["memo"],
         "sort_order": r["sort_order"],
-        # "식비 > 점심" — 비어 있는 단은 건너뛴다
+        # "식비 > 점심" — 비어 있는 단은 건너뛴다.
         "path": " > ".join(
             x for x in (r["cat1_name"], r["cat2_name"], r["cat3_name"]) if x
         ),
@@ -48,7 +48,7 @@ def list_goals(db: SessionDep = Depends()):
 
 
 def _target(payload: dict) -> tuple[int, int | None, int | None]:
-    """고른 분류를 (중, 소, 세) 로 갈라 낸다. 위 단을 건너뛴 것은 받지 않는다"""
+    """고른 분류를(중, 소, 세)로 갈라 낸다. 위 단을 건너뛴 것은 받지 않는다."""
     def num(key: str) -> int | None:
         raw = payload.get(key)
         if raw in (None, "", 0):
@@ -78,7 +78,7 @@ def _amount(payload: dict) -> float:
 
 @router.post("")
 def add_goal(payload: dict, db: SessionDep = Depends()):
-    """목표 하나를 새로 건다. 같은 분류에 이미 걸려 있으면 막는다"""
+    """목표 하나를 새로 건다. 같은 분류에 이미 걸려 있으면 막는다."""
     cat1, cat2, cat3 = _target(payload)
     amount = _amount(payload)
     try:
@@ -92,7 +92,7 @@ def add_goal(payload: dict, db: SessionDep = Depends()):
         if dup:
             raise HTTPException(status_code=400, detail="이미 목표를 걸어 둔 분류입니다.")
 
-        # 새 목표는 맨 뒤에 선다
+        # 새 목표는 맨 뒤에 선다.
         nxt = db.execute(text("""
             SELECT COALESCE(MAX(sort_order), 0) + 1 FROM life_expense.category_goals
         """)).scalar()
@@ -117,7 +117,7 @@ def add_goal(payload: dict, db: SessionDep = Depends()):
 
 @router.post("/{goal_id}/amount")
 def save_amount(goal_id: int, payload: dict, db: SessionDep = Depends()):
-    """금액만 고친다 — 칸을 떠날 때 그 줄만 저장한다"""
+    """금액만 고친다 — 칸을 떠날 때 그 줄만 저장한다."""
     amount = _amount(payload)
     try:
         done = db.execute(text("""
@@ -139,7 +139,7 @@ def save_amount(goal_id: int, payload: dict, db: SessionDep = Depends()):
 
 @router.post("/{goal_id}/memo")
 def save_memo(goal_id: int, payload: dict, db: SessionDep = Depends()):
-    """한마디만 고친다 — 금액과 같은 방식으로, 칸을 떠날 때 그 줄만 저장한다"""
+    """한마디만 고친다 — 금액과 같은 방식으로, 칸을 떠날 때 그 줄만 저장한다."""
     memo = (payload.get("memo") or "").strip() or None
     try:
         done = db.execute(text("""

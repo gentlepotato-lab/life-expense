@@ -35,7 +35,7 @@ def create_counterpart(payload: dict, db: SessionDep = Depends()):
 
     existing = db.query(Counterpart).filter(Counterpart.name == name).first()
     if existing:
-        # 껐던 상대를 다시 쓰는 경우 되살린다
+        # 껐던 상대를 다시 쓰는 경우 되살린다.
         if existing.is_active != 1:
             existing.is_active = 1
             db.commit()
@@ -100,7 +100,7 @@ def update_counterpart(counterpart_id: int, payload: dict, db: SessionDep = Depe
 def delete_counterpart(counterpart_id: int, db: SessionDep = Depends()):
     """
     쓰인 적이 있으면 지우지 않고 비활성으로 돌린다.
-    (분할 쪽 FK 는 SET NULL 이라 지워도 금액은 남지만, 누구였는지가 사라지므로)
+    (분할 쪽 FK는 SET NULL이라 지워도 금액은 남지만, 누구였는지가 사라지므로)
     """
     row = db.query(Counterpart).filter(Counterpart.counterpart_id == counterpart_id).first()
     if not row:
@@ -122,7 +122,7 @@ def delete_counterpart(counterpart_id: int, db: SessionDep = Depends()):
 
 
 # ═══════════════════════════════════════════════════════════════
-# 구분(분류) — 사용자가 늘릴 수 있다
+# 구분(분류) — 사용자가 늘릴 수 있다.
 # ═══════════════════════════════════════════════════════════════
 
 # 아바타·점에 쓰는 색. 화면(colorPalette.ts)과 같은 순서로 맞춰 둔다.
@@ -133,7 +133,7 @@ PALETTE = [
 
 
 def _next_color(db) -> str:
-    """아직 쓰이지 않은 색을 앞에서부터 고른다. 다 쓰면 처음으로 돌아간다"""
+    """아직 쓰이지 않은 색을 앞에서부터 고른다. 다 쓰면 처음으로 돌아간다."""
     used = {c.color for c in db.query(CounterpartCategory).all() if c.color}
     for c in PALETTE:
         if c not in used:
@@ -189,7 +189,7 @@ def create_category(payload: dict, db: SessionDep = Depends()):
 
 @router.post("/categories/save")
 def save_categories(payload: list[dict], db: SessionDep = Depends()):
-    """이모지·색·순서를 한 번에 반영한다"""
+    """이모지·색·순서를 한 번에 반영한다."""
     for i, item in enumerate(payload):
         row = (
             db.query(CounterpartCategory)
@@ -202,7 +202,7 @@ def save_categories(payload: list[dict], db: SessionDep = Depends()):
             row.emoji = item.get("emoji") or None
         if "color" in item:
             row.color = item.get("color") or None
-        # 보내 준 배열 순서를 그대로 순서로 삼는다
+        # 보내 준 배열 순서를 그대로 순서로 삼는다.
         row.sort_order = item.get("sort_order", i + 1)
     db.commit()
     return {"status": "ok"}
@@ -210,7 +210,7 @@ def save_categories(payload: list[dict], db: SessionDep = Depends()):
 
 @router.delete("/categories/{category_id}")
 def delete_category(category_id: int, db: SessionDep = Depends()):
-    """쓰이고 있으면 지우지 않는다. 결제 수단 쪽과 같은 규칙이다"""
+    """쓰이고 있으면 지우지 않는다. 결제 수단 쪽과 같은 규칙이다."""
     used = db.query(Counterpart).filter(Counterpart.category_id == category_id).count()
     if used:
         return {"error": "IN_USE", "used_count": used}

@@ -3,7 +3,7 @@
  *
  * 달력과 기간 상세가 같은 판정을 써야 한다 — 달력 칸에 보이던 것과
  * 상세에 펼쳐지는 카드가 어긋나면 안 되기 때문이다.
- * 화면 파일에서 컴포넌트 말고 다른 것을 내보내면 Fast Refresh 가 깨지므로
+ * 화면 파일에서 컴포넌트 말고 다른 것을 내보내면 Fast Refresh가 깨지므로
  * 두 화면이 함께 쓰는 것은 여기 둔다.
  */
 
@@ -75,7 +75,7 @@ export function pass(r: Row, f: Filter): boolean {
 /**
  * 집계에서 뺄 갈래 모음.
  *
- * 중 · 소 · 세 중 하나라도 Exclude 가 걸려 있으면 그 줄은 셈에서 빠진다.
+ * 중 · 소 · 세 중 하나라도 Exclude가 걸려 있으면 그 줄은 셈에서 빠진다.
  * 내역 카드에는 그대로 보이고, 달력 · 씀씀이 · 기간 상세에서만 빠진다.
  */
 export type ExcludeSets = {
@@ -90,7 +90,7 @@ export const EMPTY_Exclude: ExcludeSets = {
   cat3: new Set(),
 };
 
-/** 목록 셋에서 Blur 가 걸린 것만 추린다 — Exclude 와 같은 방식이다 */
+/** 목록 셋에서 Blur가 걸린 것만 추린다 — Exclude와 같은 방식이다. */
 export function blurSetsFrom(
   cat1List: { id: number; blur?: number }[],
   cat2List: { id: number; blur?: number }[],
@@ -101,10 +101,10 @@ export function blurSetsFrom(
   return { cat1: pick(cat1List), cat2: pick(cat2List), cat3: pick(cat3List) };
 }
 
-/** 중 · 소 · 세 중 하나라도 Blur 가 걸려 있으면 금액을 덮는다 */
+/** 중 · 소 · 세 중 하나라도 Blur가 걸려 있으면 금액을 덮는다. */
 export const isBlurred = isExcludedLike;
 
-/** 목록 셋에서 Exclude 가 걸린 것만 추린다 */
+/** 목록 셋에서 Exclude가 걸린 것만 추린다. */
 export function excludeSetsFrom(
   cat1List: { id: number; exclude?: number }[],
   cat2List: { id: number; exclude?: number }[],

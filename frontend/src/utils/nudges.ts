@@ -5,7 +5,7 @@
  * 고쳐도 잔소리가 어긋날 일이 없다. 사람이 미리 정해 둬야 하는 것(분류별
  * 한도 · 카드 실적 목표)은 규칙 표를 둔 뒤에 여기에 덧붙인다.
  *
- * 말투는 이 파일 한 곳에서만 정한다. 모두 "…습니다." 로 끝낸다 —
+ * 말투는 이 파일 한 곳에서만 정한다. 모두 "…습니다."로 끝낸다 —
  * 표정은 문장이 아니라 묶음 이름표(:-( · ;-))가 맡는다.
  *
  * 날짜는 내역 화면과 같은 모양(formatDateLabel)으로 적는다. 화면마다 날짜가
@@ -20,7 +20,7 @@ import { standsOf, PRAISE_FROM_DAY, type Goal } from "./goalStand";
 /** 잔소리 한 줄이 딸린 자리 */
 export type Level = "bad" | "watch" | "good";
 
-/** 이 잔소리가 어느 내역에서 왔는지 — 상세에서 그 화면으로 건너뛴다 */
+/** 이 잔소리가 어느 내역에서 왔는지 — 상세에서 그 화면으로 건너뛴다. */
 export type NudgeLink = "expense" | "pending" | "scheduled";
 
 /** 길게 눌렀을 때 펼쳐 보이는 낱낱 — 날짜 · 분류 · 메모 · 금액 */
@@ -32,7 +32,7 @@ export type NudgeItem = {
   cat?: string;
   memo?: string;
   amount?: number;
-  /** 가려 둔 갈래 — 금액에만 테이프를 붙인다 */
+  /** 가려 둔 갈래 — 금액에만 테이프를 붙인다. */
   blur?: boolean;
 };
 
@@ -43,7 +43,7 @@ export type Nudge = {
   say: string;
   /** 그 아래 작게 붙는 근거 */
   meta?: string;
-  /** 가려 둔 갈래가 섞여 있다 — 테이프를 붙인다 */
+  /** 가려 둔 갈래가 섞여 있다 — 테이프를 붙인다. */
   blur?: boolean;
   /** 상세 팝업에 펼칠 것 */
   items?: NudgeItem[];
@@ -60,12 +60,12 @@ type Cats = { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number
 export type NudgeSource = {
   /** 오늘 — "YYYY-MM-DD" */
   today: string;
-  /** 최근 세 달치 지출. 수입 · Exclude 는 이미 걸러 낸 뒤다 */
+  /** 최근 세 달치 지출. 수입 · Exclude는 이미 걸러 낸 뒤다. */
   rows: NRow[];
-  /** 가려 둔 갈래에서 온 줄 — 셈에는 넣고 화면에서만 테이프로 덮는다 */
+  /** 가려 둔 갈래에서 온 줄 — 셈에는 넣고 화면에서만 테이프로 덮는다. */
   masked: Set<string>;
   cat2Name: Map<number, string>;
-  /** "중 > 소 > 세" — 비어 있는 단은 건너뛴다 */
+  /** "중 > 소 > 세" — 비어 있는 단은 건너뛴다. */
   catPath: (r: Cats) => string;
   /** 아직 보내지 않은 대기 내역 */
   pending: (Cats & { key: string; date: string; name: string; amount: number; memo?: string; blur?: boolean })[];
@@ -77,7 +77,7 @@ export type NudgeSource = {
   cards: {
     key: string;
     name: string;
-    /** 결제 수단 번호 — 이 달에 그 카드로 그은 것을 고르는 데 쓴다 */
+    /** 결제 수단 번호 — 이 달에 그 카드로 그은 것을 고르는 데 쓴다. */
     code: string;
     tiers: {
       threshold: number;
@@ -119,7 +119,7 @@ function shift(base: string, step: number): string {
   return ymd(d);
 }
 
-/** 문장 안에서 부르는 말. 가까운 날만 말로 하고 나머지는 그냥 센다 */
+/** 문장 안에서 부르는 말. 가까운 날만 말로 하고 나머지는 그냥 센다. */
 const ahead = (d: number) => (d === 0 ? "오늘" : d === 1 ? "내일" : d === 2 ? "모레" : `${d}일 뒤`);
 const behind = (d: number) => (d === 0 ? "오늘" : d === 1 ? "어제" : d === 2 ? "그저께" : `${d}일 전`);
 
@@ -127,7 +127,7 @@ const behind = (d: number) => (d === 0 ? "오늘" : d === 1 ? "어제" : d === 2
     닷새 뒤 빠질 돈을 한 건씩 늘어놓아 봐야 지금 할 수 있는 일이 없다. */
 const BUNDLE_FROM = 3;
 
-/** 한 줄씩 알리는 것도 셋까지 — 월말처럼 같은 날에 몰리면 화면을 다 먹는다 */
+/** 한 줄씩 알리는 것도 셋까지 — 월말처럼 같은 날에 몰리면 화면을 다 먹는다. */
 const NEAR_MAX = 3;
 
 /* ─── 규칙 ──────────────────────────────────────────────────── */
@@ -149,7 +149,7 @@ export function buildNudges(src: NudgeSource): Nudge[] {
   });
 
   /* ① 곧 빠져나갈 정기 지출.
-     아직 오지 않은 돈이라 다른 규칙과 달리 rows 가 아니라 예정일을 본다. */
+     아직 오지 않은 돈이라 다른 규칙과 달리 rows가 아니라 예정일을 본다. */
   const soon = [...src.upcoming].sort((a, b) => a.date.localeCompare(b.date));
   const asSched = (s: (typeof soon)[number]): NudgeItem => ({
     key: s.key,
@@ -158,7 +158,7 @@ export function buildNudges(src: NudgeSource): Nudge[] {
     memo: s.memo,
     amount: s.amount,
   });
-  /* 사흘 안(오늘 · 내일 · 모레)은 한 건씩, 그보다 먼 것은 한 줄로 묶는다 */
+  /* 사흘 안(오늘 · 내일 · 모레)은 한 건씩, 그보다 먼 것은 한 줄로 묶는다. */
   const near = soon.filter((s) => gap(s.date, today) < BUNDLE_FROM);
   const rest = [...near.slice(NEAR_MAX), ...soon.filter((s) => gap(s.date, today) >= BUNDLE_FROM)];
 
@@ -187,7 +187,7 @@ export function buildNudges(src: NudgeSource): Nudge[] {
     );
   }
 
-  /* ② 대기 내역이 밀렸다. 사흘까지는 봐준다 — 그 안에 정리하는 일이 흔하다 */
+  /* ② 대기 내역이 밀렸다. 사흘까지는 봐준다 — 그 안에 정리하는 일이 흔하다. */
   if (src.pending.length > 0) {
     const sorted = [...src.pending].sort((a, b) => a.date.localeCompare(b.date));
     const held = gap(today, sorted[0].date);
@@ -216,7 +216,7 @@ export function buildNudges(src: NudgeSource): Nudge[] {
   }
 
   /* ③ 지난 달 같은 기간과 견준다.
-     달이 끝나야 알 수 있는 총액 대신 "이맘때까지" 로 맞춰야 견줄 수 있다. */
+     달이 끝나야 알 수 있는 총액 대신 "이맘때까지"로 맞춰야 견줄 수 있다. */
   const day = Number(today.slice(8, 10));
   const upToDay = (ym: string) =>
     rows.filter((r) => r.date.startsWith(ym) && Number(r.date.slice(8, 10)) <= day);
@@ -224,7 +224,7 @@ export function buildNudges(src: NudgeSource): Nudge[] {
   const now = nowRows.reduce((s, r) => s + r.net, 0);
   const before = upToDay(lastYm).reduce((s, r) => s + r.net, 0);
   if (before > 0 && now > 0) {
-    /* 소수 한 자리까지 — 정수로 끊으면 27% 가 26.5 인지 27.4 인지 알 수 없다 */
+    /* 소수 한 자리까지 — 정수로 끊으면 27%가 26.5인지 27.4인지 알 수 없다. */
     const rate = Math.round(((now - before) / before) * 1000) / 10;
     if (rate !== 0) {
       out.push(
@@ -290,7 +290,7 @@ export function buildNudges(src: NudgeSource): Nudge[] {
     );
   }
 
-  /* ⑤ 같은 자리를 자주 갔다 */
+  /* ⑤ 같은 자리를 자주 갔다. */
   const spots = new Map<string, NRow[]>();
   rows.forEach((r) => {
     if (!r.date.startsWith(thisYm)) return;
@@ -327,7 +327,7 @@ export function buildNudges(src: NudgeSource): Nudge[] {
     list.push(r);
     byDay.set(r.date, list);
   });
-  /* 받아 온 것이 세 달치뿐이라 그 바깥까지 세지 않는다 */
+  /* 받아 온 것이 세 달치뿐이라 그 바깥까지 세지 않는다. */
   const LOOKBACK = 60;
   if (byDay.has(shift(today, -1))) {
     let run = 0;
@@ -388,7 +388,7 @@ export function buildNudges(src: NudgeSource): Nudge[] {
   /* ⑧ 분류별 목표 — 안쓴이 도전.
      달이 끝나야 이겼는지 알 수 있으니, 달 중에는 세 갈래로 말한다 —
      이미 넘겼다 · 이대로면 넘긴다 · 잘 지키는 중.
-     칭찬은 달 후반에만 한다. 3일차에 "목표까지 47만 원 남았습니다" 는
+     칭찬은 달 후반에만 한다. 3일차에 "목표까지 47만 원 남았습니다"는
      아무 말도 아니고, 목표를 여럿 걸어 두면 칭찬만으로 화면이 차버린다. */
   standsOf(src.goals, rows, today).forEach((st) => {
     const items = [...st.rows]
