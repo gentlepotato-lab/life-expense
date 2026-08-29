@@ -70,7 +70,7 @@ export default function Nudges() {
       <div className="chart-grid">
         {ready && mind.length === 0 && well.length === 0 && (
           <section className="chart-card">
-            <div className="nudge-none">잔소리할 게 없습니다.</div>
+            <div className="page-empty">잔소리할 게 없습니다.</div>
           </section>
         )}
 

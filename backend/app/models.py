@@ -416,3 +416,24 @@ class CardBenefitTarget(Base):
     stores = Column(String(400), nullable=False)
     sort_order = Column(Integer, nullable=False, default=0)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class CategoryGoal(Base):
+    """
+    분류별 목표 금액 — "안쓴이 도전".
+
+    지출에 거는 목표라 덜 쓰면 이기는 것이다. 중·소·세 어느 단에나
+    걸 수 있고, 채운 것 중 가장 깊은 단이 그 목표의 대상이다.
+    겹쳐 걸어도 된다 — 그때는 서로 나누지 않고 저마다 제 가지 아래를 통째로 센다.
+    """
+    __tablename__ = "category_goals"
+
+    goal_id = Column(Integer, primary_key=True, autoincrement=True)
+    cat1_id = Column(Integer, ForeignKey("categories_lvl1.cat1_id", ondelete="CASCADE"), nullable=False)
+    cat2_id = Column(Integer, ForeignKey("categories_lvl2.cat2_id", ondelete="CASCADE"))
+    cat3_id = Column(Integer, ForeignKey("categories_lvl3.cat3_id", ondelete="CASCADE"))
+    amount = Column(Numeric(14, 2), nullable=False)
+    # 왜 이 목표를 걸었는지 — 금액만으로는 남지 않는다
+    memo = Column(String(200))
+    sort_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, server_default=func.now())

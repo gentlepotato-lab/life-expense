@@ -22,6 +22,7 @@ const DESC: Record<string, string> = {
   "/categories": "중분류 · 소분류 · 세분류",
   "/payment-methods": "카드 · 계좌 · 간편결제",
   "/counterparts": "금액을 나눠 낸 사람",
+  "/goals": "분류마다 정한 이 달의 목표",
 };
 
 export default function MenuList({ paths }: { paths: string[] }) {

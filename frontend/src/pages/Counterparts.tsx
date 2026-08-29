@@ -573,9 +573,11 @@ export default function Counterparts() {
           )}
 
           {saved.length === 0 && drafts.length === 0 && (
-            <p className="cp-empty">
-              등록된 항목이 없다.
-              <span>위 [+] 새 항목 추가 를 누르거나, 분할을 편집할 때 바로 등록하면 된다.</span>
+            <p className="page-empty">
+              등록된 항목이 없습니다.
+              <span className="page-empty__hint">
+                위 [+] 새 항목 추가 를 누르거나, 분할을 편집할 때 바로 등록할 수 있습니다.
+              </span>
             </p>
           )}
 

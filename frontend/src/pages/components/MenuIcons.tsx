@@ -79,6 +79,15 @@ export const PAGE_ICON: Record<string, React.ReactNode> = {
     </svg>
   ),
 
+  /* 과녁 — 가운데를 맞히면 이긴다. 목표라는 말과 가장 곶바로 이어진다 */
+  "/goals": (
+    <svg viewBox="0 0 32 32" {...stroke}>
+      <circle cx="16" cy="16" r="11" />
+      <circle cx="16" cy="16" r="6.5" />
+      <circle cx="16" cy="16" r="2" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+
   /* 종 — 단추의 것(BellIcon)과 같은 종이되, 여기 그림들과 같은 선으로 다시 그렸다 */
   "/nudges": (
     <svg viewBox="0 0 32 32" {...stroke}>

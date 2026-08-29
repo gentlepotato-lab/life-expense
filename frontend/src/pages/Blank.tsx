@@ -15,7 +15,7 @@ export default function Blank() {
     <div className="page-wrap">
 
       <div className="blank-page">
-        <p className="blank-page__line">아직 비어 있다.</p>
+        <p className="blank-page__line">아직 비어 있습니다.</p>
         <button type="button" className="ui-btn small" onClick={() => navigate("/")}>
           홈으로
         </button>

@@ -9,6 +9,7 @@ import {
 } from "../utils/calendarFilter";
 import type { Src } from "../utils/calendarFilter";
 import { buildNudges, type Nudge, type NRow } from "../utils/nudges";
+import type { Goal } from "../utils/goalStand";
 
 /**
  * 잔소리에 쓸 자료를 한 벌만 받아 나눠 쓴다.
@@ -53,6 +54,8 @@ type Loaded = {
       benefits: { content: string; memo: string; limit: number | null }[];
     }[];
   }[];
+  /** 걸어 둔 분류별 목표 — 안쓴이 도전 */
+  goals: Goal[];
 };
 
 let cached: Loaded | null = null;
@@ -76,6 +79,7 @@ async function load(): Promise<Loaded> {
     axios.get("/categories/lvl2").then((r) => r.data).catch(() => []),
     axios.get("/categories/lvl3").then((r) => r.data).catch(() => []),
     axios.get("/payment-methods").then((r) => r.data).catch(() => []),
+    axios.get("/goals").then((r) => r.data).catch(() => []),
   ]);
 
   /* 실적 구간은 카드에만 딸린다. 카드가 몇 장뿐이라 그것만 따로 물어 온다 */
@@ -184,6 +188,7 @@ async function load(): Promise<Loaded> {
     cat2List: res[MONTHS + 3] as (Cat & { cat1_id: number; inout?: number | null })[],
     cat3List: res[MONTHS + 4] as (Cat & { cat2_id: number })[],
     cards,
+    goals: res[MONTHS + 6] as Goal[],
   };
 }
 
@@ -208,6 +213,45 @@ function ensure(): Promise<Loaded | null> {
 export function invalidateNudges() {
   cached = null;
   inflight = null;
+}
+
+/**
+ * 받아 온 것을 걸러 내 셈에 쓸 꼴로 만든다.
+ *
+ * 잔소리와 안쓴이 도전이 같은 줄을 봐야 하므로 한 곳에만 둔다 —
+ * 두 곳에서 따로 거르면 같은 달인데 숫자가 다른 일이 반드시 생긴다.
+ */
+function refine(data: Loaded, blurOn: boolean, excludeOn: boolean) {
+  const { cat1List, cat2List, cat3List } = data;
+  const excSets: ExcludeSets = excludeSetsFrom(cat1List, cat2List, cat3List);
+  const blurSets = blurSetsFrom(cat1List, cat2List, cat3List);
+
+  const keep = (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) =>
+    !(excludeOn && isExcluded(r as NRow, excSets)) && (blurOn || !isBlurred(r as NRow, blurSets));
+
+  /* 수입은 두 가지로 가른다 — 줄에 붙은 표시와, 그 소분류가 수입인지.
+     씀씀이가 쓰는 잣대 그대로다. */
+  const income = new Set(cat2List.filter((c) => c.inout === 1).map((c) => c.id));
+  const rows = data.rows.filter(
+    (r) => r.inout !== 1 && !income.has(Number(r.cat2_id)) && keep(r)
+  );
+  const pending = data.pending
+    .filter(keep)
+    .map((p) => ({ ...p, blur: isBlurred(p as unknown as NRow, blurSets) }));
+
+  return {
+    rows,
+    pending,
+    /* 예고도 화면의 단추를 따른다 — Exclude 를 켜 두고 저축이 "빠져나갑니다"
+       라고 뜨면 같은 화면이 두 가지 잣대로 말하는 새이 된다 */
+    upcoming: data.upcoming.filter(
+      (s) => s.inout !== 1 && !income.has(Number(s.cat2_id)) && keep(s)
+    ),
+    masked: new Set(rows.filter((r) => isBlurred(r, blurSets)).map((r) => r.key)),
+    name1: new Map(cat1List.map((c) => [c.id, c.name])),
+    name2: new Map(cat2List.map((c) => [c.id, c.name])),
+    name3: new Map(cat3List.map((c) => [c.id, c.name])),
+  };
 }
 
 export type NudgeOptions = {
@@ -235,31 +279,13 @@ export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]
 
   const nudges = useMemo(() => {
     if (!data) return [];
-    const { cat1List, cat2List, cat3List } = data;
-    const excSets: ExcludeSets = excludeSetsFrom(cat1List, cat2List, cat3List);
-    const blurSets = blurSetsFrom(cat1List, cat2List, cat3List);
-
-    const keep = (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) =>
-      !(excludeOn && isExcluded(r as NRow, excSets)) && (blurOn || !isBlurred(r as NRow, blurSets));
-
-    /* 수입은 두 가지로 가른다 — 줄에 붙은 표시와, 그 소분류가 수입인지.
-       씀씀이가 쓰는 잣대 그대로다. */
-    const income = new Set(cat2List.filter((c) => c.inout === 1).map((c) => c.id));
-    const rows = data.rows.filter(
-      (r) => r.inout !== 1 && !income.has(Number(r.cat2_id)) && keep(r)
-    );
-    const pending = data.pending
-      .filter(keep)
-      .map((p) => ({ ...p, blur: isBlurred(p as unknown as NRow, blurSets) }));
-
-    const name1 = new Map(cat1List.map((c) => [c.id, c.name]));
-    const name2 = new Map(cat2List.map((c) => [c.id, c.name]));
-    const name3 = new Map(cat3List.map((c) => [c.id, c.name]));
+    const { rows, pending, upcoming, masked, name1, name2, name3 } =
+      refine(data, blurOn, excludeOn);
 
     return buildNudges({
       today: data.today,
       rows,
-      masked: new Set(rows.filter((r) => isBlurred(r, blurSets)).map((r) => r.key)),
+      masked,
       cat2Name: name2,
       catPath: (r) =>
         [name1.get(Number(r.cat1_id)), name2.get(Number(r.cat2_id)), name3.get(Number(r.cat3_id))]
@@ -267,13 +293,64 @@ export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]
           .join(" > "),
       pending,
       cards: data.cards,
-      /* 예고도 화면의 단추를 따른다 — Exclude 를 켜 두고 저축이 "빠져나갑니다"
-         라고 뜨면 같은 화면이 두 가지 잣대로 말하는 셈이 된다 */
-      upcoming: data.upcoming.filter(
-        (s) => s.inout !== 1 && !income.has(Number(s.cat2_id)) && keep(s)
-      ),
+      goals: data.goals,
+      upcoming,
     });
   }, [data, blurOn, excludeOn]);
 
   return { nudges, ready: data !== null };
+}
+
+/**
+ * 안쓴이 도전이 볼 것 — 잔소리가 보는 것과 같은 줄을 나눠 쓴다.
+ *
+ * 받아 오는 것도 거르는 것도 잔소리와 한 벌이라, 화면을 옷겨도 다시 받지
+ * 않고 두 화면의 숫자가 어긋날 일도 없다.
+ */
+export function useGoalBoard(options: NudgeOptions = {}): {
+  goals: Goal[];
+  rows: NRow[];
+  /** 가려 둔 갈래에서 온 줄 — 상세에서 금액에만 테이프를 붙인다 */
+  masked: Set<string>;
+  today: string;
+  catPath: (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) => string;
+  ready: boolean;
+} {
+  const { blurOn = true, excludeOn = true, reloadKey = 0 } = options;
+  const [data, setData] = useState<Loaded | null>(cached);
+
+  useEffect(() => {
+    let alive = true;
+    ensure().then((d) => {
+      if (alive && d) setData(d);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [reloadKey]);
+
+  return useMemo(() => {
+    if (!data) {
+      return {
+        goals: [],
+        rows: [],
+        masked: new Set<string>(),
+        today: "",
+        catPath: () => "",
+        ready: false,
+      };
+    }
+    const { rows, masked, name1, name2, name3 } = refine(data, blurOn, excludeOn);
+    return {
+      goals: data.goals,
+      rows,
+      masked,
+      today: data.today,
+      catPath: (r) =>
+        [name1.get(Number(r.cat1_id)), name2.get(Number(r.cat2_id)), name3.get(Number(r.cat3_id))]
+          .filter(Boolean)
+          .join(" > "),
+      ready: true,
+    };
+  }, [data, blurOn, excludeOn]);
 }

@@ -26,6 +26,7 @@ export const PAGE_TITLE: Record<string, string> = {
   "/categories": "분류",
   "/payment-methods": "결제 수단",
   "/counterparts": "함께한 상대",
+  "/goals": "안쓴이 도전",
 };
 
 /** 내역 탭이 품는 화면들 */
@@ -37,4 +38,9 @@ export const ENTRY_TABS = [
 ];
 
 /** 설정 탭이 품는 화면들 */
-export const SETTING_TABS = ["/categories", "/payment-methods", "/counterparts"];
+export const SETTING_TABS = [
+  "/categories",
+  "/payment-methods",
+  "/counterparts",
+  "/goals",
+];

@@ -7,6 +7,7 @@ import ScheduledEntries from "./pages/ScheduledEntries";
 import Categories from "./pages/Categories";
 import PaymentMethods from "./pages/PaymentMethods";
 import Counterparts from "./pages/Counterparts";
+import Goals from "./pages/Goals";
 import Calendar from "./pages/Calendar";
 import CalendarDetail from "./pages/CalendarDetail";
 import Home from "./pages/Home";
@@ -85,6 +86,8 @@ function App() {
         <Route path="/payment-methods" element={<PaymentMethods />} />
         {/* 함께한 상대 페이지 — 금액 쪼개기의 상대 목록 */}
         <Route path="/counterparts" element={<Counterparts />} />
+        {/* 안쓴이 도전 — 분류별 목표 금액 */}
+        <Route path="/goals" element={<Goals />} />
         {/* 홈에서 문만 내 둔 화면 — 속은 뒤에 채운다.
             이름은 PageHead 가 경로를 보고 붙인다(utils/pageTitles.ts) */}
         <Route path="/me" element={<Blank />} />

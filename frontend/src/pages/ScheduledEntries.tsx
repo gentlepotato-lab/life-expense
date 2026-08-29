@@ -740,10 +740,10 @@ export default function ScheduledEntries() {
 
       {/* 등록된 스케줄 목록 */}
       {schedules.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-500 mb-2">등록된 스케줄이 없다.</p>
-          <p className="text-sm text-gray-400">위의 [+] 새로운 스케줄 을 눌러 등록하면 된다.</p>
-        </div>
+        <p className="page-empty">
+          등록된 정기 지출이 없습니다.
+          <span className="page-empty__hint">위 [+] 새 정기 지출 을 눌러 등록할 수 있습니다.</span>
+        </p>
       ) : (
         <div className="scheduled-card-list">
           {dateGroups.map((group) => (

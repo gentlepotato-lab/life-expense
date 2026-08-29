@@ -874,7 +874,7 @@ export default function Charts() {
 
 
       {empty ? (
-        <p className="chart-empty">지출 내역이 없다.</p>
+        <p className="page-empty">지출 내역이 없습니다.</p>
       ) : (
         <div className="chart-grid">
           {/* ─── 날짜별 ───────────────────────────────────────── */}

@@ -378,7 +378,7 @@ export default function CalendarDetail() {
       </div>
 
       {loaded && dateGroups.length === 0 && (
-        <p className="cal-empty">조회된 내역이 없다.</p>
+        <p className="page-empty">조회된 내역이 없습니다.</p>
       )}
 
       <QuickActions />

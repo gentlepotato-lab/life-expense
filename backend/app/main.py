@@ -8,6 +8,7 @@ from app.routers import (
     categories,
     counterparts,
     entries,
+    goals,
     holidays,
     payment_methods,
     pending_entries,
@@ -80,6 +81,7 @@ API = "/api"
 app.include_router(categories.router, prefix=f"{API}/categories", tags=["categories"])
 app.include_router(payment_methods.router, prefix=f"{API}/payment-methods", tags=["payment_methods"])
 app.include_router(counterparts.router, prefix=f"{API}/counterparts", tags=["counterparts"])
+app.include_router(goals.router, prefix=f"{API}/goals", tags=["goals"])
 app.include_router(entries.router, prefix=f"{API}/entries", tags=["entries"])
 app.include_router(pending_entries.router, prefix=f"{API}/pending-entries", tags=["pending_entries"])
 app.include_router(scheduled_entries.router, prefix=f"{API}/scheduled-entries", tags=["scheduled_entries"])

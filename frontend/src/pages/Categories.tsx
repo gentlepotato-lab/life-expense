@@ -615,98 +615,91 @@ export default function Categories() {
         <div className="set-add-form set-add-form--col set-draft">
           <div className="set-draft__head">
             <span className="set-draft__name">새 항목</span>
-            <span className="set-draft__hint">
-              고른 중분류·소분류 아래에 추가됩니다.
-            </span>
           </div>
 
-          <SingleSelect
-            noun="중분류"
-            options={[
-              { value: "NEW", label: "[+] 새 항목 추가" },
-              { value: "", label: "(중분류)" },
-              ...cat1.map(c => ({ value: String(c.cat1_id), label: c.cat1_name })),
-            ]}
-            selected={addCat1Mode ? "NEW" : (selectedCat1ForAdd ? String(selectedCat1ForAdd) : "")}
-            onChange={(value) => {
-              if (value === "NEW") {
-                setAddCat1Mode(true);
-                setNewCat1Name("");
-              } else if (value === "") {
-                setAddCat1Mode(false);
-                setSelectedCat1ForAdd(null);
-              } else {
-                setAddCat1Mode(false);
-                setSelectedCat1ForAdd(parseInt(value));
-              }
-              // 중분류가 바뀌면 아래 선택은 의미가 없어진다
-              setAddCat2Mode(false);
-              setNewCat2Name("");
-            }}
-            placeholder="(중분류)"
-          />
-
-          {addCat1Mode && (
-            <div className="cat23-input-row">
-              <input
-                className="cat-input"
-                placeholder="(새 중분류)"
-                value={newCat1Name}
-                onChange={(e) => setNewCat1Name(e.target.value)}
-              />
+          {/* 중분류·소분류는 한 줄에 나란히. 새로 만드는 중이면 고르는 칸이
+              있던 그 자리가 이름 칸으로 바뀐다 — 줄이 늘었다 줄었다 하지 않는다 */}
+          <div className="set-add-form__pair">
+            <div className="set-add-form__slot">
+              {addCat1Mode ? (
+                <input
+                  className="cat-input"
+                  placeholder="(새 중분류)"
+                  value={newCat1Name}
+                  onChange={(e) => setNewCat1Name(e.target.value)}
+                />
+              ) : (
+                <SingleSelect
+                  noun="중분류"
+                  options={[
+                    { value: "NEW", label: "[+] 새 항목 추가" },
+                    { value: "", label: "(중분류)" },
+                    ...cat1.map(c => ({ value: String(c.cat1_id), label: c.cat1_name })),
+                  ]}
+                  selected={selectedCat1ForAdd ? String(selectedCat1ForAdd) : ""}
+                  onChange={(value) => {
+                    if (value === "NEW") {
+                      setAddCat1Mode(true);
+                      setNewCat1Name("");
+                    } else if (value === "") {
+                      setAddCat1Mode(false);
+                      setSelectedCat1ForAdd(null);
+                    } else {
+                      setAddCat1Mode(false);
+                      setSelectedCat1ForAdd(parseInt(value));
+                    }
+                    // 중분류가 바뀌면 아래 선택은 의미가 없어진다
+                    setAddCat2Mode(false);
+                    setNewCat2Name("");
+                  }}
+                  placeholder="(중분류)"
+                />
+              )}
             </div>
-          )}
 
-          {/* 소분류 — 기존 것을 고르면 그 아래에 세분류가 붙고,
-              [+] 새 항목 추가를 고르면 이름을 직접 적는다.
-              중분류를 새로 만드는 중이면 고를 기존 소분류가 없으므로 입력칸만 둔다. */}
-          {selectedCat1ForAdd && !addCat1Mode && (
-            <SingleSelect
-              noun="소분류"
-              options={[
-                { value: "NEW", label: "[+] 새 항목 추가" },
-                { value: "", label: "(소분류)" },
-                ...cat2
-                  .filter(c => c.cat1_id === selectedCat1ForAdd)
-                  .map(c => ({ value: c.cat2_name, label: c.cat2_name })),
-              ]}
-              selected={addCat2Mode ? "NEW" : newCat2Name}
-              onChange={(value) => {
-                if (value === "NEW") {
-                  setAddCat2Mode(true);
-                  setNewCat2Name("");
-                } else {
-                  setAddCat2Mode(false);
-                  setNewCat2Name(value);
-                }
-              }}
-              placeholder="(소분류)"
+            <div className="set-add-form__slot">
+              {addCat1Mode || addCat2Mode ? (
+                <input
+                  className="cat-input"
+                  placeholder="(새 소분류)"
+                  value={newCat2Name}
+                  onChange={(e) => setNewCat2Name(e.target.value)}
+                />
+              ) : (
+                <SingleSelect
+                  noun="소분류"
+                  options={[
+                    ...(selectedCat1ForAdd
+                      ? [{ value: "NEW", label: "[+] 새 항목 추가" }]
+                      : []),
+                    { value: "", label: "(소분류)" },
+                    ...cat2
+                      .filter(c => c.cat1_id === selectedCat1ForAdd)
+                      .map(c => ({ value: c.cat2_name, label: c.cat2_name })),
+                  ]}
+                  selected={newCat2Name}
+                  onChange={(value) => {
+                    if (value === "NEW") {
+                      setAddCat2Mode(true);
+                      setNewCat2Name("");
+                    } else {
+                      setAddCat2Mode(false);
+                      setNewCat2Name(value);
+                    }
+                  }}
+                  placeholder="(소분류)"
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="set-add-form__tail">
+            <input
+              className="cat-input"
+              placeholder="(새 세분류)"
+              value={newCat3Name}
+              onChange={(e) => setNewCat3Name(e.target.value)}
             />
-          )}
-
-          {(addCat1Mode || addCat2Mode) && (
-            <div className="cat23-input-row">
-              <input
-                className="cat3-input"
-                placeholder="(새 소분류)"
-                value={newCat2Name}
-                onChange={(e) => setNewCat2Name(e.target.value)}
-              />
-            </div>
-          )}
-
-          {(addCat1Mode || selectedCat1ForAdd) && (
-            <div className="cat23-input-row">
-              <input
-                className="cat3-input"
-                placeholder="(새 세분류)"
-                value={newCat3Name}
-                onChange={(e) => setNewCat3Name(e.target.value)}
-              />
-            </div>
-          )}
-
-          <div className="btn-row">
             <button className="ui-btn" onClick={handleAdd}>추가</button>
           </div>
         </div>

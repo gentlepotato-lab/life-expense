@@ -15,6 +15,7 @@
 import type { Row } from "./calendarFilter";
 import { formatDateLabel } from "./dateGroup";
 import { manwon } from "./amount";
+import { standsOf, PRAISE_FROM_DAY, type Goal } from "./goalStand";
 
 /** 잔소리 한 줄이 딸린 자리 */
 export type Level = "bad" | "watch" | "good";
@@ -70,6 +71,8 @@ export type NudgeSource = {
   pending: (Cats & { key: string; date: string; name: string; amount: number; memo?: string; blur?: boolean })[];
   /** 앞으로 일주일 안에 빠져나갈 정기 지출 */
   upcoming: (Cats & { key: string; name: string; amount: number; date: string; memo?: string })[];
+  /** 걸어 둔 분류별 목표 — 안쓴이 도전 */
+  goals: Goal[];
   /** 실적 구간을 적어 둔 카드 */
   cards: {
     key: string;
@@ -380,6 +383,59 @@ export function buildNudges(src: NudgeSource): Nudge[] {
         }
       )
     );
+  });
+
+  /* ⑧ 분류별 목표 — 안쓴이 도전.
+     달이 끝나야 이겼는지 알 수 있으니, 달 중에는 세 갈래로 말한다 —
+     이미 넘겼다 · 이대로면 넘긴다 · 잘 지키는 중.
+     칭찬은 달 후반에만 한다. 3일차에 "목표까지 47만 원 남았습니다" 는
+     아무 말도 아니고, 목표를 여럿 걸어 두면 칭찬만으로 화면이 차버린다. */
+  standsOf(src.goals, rows, today).forEach((st) => {
+    const items = [...st.rows]
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .map((r) => asItem(r as NRow));
+    const common = {
+      blur: st.rows.some((r) => isMasked(r as NRow)),
+      items,
+      link: "expense" as const,
+    };
+    const head = `${st.goal.path}, 목표 ${manwon(st.goal.amount)}`;
+
+    if (st.over) {
+      out.push(
+        line(
+          `goal-${st.goal.goal_id}`,
+          "bad",
+          `${head}을 ${won(-st.left)} 넘겼습니다`,
+          `이번 달 ${won(st.spent)}`,
+          common
+        )
+      );
+      return;
+    }
+    if (st.willOver) {
+      out.push(
+        line(
+          `goal-${st.goal.goal_id}`,
+          "bad",
+          `${st.goal.path}, 이대로면 이번 달에 목표를 넘깁니다`,
+          `${day}일까지 ${won(st.spent)} · 이대로면 ${won(st.pace)} · 목표 ${manwon(st.goal.amount)}`,
+          common
+        )
+      );
+      return;
+    }
+    if (day >= PRAISE_FROM_DAY) {
+      out.push(
+        line(
+          `goal-${st.goal.goal_id}`,
+          "good",
+          `${st.goal.path}, 목표까지 ${won(st.left)} 남았습니다`,
+          `이번 달 ${won(st.spent)} · 목표 ${manwon(st.goal.amount)}`,
+          common
+        )
+      );
+    }
   });
 
   const order: Record<Level, number> = { bad: 0, watch: 1, good: 2 };

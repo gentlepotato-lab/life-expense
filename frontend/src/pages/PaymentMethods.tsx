@@ -496,7 +496,6 @@ export default function PaymentMethods() {
           <div className="set-add-form set-add-form--col set-draft">
             <div className="set-draft__head">
               <span className="set-draft__name">새 항목</span>
-              <span className="set-draft__hint">구분은 비워 두어도 됩니다.</span>
             </div>
 
             <div className="set-add-form__row">
