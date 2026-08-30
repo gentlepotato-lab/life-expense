@@ -11119,3 +11119,75 @@ input.goal-row__memo {
 .cal__cell--pick {
   touch-action: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   94. 씀씀이 — 편집 모드 (2026-08-30)
+   ─────────────────────────────────────────────────────────────
+   그림 카드를 끌어 옮기고 감춘다. 그림 안쪽은 건드리지 않고 카드 맨 위에
+   한 줄만 더한다 — 손잡이 · 이름 · 감추기.
+
+   [편집] 은 다른 설정 화면처럼 툴바 오른쪽 끝에 선다. 필터 알약과 높이를
+   맞춰 두 단추가 오르내리지 않게 한다.
+
+   끌 때 화면이 먼저 굴러가면 어디에 놓을지 겨눌 수 없어, 편집 모드의 카드에
+   한해 굴림을 끈다.
+   ═════════════════════════════════════════════════════════════ */
+
+.chart-edit__btn {
+  flex: 0 0 auto;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 12px;
+  font-size: var(--font-size-xs);
+}
+
+/* 편집 줄은 카드 위에 덮어 씌운다 — 흐름에서 자리를 차지하면 [편집] 을
+   누르는 순간 카드가 그만큼 자라 아래가 통째로 밀린다. 덮개로 두면
+   일반 모드와 편집 모드의 카드 크기가 한 픽셀도 다르지 않다.
+
+   자리는 한가운데다. 카드 머리말의 오른쪽은 카드마다 다르게 차 있고
+   (중분류별은 파고들기 단추, 추이는 개월 수 손잡이) 왼쪽에는 이름이 있어,
+   어느 구석에 붙여도 카드에 따라 겹친다. */
+.chart-card.is-editing {
+  position: relative;
+  border-style: dashed;
+  border-color: var(--color-primary);
+}
+
+.chart-edit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  border-radius: inherit;
+  /* 그림이 비쳐 보일 만큼만 — 어느 카드를 쥐고 있는지는 알아야 한다 */
+  background: rgba(255, 255, 255, 0.66);
+}
+
+/* 굴림을 막는 것은 손잡이 하나뿐이다. 카드에 걸면 편집 모드에서 화면이
+   통째로 굴러가지 않는다 — 씀씀이는 한 화면에 다 들어가지 않는 화면이다.
+   설정 화면들의 손잡이가 쓰는 방식과 같다. */
+.chart-edit > .drag-handle {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+  touch-action: none;
+}
+
+/* 끄는 동안에는 살짝 들린다 — 어느 것을 쥐고 있는지 보이게 */
+.chart-card.is-dragging {
+  z-index: 2;
+  opacity: 0.9;
+  box-shadow: var(--shadow-md);
+}
+
+/* 감춘 카드는 편집 모드에서만 남는다. 되살릴 수 있도록 흐리게 둔다 */
+.chart-card.is-hidden-card {
+  opacity: 0.45;
+}

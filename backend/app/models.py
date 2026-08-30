@@ -437,3 +437,20 @@ class CategoryGoal(Base):
     memo = Column(String(200))
     sort_order = Column(Integer, nullable=False, default=0)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class ChartCard(Base):
+    """
+    씀씀이 화면의 그림 카드 — 차례와 켜짐.
+
+    그림 자체는 코드가 들고 있고 표에는 열쇠와 차례만 담는다. 그래야 그림을
+    새로 만들거나 고쳐도 표를 건드릴 일이 없다.
+    """
+    __tablename__ = "chart_cards"
+
+    card_key = Column(String(40), primary_key=True)
+    sort_order = Column(Integer, nullable=False, default=0)
+    is_active = Column(SmallInteger, nullable=False, default=1)
+    # 1이면 반 칸, 2면 한 줄을 다 쓴다. 좁은 화면은 이 값과 상관없이 한 줄에 하나씩이다
+    span = Column(SmallInteger, nullable=False, default=1)
+    created_at = Column(TIMESTAMP, server_default=func.now())

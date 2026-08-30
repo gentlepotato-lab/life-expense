@@ -20,6 +20,18 @@ import useRevealDrag from "../hooks/useRevealDrag";
 import useBackClose from "../hooks/useBackClose";
 import QuickActions from "./components/QuickActions";
 import EntryFilterPopup from "./components/EntryFilterPopup";
+import type { DragEndEvent } from "@dnd-kit/core";
+import { apiErrorMessage } from "../utils/apiError";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   EMPTY_FILTER,
   blurSetsFrom,
@@ -207,6 +219,97 @@ const TIP_PROPS = {
   wrapperStyle: { outline: "none" },
 };
 
+/** 그림 카드 하나가 들고 있는 것 — 껍데기는 ChartCardBox 가 씌운다 */
+type CardDef = { key: string; name: string; node: React.ReactNode };
+
+/* 카드 열쇠와 그 차례. 그림은 달마다 새로 그려지지만 열쇠는 그대로라
+   바깥에 둔다 — 안에 두면 그릴 때마다 새 배열이 되어 훅이 헛돈다 */
+const CARD_KEYS = ["daily", "cumulative", "trend", "cat1", "pay", "weekday"];
+
+/* 처음 넓이 — 사람이 고치기 전까지 쓰는 값. 가로로 긴 그림은 한 줄을 다 쓴다 */
+const CARD_WIDE = ["daily", "cumulative", "trend", "weekday"];
+
+/**
+ * 그림 카드 한 장.
+ *
+ * 평소에는 예전과 똑같은 <section> 하나다. 편집 모드에서만 위에 한 줄이
+ * 생겨 손잡이와 감추기가 나온다 — 그림 안쪽은 건드리지 않는다.
+ *
+ * 끌어 옮기기는 편집 모드에서만 산다. 그림 위에는 이미 손짓이 있어
+ * (도넛 누르기 · 막대 눌러 파고들기) 평소에도 끌리면 서로 밟는다.
+ */
+function ChartCardBox({
+  def,
+  editMode,
+  hidden,
+  wide,
+  onToggleHide,
+  onToggleWide,
+}: {
+  def: CardDef;
+  editMode: boolean;
+  hidden: boolean;
+  /** 한 줄을 다 쓰는가. 좁은 화면에서는 어차피 한 줄에 하나씩이라 뜻이 없다 */
+  wide: boolean;
+  onToggleHide: () => void;
+  onToggleWide: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: def.key,
+    disabled: !editMode,
+  });
+
+  return (
+    <section
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={
+        "chart-card" +
+        (wide ? " chart-card--wide" : "") +
+        (editMode ? " is-editing" : "") +
+        (hidden ? " is-hidden-card" : "") +
+        (isDragging ? " is-dragging" : "")
+      }
+    >
+      {editMode && (
+        <div className="chart-edit">
+          <button
+            type="button"
+            className="drag-handle"
+            aria-label={`${def.name} 자리 옮기기`}
+            {...attributes}
+            {...listeners}
+          >
+            ⋮⋮
+          </button>
+          <button
+            type="button"
+            className="set-hide-btn"
+            onClick={onToggleWide}
+            title={
+              wide
+                ? "한 줄을 다 쓰고 있다. 눌러서 반 칸으로."
+                : "반 칸을 쓰고 있다. 눌러서 한 줄 전체로."
+            }
+          >
+            {wide ? "한 줄" : "반 칸"}
+          </button>
+          <button
+            type="button"
+            className={`set-hide-btn${hidden ? " on" : ""}`}
+            onClick={onToggleHide}
+            title={hidden ? "다시 보이게 한다." : "감춘다 — 씀씀이에서 빠진다."}
+          >
+            {hidden ? "감춤" : "감추기"}
+          </button>
+        </div>
+      )}
+
+      {def.node}
+    </section>
+  );
+}
+
 export default function Charts() {
   const [yearMonth, setYearMonth] = useState(() => {
     const d = new Date();
@@ -229,6 +332,15 @@ export default function Charts() {
   const [excludeOn, setExcludeOn] = useState(true);
 
   const [filterOpen, setFilterOpen] = useState(false);
+
+  /* 그림 카드의 차례와 감춤 — 다른 설정 화면처럼 [편집] 을 눌러야 손댈 수 있다 */
+  const [editMode, setEditMode] = useState(false);
+  const [cardOrder, setCardOrder] = useState<string[]>([]);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  /* 한 줄을 다 쓰는 카드. 처음 값은 코드가 적어 둔 것을 따른다 */
+  const [wideSet, setWideSet] = useState<Set<string>>(new Set());
+  /* [편집] 을 누른 순간의 모습 — 바뀐 것이 없으면 그렇게 알린다 */
+  const [beforeEdit, setBeforeEdit] = useState("");
   const [filter, setFilter] = useState<Filter>(EMPTY_FILTER);
   const [appliedFilter, setAppliedFilter] = useState<Filter>(EMPTY_FILTER);
 
@@ -683,6 +795,385 @@ export default function Charts() {
   );
   const empty = shown.length === 0;
 
+  /* 그림 카드 여섯. 코드가 적어 둔 이 차례가 기본값이고, 사람이 바꾼 차례는
+     서버에 담아 두었다가 덮어쓴다. 껍데기(카드 틀·손잡이)는 ChartCardBox 가
+     맡으므로 여기에는 안쪽 그림만 든다 */
+  const CARD_DEFS: CardDef[] = [
+    {
+      key: "daily",
+      name: "날짜별",
+      node: (
+        <>
+              <header className="chart-card__head">
+                <h3 className="chart-card__title">날짜별</h3>
+              </header>
+              <div className="chart-card__body">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={byDay} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
+                    <XAxis dataKey="day" tick={AXIS} tickLine={false} axisLine={false} interval={4} />
+                    <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
+                    <Tooltip {...TIP_PROPS} content={<Tip suffix="일" />} />
+                    <Bar dataKey="지출" fill={SPEND} radius={[4, 4, 0, 0]} maxBarSize={18} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+        </>
+      ),
+    },
+    {
+      key: "cumulative",
+      name: "누적",
+      node: (
+        <>
+              <header className="chart-card__head">
+                <h3 className="chart-card__title">누적</h3>
+              </header>
+              <div className="chart-card__body chart-card__body--short">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={byDay} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
+                    <defs>
+                      <linearGradient id="acc-fill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={ACC} stopOpacity={0.28} />
+                        <stop offset="100%" stopColor={ACC} stopOpacity={0.03} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="day" tick={AXIS} tickLine={false} axisLine={false} interval={4} />
+                    <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
+                    <Tooltip {...TIP_PROPS} cursor={{ stroke: WEEKDAY, strokeWidth: 2 }} content={<Tip suffix="일까지" />} />
+                    <Area
+                      type="monotone"
+                      dataKey="누적"
+                      stroke={ACC}
+                      strokeWidth={3}
+                      strokeLinecap="round"
+                      fill="url(#acc-fill)"
+                      activeDot={{ r: 5, strokeWidth: 2, stroke: "#FFFFFF" }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+        </>
+      ),
+    },
+    {
+      key: "trend",
+      name: "추이",
+      node: (
+        <>
+              <header className="chart-card__head">
+                <h3 className="chart-card__title">{monthCount}개월 추이</h3>
+                <span className="chart-range-wrap">
+                  <span className="chart-range__end">최근 {TREND_MIN}개월</span>
+                  <input
+                    type="range"
+                    className="chart-range"
+                    min={TREND_MIN}
+                    max={TREND_MAX}
+                    step={1}
+                    value={monthCount}
+                    onChange={(e) => setMonthCount(Number(e.target.value))}
+                    aria-label="볼 개월 수"
+                  />
+                  <span className="chart-range__end">{TREND_MAX}개월</span>
+                </span>
+              </header>
+              <div className="chart-card__body">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={byMonth} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
+                    <XAxis
+                      dataKey="ym"
+                      tick={AXIS}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v: string) => `${Number(String(v).slice(5))}월`}
+                    />
+                    <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
+                    <Tooltip
+                      {...TIP_PROPS}
+                      content={<Tip labelFormat={(v) => `${String(v).slice(0, 4)}. ${Number(String(v).slice(5))}.`} />}
+                    />
+                    <Line
+                      type="linear"
+                      dataKey="지출"
+                      /* 열두 달을 훑는 그림이라 이 달을 말하는 그림들과 톤을 갈라 둔다.
+                         팔레트의 회색은 갈래 색이 아니라 눈에 덜 띄어야 하는 자리의 것이다. */
+                      stroke={ETC_COLOR}
+                      strokeWidth={3}
+                      strokeLinejoin="miter"
+                      dot={{ r: 4, fill: ETC_COLOR, stroke: "#FFFFFF", strokeWidth: 2 }}
+                      activeDot={{ r: 6, strokeWidth: 2, stroke: "#FFFFFF" }}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+        </>
+      ),
+    },
+    {
+      key: "cat1",
+      name: "중분류별",
+      node: (
+        <>
+              <header className="chart-card__head chart-card__head--drill">
+                <h3 className="chart-card__title">중분류별</h3>
+                {/* 고른 것이 없어도 자리는 늘 잡아 둔다 — 단추가 나타났다 사라질 때마다.
+                    머리말 높이가 달라지면 아래 그림이 그만큼 들썩인다. */}
+                <button
+                  type="button"
+                  className={`chart-drill-btn${ready ? "" : " is-empty"}`}
+                  onClick={() => setDrillOpen(true)}
+                  disabled={!ready}
+                  aria-hidden={!ready}
+                  tabIndex={ready ? 0 : -1}
+                >
+                  <span
+                    className="chart-legend__key"
+                    style={{ background: pickedCat?.color ?? "transparent" }}
+                    aria-hidden="true"
+                  />
+                  {pickedCat?.name ?? ""}
+                  <span className="chart-drill-btn__caret" aria-hidden="true">
+                    ›
+                  </span>
+                </button>
+              </header>
+              <div className="chart-donut">
+                <div className="chart-donut__plot">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={byCat}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius="52%"
+                        outerRadius="94%"
+                        cornerRadius={6}
+                        paddingAngle={2}
+                        stroke="none"
+                        isAnimationActive={false}
+                        className="chart-pie--pickable"
+                        onClick={(slice: { name?: string; color?: string }) => {
+                          /* "기타"는 여러 갈래를 묶은 것이라 더 쪼갤 것이 없다. */
+                          if (!slice?.name || slice.name === "기타") return;
+                          setPickedCat((prev) =>
+                            prev?.name === slice.name
+                              ? null
+                              : { name: slice.name as string, color: slice.color ?? ETC_COLOR }
+                          );
+                        }}
+                      >
+                        {byCat.map((c) => (
+                          <Cell key={c.name} fill={c.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip {...TIP_PROPS} cursor={false} content={<Tip useSliceName />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <ul className="chart-legend">
+                  {byCat.map((c) => (
+                    <li key={c.name} className="chart-legend__row">
+                      <span className="chart-legend__key" style={{ background: c.color }} />
+                      <span className="chart-legend__name">{c.name}</span>
+                      <span className="chart-legend__pct">
+                        {catTotal ? Math.round((c.value / catTotal) * 100) : 0}%
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+        </>
+      ),
+    },
+    {
+      key: "pay",
+      name: "결제 수단별",
+      node: (
+        <>
+              <header className="chart-card__head">
+                <h3 className="chart-card__title">결제 수단별</h3>
+              </header>
+              <div
+                className="chart-card__body chart-card__body--rows"
+                style={{ "--rows": byPay.length } as React.CSSProperties}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={byPay}
+                    layout="vertical"
+                    margin={{ top: 0, right: wide ? 64 : 10, bottom: 0, left: 0 }}
+                  >
+                    <XAxis type="number" hide />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tick={{ ...AXIS, fill: "#6C757D" }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={wide ? 124 : 82}
+                      tickFormatter={(v: string) => {
+                        const max = wide ? 13 : 9;
+                        return v.length <= max ? v : `${v.slice(0, max - 1)}…`;
+                      }}
+                    />
+                    <Tooltip {...TIP_PROPS} content={<Tip />} />
+                    <Bar dataKey="value" name="지출" radius={[0, 8, 8, 0]} maxBarSize={22}>
+                      {byPay.map((p) => (
+                        <Cell key={p.name} fill={p.color} />
+                      ))}
+                      {/* 자리가 넉넉할 때만 값을 적는다. 좁으면 눌러서 본다. */}
+                      {wide && (
+                        <LabelList
+                          dataKey="value"
+                          position="right"
+                          offset={8}
+                          formatter={(v: unknown) => shortWon(Number(v))}
+                          style={{ fontSize: 14, fontWeight: 700, fill: "#6C757D" }}
+                        />
+                      )}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+        </>
+      ),
+    },
+    {
+      key: "weekday",
+      name: "요일별",
+      node: (
+        <>
+              <header className="chart-card__head">
+                <h3 className="chart-card__title">요일별</h3>
+              </header>
+              <div className="chart-card__body chart-card__body--short">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={byDow} margin={{ top: wide ? 18 : 8, right: 6, bottom: 0, left: -6 }}>
+                    <XAxis dataKey="요일" tick={AXIS} tickLine={false} axisLine={false} />
+                    <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
+                    <Tooltip {...TIP_PROPS} content={<Tip suffix="요일" />} />
+                    <Bar dataKey="지출" radius={[8, 8, 0, 0]} maxBarSize={44}>
+                      {byDow.map((d) => (
+                        <Cell key={d.요일} fill={d.color} />
+                      ))}
+                      {wide && (
+                        <LabelList
+                          dataKey="지출"
+                          position="top"
+                          offset={6}
+                          formatter={(v: unknown) => (Number(v) ? shortWon(Number(v)) : "")}
+                          style={{ fontSize: 14, fontWeight: 700, fill: "#6C757D" }}
+                        />
+                      )}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+        </>
+      ),
+    },
+  ];
+
+  /* 끌기는 편집 모드에서만 산다. 설정 화면들이 쓰는 것과 같은 감지기다 */
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 160, tolerance: 6 } })
+  );
+
+  /* 담아 둔 차례와 감춤을 받아 온다. 표에 없는 카드는 코드가 적어 둔
+     차례 그대로 맨 뒤에 선다 — 그림을 새로 만들어도 저절로 따라온다 */
+  useEffect(() => {
+    axios
+      .get("/charts/cards")
+      .then((r) => {
+        const rows = r.data as { card_key: string; is_active: number; span: number }[];
+        const saved = rows.map((x) => x.card_key).filter((k) => CARD_KEYS.includes(k));
+        setCardOrder([...saved, ...CARD_KEYS.filter((k) => !saved.includes(k))]);
+        setHidden(new Set(rows.filter((x) => !x.is_active).map((x) => x.card_key)));
+        /* 담아 둔 것이 있으면 그것을, 없으면 코드가 적어 둔 넓이를 쓴다 */
+        setWideSet(
+          new Set(
+            CARD_KEYS.filter((k) => {
+              const row = rows.find((x) => x.card_key === k);
+              return row ? row.span >= 2 : CARD_WIDE.includes(k);
+            })
+          )
+        );
+      })
+      .catch(() => {
+        setCardOrder(CARD_KEYS);
+        setWideSet(new Set(CARD_WIDE));
+      });
+  }, []);
+
+  /* 그릴 카드 — 평소에는 감춘 것을 빼고, 편집 모드에서는 되살릴 수 있도록 남긴다.
+     여섯 장뿐이라 따로 기억해 둘 것 없이 그때그때 고른다 */
+  const byKey = new Map(CARD_DEFS.map((c) => [c.key, c]));
+  const shownCards = (cardOrder.map((k) => byKey.get(k)).filter(Boolean) as CardDef[])
+    .filter((c) => editMode || !hidden.has(c.key));
+
+  const onCardDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setCardOrder((prev) => {
+      const from = prev.indexOf(String(active.id));
+      const to = prev.indexOf(String(over.id));
+      if (from < 0 || to < 0) return prev;
+      const next = [...prev];
+      next.splice(to, 0, next.splice(from, 1)[0]);
+      return next;
+    });
+  };
+
+  const toggleWide = (key: string) =>
+    setWideSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const toggleHide = (key: string) =>
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const stamp = (order: string[], off: Set<string>, big: Set<string>) =>
+    JSON.stringify(order.map((k) => [k, off.has(k) ? 0 : 1, big.has(k) ? 2 : 1]));
+
+  /* 다른 설정 화면과 같은 흐름 — [편집] 으로 열고 [저장] 으로 담는다 */
+  const toggleEdit = async () => {
+    if (!editMode) {
+      setBeforeEdit(stamp(cardOrder, hidden, wideSet));
+      setEditMode(true);
+      return;
+    }
+    if (stamp(cardOrder, hidden, wideSet) === beforeEdit) {
+      alert("변경된 내용이 없습니다만...?");
+      setEditMode(false);
+      return;
+    }
+    try {
+      await axios.post(
+        "/charts/cards",
+        cardOrder.map((k) => ({
+          card_key: k,
+          is_active: hidden.has(k) ? 0 : 1,
+          span: wideSet.has(k) ? 2 : 1,
+        }))
+      );
+      setEditMode(false);
+    } catch (err) {
+      alert(apiErrorMessage(err));
+    }
+  };
+
+
   /* [적용]을 누르지 않고 닫으면 고치던 값은 버린다. */
   const closeFilter = useCallback(() => {
     setFilter(appliedFilter);
@@ -713,6 +1204,11 @@ export default function Charts() {
               title={isFilterActive ? "필터가 걸려 있다. 눌러서 고친다." : "필터"}
             >
               필터
+            </button>
+
+            {/* 다른 설정 화면과 같은 자리 — 툴바 오른쪽 끝 */}
+            <button type="button" className="ui-btn primary chart-edit__btn" onClick={toggleEdit}>
+              {editMode ? "저장" : "편집"}
             </button>
           </div>
         </div>
@@ -872,262 +1368,26 @@ export default function Charts() {
         </div>
       </div>
 
-
       {empty ? (
         <p className="page-empty">지출 내역이 없습니다.</p>
       ) : (
-        <div className="chart-grid">
-          {/* ─── 날짜별 ───────────────────────────────────────── */}
-          <section className="chart-card chart-card--wide">
-            <header className="chart-card__head">
-              <h3 className="chart-card__title">날짜별</h3>
-            </header>
-            <div className="chart-card__body">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={byDay} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
-                  <XAxis dataKey="day" tick={AXIS} tickLine={false} axisLine={false} interval={4} />
-                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
-                  <Tooltip {...TIP_PROPS} content={<Tip suffix="일" />} />
-                  <Bar dataKey="지출" fill={SPEND} radius={[4, 4, 0, 0]} maxBarSize={18} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-
-          {/* ─── 누적 ────────────────────────────────────────── */}
-          <section className="chart-card chart-card--wide">
-            <header className="chart-card__head">
-              <h3 className="chart-card__title">누적</h3>
-            </header>
-            <div className="chart-card__body chart-card__body--short">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={byDay} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
-                  <defs>
-                    <linearGradient id="acc-fill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={ACC} stopOpacity={0.28} />
-                      <stop offset="100%" stopColor={ACC} stopOpacity={0.03} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="day" tick={AXIS} tickLine={false} axisLine={false} interval={4} />
-                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
-                  <Tooltip {...TIP_PROPS} cursor={{ stroke: WEEKDAY, strokeWidth: 2 }} content={<Tip suffix="일까지" />} />
-                  <Area
-                    type="monotone"
-                    dataKey="누적"
-                    stroke={ACC}
-                    strokeWidth={3}
-                    strokeLinecap="round"
-                    fill="url(#acc-fill)"
-                    activeDot={{ r: 5, strokeWidth: 2, stroke: "#FFFFFF" }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-
-          {/* ─── 12개월 추이 ──────────────────────────────────── */}
-          <section className="chart-card chart-card--wide">
-            <header className="chart-card__head">
-              <h3 className="chart-card__title">{monthCount}개월 추이</h3>
-              <span className="chart-range-wrap">
-                <span className="chart-range__end">최근 {TREND_MIN}개월</span>
-                <input
-                  type="range"
-                  className="chart-range"
-                  min={TREND_MIN}
-                  max={TREND_MAX}
-                  step={1}
-                  value={monthCount}
-                  onChange={(e) => setMonthCount(Number(e.target.value))}
-                  aria-label="볼 개월 수"
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onCardDragEnd}>
+          <SortableContext items={cardOrder} strategy={rectSortingStrategy}>
+            <div className="chart-grid">
+              {shownCards.map((c) => (
+                <ChartCardBox
+                  key={c.key}
+                  def={c}
+                  editMode={editMode}
+                  hidden={hidden.has(c.key)}
+                  wide={wideSet.has(c.key)}
+                  onToggleHide={() => toggleHide(c.key)}
+                  onToggleWide={() => toggleWide(c.key)}
                 />
-                <span className="chart-range__end">{TREND_MAX}개월</span>
-              </span>
-            </header>
-            <div className="chart-card__body">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={byMonth} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
-                  <XAxis
-                    dataKey="ym"
-                    tick={AXIS}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v: string) => `${Number(String(v).slice(5))}월`}
-                  />
-                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
-                  <Tooltip
-                    {...TIP_PROPS}
-                    content={<Tip labelFormat={(v) => `${String(v).slice(0, 4)}. ${Number(String(v).slice(5))}.`} />}
-                  />
-                  <Line
-                    type="linear"
-                    dataKey="지출"
-                    /* 열두 달을 훑는 그림이라 이 달을 말하는 그림들과 톤을 갈라 둔다.
-                       팔레트의 회색은 갈래 색이 아니라 눈에 덜 띄어야 하는 자리의 것이다. */
-                    stroke={ETC_COLOR}
-                    strokeWidth={3}
-                    strokeLinejoin="miter"
-                    dot={{ r: 4, fill: ETC_COLOR, stroke: "#FFFFFF", strokeWidth: 2 }}
-                    activeDot={{ r: 6, strokeWidth: 2, stroke: "#FFFFFF" }}
-                    isAnimationActive={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              ))}
             </div>
-          </section>
-
-          {/* ─── 중분류별 ─────────────────────────────────────── */}
-          <section className="chart-card">
-            <header className="chart-card__head chart-card__head--drill">
-              <h3 className="chart-card__title">중분류별</h3>
-              {/* 고른 것이 없어도 자리는 늘 잡아 둔다 — 단추가 나타났다 사라질 때마다.
-                  머리말 높이가 달라지면 아래 그림이 그만큼 들썩인다. */}
-              <button
-                type="button"
-                className={`chart-drill-btn${ready ? "" : " is-empty"}`}
-                onClick={() => setDrillOpen(true)}
-                disabled={!ready}
-                aria-hidden={!ready}
-                tabIndex={ready ? 0 : -1}
-              >
-                <span
-                  className="chart-legend__key"
-                  style={{ background: pickedCat?.color ?? "transparent" }}
-                  aria-hidden="true"
-                />
-                {pickedCat?.name ?? ""}
-                <span className="chart-drill-btn__caret" aria-hidden="true">
-                  ›
-                </span>
-              </button>
-            </header>
-            <div className="chart-donut">
-              <div className="chart-donut__plot">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={byCat}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius="52%"
-                      outerRadius="94%"
-                      cornerRadius={6}
-                      paddingAngle={2}
-                      stroke="none"
-                      isAnimationActive={false}
-                      className="chart-pie--pickable"
-                      onClick={(slice: { name?: string; color?: string }) => {
-                        /* "기타"는 여러 갈래를 묶은 것이라 더 쪼갤 것이 없다. */
-                        if (!slice?.name || slice.name === "기타") return;
-                        setPickedCat((prev) =>
-                          prev?.name === slice.name
-                            ? null
-                            : { name: slice.name as string, color: slice.color ?? ETC_COLOR }
-                        );
-                      }}
-                    >
-                      {byCat.map((c) => (
-                        <Cell key={c.name} fill={c.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip {...TIP_PROPS} cursor={false} content={<Tip useSliceName />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              <ul className="chart-legend">
-                {byCat.map((c) => (
-                  <li key={c.name} className="chart-legend__row">
-                    <span className="chart-legend__key" style={{ background: c.color }} />
-                    <span className="chart-legend__name">{c.name}</span>
-                    <span className="chart-legend__pct">
-                      {catTotal ? Math.round((c.value / catTotal) * 100) : 0}%
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-
-          {/* ─── 결제 수단별 ──────────────────────────────────── */}
-          <section className="chart-card">
-            <header className="chart-card__head">
-              <h3 className="chart-card__title">결제 수단별</h3>
-            </header>
-            <div
-              className="chart-card__body chart-card__body--rows"
-              style={{ "--rows": byPay.length } as React.CSSProperties}
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={byPay}
-                  layout="vertical"
-                  margin={{ top: 0, right: wide ? 64 : 10, bottom: 0, left: 0 }}
-                >
-                  <XAxis type="number" hide />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    tick={{ ...AXIS, fill: "#6C757D" }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={wide ? 124 : 82}
-                    tickFormatter={(v: string) => {
-                      const max = wide ? 13 : 9;
-                      return v.length <= max ? v : `${v.slice(0, max - 1)}…`;
-                    }}
-                  />
-                  <Tooltip {...TIP_PROPS} content={<Tip />} />
-                  <Bar dataKey="value" name="지출" radius={[0, 8, 8, 0]} maxBarSize={22}>
-                    {byPay.map((p) => (
-                      <Cell key={p.name} fill={p.color} />
-                    ))}
-                    {/* 자리가 넉넉할 때만 값을 적는다. 좁으면 눌러서 본다. */}
-                    {wide && (
-                      <LabelList
-                        dataKey="value"
-                        position="right"
-                        offset={8}
-                        formatter={(v: unknown) => shortWon(Number(v))}
-                        style={{ fontSize: 14, fontWeight: 700, fill: "#6C757D" }}
-                      />
-                    )}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-
-          {/* ─── 요일별 ───────────────────────────────────────── */}
-          <section className="chart-card chart-card--wide">
-            <header className="chart-card__head">
-              <h3 className="chart-card__title">요일별</h3>
-            </header>
-            <div className="chart-card__body chart-card__body--short">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={byDow} margin={{ top: wide ? 18 : 8, right: 6, bottom: 0, left: -6 }}>
-                  <XAxis dataKey="요일" tick={AXIS} tickLine={false} axisLine={false} />
-                  <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
-                  <Tooltip {...TIP_PROPS} content={<Tip suffix="요일" />} />
-                  <Bar dataKey="지출" radius={[8, 8, 0, 0]} maxBarSize={44}>
-                    {byDow.map((d) => (
-                      <Cell key={d.요일} fill={d.color} />
-                    ))}
-                    {wide && (
-                      <LabelList
-                        dataKey="지출"
-                        position="top"
-                        offset={6}
-                        formatter={(v: unknown) => (Number(v) ? shortWon(Number(v)) : "")}
-                        style={{ fontSize: 14, fontWeight: 700, fill: "#6C757D" }}
-                      />
-                    )}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-        </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {/* 필터 — 달력과 같은 부품을 쓴다. */}

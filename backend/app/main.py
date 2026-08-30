@@ -6,6 +6,7 @@ load_dotenv()
 
 from app.routers import (
     categories,
+    charts,
     counterparts,
     entries,
     goals,
@@ -82,6 +83,7 @@ app.include_router(categories.router, prefix=f"{API}/categories", tags=["categor
 app.include_router(payment_methods.router, prefix=f"{API}/payment-methods", tags=["payment_methods"])
 app.include_router(counterparts.router, prefix=f"{API}/counterparts", tags=["counterparts"])
 app.include_router(goals.router, prefix=f"{API}/goals", tags=["goals"])
+app.include_router(charts.router, prefix=f"{API}/charts", tags=["charts"])
 app.include_router(entries.router, prefix=f"{API}/entries", tags=["entries"])
 app.include_router(pending_entries.router, prefix=f"{API}/pending-entries", tags=["pending_entries"])
 app.include_router(scheduled_entries.router, prefix=f"{API}/scheduled-entries", tags=["scheduled_entries"])
