@@ -2,9 +2,9 @@
  * 구분에 쓰는 색 팔레트.
  *
  * DB 에는 헥사값이 아니라 여기 적힌 토큰 이름('indigo' 등)만 담는다.
- * 나중에 색감을 손볼 때 화면만 고치면 되고 DB 는 건드릴 필요가 없다.
+ * 나중에 색감을 손볼 때 화면만 고치면 되고 DB는 건드릴 필요가 없다.
  *
- * 순서는 backend/app/routers/counterparts.py 의 PALETTE 와 같아야 한다.
+ * 순서는 backend/app/routers/counterparts.py의 PALETTE와 같아야 한다.
  * 구분을 새로 만들 때 서버가 이 순서대로 아직 안 쓰인 색을 골라 준다.
  */
 export type ColorToken = {
@@ -29,6 +29,6 @@ export const COLOR_TOKENS: ColorToken[] = [
 
 const BY_KEY = new Map(COLOR_TOKENS.map((t) => [t.key, t]));
 
-/** 토큰 이름 → 색. 모르는 이름이면 회색으로 떨어진다 */
+/** 토큰 이름 → 색. 모르는 이름이면 회색으로 떨어진다. */
 export const colorOf = (key: string | null | undefined): string =>
   (key && BY_KEY.get(key)?.solid) || "#98A2B3";

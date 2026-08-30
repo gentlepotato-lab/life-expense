@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
 import SingleSelect from "./components/SingleSelect";
@@ -22,6 +22,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import QuickActions from "./components/QuickActions";
+import CardTierModal, { type BenefitHint, type TierDraft } from "./components/CardTierModal";
+import { manwon } from "../utils/amount";
 
 function SortableItem({ id, children, dragHandle = false }: any) {
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -59,13 +61,128 @@ type Category = {
   sort_order: number;
 };
 
-/** 드롭다운에서 "새로 만들기" 를 뜻하는 값 */
+/** 이 구분에 든 것만 실적 구간을 적을 수 있다 — 씀씀이의 카드 실적과 같은 잣대다. */
+const CARD_CATEGORY = "카드";
+
+/** 드롭다운에서 "새로 만들기"를 뜻하는 값 */
 const NEW_CATEGORY = "__new__";
 
 const groupLabel = (c: Category | null) => c?.name ?? "구분 없음";
 
 export default function PaymentMethods() {
   const [editMode, setEditMode] = useState(false);
+  /* 펼쳐 둔 카드와 그 카드의 실적 구간 */
+  const [openCards, setOpenCards] = useState<Set<number>>(new Set());
+  const [tiers, setTiers] = useState<Record<number, TierDraft[]>>({});
+  const [tierOf, setTierOf] = useState<
+    { method: { method_id: number; method_name: string }; index: number; draft: TierDraft | null } | null
+  >(null);
+
+  /**
+   * 연회비는 칸을 떠날 때 그 카드만 따로 저장한다.
+   * 이름·구분과 함께 저장(편집 → 저장)에 태우면 줄을 펼쳐 놓고 고칠 수가 없다 —
+   * 펼치기는 편집 모드가 아닐 때만 되기 때문이다.
+   */
+  const saveFee = async (methodId: number, value: string) => {
+    try {
+      await axios.post(`/payment-methods/${methodId}/annual-fee`, {
+        annual_fee: value.trim() === "" ? null : Number(value),
+      });
+    } catch (err) {
+      alert(apiErrorMessage(err));
+    }
+  };
+
+  const setFeeOf = (methodId: number, value: string) =>
+    setList((prev) =>
+      prev.map((x) => (x.method_id === methodId ? { ...x, annual_fee: value } : x))
+    );
+
+  /** 카드 한 장의 구간을 다시 읽는다. */
+  const loadTiers = async (methodId: number) => {
+    try {
+      type RawTarget = { area: string | null; stores: string };
+      type RawBenefit = {
+        content: string;
+        memo: string | null;
+        limit: number | null;
+        targets?: RawTarget[];
+      };
+      type RawTier = { threshold: number; benefits?: RawBenefit[] };
+
+      const r = await axios.get(`/payment-methods/${methodId}/tiers`);
+      setTiers((prev) => ({
+        ...prev,
+        [methodId]: (r.data as RawTier[]).map((t) => ({
+          threshold: String(Math.round(t.threshold)),
+          benefits: (t.benefits ?? []).map((b) => ({
+            content: b.content ?? "",
+            memo: b.memo ?? "",
+            limit: b.limit == null ? "" : String(Math.round(b.limit)),
+            targets: (b.targets ?? []).map((x) => ({
+              area: x.area ?? "",
+              stores: x.stores ?? "",
+            })),
+          })),
+        })),
+      }));
+    } catch {
+      setTiers((prev) => ({ ...prev, [methodId]: [] }));
+    }
+  };
+
+  /* 펼칠 때 처음 한 번만 받아 온다 — 카드가 몇 장뿐이라 미리 다 받을 이유가 없다. */
+  const toggleCard = (methodId: number) => {
+    setOpenCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(methodId)) next.delete(methodId);
+      else {
+        next.add(methodId);
+        if (!(methodId in tiers)) loadTiers(methodId);
+      }
+      return next;
+    });
+  };
+
+  /** 구간 하나를 지운다. 다른 항목을 지우는 것과 같이 바로 묻고 바로 지운다. */
+  const deleteTier = async (methodId: number, index: number) => {
+    if (!window.confirm("이 구간을 제거할까요?")) return;
+    const list = (tiers[methodId] ?? []).filter((_, i) => i !== index);
+    try {
+      await axios.post(
+        `/payment-methods/${methodId}/tiers`,
+        list.map((t) => ({ threshold: Number(t.threshold), benefits: t.benefits }))
+      );
+      await loadTiers(methodId);
+    } catch (err) {
+      alert(apiErrorMessage(err));
+    }
+  };
+
+  /**
+   * 팝업이 돌려준 구간 하나를 그 카드의 목록에 끼워 넣고 통째로 저장한다.
+   * 서버는 카드 한 장치를 갈아 끼우는 방식이라 늘 전부를 보낸다.
+   */
+  const saveTier = async (next: TierDraft) => {
+    if (!tierOf) return;
+    const id = tierOf.method.method_id;
+    const list = [...(tiers[id] ?? [])];
+    if (tierOf.index < 0) list.push(next);
+    else list[tierOf.index] = next;
+
+    try {
+      await axios.post(
+        `/payment-methods/${id}/tiers`,
+        [...list]
+          .sort((a, b) => Number(a.threshold) - Number(b.threshold))
+          .map((t) => ({ threshold: Number(t.threshold), benefits: t.benefits }))
+      );
+      setTierOf(null);
+      await loadTiers(id);
+    } catch (err) {
+      alert(apiErrorMessage(err));
+    }
+  };
   const [list, setList] = useState<any[]>([]);
   const [newName, setNewName] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -87,7 +204,7 @@ export default function PaymentMethods() {
   const [beforeEdit, setBeforeEdit] = useState<any[]>([]);
   const [beforeCategories, setBeforeCategories] = useState<Category[]>([]);
 
-  /* 뒤로 가기 · Backspace 로 편집을 무른다 — 편집 전 상태로 되돌린다 */
+  /* 뒤로 가기 · Backspace로 편집을 무른다 — 편집 전 상태로 되돌린다. */
   useBackClose(editMode, () => {
     setList(beforeEdit);
     setCategories(beforeCategories);
@@ -122,6 +239,7 @@ export default function PaymentMethods() {
         method_id: x.method_id,
         method_name: x.method_name,
         category_id: x.category_id ?? null,
+        annual_fee: x.annual_fee == null ? "" : String(Math.round(x.annual_fee)),
         is_active: x.is_active ?? 1,
         sort_order: x.sort_order,
         editing: false
@@ -131,10 +249,10 @@ export default function PaymentMethods() {
 
   /**
    * 화면에 뿌릴 구분별 묶음.
-   * list 의 상대 순서를 그대로 유지하므로, 구분을 바꾸면 그 줄이
+   * list의 상대 순서를 그대로 유지하므로, 구분을 바꾸면 그 줄이
    * 자동으로 다른 묶음으로 옮겨 간다.
    */
-  /** 감춘 항목은 저장 대상에는 그대로 두고 보이기만 뺀다 */
+  /** 감춘 항목은 저장 대상에는 그대로 두고 보이기만 뺀다. */
   const listView = showInactive ? list : list.filter((x) => x.is_active !== 0);
 
   const groups = [...categories, null]
@@ -156,7 +274,7 @@ export default function PaymentMethods() {
     list.filter((x) => (x.category_id ?? null) === (cat?.category_id ?? null))
   );
 
-  /** 구분(묶음) 자체의 순서를 바꾼다 */
+  /** 구분(묶음) 자체의 순서를 바꾼다. */
   const handleGroupDragEnd = (event: {
     active: { id: unknown };
     over: { id: unknown } | null;
@@ -174,7 +292,7 @@ export default function PaymentMethods() {
     });
   };
 
-  // 드래그 정렬 — 같은 묶음 안에서만 자리를 바꾼다
+  // 드래그 정렬 — 같은 묶음 안에서만 자리를 바꾼다.
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -188,7 +306,7 @@ export default function PaymentMethods() {
     setList(reordered);
   };
 
-  /** 감추기 — 고르는 목록에서 뺀다. 지난 내역은 그대로 이 수단을 가리킨다 */
+  /** 감추기 — 고르는 목록에서 뺀다. 지난 내역은 그대로 이 수단을 가리킨다. */
   const toggleHidden = (methodId: number) =>
     setList((prev) =>
       prev.map((x) =>
@@ -201,7 +319,7 @@ export default function PaymentMethods() {
       prev.map((x) => (x.method_id === methodId ? { ...x, category_id: categoryId } : x))
     );
 
-  /** 추가 폼에서 구분을 새로 만든다. 만든 즉시 그 폼의 선택값이 된다 */
+  /** 추가 폼에서 구분을 새로 만든다. 만든 즉시 그 폼의 선택값이 된다. */
   const createCategoryForAdd = async () => {
     const name = window.prompt("새 구분 이름을 입력하세요.")?.trim();
     if (!name) return;
@@ -215,7 +333,7 @@ export default function PaymentMethods() {
     }
   };
 
-  /** 구분을 새로 만들고 그 자리에서 해당 결제 수단에 배정한다 */
+  /** 구분을 새로 만들고 그 자리에서 해당 결제 수단에 배정한다. */
   const createCategory = async (assignTo: number) => {
     const name = window.prompt("새 구분 이름을 입력하세요.")?.trim();
     if (!name) return;
@@ -280,7 +398,7 @@ export default function PaymentMethods() {
       return;
     }
 
-    // 화면에 보이는 순서(묶음 → 묶음 안 순서) 그대로 sort_order 를 매긴다
+    // 화면에 보이는 순서(묶음 → 묶음 안 순서) 그대로 sort_order를 매긴다.
     const payload = orderedForSave.map((x, i) => ({
       method_id: x.method_id,
       method_name: x.method_name,
@@ -290,7 +408,7 @@ export default function PaymentMethods() {
     }));
 
     await axios.post("/payment-methods/save", payload);
-    // 이모지는 분류 행에 저장한다
+    // 이모지는 분류 행에 저장한다.
     await axios.post(
       "/payment-methods/categories/save",
       categories.map((c, i) => ({
@@ -336,7 +454,7 @@ export default function PaymentMethods() {
             감춘 항목 보기
           </label>
 
-          {/* 내역 세 화면처럼 오른쪽 끝 버튼과 같은 줄에 둔다 */}
+          {/* 내역 세 화면처럼 오른쪽 끝 버튼과 같은 줄에 둔다. */}
           <CollapseAllButtons
             onExpandAll={() => setCollapsed(new Set())}
             onCollapseAll={() =>
@@ -378,7 +496,6 @@ export default function PaymentMethods() {
           <div className="set-add-form set-add-form--col set-draft">
             <div className="set-draft__head">
               <span className="set-draft__name">새 항목</span>
-              <span className="set-draft__hint">구분은 비워 두어도 됩니다.</span>
             </div>
 
             <div className="set-add-form__row">
@@ -396,6 +513,7 @@ export default function PaymentMethods() {
               {/* 만들 때 구분까지 정해 둘 수 있다. 여기서도 새 구분을 만들 수 있다. */}
               <div className="set-add-form__cat">
                 <SingleSelect
+                  noun="구분"
                   options={[
                     { value: NEW_CATEGORY, label: "[+] 새 항목 추가" },
                     { value: "", label: "(구분 없음)" },
@@ -423,7 +541,7 @@ export default function PaymentMethods() {
           </div>
         )}
 
-        {/* 구분 자체의 순서 바꾸기. 안쪽에는 줄 순서용 DndContext 가 따로 있다 */}
+        {/* 구분 자체의 순서 바꾸기. 안쪽에는 줄 순서용 DndContext가 따로 있다. */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -468,7 +586,7 @@ export default function PaymentMethods() {
             <span className="set-group__name">{groupLabel(g.cat)}</span>
             <span className="set-group__count">{g.items.length}</span>
 
-            {/* 비어 있는 구분만 지울 수 있다 */}
+            {/* 비어 있는 구분만 지울 수 있다. */}
             {editMode && g.cat && g.items.length === 0 && (
               <button
                 type="button"
@@ -482,7 +600,7 @@ export default function PaymentMethods() {
             )}
           </div>
 
-        {/* 접힌 묶음은 줄을 그리지 않는다 */}
+        {/* 접힌 묶음은 줄을 그리지 않는다. */}
         {!collapsed.has(groupLabel(g.cat)) && (
         <DndContext
           sensors={sensors}
@@ -494,7 +612,8 @@ export default function PaymentMethods() {
             strategy={verticalListSortingStrategy}
           >
             {g.items.map((m) => (
-              <SortableItem key={m.method_id} id={m.method_id} dragHandle={editMode}>
+              <Fragment key={m.method_id}>
+              <SortableItem id={m.method_id} dragHandle={editMode}>
                 <div className="pm-item">
 
                   {editMode && m.editing ? (
@@ -550,6 +669,7 @@ export default function PaymentMethods() {
                       {editMode && (
                         <div className="pm-cat-select">
                           <SingleSelect
+                            noun="구분"
                             options={[
                               { value: NEW_CATEGORY, label: "[+] 새 항목 추가" },
                               { value: "", label: "(구분 없음)" },
@@ -596,8 +716,73 @@ export default function PaymentMethods() {
                     </div>
                   )}
 
+                  {/* 카드만 실적 구간을 갖는다. 접는 삼각형은 줄 오른쪽 끝에 —
+                      다른 줄의 자리를 밀지 않는다. */}
+                  {g.cat?.name === CARD_CATEGORY && (
+                    <CollapseToggle
+                      open={openCards.has(m.method_id)}
+                      onToggle={() => toggleCard(m.method_id)}
+                      label={`${m.method_name} 실적 구간`}
+                    />
+                  )}
                 </div>
               </SortableItem>
+
+                {g.cat?.name === CARD_CATEGORY && openCards.has(m.method_id) && (
+                  <div className="pm-tiers">
+                    {/* 연회비는 구간이 아니라 카드 한 장의 값이라 맨 위에 둔다. */}
+                    <div className="pm-tier pm-fee">
+                      <span className="pm-tier__amount">연회비</span>
+                      <input
+                        type="number"
+                        className="amount-input"
+                        value={m.annual_fee ?? ""}
+                        placeholder="(금액)"
+                        onChange={(e) => setFeeOf(m.method_id, e.target.value)}
+                        onBlur={(e) => saveFee(m.method_id, e.target.value)}
+                      />
+                      <span className="pm-fee__unit">원</span>
+                    </div>
+
+                    {(tiers[m.method_id] ?? []).map((t, i) => (
+                      <div key={i} className="pm-tier">
+                        <span className="pm-tier__amount">{manwon(t.threshold)} 이상</span>
+                        <span className="pm-tier__count">{t.benefits.length}</span>
+                        {editMode ? (
+                          <button
+                            type="button"
+                            className="set-remove"
+                            title="이 구간 제거"
+                            aria-label={`${manwon(t.threshold)} 구간 제거`}
+                            onClick={() => deleteTier(m.method_id, i)}
+                          >
+                            ×
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="ui-btn small"
+                            onClick={() => setTierOf({ method: m, index: i, draft: t })}
+                          >
+                            상세
+                          </button>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* 테두리 없는 글자 단추 — "모두 펼치기|접기"와 같은 결이다. */}
+                    {!editMode && (
+                      <button
+                        type="button"
+                        className="set-bulk__btn pm-tier__add"
+                        onClick={() => setTierOf({ method: m, index: -1, draft: null })}
+                      >
+                        [+] 실적 구간별 혜택
+                      </button>
+                    )}
+                  </div>
+                )}
+              </Fragment>
             ))}
           </SortableContext>
         </DndContext>
@@ -609,6 +794,27 @@ export default function PaymentMethods() {
         </SortableContext>
         </DndContext>
       </div>
+
+      {tierOf && (
+        <CardTierModal
+          cardName={tierOf.method.method_name}
+          tier={tierOf.draft}
+          /* 이 카드가 이미 쓰고 있는 혜택 — 어느 구간의 것인지 이름표에 적는다.
+             같은 이름이 구간마다 있고 내용도 다를 수 있어 이름만으로는 못 가른다. */
+          hints={(tiers[tierOf.method.method_id] ?? []).flatMap((t, i) =>
+            i === tierOf.index
+              ? []
+              : t.benefits
+                  .filter((b) => b.content.trim())
+                  .map<BenefitHint>((b) => ({
+                    label: `${b.content} [${manwon(t.threshold)}]`,
+                    benefit: b,
+                  }))
+          )}
+          onClose={() => setTierOf(null)}
+          onSave={saveTier}
+        />
+      )}
 
       <QuickActions />
     </div>

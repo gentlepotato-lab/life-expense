@@ -2,8 +2,8 @@
  * 새로 고침 — 한 바퀴 도는 화살표.
  *
  * 만년필 · 계산기와 나란히 서므로 톤을 맞춘다. 선 두께는 계산기와 같은
- * 값이다(24 상자에 2 → 18px 에서 1.5px).
- * 빛깔은 currentColor 라 부르는 쪽 글자색을 따라간다.
+ * 값이다(24 상자에 2 → 18px에서 1.5px).
+ * 빛깔은 currentColor라 부르는 쪽 글자색을 따라간다.
  */
 export default function RefreshIcon({ size = 18 }: { size?: number }) {
   return (

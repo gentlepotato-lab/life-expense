@@ -13,8 +13,8 @@ DB_URL = (
     f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 )
 
-# SQL 에코는 기본 끔. 디버깅이 필요하면 .env 에 DB_ECHO=1 을 넣는다.
-# (AS-IS 는 echo=True 고정이라 매 쿼리마다 전문이 콘솔에 찍혔음)
+# SQL 에코는 기본 끔. 디버깅이 필요하면 .env에 DB_ECHO=1을 넣는다.
+# (AS-IS는 echo=True 고정이라 매 쿼리마다 전문이 콘솔에 찍혔음)
 DB_ECHO = os.getenv("DB_ECHO", "0") == "1"
 
 engine = create_engine(DB_URL, echo=DB_ECHO, future=True)

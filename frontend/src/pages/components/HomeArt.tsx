@@ -17,7 +17,7 @@ export function ArtWrite() {
   );
 }
 
-/** 쓰는 사람 — 프로필 */
+/** 돈쓴이 — 프로필 */
 export function ArtProfile() {
   return (
     <svg className="home-art home-art--profile" viewBox="0 0 96 72" aria-hidden="true">
@@ -106,7 +106,7 @@ export function ArtNudge() {
       />
 
       {/* 종 — 위가 둥글고 아래로 벌어진 뒤 테두리에서 딱 끊긴다.
-          영수증이 길어지면서 둘의 세로 가운데가 어긋나 6만큼 내려 맞췄다 */}
+          영수증이 길어지면서 둘의 세로 가운데가 어긋나 6만큼 내려 맞췄다. */}
       <g transform="translate(2.24 8.4) scale(0.92)">
         <path
           d="M28 15c-7.2 0-11.4 5.2-11.4 12 0 8-1.8 11.4-4.2 13.8h31.2C41.2 38.4 39.4 35 39.4 27c0-6.8-4.2-12-11.4-12Z"
@@ -117,7 +117,7 @@ export function ArtNudge() {
         />
         {/* 꼭지 */}
         <path d="M28 10.5v4.5" stroke={AQUA} strokeWidth="3" strokeLinecap="round" />
-        {/* 추 — 종이 울린다 */}
+        {/* 추 — 종이 울린다. */}
         <path
           d="M23.6 45a4.4 4.4 0 0 0 8.8 0"
           fill="none"

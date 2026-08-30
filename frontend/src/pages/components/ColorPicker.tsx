@@ -7,7 +7,7 @@ import { COLOR_TOKENS, colorOf } from "../../utils/colorPalette";
  * 자유 색상 선택은 두지 않는다. 흰 배경에서 안 보이는 색이나 서로 구분되지
  * 않는 색이 섞이면 목록이 오히려 어지러워지기 때문이다.
  * 새 구분을 만들 때 서버가 안 쓰인 색을 자동으로 배정하므로,
- * 이 선택기는 "굳이 바꾸고 싶을 때" 만 열게 된다.
+ * 이 선택기는 "굳이 바꾸고 싶을 때"만 열게 된다.
  */
 export default function ColorPicker({
   value,

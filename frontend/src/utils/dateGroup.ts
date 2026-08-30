@@ -1,6 +1,6 @@
 /**
  * 카드 목록을 날짜별 단으로 묶고 집계하기 위한 유틸.
- * Expense Records 와 Pending Entries 가 같은 모양을 갖도록 여기 한 곳에서 관리한다.
+ * Expense Records와 Pending Entries가 같은 모양을 갖도록 여기 한 곳에서 관리한다.
  */
 
 export type GroupSummary = {
@@ -9,9 +9,9 @@ export type GroupSummary = {
   inSum: number;
   /** 지출 합계(inout === -1) */
   outSum: number;
-  /** 그날의 순합계 = 수입 − 지출. 화면에는 이 값 하나만 보여 준다 */
+  /** 그날의 순합계 = 수입 − 지출. 화면에는 이 값 하나만 보여 준다. */
   net: number;
-  /** 금액이 가려진 항목이 하나라도 있는지 — 합계도 함께 가려야 한다 */
+  /** 금액이 가려진 항목이 하나라도 있는지 — 합계도 함께 가려야 한다. */
   hasMasked: boolean;
 };
 
@@ -29,7 +29,7 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
  * YYYY-MM-DD → "2026. 8. 9. (일)"
  *
  * 여는 괄호는 앞말에 붙이는 것이 규칙이지만, 날짜 뒤의 요일은 예외다.
- * 앞말이 마침표로 끝나 "9.(일)" 처럼 점과 괄호가 붙으면 답답해 보인다.
+ * 앞말이 마침표로 끝나 "9.(일)"처럼 점과 괄호가 붙으면 답답해 보인다.
  */
 export function formatDateLabel(date: string): string {
   if (!date) return "날짜 없음";
@@ -44,7 +44,7 @@ type Summarizable = {
   /**
    * 금액 쪼개기를 반영한 실지출. 돌려받은 몫은 내 지출이 아니므로
    * 날짜 합계는 이 값이 있으면 이 값을 쓴다.
-   * 분할을 쓰지 않는 화면(Pending 등)에는 없으므로 amount 로 떨어진다.
+   * 분할을 쓰지 않는 화면(Pending 등)에는 없으므로 amount로 떨어진다.
    */
   net_amount?: number | null;
 };

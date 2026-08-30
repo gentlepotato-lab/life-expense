@@ -172,7 +172,7 @@ const RAW: EmojiGroup[] = [
 
 export type EmojiEntry = { char: string; keywords: string };
 
-/** "이모지 검색어..." 한 줄을 쪼갠다 */
+/** "이모지 검색어..." 한 줄을 쪼갠다. */
 const parse = (line: string): EmojiEntry => {
   const i = line.indexOf(" ");
   return i < 0
@@ -215,7 +215,7 @@ export const EMOJI_GROUPS: { key: string; label: string; items: EmojiEntry[] }[]
 /** 분류를 가로질러 중복 없이 모은 전체 목록 */
 export const EMOJI_ALL: EmojiEntry[] = [...merged.keys()].map(entryOf);
 
-/** 검색어로 거른다. 비어 있으면 전체를 그대로 돌려준다 */
+/** 검색어로 거른다. 비어 있으면 전체를 그대로 돌려준다. */
 export function searchEmoji(query: string): EmojiEntry[] {
   const q = query.trim().toLowerCase();
   if (!q) return EMOJI_ALL;

@@ -109,7 +109,7 @@ export default function Categories() {
   const [beforeEditCat2, setBeforeEditCat2] = useState<any[]>([]);
   const [beforeEditCat3, setBeforeEditCat3] = useState<any[]>([]);
 
-  /* 뒤로 가기 · Backspace 로 편집을 무른다.
+  /* 뒤로 가기 · Backspace로 편집을 무른다.
      편집에 들어올 때 떠 둔 원본으로 되돌리므로 손댄 내용은 버려진다.
      추가 칸이 열려 있으면 그것부터 닫는다(나중에 연 것이 먼저 닫힌다). */
   useBackClose(editMode, () => {
@@ -168,7 +168,7 @@ export default function Categories() {
     );
   }, []);
 
-  /* Exclude — 집계에서 뺀다. 저장을 눌러야 반영되는 것은 감추기와 같다 */
+  /* Exclude — 집계에서 뺀다. 저장을 눌러야 반영되는 것은 감추기와 같다. */
   const toggleExclude1 = (id: number) =>
     setCat1(cat1.map((x) => (x.cat1_id === id ? { ...x, exclude: x.exclude ? 0 : 1 } : x)));
   const toggleExclude2 = (id: number) =>
@@ -176,7 +176,7 @@ export default function Categories() {
   const toggleExclude3 = (id: number) =>
     setCat3(cat3.map((x) => (x.cat3_id === id ? { ...x, exclude: x.exclude ? 0 : 1 } : x)));
 
-  /* Blur — Exclude 와 같이 저장을 눌러야 반영된다.
+  /* Blur — Exclude와 같이 저장을 눌러야 반영된다.
      예전에는 소분류만 있었고 누르는 즉시 저장됐다. 되돌리기(뒤로 가기)가
      듣지 않던 자리라 셋을 같은 방식으로 맞춘다. */
   const toggleBlur1 = (id: number) =>
@@ -186,7 +186,7 @@ export default function Categories() {
   const toggleBlur3 = (id: number) =>
     setCat3(cat3.map((x) => (x.cat3_id === id ? { ...x, blur: x.blur ? 0 : 1 } : x)));
 
-  /** 소분류의 IN/OUT 을 뒤집는다 — 값은 -1 아니면 1 둘뿐이다 */
+  /** 소분류의 IN/OUT을 뒤집는다 — 값은 -1 아니면 1 둘뿐이다. */
   const toggleInout = (id: number) =>
     setCat2(cat2.map((x) => (x.cat2_id === id ? { ...x, inout: x.inout === 1 ? -1 : 1 } : x)));
 
@@ -249,8 +249,8 @@ export default function Categories() {
     }
 
     // 변경 체크 & 저장 로직 기존 그대로
-    /* Exclude 도 함께 본다 — 이것만 건드리고 저장하면
-       "변경된 내용이 없습니다" 로 되돌아가 버린다 */
+    /* Exclude도 함께 본다 — 이것만 건드리고 저장하면
+       "변경된 내용이 없습니다"로 되돌아가 버린다. */
     const changed =
       JSON.stringify(beforeEditCat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.exclude ?? 0, c.blur ?? 0])) !==
         JSON.stringify(cat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.exclude ?? 0, c.blur ?? 0])) ||
@@ -570,7 +570,7 @@ export default function Categories() {
               감춘 항목 보기
             </label>
 
-            {/* 내역 세 화면처럼 오른쪽 끝 버튼과 같은 줄에 둔다 */}
+            {/* 내역 세 화면처럼 오른쪽 끝 버튼과 같은 줄에 둔다. */}
             <CollapseAllButtons
               onExpandAll={() => setCollapsed(new Set())}
               onCollapseAll={() => setCollapsed(new Set(allCollapsibleKeys()))}
@@ -615,96 +615,91 @@ export default function Categories() {
         <div className="set-add-form set-add-form--col set-draft">
           <div className="set-draft__head">
             <span className="set-draft__name">새 항목</span>
-            <span className="set-draft__hint">
-              고른 중분류·소분류 아래에 추가됩니다.
-            </span>
           </div>
 
-          <SingleSelect
-            options={[
-              { value: "NEW", label: "[+] 새 항목 추가" },
-              { value: "", label: "(중분류)" },
-              ...cat1.map(c => ({ value: String(c.cat1_id), label: c.cat1_name })),
-            ]}
-            selected={addCat1Mode ? "NEW" : (selectedCat1ForAdd ? String(selectedCat1ForAdd) : "")}
-            onChange={(value) => {
-              if (value === "NEW") {
-                setAddCat1Mode(true);
-                setNewCat1Name("");
-              } else if (value === "") {
-                setAddCat1Mode(false);
-                setSelectedCat1ForAdd(null);
-              } else {
-                setAddCat1Mode(false);
-                setSelectedCat1ForAdd(parseInt(value));
-              }
-              // 중분류가 바뀌면 아래 선택은 의미가 없어진다
-              setAddCat2Mode(false);
-              setNewCat2Name("");
-            }}
-            placeholder="(중분류)"
-          />
-
-          {addCat1Mode && (
-            <div className="cat23-input-row">
-              <input
-                className="cat-input"
-                placeholder="(새 중분류)"
-                value={newCat1Name}
-                onChange={(e) => setNewCat1Name(e.target.value)}
-              />
+          {/* 중분류·소분류는 한 줄에 나란히. 새로 만드는 중이면 고르는 칸이
+              있던 그 자리가 이름 칸으로 바뀐다 — 줄이 늘었다 줄었다 하지 않는다. */}
+          <div className="set-add-form__pair">
+            <div className="set-add-form__slot">
+              {addCat1Mode ? (
+                <input
+                  className="cat-input"
+                  placeholder="(새 중분류)"
+                  value={newCat1Name}
+                  onChange={(e) => setNewCat1Name(e.target.value)}
+                />
+              ) : (
+                <SingleSelect
+                  noun="중분류"
+                  options={[
+                    { value: "NEW", label: "[+] 새 항목 추가" },
+                    { value: "", label: "(중분류)" },
+                    ...cat1.map(c => ({ value: String(c.cat1_id), label: c.cat1_name })),
+                  ]}
+                  selected={selectedCat1ForAdd ? String(selectedCat1ForAdd) : ""}
+                  onChange={(value) => {
+                    if (value === "NEW") {
+                      setAddCat1Mode(true);
+                      setNewCat1Name("");
+                    } else if (value === "") {
+                      setAddCat1Mode(false);
+                      setSelectedCat1ForAdd(null);
+                    } else {
+                      setAddCat1Mode(false);
+                      setSelectedCat1ForAdd(parseInt(value));
+                    }
+                    // 중분류가 바뀌면 아래 선택은 의미가 없어진다.
+                    setAddCat2Mode(false);
+                    setNewCat2Name("");
+                  }}
+                  placeholder="(중분류)"
+                />
+              )}
             </div>
-          )}
 
-          {/* 소분류 — 기존 것을 고르면 그 아래에 세분류가 붙고,
-              [+] 새 항목 추가를 고르면 이름을 직접 적는다.
-              중분류를 새로 만드는 중이면 고를 기존 소분류가 없으므로 입력칸만 둔다. */}
-          {selectedCat1ForAdd && !addCat1Mode && (
-            <SingleSelect
-              options={[
-                { value: "NEW", label: "[+] 새 항목 추가" },
-                { value: "", label: "(소분류)" },
-                ...cat2
-                  .filter(c => c.cat1_id === selectedCat1ForAdd)
-                  .map(c => ({ value: c.cat2_name, label: c.cat2_name })),
-              ]}
-              selected={addCat2Mode ? "NEW" : newCat2Name}
-              onChange={(value) => {
-                if (value === "NEW") {
-                  setAddCat2Mode(true);
-                  setNewCat2Name("");
-                } else {
-                  setAddCat2Mode(false);
-                  setNewCat2Name(value);
-                }
-              }}
-              placeholder="(소분류)"
+            <div className="set-add-form__slot">
+              {addCat1Mode || addCat2Mode ? (
+                <input
+                  className="cat-input"
+                  placeholder="(새 소분류)"
+                  value={newCat2Name}
+                  onChange={(e) => setNewCat2Name(e.target.value)}
+                />
+              ) : (
+                <SingleSelect
+                  noun="소분류"
+                  options={[
+                    ...(selectedCat1ForAdd
+                      ? [{ value: "NEW", label: "[+] 새 항목 추가" }]
+                      : []),
+                    { value: "", label: "(소분류)" },
+                    ...cat2
+                      .filter(c => c.cat1_id === selectedCat1ForAdd)
+                      .map(c => ({ value: c.cat2_name, label: c.cat2_name })),
+                  ]}
+                  selected={newCat2Name}
+                  onChange={(value) => {
+                    if (value === "NEW") {
+                      setAddCat2Mode(true);
+                      setNewCat2Name("");
+                    } else {
+                      setAddCat2Mode(false);
+                      setNewCat2Name(value);
+                    }
+                  }}
+                  placeholder="(소분류)"
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="set-add-form__tail">
+            <input
+              className="cat-input"
+              placeholder="(새 세분류)"
+              value={newCat3Name}
+              onChange={(e) => setNewCat3Name(e.target.value)}
             />
-          )}
-
-          {(addCat1Mode || addCat2Mode) && (
-            <div className="cat23-input-row">
-              <input
-                className="cat3-input"
-                placeholder="(새 소분류)"
-                value={newCat2Name}
-                onChange={(e) => setNewCat2Name(e.target.value)}
-              />
-            </div>
-          )}
-
-          {(addCat1Mode || selectedCat1ForAdd) && (
-            <div className="cat23-input-row">
-              <input
-                className="cat3-input"
-                placeholder="(새 세분류)"
-                value={newCat3Name}
-                onChange={(e) => setNewCat3Name(e.target.value)}
-              />
-            </div>
-          )}
-
-          <div className="btn-row">
             <button className="ui-btn" onClick={handleAdd}>추가</button>
           </div>
         </div>
@@ -716,7 +711,7 @@ export default function Categories() {
               <div key={c1.cat1_id} className="cat-group">
                 <SortableItem id={c1.cat1_id} dragHandle={editMode}>
                   {/* 중분류는 이 묶음의 머리말이다.
-                      Counterparts·Payment Methods 의 묶음 머리말과 같은 모양으로 둔다.
+                      Counterparts·Payment Methods의 묶음 머리말과 같은 모양으로 둔다.
                       이름 칸을 클릭해 고치는 기존 동작은 그대로다. */}
                   <div className="set-group__head cat1-head">
                     <CollapseToggle
@@ -736,7 +731,7 @@ export default function Categories() {
                         setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, editing: true } : x))
                       }
                     >
-                      {/* 이모지는 이름 앞에 — 세 화면이 같은 순서다 */}
+                      {/* 이모지는 이름 앞에 — 세 화면이 같은 순서다. */}
                       <EmojiPicker
                         value={c1.emoji ?? null}
                         disabled={!editMode}
@@ -817,7 +812,7 @@ export default function Categories() {
                   </div>
                 </SortableItem>
 
-                {/* 접힌 중분류는 아래를 그리지 않는다 */}
+                {/* 접힌 중분류는 아래를 그리지 않는다. */}
                 {isOpen(`1:${c1.cat1_id}`) && (
                 <DndContext
                   sensors={sensors}
@@ -842,7 +837,7 @@ export default function Categories() {
                                 label={c2.cat2_name}
                               />
                               {/* IN/OUT 자리 — 보기는 색점, 편집은 누르는 [+]/[−].
-                                  두 모드가 같은 폭을 쓰므로 이름이 움직이지 않는다 */}
+                                  두 모드가 같은 폭을 쓰므로 이름이 움직이지 않는다. */}
                               {editMode ? (
                                 <button
                                   type="button"
@@ -906,7 +901,7 @@ export default function Categories() {
                               )}
 
                               {editMode && (
-                                /* Blur 는 금액을 테이프로 덮는 것. 감추기와는 다르다 */
+                                /* Blur는 금액을 테이프로 덮는 것. 감추기와는 다르다. */
                                 <button
                                   type="button"
                                   className={`set-blur-btn ${c1.blur || c2.blur ? "on" : ""}`}

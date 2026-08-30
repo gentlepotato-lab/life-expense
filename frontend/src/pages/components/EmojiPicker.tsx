@@ -7,7 +7,7 @@ import type { EmojiEntry } from "../../utils/emojiData";
  *
  * 직접 입력할 수 있는 칸을 두지 않는다. 목록에서 고른 것만 들어가므로
  * 이모지가 아닌 글자가 섞일 여지가 없다.
- * 검색칸은 "무엇을 찾을지" 를 적는 곳이지 값이 들어가는 곳이 아니다.
+ * 검색칸은 "무엇을 찾을지"를 적는 곳이지 값이 들어가는 곳이 아니다.
  */
 export default function EmojiPicker({
   value,
@@ -34,7 +34,7 @@ export default function EmojiPicker({
     return EMOJI_GROUPS.find((g) => g.key === tab)?.items ?? [];
   }, [query, tab]);
 
-  // 화면 밖으로 나가지 않도록 위치를 잡는다(SingleSelect 와 같은 방식)
+  // 화면 밖으로 나가지 않도록 위치를 잡는다(SingleSelect와 같은 방식)
   useEffect(() => {
     if (!open || !wrapRef.current) return;
 
@@ -69,7 +69,7 @@ export default function EmojiPicker({
     };
   }, [open]);
 
-  // 바깥을 누르면 닫는다
+  // 바깥을 누르면 닫는다.
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent | TouchEvent) => {
@@ -83,7 +83,7 @@ export default function EmojiPicker({
     };
   }, [open]);
 
-  // 열 때마다 검색어는 비워 둔다
+  // 열 때마다 검색어는 비워 둔다.
   useEffect(() => {
     if (open) {
       setQuery("");

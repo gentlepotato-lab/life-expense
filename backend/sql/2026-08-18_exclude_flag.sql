@@ -13,8 +13,8 @@
 --   · Exclude — 셈에서 뺀다. 내역 카드에는 그대로 보이고,
 --               달력 · 씀씀이 · 기간 상세의 집계에서만 빠진다.
 --
--- 중 · 소 · 세 중 하나라도 1 이면 그 항목은 집계에서 빠진다.
--- 컬럼 이름은 Exclude 가 PostgreSQL 예약어라 blur_flag 를 본떠 exclude_flag 로 둔다.
+-- 중 · 소 · 세 중 하나라도 1이면 그 항목은 집계에서 빠진다.
+-- 컬럼 이름은 Exclude가 PostgreSQL 예약어라 blur_flag를 본떠 exclude_flag로 둔다.
 --
 -- 기본값 0(집계에 듦)이라 기존 동작은 그대로다.
 -- ═══════════════════════════════════════════════════════════════
@@ -33,7 +33,7 @@ ALTER TABLE life_expense.categories_lvl3
 COMMIT;
 
 -- ═══════════════════════════════════════════════════════════════
--- 롤백 — 2026-08-18_exclude_flag_rollback.sql 을 실행하면 된다.
+-- 롤백 — 2026-08-18_exclude_flag_rollback.sql을 실행하면 된다.
 --   ALTER TABLE life_expense.categories_lvl1 DROP COLUMN IF EXISTS exclude_flag;
 --   ALTER TABLE life_expense.categories_lvl2 DROP COLUMN IF EXISTS exclude_flag;
 --   ALTER TABLE life_expense.categories_lvl3 DROP COLUMN IF EXISTS exclude_flag;

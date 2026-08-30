@@ -1,7 +1,7 @@
 # life-expense
 
 - 개인 가계부 웹 애플리케이션(지출/수입 기록 · 검수 대기열 · 반복 등록)
-- GP Lab 의 `life` 네임스페이스 서비스
+- GP Lab의 `life` 네임스페이스 서비스
 - 배포 위치 — `Desktop\Lab\life\expense`
 
 ## 스택
@@ -56,7 +56,7 @@
 .\lab.ps1 status    # 포트 · dist 빌드 시각
 ```
 
-- 실서비스는 **게이트웨이 필수** — Nginx 가 `frontend\dist` 를 직접 서빙
+- 실서비스는 **게이트웨이 필수** — Nginx가 `frontend\dist` 를 직접 서빙
 - 배포 = `.\lab.ps1 build` 뿐. 복사 단계 없음, Nginx 재시작 불필요
 
 ## 접속
@@ -68,8 +68,8 @@
 | LAN · 폰 | http://192.168.45.8:8101/ |
 | 개발 서버 | http://localhost:28101/ |
 
-- SPA 는 **루트**에 위치(`base: '/'`, `BrowserRouter` 에 `basename` 없음)
-- API 는 모두 `/api` 아래(`backend/app/main.py` 의 `API = "/api"`). 판(v1, v2 …)은 나누지 않는다
+- SPA는 **루트**에 위치(`base: '/'`, `BrowserRouter` 에 `basename` 없음)
+- API는 모두 `/api` 아래(`backend/app/main.py` 의 `API = "/api"`). 판(v1, v2 …)은 나누지 않는다.
 - 예전 `/app/…` 주소는 게이트웨이가 새 자리로 301 넘김(`/app/entries` → `/entries`)
 
 ### 이름 규칙
@@ -89,7 +89,7 @@
 | 쪼갠 몫 | `/api/…/{id}/splits` | `splits.py` | `components/SplitEditor.tsx` |
 
 - 화면 파일 이름 = 그 화면의 경로. `/entries` → `Entries.tsx`, `/write` → `Write.tsx`
-- 자리 접두사는 `main.py` 한 곳에서만 붙인다. 라우터 파일 안에서 또 붙이지 않는다
+- 자리 접두사는 `main.py` 한 곳에서만 붙인다. 라우터 파일 안에서 또 붙이지 않는다.
 - 분류의 깊이는 `lvl1` · `lvl2` · `lvl3` 로만 부른다(`cat1` 같은 다른 말을 섞지 않는다)
 
 ## 환경 변수
@@ -113,7 +113,7 @@
 feat/*  →  develop  →  main
 ```
 
-- `feat/*` · `develop` — `lab.ps1 dev`(`:28101`) 로 작업
+- `feat/*` · `develop` — `lab.ps1 dev`(`:28101`)로 작업
 - `main` — `lab.ps1 build` 로 실서비스 반영
 - ⚠️ 게이트웨이가 작업 트리의 `dist` 를 직접 읽음 → **`build` 는 `main` 에서만 실행할 것**
   - `dist/` 는 추적하지 않으므로 브랜치 전환만으로는 실서비스가 바뀌지 않음

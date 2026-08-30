@@ -18,7 +18,7 @@ def list_scheduled_entries(db: SessionDep = Depends()):
     """모든 스케줄된 항목 조회"""
     rows = db.query(ScheduledEntry).filter(ScheduledEntry.is_active == 1).all()
 
-    # 화면에서 장소 이름을 보여 주기 위해 한 번에 조회해 매핑한다
+    # 화면에서 장소 이름을 보여 주기 위해 한 번에 조회해 매핑한다.
     place_ids = {r.place_id for r in rows if r.place_id}
     place_names = {}
     if place_ids:
@@ -27,7 +27,7 @@ def list_scheduled_entries(db: SessionDep = Depends()):
 
     # 분할 합계도 한 번에 모은다(스케줄은 건수가 적어 단순 집계로 충분하다)
     split_agg: dict[int, tuple[float, int]] = {}
-    # 달력이 "함께한 상대" 로 걸러 낼 때 쓸 상대 ID 도 함께 모은다
+    # 달력이 "함께한 상대"로 걸러 낼 때 쓸 상대 ID도 함께 모은다.
     cp_agg: dict[int, list[int]] = {}
     for s in db.query(ScheduledEntrySplit).all():
         amt, cnt = split_agg.get(s.schedule_id, (0.0, 0))
@@ -148,7 +148,7 @@ def delete_scheduled_entry(schedule_id: int, db: SessionDep = Depends()):
 def find_nearest_non_holiday(target_date: date, holiday_handling: str, db: Session) -> date:
     """휴일이 아닌 가장 가까운 날짜 찾기"""
     def is_holiday_date(d: date) -> bool:
-        """주어진 날짜가 휴일인지 확인 (Holiday 테이블 또는 weekday 기반)"""
+        """주어진 날짜가 휴일인지 확인(Holiday 테이블 또는 weekday 기반)"""
         h = db.query(Holiday).filter(Holiday.dt == d).first()
         if h:
             # Holiday 테이블에 데이터가 있으면 그 값 사용
@@ -164,7 +164,7 @@ def find_nearest_non_holiday(target_date: date, holiday_handling: str, db: Sessi
     
     # 휴일인 경우
     if holiday_handling == 'on':
-        # 당일 처리 (휴일이어도 그대로)
+        # 당일 처리(휴일이어도 그대로)
         return target_date
     elif holiday_handling == 'before':
         # 휴일 전 가장 가까운 평일 찾기
@@ -206,8 +206,8 @@ def calculate_next_run_at(
     다음 실행 일시를 계산하여 반환
     base_date가 None이면 오늘 날짜 기준으로 계산
     
-    ★ 로직 순서 (중요):
-    1. 원래 설정 날짜(day_of_month)가 과거인지 체크 (휴일 처리 전)
+    ★ 로직 순서(중요):
+    1. 원래 설정 날짜(day_of_month)가 과거인지 체크(휴일 처리 전)
     2. 과거라면 다음 달로 이동
     3. 그 다음 휴일 처리 적용
     """
@@ -219,7 +219,7 @@ def calculate_next_run_at(
     try:
         scheduled_date = date(base_date.year, base_date.month, day_of_month)
     except ValueError:
-        # 유효하지 않은 날짜 (예: 2월 30일) - 다음 달로 이동
+        # 유효하지 않은 날짜(예: 2월 30일) - 다음 달로 이동
         if base_date.month == 12:
             scheduled_date = date(base_date.year + 1, 1, min(day_of_month, 31))
         else:
@@ -237,7 +237,7 @@ def calculate_next_run_at(
             try:
                 scheduled_date = date(scheduled_date.year, scheduled_date.month + 1, day_of_month)
             except ValueError:
-                # 유효하지 않은 날짜 (예: 2월 30일)
+                # 유효하지 않은 날짜(예: 2월 30일)
                 last_day = calendar.monthrange(scheduled_date.year, scheduled_date.month + 1)[1]
                 scheduled_date = date(scheduled_date.year, scheduled_date.month + 1, min(day_of_month, last_day))
     
@@ -274,7 +274,7 @@ def process_scheduled_entries(db: Session):
         ).first()
         
         if existing:
-            # 다음 실행 일시 재계산 (한 달 후)
+            # 다음 실행 일시 재계산(한 달 후)
             schedule.next_run_at = calculate_next_run_at(
                 schedule.day_of_month,
                 schedule.hour,
@@ -299,12 +299,12 @@ def process_scheduled_entries(db: Session):
             sended=0,
         )
         db.add(new_pending)
-        db.flush()                  # entry_id 를 받아야 분할을 붙일 수 있다
+        db.flush()                  # entry_id를 받아야 분할을 붙일 수 있다.
         copy_splits(db, ScheduledEntrySplit, "schedule_id", schedule.schedule_id,
                     PendingEntrySplit, "pending_id", new_pending.entry_id)
         created_count += 1
         
-        # 다음 실행 일시 재계산 (한 달 후)
+        # 다음 실행 일시 재계산(한 달 후)
         schedule.next_run_at = calculate_next_run_at(
             schedule.day_of_month,
             schedule.hour,

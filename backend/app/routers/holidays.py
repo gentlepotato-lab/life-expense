@@ -80,7 +80,7 @@ def update_holidays_core(db: Session, year: int, month: int):
         is_weekend = 1 if weekday in (5, 6) else 0  # 토(5), 일(6)
 
         if row:
-            # 기존 row 업데이트 (휴일은 아래에서 다시 정확하게 덮어씀)
+            # 기존 row 업데이트(휴일은 아래에서 다시 정확하게 덮어씀)
             row.year = year
             row.month = month
             row.day = day

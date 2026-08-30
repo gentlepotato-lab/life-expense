@@ -27,7 +27,7 @@ def start_scheduled_entry_scheduler():
         minute="*",  # 매분
         id="scheduled_entry_processor",
         replace_existing=True,
-        misfire_grace_time=60  # 60초까지 지연 허용 (was missed 경고 방지)
+        misfire_grace_time=60  # 60초까지 지연 허용(was missed 경고 방지)
     )
     
     scheduler.start()

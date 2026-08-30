@@ -11,7 +11,7 @@ export default function DateGroupHeader({
 }: {
   label: string;
   summary: GroupSummary;
-  /** 그날의 카드가 펼쳐져 있는지. 넘기지 않으면 접기 기능 없이 그린다 */
+  /** 그날의 카드가 펼쳐져 있는지. 넘기지 않으면 접기 기능 없이 그린다. */
   open?: boolean;
   onToggle?: () => void;
 }) {
@@ -31,7 +31,7 @@ export default function DateGroupHeader({
   return (
     <div className={`date-group__head${collapsible ? " is-collapsible" : ""}`}>
       {/* 접기 손잡이는 날짜 앞에 둔다. 카드마다 두면 카드 왼쪽에 빈 칸이
-          늘 생기지만, 단 머리말은 한 날에 하나뿐이라 자리를 거의 안 먹는다 */}
+          늘 생기지만, 단 머리말은 한 날에 하나뿐이라 자리를 거의 안 먹는다. */}
       {collapsible && (
         <CollapseToggle open={!!open} onToggle={onToggle} label={label} />
       )}

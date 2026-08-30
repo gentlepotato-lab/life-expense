@@ -10,7 +10,7 @@ type CardEditModalProps = {
   saveDisabled?: boolean;
   saveLabel?: string;
   deleteLabel?: string;
-  /** 저장 버튼 왼쪽에 들어가는 추가 액션(예: Pending 의 "전송") */
+  /** 저장 버튼 왼쪽에 들어가는 추가 액션(예: Pending의 "전송") */
   footerExtra?: ReactNode;
   /**
    * 머리말 아래에 붙는 날짜·시간 입력 줄.
@@ -23,7 +23,7 @@ type CardEditModalProps = {
 
 /**
  * 카드를 꾹 눌렀을 때 뜨는 편집 팝업의 공통 껍데기.
- * 안에 들어가는 입력 필드는 페이지마다 다르므로 children 으로 받는다.
+ * 안에 들어가는 입력 필드는 페이지마다 다르므로 children으로 받는다.
  */
 export default function CardEditModal({
   title,
@@ -38,7 +38,7 @@ export default function CardEditModal({
   headerFields,
   children,
 }: CardEditModalProps) {
-  // 뒤로 가기 · Backspace · Esc 로 닫기.
+  // 뒤로 가기 · Backspace · Esc로 닫기.
   // 이 컴포넌트는 열려 있을 때만 그려지므로 항상 열린 상태로 넘긴다.
   useBackClose(true, onClose);
 
@@ -104,7 +104,7 @@ export default function CardEditModal({
 /**
  * 편집 팝업 안의 입력 한 칸.
  *
- * 팝업 본문은 12칸 그리드다. span 으로 칸 수를 지정해 좌우 분할을 만든다.
+ * 팝업 본문은 12칸 그리드다. span으로 칸 수를 지정해 좌우 분할을 만든다.
  *   12 = 한 줄 전체 · 8 = 2/3 · 6 = 2분할 · 4 = 3분할 · 3 = 4분할
  * 칸 수를 명시하므로 입력 내용 길이와 무관하게 폭이 고정된다.
  */

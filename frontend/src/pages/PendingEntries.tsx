@@ -24,7 +24,7 @@ const EMPTY_FILTER = {
   cat3: [] as number[],
   pay: [] as string[],
   memo: "",
-  /* 지출을 적을 때 고를 수 있는 것은 모두 걸러 낼 수 있어야 한다 */
+  /* 지출을 적을 때 고를 수 있는 것은 모두 걸러 낼 수 있어야 한다. */
   inout: 0,                 // 0 = 가리지 않음, 1 = 들어옴, -1 = 나감
   amountMin: "",
   amountMax: "",
@@ -67,16 +67,16 @@ export default function PendingEntries() {
   const [filter, setFilter] = useState(EMPTY_FILTER);
   const [appliedFilter, setAppliedFilter] = useState(EMPTY_FILTER);
 
-  /* 함께한 상대 목록 — 필터에서 고르기 위해 받아 둔다 */
+  /* 함께한 상대 목록 — 필터에서 고르기 위해 받아 둔다. */
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
 
-  // 편집 팝업 상태 — 카드를 꾹 누르면 열린다
+  // 편집 팝업 상태 — 카드를 꾹 누르면 열린다.
   const [draft, setDraft] = useState<any | null>(null);
   const [splits, setSplits] = useState<SplitDraft[]>([]);
   const [placePickerOpen, setPlacePickerOpen] = useState(false);
 
-  /* 뒤로 가기 · Backspace 로 지금 열린 것만 닫는다.
-     카드 편집 팝업은 CardEditModal 이 스스로 처리한다. */
+  /* 뒤로 가기 · Backspace로 지금 열린 것만 닫는다.
+     카드 편집 팝업은 CardEditModal이 스스로 처리한다. */
   useBackClose(filterOpen, () => closeFilter());
   useBackClose(placePickerOpen, () => setPlacePickerOpen(false));
 
@@ -134,7 +134,7 @@ export default function PendingEntries() {
 
   const openEditor = useCallback((row: any) => {
     setDraft({ ...row });
-    // 분할은 목록 조회에 합계만 실려 오므로, 편집할 때 상세를 따로 가져온다
+    // 분할은 목록 조회에 합계만 실려 오므로, 편집할 때 상세를 따로 가져온다.
     setSplits([]);
     if (row.split_count > 0) {
       api
@@ -198,11 +198,11 @@ export default function PendingEntries() {
   //   );
   // };
 
-  // 팝업에서 저장 — 해당 건만 반영한다
+  // 팝업에서 저장 — 해당 건만 반영한다.
   const saveDraft = async () => {
     if (!draft) return;
 
-    // 분할 검증 — 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다
+    // 분할 검증 — 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다.
     const cleanSplits = splits.filter(
       (x) => x.amount !== "" && Number(x.amount) > 0
     );
@@ -216,7 +216,7 @@ export default function PendingEntries() {
       return;
     }
 
-    // 서버가 받아야 하는 형태로 정제 — API 는 배열을 받으므로 1건짜리 배열로 보낸다
+    // 서버가 받아야 하는 형태로 정제 — API는 배열을 받으므로 1건짜리 배열로 보낸다.
     const clean = [{
       entry_id: draft.entry_id,
       tx_date: draft.tx_date?.substring(0, 10),
@@ -640,7 +640,7 @@ export default function PendingEntries() {
     [filter.pay, payList]
   );
 
-  /* 버튼과 기간 표시는 '적용된 값' 만 본다. 초안은 팝업 안에서만 산다 */
+  /* 버튼과 기간 표시는 '적용된 값'만 본다. 초안은 팝업 안에서만 산다. */
   const isFilterActive = useMemo(() => hasCondition(appliedFilter), [appliedFilter]);
 
   const cpOptions = useMemo(
@@ -671,7 +671,7 @@ export default function PendingEntries() {
   );
 
   // 날짜별 단 — 들어온 순서를 그대로 보존한다.
-  // 소분류에 blur 가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
+  // 소분류에 blur가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
   /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const toggleDay = (d: string) =>
@@ -682,7 +682,7 @@ export default function PendingEntries() {
       return next;
     });
 
-  /* Blur 는 중 · 소 · 세 어디에 걸려도 함께 덮인다 */
+  /* Blur는 중 · 소 · 세 어디에 걸려도 함께 덮인다. */
   const blurSets = useMemo(
     () => blurSetsFrom(cat1List, cat2List, cat3List),
     [cat1List, cat2List, cat3List]
@@ -702,7 +702,7 @@ export default function PendingEntries() {
   };
 
   const applyFilter = () => {
-    /* 초안을 그대로 확정한다 — 여기부터 화면에 반영된다 */
+    /* 초안을 그대로 확정한다 — 여기부터 화면에 반영된다. */
     setAppliedFilter(filter);
 
     let filtered = [...allRows];
@@ -758,7 +758,7 @@ export default function PendingEntries() {
   const handleRevealDrag = (id: number, startX: number) => {
     const onMove = (e: MouseEvent | TouchEvent) => {
       const currentX = "touches" in e ? e.touches[0].clientX : e.clientX;
-      /* 12px 만 끌어도 열리게 한다. 30px 는 뻑뻑했다 */
+      /* 12px만 끌어도 열리게 한다. 30px는 뻑뻑했다. */
       if (Math.abs(currentX - startX) > 12) {
         setRows(prev =>
           prev.map(r =>
@@ -802,7 +802,7 @@ export default function PendingEntries() {
               불러오기
               <input type="file" accept=".xlsx" onChange={importExcel} style={{ display: "none" }} />
             </label>
-            {/* 내보내기는 자리만 잡아 둔다. 실제 동작은 뒤에 붙인다 */}
+            {/* 내보내기는 자리만 잡아 둔다. 실제 동작은 뒤에 붙인다. */}
             <button type="button" className="ui-btn small" onClick={exportExcel}>
               내보내기
             </button>
@@ -882,6 +882,7 @@ export default function PendingEntries() {
             {/* 1행 — 분류 3단 */}
             <EditField label="중분류" span={4}>
               <SingleSelect
+                noun="중분류"
                 options={visible(cat1List, (c) => c.id === draft.cat1_id)
                   .map(c => ({ value: String(c.id), label: c.name }))}
                 selected={draft.cat1_id ? String(draft.cat1_id) : ""}
@@ -892,6 +893,7 @@ export default function PendingEntries() {
 
             <EditField label="소분류" span={4}>
               <SingleSelect
+                noun="소분류"
                 options={visible(cat2List, (c) => c.id === draft.cat2_id)
                   .filter((c) => c.cat1_id === draft.cat1_id)
                   .map(c => ({ value: String(c.id), label: c.name }))}
@@ -903,6 +905,7 @@ export default function PendingEntries() {
 
             <EditField label="세분류" span={4}>
               <SingleSelect
+                noun="세분류"
                 options={visible(cat3List, (c) => c.id === draft.cat3_id)
                   .filter((c) => c.cat2_id === draft.cat2_id)
                   .map(c => ({ value: String(c.id), label: c.name }))}
@@ -912,7 +915,7 @@ export default function PendingEntries() {
               />
             </EditField>
 
-            {/* 2행 — 거래 속성. IN/OUT 은 소분류가 결정하므로 분류 바로 아래에 둔다 */}
+            {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
             <EditField label="IN/OUT" span={4}>
               <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
                 {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
@@ -921,6 +924,7 @@ export default function PendingEntries() {
 
             <EditField label="결제 수단" span={4}>
               <SingleSelect
+                noun="결제 수단"
                 options={visible(payList, (p) => p.code === draft.pay_method)
                   .map(p => ({ value: p.code, label: p.name }))}
                 selected={draft.pay_method || ""}
@@ -963,7 +967,7 @@ export default function PendingEntries() {
             </EditField>
           </div>
 
-          {/* 금액 쪼개기 — 지출일 때만 의미가 있다 */}
+          {/* 금액 쪼개기 — 지출일 때만 의미가 있다. */}
           {draft.inout === -1 && (
             <>
               <EditDivider />
@@ -986,7 +990,7 @@ export default function PendingEntries() {
               <h3 className="popup-head__title">필터</h3>
             </header>
 
-            {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다 */}
+            {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다. */}
             <div className="popup-body edit-grid">
               <EditField label="시작일" span={6}>
                 <input
@@ -1008,6 +1012,7 @@ export default function PendingEntries() {
 
               <EditField label="중분류" span={4}>
                 <MultiSelect
+                  noun="중분류"
                   options={cat1Options}
                   selected={filter.cat1}
                   onSpecialClick={cat1_onSpecialClick}
@@ -1019,6 +1024,7 @@ export default function PendingEntries() {
 
               <EditField label="소분류" span={4}>
                 <MultiSelect
+                  noun="소분류"
                   options={cat2Options}
                   selected={filter.cat2}
                   onSpecialClick={cat2_onSpecialClick}
@@ -1030,6 +1036,7 @@ export default function PendingEntries() {
 
               <EditField label="세분류" span={4}>
                 <MultiSelect
+                  noun="세분류"
                   options={cat3Options}
                   selected={filter.cat3}
                   onSpecialClick={cat3_onSpecialClick}
@@ -1056,6 +1063,7 @@ export default function PendingEntries() {
 
               <EditField label="결제 수단" span={6}>
                 <MultiSelect
+                  noun="결제 수단"
                   options={payOptions}
                   selected={filter.pay}
                   onSpecialClick={pay_onSpecialClick}
@@ -1098,6 +1106,7 @@ export default function PendingEntries() {
 
               <EditField label="함께한 상대" span={6}>
                 <MultiSelect
+                  noun="사람"
                   options={cpOptions}
                   selected={filter.cp}
                   onSpecialClick={cp_onSpecialClick}
@@ -1218,7 +1227,7 @@ export default function PendingEntries() {
 }
 
 // ------------------------------------
-// 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다
+// 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다.
 // ------------------------------------
 export function PendingCard({
   row,
@@ -1240,7 +1249,7 @@ export function PendingCard({
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
   onSend?: (row: any) => void;
-  /* 중 · 소 · 세 어디에 Blur 가 걸렸는지는 화면이 셈해서 넘긴다.
+  /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
      넘기지 않으면 예전처럼 소분류만 본다. */
   blurred?: boolean;
   /* 보기만 하는 화면(기간 상세)에서는 편집도 전송도 하지 않는다.
@@ -1258,7 +1267,7 @@ export function PendingCard({
 
   // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount 다.
   const hasSplit = (row.split_count ?? 0) > 0;
-  /* 쪼갠 몫을 펼쳤는지. 카드마다 따로 기억한다 */
+  /* 쪼갠 몫을 펼쳤는지. 카드마다 따로 기억한다. */
   const [open, setOpen] = useState(false);
   const shownAmount = hasSplit ? row.net_amount : row.amount;
 
@@ -1275,7 +1284,7 @@ export function PendingCard({
         }`}
       ></div>
 
-      {/* 1행: 장소 / Send 버튼 ── 날짜는 상단 날짜 단에서 표시한다 */}
+      {/* 1행: 장소 / Send 버튼 ── 날짜는 상단 날짜 단에서 표시한다. */}
       <div className="card-row row-top">
         <div className="card-left">
           <span className="place-text">📍 {row.place_name || "—"}</span>
@@ -1313,7 +1322,7 @@ export function PendingCard({
         <span className="pay-method-text">{payName}</span>
 
         {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다.
-            그 줄을 누르면 아래에 함께한 사람과 몫이 펼쳐진다 */}
+            그 줄을 누르면 아래에 함께한 사람과 몫이 펼쳐진다. */}
         <span className="amount-stack">
           {hasSplit && (
             <span
@@ -1346,7 +1355,7 @@ export function PendingCard({
       </div>
 
       {/* 4행: 메모 */}
-      {/* 메모가 없으면 줄도 만들지 않는다 — 빈 줄이 카드를 20px 씩 늘렸다 */}
+      {/* 메모가 없으면 줄도 만들지 않는다 — 빈 줄이 카드를 20px씩 늘렸다. */}
       {row.memo && (
         <div className="card-row row-bottom">
           <div className="card-left">

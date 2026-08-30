@@ -28,15 +28,17 @@ import QuickActions from "./components/QuickActions";
  * 만들면 언젠가 서로 달라지기 때문이다. 다만 여기서는 보기만 하므로
  * 꾹 눌러 편집하거나 전송하는 동작은 끈다(readOnly).
  *
- * 어디를 볼지는 주소가 들고 있다 — `?from=…&to=…&src=expense,pending,scheduled`.
- * 달력에 걸려 있던 필터는 history 에 실려 온다. 달력에 보이던 것과
+ * 어디를 볼지는 주소가 들고 있다 — `?days=2026-08-03,2026-08-07&src=expense,pending,scheduled`.
+ * 고른 날은 이어져 있을 필요가 없다. 예전 주소(`?from=…&to=…`)로 들어와도
+ * 그 사이의 날을 모두 고른 것으로 보고 그대로 연다.
+ * 달력에 걸려 있던 필터는 history에 실려 온다. 달력에 보이던 것과
  * 여기 보이는 것이 어긋나면 안 되기 때문이다.
  */
 
-/** 그날의 카드 한 장 — 어느 자료에서 왔는지 함께 들고 다닌다 */
+/** 그날의 카드 한 장 — 어느 자료에서 왔는지 함께 들고 다닌다. */
 type Item = {
   src: Src;
-  /** 날짜별로 묶기 위한 값. 정기는 다음 예정일에서 뽑는다 */
+  /** 날짜별로 묶기 위한 값. 정기는 다음 예정일에서 뽑는다. */
   tx_date: string;
   inout?: number | null;
   amount?: number | null;
@@ -54,7 +56,7 @@ function shortDate(v: string): string {
   return `${Number(m[2])}. ${Number(m[3])}.`;
 }
 
-/** 날짜 부분만 잘라 낸다 — "2026-08-03 09:00:00" 도 받는다 */
+/** 날짜 부분만 잘라 낸다 — "2026-08-03 09:00:00"도 받는다. */
 function dateOnly(v: unknown): string {
   return v ? String(v).substring(0, 10) : "";
 }
@@ -64,21 +66,38 @@ export default function CalendarDetail() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = params.get("from") ?? "";
-  const to = params.get("to") ?? "";
+  /* 고른 날들. 예전 주소로 들어오면 from~to 사이를 채워 같은 꼴로 만든다 */
+  const days = useMemo(() => {
+    const listed = (params.get("days") ?? "").split(",").filter(Boolean);
+    if (listed.length) return [...new Set(listed)].sort();
+
+    const from = params.get("from") ?? "";
+    const to = params.get("to") ?? "";
+    if (!from || !to) return [];
+    const out: string[] = [];
+    const d = new Date(`${from}T00:00:00`);
+    const last = new Date(`${to}T00:00:00`);
+    while (d <= last) {
+      out.push(
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+      );
+      d.setDate(d.getDate() + 1);
+    }
+    return out;
+  }, [params]);
   const srcOn = useMemo(() => {
     const raw = (params.get("src") ?? "").split(",").filter(Boolean) as Src[];
-    /* 아무것도 오지 않았으면 셋 다 켠 것으로 본다 */
+    /* 아무것도 오지 않았으면 셋 다 켠 것으로 본다. */
     return new Set<Src>(raw.length ? raw : SRC_ORDER);
   }, [params]);
 
-  /* 달력에서 Blur 를 켠 채 넘어왔는지. 끄고 왔다면 가려 둔 갈래는 뺀다 */
+  /* 달력에서 Blur를 켠 채 넘어왔는지. 끄고 왔다면 가려 둔 갈래는 뺀다. */
   const blurOn = params.get("blur") === "1";
 
-  /* 달력에서 Exclude 를 켠 채 넘어왔는지. 주소에 없으면 켠 것으로 본다 */
+  /* 달력에서 Exclude를 켠 채 넘어왔는지. 주소에 없으면 켠 것으로 본다. */
   const excludeOn = params.get("exclude") !== "0";
 
-  /* 달력에 걸려 있던 조건. 주소만으로 들어왔다면 조건 없이 본다 */
+  /* 달력에 걸려 있던 조건. 주소만으로 들어왔다면 조건 없이 본다. */
   const filter = useMemo<Filter>(
     () => (location.state as { filter?: Filter } | null)?.filter ?? EMPTY_FILTER,
     [location.state]
@@ -124,17 +143,18 @@ export default function CalendarDetail() {
   }, []);
 
   /* 세 자료. 가려 둔 금액을 끌어서 볼 때 그 줄만 바꾸므로 따로 담는다.
-     지출과 대기는 entry_id 가 서로 겹칠 수 있어 한 통에 담을 수 없다. */
+     지출과 대기는 entry_id가 서로 겹칠 수 있어 한 통에 담을 수 없다. */
   const [exRows, setExRows] = useState<Record<string, unknown>[]>([]);
   const [peRows, setPeRows] = useState<Record<string, unknown>[]>([]);
   const [scRows, setScRows] = useState<Record<string, unknown>[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!from || !to) return;
+    if (!days.length) return;
     let alive = true;
-    const ym = from.substring(0, 7);
-    const inRange = (d: string) => !!d && d >= from && d <= to;
+    const ym = days[0].substring(0, 7);
+    const chosen = new Set(days);
+    const inRange = (d: string) => !!d && chosen.has(d);
 
     Promise.all([
       axios.get("/entries/month", { params: { ym } }).then((r) => r.data).catch(() => []),
@@ -148,7 +168,7 @@ export default function CalendarDetail() {
       setPeRows(
         pe.filter((x) => inRange(dateOnly(x.tx_date))).map((x) => ({ ...x, reveal_amount: false }))
       );
-      /* 정기 카드는 시각 문자열을 들고 있는 편을 좋아한다 — 정기 내역 화면과 같게 맞춘다 */
+      /* 정기 카드는 시각 문자열을 들고 있는 편을 좋아한다 — 정기 내역 화면과 같게 맞춘다. */
       setScRows(
         sc.filter((x) => inRange(dateOnly(x.next_run_at))).map((x) => ({
           ...x,
@@ -162,14 +182,14 @@ export default function CalendarDetail() {
     return () => {
       alive = false;
     };
-  }, [from, to]);
+  }, [days]);
 
   const excSets = useMemo(
     () => excludeSetsFrom(cat1List, cat2List, cat3List),
     [cat1List, cat2List, cat3List]
   );
 
-  /* Blur 는 중 · 소 · 세 어디에 걸려도 함께 덮인다 */
+  /* Blur는 중 · 소 · 세 어디에 걸려도 함께 덮인다. */
   const blurSets = useMemo(
     () => blurSetsFrom(cat1List, cat2List, cat3List),
     [cat1List, cat2List, cat3List]
@@ -198,14 +218,14 @@ export default function CalendarDetail() {
     [filter]
   );
 
-  /* 한 통에 모아 날짜별로 묶는다. 하루 안에서는 지출 → 대기 → 정기 순서다 */
+  /* 한 통에 모아 날짜별로 묶는다. 하루 안에서는 지출 → 대기 → 정기 순서다. */
   const items = useMemo<Item[]>(() => {
     const out: Item[] = [];
     const add = (src: Src, list: Record<string, unknown>[], dateField: string) => {
       if (!srcOn.has(src)) return;
       list.forEach((x) => {
         const date = dateOnly(x[dateField]);
-        /* 달력과 같은 셈이어야 한다 — 달력에서 뺀 것은 여기서도 뺀다 */
+        /* 달력과 같은 셈이어야 한다 — 달력에서 뺀 것은 여기서도 뺀다. */
         if (!blurOn && isBlurred(x as { cat1_id?: number }, blurSets)) return;
         if (excludeOn && isExcluded(x as { cat1_id?: number }, excSets)) return;
         if (!passes(src, x, date)) return;
@@ -225,7 +245,7 @@ export default function CalendarDetail() {
     add("scheduled", scRows, "next_run_at");
 
     /* 늦은 날이 위로 — 지출 내역과 같은 순서다.
-       같은 날 안에서는 자료 순서를 지킨다 */
+       같은 날 안에서는 자료 순서를 지킨다. */
     return out.sort((a, b) =>
       a.tx_date === b.tx_date
         ? SRC_ORDER.indexOf(a.src) - SRC_ORDER.indexOf(b.src)
@@ -240,7 +260,7 @@ export default function CalendarDetail() {
     [items, blurSets]
   );
 
-  /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다 — 내역 세 화면과 같다 */
+  /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다 — 내역 세 화면과 같다. */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const toggleDay = (d: string) =>
     setCollapsedDays((prev) => {
@@ -250,7 +270,7 @@ export default function CalendarDetail() {
       return next;
     });
 
-  /* 가려 둔 금액을 끌어서 잠깐 보기 — 자료별로 그 줄만 바꾼다 */
+  /* 가려 둔 금액을 끌어서 잠깐 보기 — 자료별로 그 줄만 바꾼다. */
   const reveal = useCallback(
     (
       setter: React.Dispatch<React.SetStateAction<Record<string, unknown>[]>>,
@@ -281,7 +301,20 @@ export default function CalendarDetail() {
     []
   );
 
-  const rangeLabel = from === to ? shortDate(from) : `${shortDate(from)} ~ ${shortDate(to)}`;
+  /* 머리말 — 죽 이어 고르면 예전처럼 "8. 3. ~ 8. 7.", 띄엄띄엄 고르면 날을 늘어놓는다.
+     너무 길어지면 앞의 둘만 적고 나머지는 수로 접는다 */
+  const rangeLabel = useMemo(() => {
+    if (!days.length) return "";
+    if (days.length === 1) return shortDate(days[0]);
+
+    const step = (a: string, b: string) =>
+      (new Date(`${b}T00:00:00`).getTime() - new Date(`${a}T00:00:00`).getTime()) / 86400000;
+    const run = days.every((d, i) => i === 0 || step(days[i - 1], d) === 1);
+    if (run) return `${shortDate(days[0])} ~ ${shortDate(days[days.length - 1])}`;
+
+    if (days.length <= 3) return days.map(shortDate).join(" · ");
+    return `${days.slice(0, 2).map(shortDate).join(" · ")} 외 ${days.length - 2}일`;
+  }, [days]);
   const noop = useCallback(() => {}, []);
   const toTimeString = useCallback((hour?: number, minute?: number) => {
     if (typeof hour !== "number" || typeof minute !== "number") return "00:00";
@@ -378,7 +411,7 @@ export default function CalendarDetail() {
       </div>
 
       {loaded && dateGroups.length === 0 && (
-        <p className="cal-empty">조회된 내역이 없다.</p>
+        <p className="page-empty">조회된 내역이 없습니다.</p>
       )}
 
       <QuickActions />

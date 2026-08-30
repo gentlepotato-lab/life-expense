@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/** 꾹 누르는 시간. index.css 의 --longpress-delay 와 값을 맞출 것 */
+/** 꾹 누르는 시간. index.css의 --longpress-delay와 값을 맞출 것 */
 export const LONG_PRESS_DELAY = 500;
 
-/** 이 픽셀 이상 움직이면 스크롤/드래그로 보고 취소한다 */
+/** 이 픽셀 이상 움직이면 스크롤/드래그로 보고 취소한다. */
 const MOVE_TOLERANCE = 10;
 
 /**
- * 길게 누르기 제스처. 마우스와 터치를 Pointer Event 로 함께 처리한다.
+ * 길게 누르기 제스처. 마우스와 터치를 Pointer Event로 함께 처리한다.
  *
- * - 버튼·입력·링크, 그리고 [data-no-longpress] 가 붙은 요소에서 시작한 누름은 무시한다.
+ * - 버튼·입력·링크, 그리고 [data-no-longpress]가 붙은 요소에서 시작한 누름은 무시한다.
  *   (금액 마스킹 드래그처럼 자체 제스처를 가진 영역을 보호하기 위함)
- * - pressing 을 CSS 클래스로 넘기면 누르는 동안 진행 피드백을 줄 수 있다.
+ * - pressing을 CSS 클래스로 넘기면 누르는 동안 진행 피드백을 줄 수 있다.
  */
 export default function useLongPress(
   onLongPress: () => void,
@@ -80,7 +80,7 @@ export default function useLongPress(
     [cancel]
   );
 
-  // 누르는 도중 뜨는 컨텍스트 메뉴(모바일 길게 누르기 메뉴 포함)를 막는다
+  // 누르는 도중 뜨는 컨텍스트 메뉴(모바일 길게 누르기 메뉴 포함)를 막는다.
   const onContextMenu = useCallback(
     (e: React.MouseEvent) => {
       if (pressing || firedRef.current) e.preventDefault();

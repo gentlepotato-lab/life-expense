@@ -1,13 +1,13 @@
 -- ═══════════════════════════════════════════════════════════════
--- 금액 쪼개기 — 지출 중 돌려받은 몫을 분리한다
+-- 금액 쪼개기 — 지출 중 돌려받은 몫을 분리한다.
 -- 2026-08-14
 -- ─────────────────────────────────────────────────────────────
 -- 설계 요지
---   · entries.amount 는 "내가 실제로 결제한 총액" 그대로 둔다.
+--   · entries.amount는 "내가 실제로 결제한 총액" 그대로 둔다.
 --     과거 데이터의 의미가 바뀌지 않고, 기존 조회도 그대로 동작한다.
---   · 돌려받은 몫은 entry_splits 에 따로 쌓는다.
+--   · 돌려받은 몫은 entry_splits에 따로 쌓는다.
 --     실지출(net) = entries.amount - COALESCE(SUM(entry_splits.amount), 0)
---   · 분할은 자기 자신을 다시 쪼갤 수 없으므로 깊이 1 이 구조적으로 보장된다.
+--   · 분할은 자기 자신을 다시 쪼갤 수 없으므로 깊이 1이 구조적으로 보장된다.
 --
 -- 이 스크립트는 추가만 한다(Expand). 기존 테이블을 수정하지 않으므로
 -- 되돌리려면 맨 아래 롤백 구문 두 줄이면 된다.
@@ -43,12 +43,12 @@ CREATE TABLE IF NOT EXISTS life_expense.entry_splits (
     CONSTRAINT entry_splits_entry_fk
         FOREIGN KEY (entry_id)
         REFERENCES life_expense.entries (entry_id)
-        ON DELETE CASCADE,          -- 내역이 지워지면 분할도 함께 사라진다
+        ON DELETE CASCADE,          -- 내역이 지워지면 분할도 함께 사라진다.
 
     CONSTRAINT entry_splits_counterpart_fk
         FOREIGN KEY (counterpart_id)
         REFERENCES life_expense.counterparts (counterpart_id)
-        ON DELETE SET NULL,         -- 상대를 지워도 분할 금액은 남는다
+        ON DELETE SET NULL,         -- 상대를 지워도 분할 금액은 남는다.
 
     CONSTRAINT entry_splits_amount_positive
         CHECK (amount > 0),

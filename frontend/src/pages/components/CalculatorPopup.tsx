@@ -19,12 +19,12 @@ let sharedHistory: HistoryItem[] = [];
 /**
  * 클립보드가 없는 자리에서 쓰는 옛 방법.
  *
- * navigator.clipboard 는 안전한 자리(https · localhost)에서만 있다. 집 밖에서
- * 휴대폰으로 IP 를 찍어 들어오면 http 라 아예 없다. 그때는 눈에 안 보이는
- * 칸을 만들어 골라 놓고 execCommand 로 베낀다.
+ * navigator.clipboard는 안전한 자리(https · localhost)에서만 있다. 집 밖에서
+ * 휴대폰으로 IP를 찍어 들어오면 http라 아예 없다. 그때는 눈에 안 보이는
+ * 칸을 만들어 골라 놓고 execCommand로 베낀다.
  *
- * iOS 는 그냥 select() 로는 안 골라진다. contentEditable 로 열어 두고
- * Range 로 고른 뒤 setSelectionRange 까지 해 줘야 한다. readOnly 는 자판이
+ * iOS는 그냥 select()로는 안 골라진다. contentEditable로 열어 두고
+ * Range로 고른 뒤 setSelectionRange까지 해 줘야 한다. readOnly는 자판이
  * 올라오지 않게 막는 것이다.
  */
 function legacyCopy(text: string): boolean {
@@ -39,7 +39,7 @@ function legacyCopy(text: string): boolean {
   const prev = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
 
   if (/iP(hone|ad|od)/.test(navigator.userAgent)) {
-    /* iOS 는 select() 로 안 골라진다. 편집 가능으로 열어 두고 Range 로 고른다 */
+    /* iOS는 select()로 안 골라진다. 편집 가능으로 열어 두고 Range로 고른다. */
     ta.contentEditable = "true";
     const range = document.createRange();
     range.selectNodeContents(ta);
@@ -78,7 +78,7 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [isCalculated, setIsCalculated] = useState(false);
 
-  /* 뒤로 가기 · Esc 로 닫는다. Backspace 는 숫자를 지우는 키로 남겨 둔다 */
+  /* 뒤로 가기 · Esc로 닫는다. Backspace는 숫자를 지우는 키로 남겨 둔다. */
   useBackClose(true, onClose, false);
 
   // 팝업 열렸을 때 뒤 화면 스크롤/인터랙션 막기
@@ -427,7 +427,7 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
     }
   };
 
-  /** 백분율 — 지금 보이는 값을 100으로 나눈다. 10000 × 10 % 처럼 쓴다 */
+  /** 백분율 — 지금 보이는 값을 100으로 나눈다. 10000 × 10 %처럼 쓴다. */
   const inputPercent = () => {
     const n = parseFloat(display.replace(/,/g, ""));
     if (isNaN(n)) return;
@@ -448,8 +448,8 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
   };
 
   /** 결과를 복사한다 — 금액 칸에 붙여 넣으려고 쓴다.
-      async 로 두지 않는다. 클립보드가 없는 자리에서 await 를 한 번이라도
-      거치면 "사용자가 방금 눌렀다" 는 표식이 풀려 옛 방법마저 막힌다. */
+      async로 두지 않는다. 클립보드가 없는 자리에서 await를 한 번이라도
+      거치면 "사용자가 방금 눌렀다"는 표식이 풀려 옛 방법마저 막힌다. */
   const [copyState, setCopyState] = useState<"idle" | "done" | "fail">("idle");
   const flashCopy = (ok: boolean) => {
     setCopyState(ok ? "done" : "fail");
@@ -560,7 +560,7 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
             </div>
             <div className="calculator-display">{display}</div>
           </div>
-          {/* 작은 줄 — 뒤에 더한 것들. 아래 숫자판은 그대로 둔다 */}
+          {/* 작은 줄 — 뒤에 더한 것들. 아래 숫자판은 그대로 둔다. */}
           <div className="calculator-utils">
             <button type="button" className="calculator-util" onClick={inputPercent} title="백분율">
               %

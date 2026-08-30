@@ -52,7 +52,7 @@ def update_entries_bulk(rows: list[dict], db: SessionDep = Depends()):
         place_lng = r.get("place_lng")
 
         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # >>> ADD: place_id 우선 처리 (기존 장소 사용 또는 갱신)
+        # >>> ADD: place_id 우선 처리(기존 장소 사용 또는 갱신)
         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         if place_id:
             # Stored Place는 절대 업데이트하지 않음
@@ -118,9 +118,9 @@ def update_entries_bulk(rows: list[dict], db: SessionDep = Depends()):
         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # >>> ADD: 2) lat/lng 동일한 기존 장소 찾기 (kakao_id가 없을 때만)
+        # >>> ADD: 2) lat/lng 동일한 기존 장소 찾기(kakao_id가 없을 때만)
         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # kakao_id가 있으면 좌표 검색 건너뛰기 (같은 건물 내 다른 가게 구분)
+        # kakao_id가 있으면 좌표 검색 건너뛰기(같은 건물 내 다른 가게 구분)
         if not goto_update_entry and not kakao_id and place_lat and place_lng:
             # 원래 좌표와 미세 조정된 좌표(±0.000001) 모두 확인
             exists = db.execute(text("""
@@ -186,9 +186,9 @@ def update_entries_bulk(rows: list[dict], db: SessionDep = Depends()):
             r.get("place_name") and
             place_lat and place_lng
         ):
-            # kakao_id가 있으면 좌표 검색 건너뛰고 바로 생성 (같은 건물 내 다른 가게 구분)
+            # kakao_id가 있으면 좌표 검색 건너뛰고 바로 생성(같은 건물 내 다른 가게 구분)
             if not kakao_id:
-                # kakao_id가 없을 때만 좌표로 검색 (원래 좌표와 미세 조정된 좌표 모두 확인)
+                # kakao_id가 없을 때만 좌표로 검색(원래 좌표와 미세 조정된 좌표 모두 확인)
                 exists = db.execute(text("""
                     SELECT place_id, kakao_id
                       FROM life_expense.places
@@ -208,9 +208,9 @@ def update_entries_bulk(rows: list[dict], db: SessionDep = Depends()):
                 if exists:
                     place_id = exists.place_id
             
-            # kakao_id가 있으면 좌표 미세 조정하여 새로 생성 (같은 건물 내 다른 가게)
+            # kakao_id가 있으면 좌표 미세 조정하여 새로 생성(같은 건물 내 다른 가게)
             if not place_id and kakao_id:
-                # 기존에 같은 좌표의 장소가 있는지 확인 (미세 조정 전)
+                # 기존에 같은 좌표의 장소가 있는지 확인(미세 조정 전)
                 exists_original = db.execute(text("""
                     SELECT place_id FROM life_expense.places
                      WHERE ROUND(lat::numeric, 6) = ROUND(CAST(:lat AS numeric), 6)
@@ -327,7 +327,7 @@ def export_entries(start: date, end: date, fmt: str = Query("xlsx"), db=Depends(
         df.to_excel(w, index=False, sheet_name="Entries")
     return Response(bio.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=entries.xlsx"})
 
-# 월별 조회 (YYYY-MM 형식)
+# 월별 조회(YYYY-MM 형식)
 @router.get("/month")
 def get_entries_by_month(ym: str, db: SessionDep = Depends()):
     """
@@ -338,18 +338,18 @@ def get_entries_by_month(ym: str, db: SessionDep = Depends()):
           SELECT e.*
                  , c3.cat3_name
                  , p.place_name
-                 -- 돌려받은 몫을 뺀 실지출. 정의는 v_entries_net 한 곳에만 둔다
+                 -- 돌려받은 몫을 뺀 실지출. 정의는 v_entries_net 한 곳에만 둔다.
                  , COALESCE(vn.split_amount, 0) AS split_amount
                  , COALESCE(vn.net_amount, e.amount) AS net_amount
                  , COALESCE(vn.split_count, 0) AS split_count
-                 -- 달력이 "함께한 상대" 로 걸러 낼 때 쓴다. 화면에서 거르는 구조라
-                 -- 행마다 들려 있어야 한다(pending_entries 와 같은 방식).
+                 -- 달력이 "함께한 상대"로 걸러 낼 때 쓴다. 화면에서 거르는 구조라
+                 -- 행마다 들려 있어야 한다(pending_entries와 같은 방식).
                  , COALESCE(
                        (SELECT array_agg(DISTINCT s.counterpart_id)
                           FROM life_expense.entry_splits s
                          WHERE s.entry_id = e.entry_id
                            AND s.counterpart_id IS NOT NULL),
-                       '{{}}'   -- 이 SQL 은 f-string 이라 중괄호를 두 번 쓴다
+                       '{{}}'   -- 이 SQL은 f-string이라 중괄호를 두 번 쓴다.
                    ) AS counterpart_ids
             FROM life_expense.entries e
                      LEFT JOIN
@@ -404,7 +404,7 @@ def add_entries(payload: list[EntryIn], db: SessionDep = Depends()):
                 if exists:
                     place_id = exists.place_id
             
-            # ② 좌표로 검색 (kakao_id가 없을 때만)
+            # ② 좌표로 검색(kakao_id가 없을 때만)
             if not place_id and not item.kakao_id:
                 # 원래 좌표와 미세 조정된 좌표(±0.000001) 모두 확인
                 exists = db.execute(text("""
@@ -424,9 +424,9 @@ def add_entries(payload: list[EntryIn], db: SessionDep = Depends()):
                 if exists:
                     place_id = exists.place_id
             
-            # kakao_id가 있으면 좌표 미세 조정하여 새로 생성 (같은 건물 내 다른 가게)
+            # kakao_id가 있으면 좌표 미세 조정하여 새로 생성(같은 건물 내 다른 가게)
             if not place_id and item.kakao_id:
-                # 기존에 같은 좌표의 장소가 있는지 확인 (미세 조정 전)
+                # 기존에 같은 좌표의 장소가 있는지 확인(미세 조정 전)
                 exists_original = db.execute(text("""
                     SELECT place_id FROM life_expense.places
                      WHERE ROUND(lat::numeric, 6) = ROUND(CAST(:lat AS numeric), 6)
@@ -583,7 +583,7 @@ def filter_entries(
         SELECT e.*
                , c3.cat3_name
                , p.place_name
-               -- 돌려받은 몫을 뺀 실지출. 정의는 v_entries_net 한 곳에만 둔다
+               -- 돌려받은 몫을 뺀 실지출. 정의는 v_entries_net 한 곳에만 둔다.
                , COALESCE(vn.split_amount, 0) AS split_amount
                , COALESCE(vn.net_amount, e.amount) AS net_amount
                , COALESCE(vn.split_count, 0) AS split_count
@@ -645,12 +645,12 @@ def filter_entries(
         sql += " AND e.memo LIKE :memo"
         params["memo"] = f"%{memo}%"
 
-    # 나감(-1) / 들어옴(1). 0 이나 없음은 "가리지 않음" 으로 본다
+    # 나감(-1) / 들어옴(1). 0이나 없음은 "가리지 않음"으로 본다.
     if inout in (-1, 1):
         sql += " AND e.inout = :inout"
         params["inout"] = inout
 
-    # 금액 구간 — 한쪽만 채워도 걸린다
+    # 금액 구간 — 한쪽만 채워도 걸린다.
     if amount_min is not None:
         sql += " AND e.amount >= :amount_min"
         params["amount_min"] = amount_min
@@ -658,12 +658,12 @@ def filter_entries(
         sql += " AND e.amount <= :amount_max"
         params["amount_max"] = amount_max
 
-    # 장소는 이름 일부만 적어도 찾게 한다
+    # 장소는 이름 일부만 적어도 찾게 한다.
     if place:
         sql += " AND p.place_name ILIKE :place"
         params["place"] = f"%{place}%"
 
-    # 함께한 상대 — 그 사람과 나눈 건이 하나라도 있으면 걸린다
+    # 함께한 상대 — 그 사람과 나눈 건이 하나라도 있으면 걸린다.
     counterpart_list = _parse_int_list(counterpart)
     if counterpart_list:
         sql += """

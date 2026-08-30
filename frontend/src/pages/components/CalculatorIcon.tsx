@@ -2,8 +2,8 @@
  * 계산기 — 표시창 하나에 자판, 오른쪽 아래는 길쭉한 [=] 하나.
  *
  * 새로 고침과 나란히 서므로 선 두께를 같게 맞췄다(24 상자에 2).
- * 자판은 둥근 끝을 가진 점으로 찍는다 — 18px 에서는 네모로 그리면 뭉갠다.
- * 빛깔은 currentColor 라 부르는 쪽 글자색을 따라간다.
+ * 자판은 둥근 끝을 가진 점으로 찍는다 — 18px에서는 네모로 그리면 뭉갠다.
+ * 빛깔은 currentColor라 부르는 쪽 글자색을 따라간다.
  */
 export default function CalculatorIcon({ size = 18 }: { size?: number }) {
   return (
