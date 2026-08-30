@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "../api/client";
 import { apiErrorMessage } from "../utils/apiError";
 import QuickActions from "./components/QuickActions";
 import EmojiPicker from "./components/EmojiPicker";
+import { PAGE_ICON } from "./components/MenuIcons";
 import SingleSelect from "./components/SingleSelect";
 import { formatDateLabel } from "../utils/dateGroup";
 import { putPrefs } from "../utils/prefs";
@@ -89,6 +91,42 @@ function RankRow({ rank, name, right }: { rank: number; name: string; right: str
       <span className="me-rank__name">{name}</span>
       <span className="me-rank__count">{right}</span>
     </div>
+  );
+}
+
+/**
+ * 그 화면으로 건너뛰는 단추.
+ *
+ * 잔소리 상세(NudgeDetailPopup)가 바닥에 다는 것과 같은 생김새다 — 이름은
+ * 떼고 그 화면의 그림과 화살표만 남긴다. 화살표가 "여기서 저기로 간다"를
+ * 말해 주므로 좁은 칸에도 들어간다.
+ */
+function GoTo({ to, label }: { to: string; label: string }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      className="ui-btn nudge-detail__go me-tile__go"
+      onClick={() => navigate(to)}
+      aria-label={`${label}(으)로 가기`}
+      title={label}
+    >
+      <span className="nudge-detail__go-icon" aria-hidden="true">
+        {PAGE_ICON[to]}
+      </span>
+      <span className="nudge-detail__go-arrow" aria-hidden="true">
+        <svg
+          viewBox="0 0 32 32"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M9 16h13M17 11l5 5-5 5" />
+        </svg>
+      </span>
+    </button>
   );
 }
 
@@ -256,33 +294,32 @@ export default function Me() {
             )}
           </section>
 
-          {/* ─── 함께한 시간 ──────────────────────────────────── */}
+          {/* ─── 함께한 쓰기 ──────────────────────────────────── */}
           <section className="chart-card chart-card--wide">
             <header className="chart-card__head">
-              <h3 className="chart-card__title">함께한 시간</h3>
+              <h3 className="chart-card__title">함께한 쓰기</h3>
             </header>
 
-            <div className="chart-tiles">
+            {/* 단위는 숫자 오른쪽에 붙인다 — 줄을 바꿔 놓으면 칸만 길어진다. */}
+            <div className="chart-tiles me-tiles">
               <div className="chart-tile">
-                <span className="chart-tile__label">적은 건수</span>
-                <span className="chart-tile__value">
-                  {(summary?.spend_count ?? 0).toLocaleString("ko-KR")}
+                <span className="chart-tile__label">쓴 건수</span>
+                <span className="me-tile__foot">
+                  <span className="chart-tile__value">
+                    {(summary?.spend_count ?? 0).toLocaleString("ko-KR")}
+                  </span>
+                  <span className="chart-tile__sub">건</span>
+                  <GoTo to="/entries" label="지출 내역" />
                 </span>
-                <span className="chart-tile__sub">건</span>
               </div>
               <div className="chart-tile">
-                <span className="chart-tile__label">적은 돈</span>
-                <span className="chart-tile__value">
-                  {Math.round((summary?.spend_total ?? 0) / 10000).toLocaleString("ko-KR")}
+                <span className="chart-tile__label">장소/가게</span>
+                <span className="me-tile__foot">
+                  <span className="chart-tile__value">
+                    {(summary?.counts?.place ?? 0).toLocaleString("ko-KR")}
+                  </span>
+                  <span className="chart-tile__sub">곳</span>
                 </span>
-                <span className="chart-tile__sub">만 원</span>
-              </div>
-              <div className="chart-tile">
-                <span className="chart-tile__label">장소</span>
-                <span className="chart-tile__value">
-                  {(summary?.counts?.place ?? 0).toLocaleString("ko-KR")}
-                </span>
-                <span className="chart-tile__sub">곳</span>
               </div>
             </div>
 

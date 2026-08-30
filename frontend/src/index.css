@@ -11611,3 +11611,194 @@ input.goal-row__memo {
 .me-field > .cat-input:last-child {
   flex: 3 1 0;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   100. 위에 붙는 머리말 · 맨 위로 단추(2026-08-30)
+   ────────────────────────────────────────────────────────────
+   내용이 긴 화면에서 [편집] 이나 [필터] 를 누르려고 맨 위까지 되감아
+   올라가야 했다. 굴리는 쪽을 보고 정한다 — 내릴 때는 함께 밀려 사라지고,
+   올릴 때 다시 내려온다. 어느 줄이 몇 픽셀에 설지는 화면마다 도구 수가
+   달라 CSS로 정할 수 없으므로 useHeadPin이 재어 top으로 적어 준다.
+   여기서는 붙이는 방식과 오가는 결만 정한다.
+   ═════════════════════════════════════════════════════════════ */
+
+/* 붙는 줄들 사이에 틈이 생기면 그 사이로 본문이 지나가는 것이 비친다.
+   아래 여백을 바깥(margin)에서 안(padding)으로 옮겨 제 상자가 그 틈까지
+   덮게 한다. 값은 그대로라 자리는 한 픽셀도 움직이지 않는다. */
+.page-head {
+  margin-bottom: 0;
+  padding-bottom: var(--space-3);
+}
+
+.cat-toolbar {
+  margin-bottom: 0;
+  padding-bottom: var(--space-3);
+}
+
+.cal-sources {
+  margin-bottom: 0;
+  padding-bottom: var(--space-2);
+}
+
+/* 함께한 상대의 도구 줄은 세로 묶음(.cp-page) 안에 있어, 아래 여백을 제
+   margin(4px)과 묶음의 gap(8px)이 나눠 갖는다. 둘을 합친 12px을 padding으로
+   덮고, 남는 gap만큼 margin을 되물려 다음 줄을 제자리에 둔다. */
+.cp-toolbar.is-pinned {
+  padding-bottom: var(--space-3);
+  margin-bottom: -8px;
+}
+
+/* 잔소리는 사이 여백을 아랫줄이 가졌다(70절). 위 규칙으로 이 줄이 그만큼
+   길어졌으므로 아랫줄 것은 걷는다 — 둘이 겹치면 8px이 더 벌어진다. */
+.page-wrap > .cal-sources.is-pinned + .chart-grid {
+  margin-top: 0;
+}
+
+/* 붙이는 방식은 한가지 — 자리(top)만 저마다 다르다.
+   본문 위를 지나가야 하므로 아래 이동 막대(900)보다 높이 세운다. 오른쪽 위
+   네 단추(10500)보다는 낮다 — 그 넷은 늘 손에 닿아야 한다. */
+.page-head.is-pinned,
+.page-wrap > .is-pinned,
+.cp-page > .is-pinned {
+  position: sticky;
+  z-index: 940;
+  background: var(--color-bg);
+  transition: transform 260ms var(--ease);
+  will-change: transform;
+}
+
+/* 머리말이 도구 줄보다 위에 온다 — 겹치는 순간에도 차례가 뒤집히지 않게 */
+.page-head.is-pinned {
+  z-index: 950;
+}
+
+/* 내릴 때는 쌓인 높이만큼 통째로 밀어 올린다. 맨 아래 줄까지 화면 밖으로
+   나가야 하므로 저마다의 높이가 아니라 쌓인 전체를 쓴다. */
+html.pin-off .page-head.is-pinned,
+html.pin-off .page-wrap > .is-pinned,
+html.pin-off .cp-page > .is-pinned {
+  transform: translate3d(0, calc(-1 * var(--pin-h, 0px)), 0);
+}
+
+/* 굴림 애니메이션을 꺼 둔 사람에게는 그냥 있고 없고로만 보인다 */
+@media (prefers-reduced-motion: reduce) {
+  .page-head.is-pinned,
+  .page-wrap > .is-pinned,
+  .cp-page > .is-pinned {
+    transition: none;
+  }
+}
+
+/* ─── 맨 위로 ────────────────────────────────────────────────
+   오른쪽 위 네 단추와 같은 크기·같은 결이되 동그라미다. 자리는 오른쪽
+   아래, 이동 막대 위. 오른쪽 끝은 네 단추와 같은 셈으로 맞춘다 —
+   내용 기둥의 안쪽 끝이다. */
+.scroll-top {
+  position: fixed;
+  right: var(--space-2);
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  z-index: 10500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: var(--shadow-md);
+  color: var(--color-primary);
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  /* 맨 위에서는 없는 셈이다 — 자리만 잡고 손에 닿지 않는다. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px) scale(0.94);
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease),
+    visibility 0s linear 200ms, background 0.2s ease;
+}
+
+.scroll-top.is-on {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease),
+    visibility 0s, background 0.2s ease;
+}
+
+.scroll-top > svg {
+  display: block;
+}
+
+/* 팝업이 떠 있는 동안은 뒤 화면이 굴러가지 않는다. 갈 곳이 없으므로 물러선다 —
+   오른쪽 위 네 단추는 화면을 건너다니는 길이라 그대로 두는 것과 다르다. */
+html.modal-open .scroll-top {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.scroll-top:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.scroll-top:active {
+  transform: scale(0.92);
+}
+
+@media (min-width: 769px) {
+  .scroll-top {
+    right: max(var(--space-3), calc(50% - 380px));
+  }
+}
+
+@media (max-width: 400px) {
+  .scroll-top {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+  }
+}
+
+/* ─── 계산기도 다른 팝업처럼 뜬다 ─────────────────────────────
+   쓰기 · 잔소리는 덮개가 스며들고 판이 살짝 올라오며 뜨는데 계산기만
+   툭 나타나 결이 달랐다. 같은 결(2265절의 overlay-in · panel-in)을 준다. */
+.calculator-popup-overlay {
+  animation: overlay-in 140ms var(--ease);
+}
+
+.calculator-popup-content {
+  animation: panel-in 180ms var(--ease);
+}
+
+/* ─────────────────────────────────────────────
+   101. 돈쓴이 — 함께한 쓰기의 두 칸
+────────────────────────────────────────────── */
+
+/* 씀씀이의 한 달 요약은 셋이지만 여기는 둘이다. 셋으로 자른 자리에 둘만
+   놓으면 오른쪽 한 칸이 빈다. */
+.me-tiles {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* 숫자 · 단위 · 건너뛰는 단추가 한 줄에 선다. 글자끼리는 밑선을 맞추고
+   단추만 가운데에 둔다 — 단추는 글자가 아니라 그림이다. */
+.me-tile__foot {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.me-tile__go {
+  align-self: center;
+  width: auto;
+  min-width: 0;
+  height: 20px;
+  min-height: 20px;
+  margin-left: 3px;
+  padding: 0 4px;
+  gap: 0;
+}

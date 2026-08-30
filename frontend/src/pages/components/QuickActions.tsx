@@ -5,6 +5,7 @@ import CalculatorPopup from "./CalculatorPopup";
 import NudgePopup from "./NudgePopup";
 import PenIcon from "./PenIcon";
 import RefreshIcon from "./RefreshIcon";
+import ScrollTopButton from "./ScrollTopButton";
 import WriteEntryModal from "./WriteEntryModal";
 import useNudges, { invalidateNudges } from "../../hooks/useNudges";
 import { closeOverlays } from "../../hooks/useBackClose";
@@ -100,6 +101,8 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
           )}
         </button>
       </div>
+
+      <ScrollTopButton />
 
       {writeOpen && (
         <WriteEntryModal

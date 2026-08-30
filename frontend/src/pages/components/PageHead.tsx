@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PAGE_TITLE, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
+import useHeadPin from "../../hooks/useHeadPin";
 
 /**
  * 모든 화면의 머리말.
@@ -28,6 +29,9 @@ const PARENT: Record<string, string> = {
 export default function PageHead() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
+  /* 머리말과 첫 줄 도구를 위에 붙인다. 굴리는 쪽을 보고 감추거나 드러낸다. */
+  useHeadPin();
 
   const title = PAGE_TITLE[pathname] ?? "돈을 쓰다";
   /* 알약이 어디에 놓일지는 어미 화면으로 따진다. */
