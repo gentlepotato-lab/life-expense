@@ -129,3 +129,52 @@ export function ArtNudge() {
     </svg>
   );
 }
+
+/** 어디 쓰나 — 접힌 지도에 핀 둘 */
+export function ArtPlaces() {
+  return (
+    <svg className="home-art" viewBox="0 0 140 72" aria-hidden="true">
+      {/* 씀씀이 · 잔소리의 그림은 13.7~100에 그려져 가운데가 56.85다. 이것은
+          30~110이라 가운데가 70이었다 — 셋을 나란히 놓으면 혼자 오른쪽으로
+          밀려 보였다. 가운데끼리 맞춘다. */}
+      <g transform="translate(-13.15, 0)">
+      {/* 접힌 지도 — 세로로 두 번 접혀 골이 지고, 접힌 자리마다 높낮이가 엇갈린다. */}
+      <path
+        d="M30 20 55 12l30 8 25-8v40l-25 8-30-8-25 8V20Z"
+        fill="#FFFFFF"
+        stroke={INK}
+        strokeWidth="2.8"
+        strokeLinejoin="round"
+      />
+      {/* 접힌 골 */}
+      <path d="M55 12v40M85 20v40" stroke={INK} strokeWidth="2.8" strokeLinejoin="round" />
+
+      {/* 길 — 지도 위를 가로지른다. */}
+      <path
+        d="M36 44c8-2 10-12 19-13s12 7 20 5 13-11 21-12"
+        fill="none"
+        stroke="#C9CDF6"
+        strokeWidth="2.8"
+        strokeLinecap="round"
+      />
+
+      {/* 핀 — 다녀온 자리. 큰 것 하나에 작은 것 하나. */}
+      <path
+        d="M70 16.5a7.5 7.5 0 0 1 7.5 7.5c0 5.6-7.5 13-7.5 13s-7.5-7.4-7.5-13a7.5 7.5 0 0 1 7.5-7.5Z"
+        fill="#FFFFFF"
+        stroke={AQUA}
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+      <circle cx="70" cy="24" r="2.8" fill={AQUA} />
+      <path
+        d="M44 32.5a4.6 4.6 0 0 1 4.6 4.6c0 3.4-4.6 8-4.6 8s-4.6-4.6-4.6-8a4.6 4.6 0 0 1 4.6-4.6Z"
+        fill="#FFFFFF"
+        stroke={AQUA}
+        strokeWidth="2.6"
+        strokeLinejoin="round"
+      />
+      </g>
+    </svg>
+  );
+}

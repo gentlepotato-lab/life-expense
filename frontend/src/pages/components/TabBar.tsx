@@ -34,9 +34,9 @@ const TABS: Tab[] = [
   {
     label: "홈",
     to: "/",
-    /* 쓰기 · 돈쓴이 · 씀씀이 · 잔소리는 홈에 딸린 화면이다.
+    /* 쓰기 · 돈쓴이 · 어디 쓰나 · 씀씀이 · 잔소리는 홈에 딸린 화면이다.
        그 안에 있을 때도 홈이 켜져 있어야 어디에 있는지 알 수 있다. */
-    match: ["/", "/write", "/me", "/charts", "/nudges"],
+    match: ["/", "/write", "/me", "/places", "/charts", "/nudges"],
     icon: (
       <svg viewBox="0 0 24 24" {...stroke}>
         <path d="M4 10.5 12 4l8 6.5" />

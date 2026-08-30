@@ -1126,7 +1126,7 @@ export default function PendingEntries() {
               </EditField>
             </div>
 
-            <div className="btn-row popup-foot">
+            <div className="btn-row popup-foot popup-foot--tight">
               <button
                 className="ui-btn"
                 onClick={() =>

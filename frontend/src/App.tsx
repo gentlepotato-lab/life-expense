@@ -9,6 +9,7 @@ import PaymentMethods from "./pages/PaymentMethods";
 import Counterparts from "./pages/Counterparts";
 import Goals from "./pages/Goals";
 import Me from "./pages/Me";
+import Places from "./pages/Places";
 import Calendar from "./pages/Calendar";
 import CalendarDetail from "./pages/CalendarDetail";
 import Home from "./pages/Home";
@@ -107,6 +108,8 @@ function App() {
         <Route path="/goals" element={<Goals />} />
         {/* 돈쓴이 — 쓰는 사람과 앱 자신 */}
         <Route path="/me" element={<Me />} />
+        {/* 어디 쓰나 — 적어 둔 장소와 가게 */}
+        <Route path="/places" element={<Places />} />
         <Route
           path="/charts"
           element={

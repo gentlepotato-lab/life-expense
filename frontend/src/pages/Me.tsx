@@ -319,6 +319,7 @@ export default function Me() {
                     {(summary?.counts?.place ?? 0).toLocaleString("ko-KR")}
                   </span>
                   <span className="chart-tile__sub">곳</span>
+                  <GoTo to="/places" label="어디 쓰나" />
                 </span>
               </div>
             </div>

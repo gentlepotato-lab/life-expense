@@ -346,7 +346,7 @@ export default function EntryFilterPopup({
           </EditField>
         </div>
 
-        <div className="btn-row popup-foot">
+        <div className="btn-row popup-foot popup-foot--tight">
           <button className="ui-btn" onClick={() => setFilter(EMPTY_FILTER)}>
             초기화
           </button>

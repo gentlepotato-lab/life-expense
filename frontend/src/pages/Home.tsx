@@ -5,6 +5,7 @@ import {
   ArtProfile,
   ArtChart,
   ArtNudge,
+  ArtPlaces,
 } from "./components/HomeArt";
 import QuickActions from "./components/QuickActions";
 
@@ -56,6 +57,12 @@ const WIDE = [
     title: "잔소리",
     desc: "알림과 추천",
     art: <ArtNudge />,
+  },
+  {
+    to: "/places",
+    title: "어디 쓰나",
+    desc: "장소와 가게",
+    art: <ArtPlaces />,
   },
 ];
 

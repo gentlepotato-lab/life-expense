@@ -89,6 +89,17 @@ export const PAGE_ICON: Record<string, React.ReactNode> = {
   ),
 
   /* 종 — 단추의 것(BellIcon)과 같은 종이되, 여기 그림들과 같은 선으로 다시 그렸다. */
+  /* 접힌 지도 — 세로로 두 번 접혀 골이 지고, 그 위에 핀이 하나 꽂혔다. */
+  "/places": (
+    <svg viewBox="0 0 32 32" {...stroke}>
+      <path d="M4 8.5 12 5.5v18L4 26.5zM12 5.5l8 3v18l-8-3z" />
+      <path d="M28 6.5v13.2" />
+      <path d="M20 8.5 28 5.5" />
+      <path d="M20 26.5l8-3" />
+      <path d="M22.5 12.5a3.6 3.6 0 1 1 7.2 0c0 2.7-3.6 6.4-3.6 6.4s-3.6-3.7-3.6-6.4Z" />
+    </svg>
+  ),
+
   "/nudges": (
     <svg viewBox="0 0 32 32" {...stroke}>
       <path d="M16 4v2.6" />

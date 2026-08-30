@@ -10,6 +10,7 @@ export const PAGE_TITLE: Record<string, string> = {
   /* 홈에 딸린 화면들 */
   "/write": "쓰기",
   "/me": "돈쓴이",
+  "/places": "어디 쓰나",
   "/charts": "씀씀이",
   "/nudges": "잔소리",
 

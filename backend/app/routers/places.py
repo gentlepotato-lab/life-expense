@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select, and_, text
@@ -288,6 +290,126 @@ def search_places(q: str, db=Depends(get_db)):
         }
         for r in rows
     ]
+
+@router.get("/board")
+def place_board(
+    since: str | None = None,
+    until: str | None = None,
+    db=Depends(get_db),
+):
+    """
+    적어 둔 장소를 셈과 함께 한 벌 내려보낸다.
+
+    어디 쓰나 화면이 자주 간 곳 · 많이 쓴 곳 · 지역 · 분류 넷으로 돌려 보는데,
+    넷을 따로 받아 오면 같은 것을 네 번 세게 된다. 한 벌만 내려보내고 고르고
+    묶는 일은 화면이 한다 — 500곳 남짓이라 한 벌이 무겁지 않다.
+
+    since · until 은 `YYYY-MM` 꼴이다. 달 단위로만 받는다 — 어느 동네를
+    다녔는지는 달로 보면 되고, 날짜까지 고르게 하면 고르는 일이 셈보다
+    번거로워진다. 걸리면 그 기간에 간 곳만 남기고 셈도 그 기간 것만 센다.
+
+    센 것은 확정된 지출만이다(inout <> 1). 대기는 아직 갈지 안 갈지 모르고,
+    정기는 매달 도는 틀이라 한 줄을 한 번으로 세면 다녀온 횟수와 어긋난다.
+    금액은 v_entries_net 을 쓴다 — 다른 화면과 같은 잣대여야 한다.
+
+    집계와 바깥 조인이 섞여 ORM 으로는 오히려 읽기 어려워 raw SQL 을 쓴다.
+    """
+    def month(v: str | None, last: bool):
+        """`YYYY-MM` 을 그 달의 첫날 또는 끝날로 바꾼다"""
+        if not v:
+            return None
+        try:
+            y, m = (int(x) for x in v.split("-")[:2])
+            first = date(y, m, 1)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail="기간은 YYYY-MM 꼴이어야 합니다.")
+        if not last:
+            return first
+        return date(y + (m == 12), 1 if m == 12 else m + 1, 1) - timedelta(days=1)
+
+    lo, hi = month(since, False), month(until, True)
+    if lo and hi and lo > hi:
+        raise HTTPException(status_code=400, detail="시작 달이 끝 달보다 뒤입니다.")
+
+    # 기간이 걸리면 셈도 그 안에서만 하고, 그 기간에 안 간 곳은 뺀다.
+    span = ""
+    if lo:
+        span += " AND e.tx_date >= :lo"
+    if hi:
+        span += " AND e.tx_date <= :hi"
+    joint = "JOIN" if (lo or hi) else "LEFT JOIN"
+
+    rows = db.execute(
+        text(
+            f"""
+            SELECT p.place_id, p.place_name
+                 , p.city, p.district, p.town
+                 , p.road_address_name, p.address_name
+                 , p.phone, p.place_url
+                 , p.category_group_name, p.category_l1, p.category_l2
+                 , p.lat, p.lng
+                 , COALESCE(u.used_count, 0) AS used_count
+                 , COALESCE(u.total, 0)      AS total
+                 , u.last_used
+              FROM life_expense.places p
+              {joint} (
+                    SELECT e.place_id
+                         , COUNT(*) AS used_count
+                         , SUM(COALESCE(vn.net_amount, e.amount)) AS total
+                         , MAX(e.tx_date) AS last_used
+                      FROM life_expense.entries e
+                      LEFT JOIN life_expense.v_entries_net vn
+                             ON vn.entry_id = e.entry_id
+                     WHERE e.place_id IS NOT NULL
+                       AND e.inout <> 1{span}
+                  GROUP BY e.place_id
+              ) u ON u.place_id = p.place_id
+          ORDER BY COALESCE(u.used_count, 0) DESC, p.place_name
+            """
+        ),
+        {k: v for k, v in (("lo", lo), ("hi", hi)) if v is not None},
+    ).mappings().all()
+
+    # 고를 수 있는 달의 앞뒤 — 화면이 기간 고르개를 그 안에서만 만든다.
+    edge = db.execute(text("""
+        SELECT MIN(tx_date) AS first_day, MAX(tx_date) AS last_day
+          FROM life_expense.entries
+         WHERE place_id IS NOT NULL AND inout <> 1
+    """)).mappings().first()
+
+    def num(v):
+        return float(v) if v is not None else None
+
+    def ym(v):
+        return v.strftime("%Y-%m") if v else None
+
+    places = [
+        {
+            "place_id": r["place_id"],
+            "place_name": r["place_name"],
+            "city": r["city"],
+            "district": r["district"],
+            "town": r["town"],
+            "address": r["road_address_name"] or r["address_name"],
+            "phone": r["phone"],
+            "place_url": r["place_url"],
+            # 카카오가 준 묶음 이름이 없는 곳이 있다. 그때는 큰 분류로 갈음한다.
+            "kind": r["category_group_name"] or r["category_l1"],
+            "kind2": r["category_l2"],
+            "lat": num(r["lat"]),
+            "lng": num(r["lng"]),
+            "used_count": r["used_count"],
+            "total": float(r["total"]),
+            "last_used": str(r["last_used"]) if r["last_used"] else None,
+        }
+        for r in rows
+    ]
+
+    return {
+        "span": {"from": ym(edge["first_day"]), "to": ym(edge["last_day"])},
+        "places": places,
+    }
+
 
 @router.get("/exists")
 def check_place_exists(lat: float, lng: float, db=Depends(get_db)):

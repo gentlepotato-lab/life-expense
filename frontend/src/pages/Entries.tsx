@@ -1063,7 +1063,7 @@ export default function Entries() {
               </EditField>
             </div>
 
-            <div className="btn-row popup-foot">
+            <div className="btn-row popup-foot popup-foot--tight">
               <button className="ui-btn" onClick={() =>
                 setFilter({
                   dateFrom: "",
