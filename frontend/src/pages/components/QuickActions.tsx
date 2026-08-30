@@ -8,6 +8,7 @@ import RefreshIcon from "./RefreshIcon";
 import WriteEntryModal from "./WriteEntryModal";
 import useNudges, { invalidateNudges } from "../../hooks/useNudges";
 import { closeOverlays } from "../../hooks/useBackClose";
+import { prefOn } from "../../utils/prefs";
 
 /**
  * 어느 화면에서나 오른쪽 위에 떠 있는 단추 넷 —
@@ -32,7 +33,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
   /* 배지는 잔소리 전체를 센다. "챙길 것"만 세면 화면에 넉 줄이 떠 있는데
      배지에는 둘이라 적혀 서로 어긋나 보인다 — 종을 눌러 볼 것이 몇 가지인지가
      배지가 답해야 할 물음이다. */
-  const mind = nudges.length;
+  const mind = prefOn("nudge_on") ? nudges.length : 0;
 
   /**
    * 한 번에 하나만 띄운다.

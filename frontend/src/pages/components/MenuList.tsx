@@ -11,16 +11,19 @@ import { PAGE_ICON } from "./MenuIcons";
  * 이름은 경로 하나로 정해지므로(utils/pageTitles.ts) 여기서는 한 줄 설명만
  * 갖는다. 그림은 잔소리 상세의 건너뛰기 단추도 함께 쓰므로 따로 두었다.
  * (MenuIcons.tsx).
+ *
+ * 설명이 한 문장이 아니라 몇 가지를 늘어놓는 것이면 딱지로 준다 — 가운뎃점으로
+ * 이으면 어디까지가 한 덩어리인지 눈에 잡히지 않는다.
  */
 
-/** 경로별 한 줄 설명 */
-const DESC: Record<string, string> = {
+/** 경로별 한 줄 설명. 배열이면 딱지로 늘어놓는다. */
+const DESC: Record<string, string | string[]> = {
   "/entries": "기록을 마친 지출과 수입",
   "/pending-entries": "확정 전에 검수하는 항목",
   "/scheduled-entries": "매달 반복되는 지출",
   "/calendar": "한 달을 한눈에",
-  "/categories": "중분류 · 소분류 · 세분류",
-  "/payment-methods": "카드 · 계좌 · 간편결제",
+  "/categories": ["중분류", "소분류", "세분류"],
+  "/payment-methods": ["카드", "계좌", "간편결제"],
   "/counterparts": "금액을 나눠 낸 사람",
   "/goals": "분류마다 정한 이 달의 목표",
 };
@@ -39,7 +42,17 @@ export default function MenuList({ paths }: { paths: string[] }) {
         >
           <span className="home-card__text">
             <span className="home-card__title">{PAGE_TITLE[to]}</span>
-            <span className="home-card__desc">{DESC[to]}</span>
+            {Array.isArray(DESC[to]) ? (
+              <span className="home-card__desc tag-row">
+                {(DESC[to] as string[]).map((t) => (
+                  <span key={t} className="tag">
+                    {t}
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <span className="home-card__desc">{DESC[to]}</span>
+            )}
           </span>
           <span className="menu-card__icon">{PAGE_ICON[to]}</span>
         </button>

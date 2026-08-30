@@ -454,3 +454,38 @@ class ChartCard(Base):
     # 1이면 반 칸, 2면 한 줄을 다 쓴다. 좁은 화면은 이 값과 상관없이 한 줄에 하나씩이다
     span = Column(SmallInteger, nullable=False, default=1)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class Profile(Base):
+    """
+    돈쓴이 — 쓰는 사람.
+
+    지금은 혼자 쓰는 앱이라 줄이 하나뿐이다. 그래도 칸은 바깥 인증(구글·카카오)이
+    돌려주는 것에 맞춰 두었다. provider 가 비어 있으면 손으로 적어 넣은 것이다.
+    """
+    __tablename__ = "profile"
+
+    profile_id = Column(Integer, primary_key=True, default=1)
+    display_name = Column(String(60))
+    email = Column(String(200))
+    avatar_url = Column(String(500))
+    provider = Column(String(20))
+    provider_id = Column(String(100))
+    emoji = Column(String(8))
+    bio = Column(String(200))
+    joined_on = Column(Date)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class AppPref(Base):
+    """
+    앱을 어떻게 볼지.
+
+    화면마다 흩어져 매번 다시 눌러야 하던 것들을 한자리에 모은다.
+    값은 모두 글자로 담는다 — 하나 더 늘려도 표를 고칠 일이 없다.
+    """
+    __tablename__ = "app_prefs"
+
+    pref_key = Column(String(40), primary_key=True)
+    pref_value = Column(String(200), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now())

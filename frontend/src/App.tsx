@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Write from "./pages/Write";
 import Entries from "./pages/Entries";
@@ -8,10 +8,10 @@ import Categories from "./pages/Categories";
 import PaymentMethods from "./pages/PaymentMethods";
 import Counterparts from "./pages/Counterparts";
 import Goals from "./pages/Goals";
+import Me from "./pages/Me";
 import Calendar from "./pages/Calendar";
 import CalendarDetail from "./pages/CalendarDetail";
 import Home from "./pages/Home";
-import Blank from "./pages/Blank";
 import Nudges from "./pages/Nudges";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
@@ -21,6 +21,7 @@ const Charts = lazy(() => import("./pages/Charts"));
 
 import PageHead from "./pages/components/PageHead";
 import TabBar from "./pages/components/TabBar";
+import { loadPrefs, takeHome } from "./utils/prefs";
 
 /** 앞머리 화면이 떠 있는 시간. 사라지는 데 걸리는 320ms는 여기에 포함하지 않는다. */
 const SPLASH_MS = 1500;
@@ -50,8 +51,24 @@ function useSplashDismiss() {
   }, []);
 }
 
+/**
+ * 홈 자리. 돈쓴이에서 고른 첫 화면이 홈이 아니면 그리로 넘긴다.
+ *
+ * 앱을 새로 연 그때 한 번만 넘긴다 — 탭의 홈까지 가로채면 홈에 갈 길이 없다.
+ */
+function HomeGate() {
+  const [to] = useState(takeHome);
+  return to === "/" ? <Home /> : <Navigate to={to} replace />;
+}
+
 function App() {
   useSplashDismiss();
+
+  /* 설정은 화면이 뜨기 전에 있어야 하므로 브라우저에 담아 둔 것으로 먼저 그리고,
+     서버에서 받아 온 것은 다음에 열 때부터 쓴다. */
+  useEffect(() => {
+    void loadPrefs();
+  }, []);
 
   return (
     // 화면은 루트에 선다. API가 모두 /api 아래로 들어가면서
@@ -63,7 +80,7 @@ function App() {
 
       <Routes>
         {/* 홈: / — 들어가는 문만 낸 첫 화면 */}
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<HomeGate />} />
         {/* 쓰기 페이지 */}
         <Route path="/write" element={<Write />} />
         {/* 내역 탭 첫 화면 — 셋 중 하나로 들어간다. */}
@@ -88,9 +105,8 @@ function App() {
         <Route path="/counterparts" element={<Counterparts />} />
         {/* 안쓴이 도전 — 분류별 목표 금액 */}
         <Route path="/goals" element={<Goals />} />
-        {/* 홈에서 문만 내 둔 화면 — 속은 뒤에 채운다.
-            이름은 PageHead가 경로를 보고 붙인다(utils/pageTitles.ts) */}
-        <Route path="/me" element={<Blank />} />
+        {/* 돈쓴이 — 쓰는 사람과 앱 자신 */}
+        <Route path="/me" element={<Me />} />
         <Route
           path="/charts"
           element={

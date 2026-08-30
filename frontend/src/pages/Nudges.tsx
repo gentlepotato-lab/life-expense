@@ -5,6 +5,7 @@ import NudgeGroup from "./components/NudgeGroup";
 import NudgeDetailPopup from "./components/NudgeDetailPopup";
 import useNudges from "../hooks/useNudges";
 import type { Nudge } from "../utils/nudges";
+import { prefOn } from "../utils/prefs";
 
 /**
  * 잔소리.
@@ -21,8 +22,8 @@ export default function Nudges() {
 
   /* 씀씀이 · 달력과 같은 두 단추. 여기서는 Blur를 처음부터 켜 둔다 —
      가려 둔 갈래도 잔소리에는 들어가야 하고, 화면에서만 테이프로 덮는다. */
-  const [blurOn, setBlurOn] = useState(true);
-  const [excludeOn, setExcludeOn] = useState(true);
+  const [blurOn, setBlurOn] = useState(() => prefOn("blur_default"));
+  const [excludeOn, setExcludeOn] = useState(() => prefOn("exclude_default"));
 
   const { nudges, ready } = useNudges({ blurOn, excludeOn });
   const [picked, setPicked] = useState<Nudge | null>(null);

@@ -14,6 +14,7 @@ from app.routers import (
     payment_methods,
     pending_entries,
     places,
+    profile,
     scheduled_entries,
     splits,
 )
@@ -84,6 +85,7 @@ app.include_router(payment_methods.router, prefix=f"{API}/payment-methods", tags
 app.include_router(counterparts.router, prefix=f"{API}/counterparts", tags=["counterparts"])
 app.include_router(goals.router, prefix=f"{API}/goals", tags=["goals"])
 app.include_router(charts.router, prefix=f"{API}/charts", tags=["charts"])
+app.include_router(profile.router, prefix=f"{API}/profile", tags=["profile"])
 app.include_router(entries.router, prefix=f"{API}/entries", tags=["entries"])
 app.include_router(pending_entries.router, prefix=f"{API}/pending-entries", tags=["pending_entries"])
 app.include_router(scheduled_entries.router, prefix=f"{API}/scheduled-entries", tags=["scheduled_entries"])

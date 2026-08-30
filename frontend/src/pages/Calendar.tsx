@@ -4,6 +4,7 @@ import axios from "../api/client";
 import useRevealDrag from "../hooks/useRevealDrag";
 import EntryFilterPopup from "./components/EntryFilterPopup";
 import QuickActions from "./components/QuickActions";
+import { prefOn } from "../utils/prefs";
 import {
   EMPTY_FILTER,
   blurSetsFrom,
@@ -59,11 +60,11 @@ export default function Calendar() {
 
   /* Blur를 걸어 둔 갈래를 셈에 넣을지. 처음에는 빼 둔다 —
      가릴 것이 아예 없으면 테이프도 뜨지 않는다. */
-  const [blurOn, setBlurOn] = useState(false);
+  const [blurOn, setBlurOn] = useState(() => prefOn("blur_default"));
 
   /* Exclude를 걸어 둔 갈래를 뺄지. 처음에는 뺀다(켜짐) —
      끄면 수입 · 저축까지 들어와 Net이 보인다. */
-  const [excludeOn, setExcludeOn] = useState(true);
+  const [excludeOn, setExcludeOn] = useState(() => prefOn("exclude_default"));
 
   /* 눌러서 고른 기간.
      한 번 누르면 시작일만 잡히고(end === null), 한 번 더 누르면 끝일까지 잡힌다.

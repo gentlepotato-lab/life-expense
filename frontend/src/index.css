@@ -11191,3 +11191,423 @@ input.goal-row__memo {
 .chart-card.is-hidden-card {
   opacity: 0.45;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   95. 돈쓴이 (2026-08-30)
+   ─────────────────────────────────────────────────────────────
+   틀은 씀씀이·잔소리가 쓰는 카드(.chart-card)를 그대로 쓴다. 고치는 흐름도
+   설정 세 화면과 같아 [편집] 으로 열고 [저장] 으로 담는다. 여기서 새로 그리는
+   것은 얼굴과 순위 줄, 그리고 설정 한 줄뿐이다.
+   ═════════════════════════════════════════════════════════════ */
+
+.me-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+/* 얼굴 — 사진이 있으면 사진, 없으면 이모지. 둘의 크기를 같게 못 박아
+   로그인을 붙여 사진이 들어와도 줄이 들썩이지 않는다 */
+.me-face {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.me-face__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 글자로 볼 때와 칸으로 고칠 때의 높이를 못 박는다. 그러지 않으면 [편집] 을
+   누르는 순간 이 카드가 몇 픽셀 자라 아래 카드가 통째로 밀린다.
+   한마디를 비워 두어도 자리가 그대로인 덤도 있다 */
+.me-head__text {
+  flex: 1;
+  min-width: 0;
+  min-height: 78px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.me-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.me-field > .cat-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 얼굴 칸은 글자 한둘이면 된다 */
+.me-input--emoji {
+  flex: 0 0 52px;
+  width: 52px;
+  text-align: center;
+}
+
+.me-head__text > .cat-input {
+  width: 100%;
+  height: var(--set-input-h);
+  min-height: var(--set-input-h);
+  max-height: var(--set-input-h);
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+.me-name {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.me-mail {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.me-bio {
+  margin: 2px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.me-head__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* 어디로 들어왔는지 — 로그인을 붙이면 여기에 구글·카카오가 찍힌다 */
+.me-badge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.me-since {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* 곁들이는 말 — 셈이 아니라 안내다 */
+.me-note {
+  margin: 8px 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.me-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.me-facts b {
+  color: var(--color-text-primary);
+}
+
+/* 순위 한 줄 — 분류의 세분류 줄과 같은 결 */
+.me-rank {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  margin-bottom: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.me-rank:last-child {
+  margin-bottom: 0;
+}
+
+.me-rank__no {
+  flex: 0 0 18px;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.me-rank__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.me-rank__count {
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* 설정 한 줄 — 이름은 왼쪽, 고르는 것은 오른쪽 */
+.me-pref {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  margin-bottom: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.me-pref__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+/* 고르는 칸과 글자가 같은 폭을 써야 [편집] 을 눌러도 줄이 들썩이지 않는다 */
+.me-pref__control {
+  flex: 0 0 128px;
+  width: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.me-pref__value {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.me-pref__control .ms-display {
+  width: 100%;
+  height: var(--set-input-h);
+  min-height: var(--set-input-h);
+  max-height: var(--set-input-h);
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+.me-export {
+  margin-top: 10px;
+  gap: var(--space-2);
+}
+
+/* 내려받기는 링크지만 단추처럼 보여야 한다 */
+.me-export > .ui-btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* ─────────────────────────────────────────────
+   96. 청록 딱지 · 돈쓴이 다듬기
+────────────────────────────────────────────── */
+
+/* `가 · 나 · 다`처럼 늘어놓던 것을 딱지로 바꾼다. 가운뎃점은 어디까지가 한
+   덩어리인지 눈으로 잡히지 않아, 항목이 셋만 넘어가도 한 줄 글로 읽힌다.
+   청록은 64절에서 정해 둔 대로 이 앱이 좋은 쪽에 쓰는 색이다. */
+:root {
+  --color-success-tint: #E2F7F6;
+  --color-success-ink: #007A73;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) 6px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--color-success-tint);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--color-success-ink);
+}
+
+/* 홈·목록 칸의 한 줄 설명 자리에 들어갈 때. 글자였을 때와 높이가 같아야
+   칸이 들썩이지 않는다 — 13px 한 줄이 20px이라 딱지 높이를 거기에 맞췄다. */
+.home-card__desc.tag-row {
+  min-height: 20px;
+}
+
+/* 카드 이름 옆에 붙는 곁말 — 언제까지 센 것인지 같은 단서 */
+.me-span {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+}
+
+/* 얼굴·이름 줄의 입력칸도 아래 두 칸과 같은 크기여야 한다. 위 규칙이 바로
+   아래 자식만 잡아서(.me-head__text > .cat-input) 이 줄만 빠져 있었다. */
+.me-field > .cat-input {
+  height: var(--set-input-h);
+  min-height: var(--set-input-h);
+  max-height: var(--set-input-h);
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+/* ─────────────────────────────────────────────
+   97. 돈쓴이 — 얼굴 고르기 · 이름 줄 · 설정 칸
+────────────────────────────────────────────── */
+
+/* 편집 중에는 얼굴 자리에 이모지 고르개가 들어선다. 고르개의 기본 단추는
+   묶음 머리말에 쓰려고 22px로 잡아 둔 것이라, 여기서만 얼굴 크기로 키운다.
+   보기와 편집의 지름이 같아야 [편집] 을 눌러도 줄이 들썩이지 않는다. */
+.me-face--pick {
+  padding: 0;
+  background: transparent;
+  border: none;
+  /* 고르는 판이 얼굴 밖으로 나와야 한다 */
+  overflow: visible;
+}
+
+.me-face--pick .emoji-pick,
+.me-face--pick .emoji-pick__btn {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.me-face--pick .emoji-pick__btn {
+  border-radius: 50%;
+  border-style: dashed;
+  border-color: var(--color-border);
+  background: var(--color-bg);
+  font-size: 26px;
+}
+
+.me-face--pick .emoji-pick__btn.has {
+  border-style: solid;
+  border-color: var(--color-primary-light);
+}
+
+.me-face--pick .emoji-pick__btn:hover:not(.readonly) {
+  border-color: var(--color-primary);
+}
+
+/* 이름과 메일은 한 줄에 나란히, 한마디는 그 아래 한 줄을 다 쓴다 */
+.me-field {
+  gap: var(--space-2);
+}
+
+.me-field > .cat-input {
+  flex: 1 1 0;
+}
+
+/* 고르는 칸이 쓸데없이 길었다. 가장 긴 이름(`지출 내역`)이 들어가고 남는
+   만큼만 준다. 보기와 편집이 같은 폭이어야 하는 것은 그대로다. */
+.me-pref__control {
+  flex: 0 0 92px;
+  width: 92px;
+}
+
+/* ─────────────────────────────────────────────
+   98. 돈쓴이 — 프로필 머리를 꽉 채운다
+────────────────────────────────────────────── */
+
+/* 얼굴 56px에 22px짜리 칸 둘이 붙어 있어 위아래가 허전했다. 얼굴을 키우고
+   칸을 넓혀 머리 줄을 채운다. 얼굴과 글자 자리의 높이를 같게 두어야
+   [편집] 을 눌러도 카드가 자라거나 줄지 않는다. */
+.me-face {
+  width: 76px;
+  height: 76px;
+  font-size: 38px;
+}
+
+.me-face--pick .emoji-pick__btn {
+  font-size: 34px;
+}
+
+.me-head__text {
+  min-height: 76px;
+  gap: 6px;
+}
+
+/* 칸도 얼굴에 맞춰 키운다. 셋 다 같은 높이·같은 글씨라야 줄이 고르다 */
+.me-head__text .cat-input {
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+  padding: 0 10px;
+  font-size: var(--font-size-sm);
+}
+
+/* 보기 모드의 글자도 얼굴 옆에서 허전하지 않게 한 단씩 키운다 */
+.me-name {
+  font-size: var(--font-size-xl);
+}
+
+.me-mail {
+  font-size: var(--font-size-sm);
+}
+
+/* 한마디에 붙어 있던 여백은 이제 줄 사이 간격(gap)이 맡는다. 두 번 주면
+   다 채웠을 때의 보기 높이가 편집 높이를 3px 넘어서 카드가 들썩인다. */
+.me-bio {
+  margin-top: 0;
+}
+
+/* 아래 띠는 얼굴과 너무 떨어져 있었다 */
+.me-head__foot {
+  margin-top: 8px;
+  padding-top: 7px;
+}
+
+/* ─────────────────────────────────────────────
+   99. 돈쓴이 — 이름 칸과 메일 칸의 폭
+────────────────────────────────────────────── */
+
+/* 둘을 반씩 나눠 쓰면 이름은 남고 메일은 모자란다. 이름은 서너 글자면
+   되지만 메일은 주소 한 줄이 들어가야 한다. 2:3으로 나눈다. */
+.me-field > .cat-input:first-child {
+  flex: 2 1 0;
+}
+
+.me-field > .cat-input:last-child {
+  flex: 3 1 0;
+}

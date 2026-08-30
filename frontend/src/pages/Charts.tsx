@@ -32,6 +32,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { prefOn } from "../utils/prefs";
 import {
   EMPTY_FILTER,
   blurSetsFrom,
@@ -326,10 +327,10 @@ export default function Charts() {
   const [rows, setRows] = useState<Row[]>([]);
 
   /* Blur를 걸어 둔 갈래를 셈에 넣을지. 처음에는 빼 둔다. */
-  const [blurOn, setBlurOn] = useState(false);
+  const [blurOn, setBlurOn] = useState(() => prefOn("blur_default"));
 
   /* Exclude를 걸어 둔 갈래를 뺄지. 처음에는 뺀다(켜짐) */
-  const [excludeOn, setExcludeOn] = useState(true);
+  const [excludeOn, setExcludeOn] = useState(() => prefOn("exclude_default"));
 
   const [filterOpen, setFilterOpen] = useState(false);
 
