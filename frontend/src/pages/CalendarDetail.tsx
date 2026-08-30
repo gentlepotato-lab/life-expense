@@ -28,7 +28,9 @@ import QuickActions from "./components/QuickActions";
  * 만들면 언젠가 서로 달라지기 때문이다. 다만 여기서는 보기만 하므로
  * 꾹 눌러 편집하거나 전송하는 동작은 끈다(readOnly).
  *
- * 어디를 볼지는 주소가 들고 있다 — `?from=…&to=…&src=expense,pending,scheduled`.
+ * 어디를 볼지는 주소가 들고 있다 — `?days=2026-08-03,2026-08-07&src=expense,pending,scheduled`.
+ * 고른 날은 이어져 있을 필요가 없다. 예전 주소(`?from=…&to=…`)로 들어와도
+ * 그 사이의 날을 모두 고른 것으로 보고 그대로 연다.
  * 달력에 걸려 있던 필터는 history에 실려 온다. 달력에 보이던 것과
  * 여기 보이는 것이 어긋나면 안 되기 때문이다.
  */
@@ -64,8 +66,25 @@ export default function CalendarDetail() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = params.get("from") ?? "";
-  const to = params.get("to") ?? "";
+  /* 고른 날들. 예전 주소로 들어오면 from~to 사이를 채워 같은 꼴로 만든다 */
+  const days = useMemo(() => {
+    const listed = (params.get("days") ?? "").split(",").filter(Boolean);
+    if (listed.length) return [...new Set(listed)].sort();
+
+    const from = params.get("from") ?? "";
+    const to = params.get("to") ?? "";
+    if (!from || !to) return [];
+    const out: string[] = [];
+    const d = new Date(`${from}T00:00:00`);
+    const last = new Date(`${to}T00:00:00`);
+    while (d <= last) {
+      out.push(
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+      );
+      d.setDate(d.getDate() + 1);
+    }
+    return out;
+  }, [params]);
   const srcOn = useMemo(() => {
     const raw = (params.get("src") ?? "").split(",").filter(Boolean) as Src[];
     /* 아무것도 오지 않았으면 셋 다 켠 것으로 본다. */
@@ -131,10 +150,11 @@ export default function CalendarDetail() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!from || !to) return;
+    if (!days.length) return;
     let alive = true;
-    const ym = from.substring(0, 7);
-    const inRange = (d: string) => !!d && d >= from && d <= to;
+    const ym = days[0].substring(0, 7);
+    const chosen = new Set(days);
+    const inRange = (d: string) => !!d && chosen.has(d);
 
     Promise.all([
       axios.get("/entries/month", { params: { ym } }).then((r) => r.data).catch(() => []),
@@ -162,7 +182,7 @@ export default function CalendarDetail() {
     return () => {
       alive = false;
     };
-  }, [from, to]);
+  }, [days]);
 
   const excSets = useMemo(
     () => excludeSetsFrom(cat1List, cat2List, cat3List),
@@ -281,7 +301,20 @@ export default function CalendarDetail() {
     []
   );
 
-  const rangeLabel = from === to ? shortDate(from) : `${shortDate(from)} ~ ${shortDate(to)}`;
+  /* 머리말 — 죽 이어 고르면 예전처럼 "8. 3. ~ 8. 7.", 띄엄띄엄 고르면 날을 늘어놓는다.
+     너무 길어지면 앞의 둘만 적고 나머지는 수로 접는다 */
+  const rangeLabel = useMemo(() => {
+    if (!days.length) return "";
+    if (days.length === 1) return shortDate(days[0]);
+
+    const step = (a: string, b: string) =>
+      (new Date(`${b}T00:00:00`).getTime() - new Date(`${a}T00:00:00`).getTime()) / 86400000;
+    const run = days.every((d, i) => i === 0 || step(days[i - 1], d) === 1);
+    if (run) return `${shortDate(days[0])} ~ ${shortDate(days[days.length - 1])}`;
+
+    if (days.length <= 3) return days.map(shortDate).join(" · ");
+    return `${days.slice(0, 2).map(shortDate).join(" · ")} 외 ${days.length - 2}일`;
+  }, [days]);
   const noop = useCallback(() => {}, []);
   const toTimeString = useCallback((hour?: number, minute?: number) => {
     if (typeof hour !== "number" || typeof minute !== "number") return "00:00";

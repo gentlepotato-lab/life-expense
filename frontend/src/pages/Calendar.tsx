@@ -68,7 +68,8 @@ export default function Calendar() {
   /* 눌러서 고른 기간.
      한 번 누르면 시작일만 잡히고(end === null), 한 번 더 누르면 끝일까지 잡힌다.
      시작일만 잡힌 상태에서 같은 날 또는 달력 바깥을 누르면 고르기를 접는다. */
-  const [pick, setPick] = useState<{ start: number; end: number | null } | null>(null);
+  /* 고른 날들. 이어진 기간일 필요가 없어 그냥 날짜를 담아 둔다 */
+  const [pick, setPick] = useState<number[]>([]);
   const calRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
@@ -214,7 +215,7 @@ export default function Calendar() {
     const [y, m] = yearMonth.split("-").map(Number);
     const d = new Date(y, m - 1 + step, 1);
     /* 고른 날은 그 달의 날이다. 달을 넘기면 뜻을 잃으므로 접는다. */
-    setPick(null);
+    setPick([]);
     setYearMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   };
 
@@ -249,51 +250,86 @@ export default function Calendar() {
   const startSumReveal = useRevealDrag(setSumRevealed);
   const sumMasked = monthSum.hasBlur && !sumRevealed;
 
-  /** 날짜 한 칸을 눌렀을 때 */
+  /** 날짜 한 칸을 눌렀을 때 — 담겨 있으면 빼고, 없으면 담는다 */
   const pickDay = useCallback((day: number) => {
-    setPick((prev) => {
-      /* 처음 누름 — 시작일 */
-      if (!prev) return { start: day, end: null };
-      /* 시작일만 잡혀 있을 때 */
-      if (prev.end === null) {
-        if (day === prev.start) return null; // 같은 날 다시 누르면 접는다.
-        return { start: Math.min(prev.start, day), end: Math.max(prev.start, day) };
-      }
-      /* 기간이 다 잡힌 뒤 누르면 새로 고르기 시작 */
-      return { start: day, end: null };
-    });
+    setPick((prev) =>
+      prev.includes(day)
+        ? prev.filter((d) => d !== day)
+        : [...prev, day].sort((a, b) => a - b)
+    );
   }, []);
 
-  /* 시작일만 잡힌 채 달력 바깥을 누르면 접는다.
-     기간이 다 잡힌 뒤에는 [상세]를 눌러야 하므로 바깥 누름으로 접지 않는다. */
-  useEffect(() => {
-    if (!pick || pick.end !== null) return;
-    const onDown = (e: MouseEvent | TouchEvent) => {
-      const el = calRef.current;
-      if (el && e.target instanceof Node && el.contains(e.target)) return;
-      /* [상세]는 달력 바깥이지만 접어서는 안 된다 — 누르는 순간 고르기가
-         풀리면 버튼이 사라져 클릭이 갈 곳을 잃는다. */
-      if (e.target instanceof Element && e.target.closest("[data-keep-pick]")) return;
-      setPick(null);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("touchstart", onDown);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("touchstart", onDown);
-    };
-  }, [pick]);
+  /* 끌어서 기간 고르기.
+     누른 자리(dragFrom)와 지금 손가락이 있는 자리(dragTo)를 들고 있다가
+     떼는 순간 그 사이를 통째로 담는다. 한 칸 안에서 누르고 떼면 그냥 하루를
+     누른 것으로 본다.
 
-  /** 고른 기간의 상세 화면으로 넘어간다. */
+     손가락이 지나간 칸은 pointermove 가 알려 주지 않는다 — 누른 칸이 이후
+     신호를 붙잡기(setPointerCapture) 때문이다. 그래서 좌표로 어느 칸 위인지
+     되짚는다. 마우스와 손가락을 한 갈래로 다루려면 이 편이 낫다. */
+  const dragFrom = useRef<number | null>(null);
+  const [dragTo, setDragTo] = useState<number | null>(null);
+  const dragMoved = useRef(false);
+
+  const dayAt = (x: number, y: number): number | null => {
+    const el = document.elementFromPoint(x, y);
+    const cell = el instanceof Element ? el.closest("[data-day]") : null;
+    const raw = cell instanceof HTMLElement ? cell.dataset.day : undefined;
+    return raw ? Number(raw) : null;
+  };
+
+  const onCellDown = (day: number) => (e: React.PointerEvent<HTMLDivElement>) => {
+    /* 덮인 금액은 제 손짓(끌어서 잠깐 보기)이 있으므로 비켜 준다 */
+    if (e.target instanceof Element && e.target.closest(".cal__net")) return;
+    dragFrom.current = day;
+    dragMoved.current = false;
+    setDragTo(day);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const onCellMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragFrom.current === null) return;
+    const day = dayAt(e.clientX, e.clientY);
+    if (day === null || day === dragTo) return;
+    if (day !== dragFrom.current) dragMoved.current = true;
+    setDragTo(day);
+  };
+
+  const onCellUp = () => {
+    const from = dragFrom.current;
+    const to = dragTo;
+    dragFrom.current = null;
+    setDragTo(null);
+    if (from === null) return;
+
+    /* 한 칸 안에서 누르고 뗐다 — 하루를 담거나 뺀다 */
+    if (!dragMoved.current || to === null || to === from) {
+      pickDay(from);
+      return;
+    }
+    /* 끌었다 — 지나온 날을 통째로 담는다. 이미 담긴 날은 그대로 둔다 */
+    const lo = Math.min(from, to);
+    const hi = Math.max(from, to);
+    setPick((prev) => {
+      const next = new Set(prev);
+      for (let d = lo; d <= hi; d += 1) next.add(d);
+      return [...next].sort((a, b) => a - b);
+    });
+  };
+
+  /* 예전에는 시작일만 잡힌 어중간한 상태가 있어 달력 바깥을 누르면 접었다.
+     이제는 한 번 누를 때마다 고르기가 그 자리에서 끝나므로 어중간한 상태가
+     없다. 고른 날은 다시 눌러 뺀다. */
+
+  /** 고른 날들의 상세 화면으로 넘어간다. */
   const openDetail = useCallback(() => {
-    if (!pick) return;
+    if (!pick.length) return;
     const pad = (n: number) => String(n).padStart(2, "0");
-    const from = `${yearMonth}-${pad(pick.start)}`;
-    /* 끝일을 고르지 않았으면 그 하루만 본다. */
-    const to = `${yearMonth}-${pad(pick.end ?? pick.start)}`;
+    /* 고른 날을 그대로 죽 적어 보낸다 — 이어져 있을 필요가 없다 */
+    const days = pick.map((d) => `${yearMonth}-${pad(d)}`).join(",");
     const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
     navigate(
-      `/calendar/detail?from=${from}&to=${to}&src=${src}&blur=${blurOn ? 1 : 0}&exclude=${excludeOn ? 1 : 0}`,
+      `/calendar/detail?days=${days}&src=${src}&blur=${blurOn ? 1 : 0}&exclude=${excludeOn ? 1 : 0}`,
       {
       /* 걸린 조건도 함께 넘긴다 — 달력에 보이던 것과 상세가 어긋나면 안 된다. */
       state: { filter: appliedFilter },
@@ -321,16 +357,17 @@ export default function Calendar() {
           </div>
 
           <div className="toolbar-btns">
-            {/* 날짜를 고르면 필터 왼쪽에 나타난다.
-                끝일을 고르지 않았으면 그 하루만 본다. */}
-            {pick && (
+            {/* 날짜를 고르면 필터 왼쪽에 나타난다 */}
+            {pick.length > 0 && (
               <button
                 type="button"
                 className="filter-pill on"
                 data-keep-pick
                 onClick={openDetail}
                 title={
-                  pick.end === null ? `${pick.start}일 내역을 본다.` : "고른 기간의 내역을 본다."
+                  pick.length === 1
+                    ? `${pick[0]}일 내역을 본다.`
+                    : `고른 ${pick.length}일의 내역을 본다.`
                 }
               >
                 상세
@@ -427,22 +464,41 @@ export default function Calendar() {
             const dow = i % 7;
             const isToday = today.ym === yearMonth && today.day === day;
 
-            /* 고른 기간 표시 — 시작·끝은 끝을 둥글게, 사이는 이어지는 선으로 */
-            const lo = pick ? pick.start : 0;
-            const hi = pick ? pick.end ?? pick.start : 0;
-            const inRange = !!pick && day >= lo && day <= hi;
-            const rangeClass = inRange
-              ? ` is-in-range${day === lo ? " is-range-start" : ""}${day === hi ? " is-range-end" : ""}`
+            /* 고른 날 표시. 끄는 중이면 그 사이도 미리 담긴 것처럼 보여 준다.
+               앞뒤로 이어진 날이 없을 때만 그 자리에서 끝을 둥글게 하므로,
+               나란한 날을 고르면 한 줄로 이어져 보인다 */
+            const inDrag = (d: number) =>
+              dragFrom.current !== null &&
+              dragTo !== null &&
+              d >= Math.min(dragFrom.current, dragTo) &&
+              d <= Math.max(dragFrom.current, dragTo);
+            const isOn = (d: number) => pick.includes(d) || inDrag(d);
+
+            const picked = isOn(day);
+            const rangeClass = picked
+              ? ` is-in-range${isOn(day - 1) ? "" : " is-range-start"}` +
+                `${isOn(day + 1) ? "" : " is-range-end"}`
               : "";
 
             return (
               <div
                 key={day}
+                data-day={day}
                 role="button"
                 tabIndex={0}
-                aria-pressed={inRange}
+                aria-pressed={picked}
                 title={`${day}일`}
-                onClick={() => pickDay(day)}
+                onPointerDown={onCellDown(day)}
+                onPointerMove={onCellMove}
+                onPointerUp={onCellUp}
+                onPointerCancel={onCellUp}
+                /* 손짓을 pointer 로 옮기면서 키보드가 갈 곳을 잃었다.
+                   Enter · Space 는 하루를 담고 빼는 것으로 받는다 */
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return;
+                  e.preventDefault();
+                  pickDay(day);
+                }}
                 className={`cal__cell cal__cell--pick${isToday ? " is-today" : ""}${items.length ? " has-items" : ""}${rangeClass}`}
               >
                 <span className={`cal__day${dow === 0 ? " sun" : dow === 6 ? " sat" : ""}`}>
