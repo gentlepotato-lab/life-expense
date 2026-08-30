@@ -95,10 +95,11 @@ export default function PlaceMapPopup({
             <div className="chart-tile">
               <span className="chart-tile__label">간 횟수</span>
               <span className="me-tile__foot">
+                {/* 단위를 잔 글씨로 떼어 놓으면 옆 칸(`쓴 돈`)과 결이 어긋난다.
+                    그쪽처럼 숫자에 붙여 한 덩어리로 적는다. */}
                 <span className="chart-tile__value">
-                  {place.used_count.toLocaleString("ko-KR")}
+                  {`${place.used_count.toLocaleString("ko-KR")}번`}
                 </span>
-                <span className="chart-tile__sub">번</span>
               </span>
             </div>
             <div className="chart-tile">
@@ -118,7 +119,7 @@ export default function PlaceMapPopup({
           </div>
         </div>
 
-        <div className="btn-row popup-foot">
+        <div className="btn-row popup-foot popup-foot--tight">
           {place.place_url && (
             <a
               className="ui-btn wh-detail__link"
