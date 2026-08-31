@@ -11,6 +11,10 @@ import type { Nudge, NudgeItem, NudgeLink } from "../../utils/nudges";
  * 껍데기는 다른 팝업과 같은 틀(popup-overlay · popup-panel--framed)이다.
  * 안에는 날짜 · 분류 · 메모만 적는다 — 더 캐고 싶으면 바닥의 단추로 그
  * 내역 화면으로 건너뛴다.
+ *
+ * 제목 밑의 곁말은 `이번 달 250,000원 · 12건 · 목표 50만 원`처럼 몇 가지를
+ * 늘어놓은 것이다. 가운뎃점으로 이으면 어디까지가 한 덩어리인지 눈에 잡히지
+ * 않으므로, 다른 화면과 같이 딱지로 끊어 놓는다.
  */
 
 /** 한 줄 — 왼쪽에 날짜 · 분류 · 메모, 오른쪽에 금액.
@@ -81,7 +85,15 @@ export default function NudgeDetailPopup({
         </header>
 
         <div className="popup-body nudge-detail">
-          {nudge.meta && <p className="nudge-detail__meta">{nudge.meta}</p>}
+          {nudge.meta && (
+            <div className="tag-row nudge-detail__meta">
+              {nudge.meta.split(" · ").map((t, i) => (
+                <span key={`${i}-${t}`} className="tag">
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="nudge-detail__list">
             {items.map((it) => (
