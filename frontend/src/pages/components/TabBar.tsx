@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { HOME_TABS, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
 
 /**
  * 화면 아래에 늘 붙어 있는 이동 막대.
@@ -35,8 +36,9 @@ const TABS: Tab[] = [
     label: "홈",
     to: "/",
     /* 쓰기 · 돈쓴이 · 어디 쓰나 · 씀씀이 · 잔소리는 홈에 딸린 화면이다.
-       그 안에 있을 때도 홈이 켜져 있어야 어디에 있는지 알 수 있다. */
-    match: ["/", "/write", "/me", "/places", "/charts", "/nudges"],
+       그 안에 있을 때도 홈이 켜져 있어야 어디에 있는지 알 수 있다.
+       목록은 pageTitles가 들고 있다 — 돈쓴이의 첫 화면 고르개와 같은 것을 본다. */
+    match: HOME_TABS,
     icon: (
       <svg viewBox="0 0 24 24" {...stroke}>
         <path d="M4 10.5 12 4l8 6.5" />
@@ -47,14 +49,9 @@ const TABS: Tab[] = [
   {
     label: "내역",
     to: "/history",
-    match: [
-      "/history",
-      "/entries",
-      "/pending-entries",
-      "/scheduled-entries",
-      "/calendar",
-      "/calendar/detail",
-    ],
+    /* 기간 내역은 달력에 딸린 곁가지라 갈래 탭에 자리가 없다. 그래서
+       ENTRY_TABS 에는 없고 여기에만 따로 붙인다. */
+    match: ["/history", ...ENTRY_TABS, "/calendar/detail"],
     icon: (
       <svg viewBox="0 0 24 24" {...stroke}>
         <path d="M5 4h14v16H5z" />
@@ -65,7 +62,10 @@ const TABS: Tab[] = [
   {
     label: "설정",
     to: "/settings",
-    match: ["/settings", "/categories", "/payment-methods", "/counterparts"],
+    /* 안쓴이 도전이 빠져 있어 그 화면에서는 세 묶음이 모두 꺼져 있었다.
+       목록을 따로 적지 않고 SETTING_TABS 를 그대로 본다 — 설정에 화면을
+       더해도 막대가 저절로 따라온다. */
+    match: ["/settings", ...SETTING_TABS],
     icon: (
       <svg viewBox="0 0 24 24" {...stroke}>
         <circle cx="12" cy="12" r="3" />

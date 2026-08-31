@@ -30,6 +30,22 @@ export const PAGE_TITLE: Record<string, string> = {
   "/goals": "안쓴이 도전",
 };
 
+/**
+ * 홈 탭이 품는 화면들 — 홈 자신과 거기서 들어가는 것들.
+ *
+ * 아래 이동 막대가 "지금 홈에 있다"고 볼 자리이자, 돈쓴이의 첫 화면 고르개가
+ * 늘어놓을 목록이다. 두 곳이 따로 들고 있으면 화면을 하나 더할 때 한쪽만
+ * 고치게 된다.
+ */
+export const HOME_TABS = [
+  "/",
+  "/write",
+  "/me",
+  "/places",
+  "/charts",
+  "/nudges",
+];
+
 /** 내역 탭이 품는 화면들 */
 export const ENTRY_TABS = [
   "/entries",

@@ -7,6 +7,7 @@ import EmojiPicker from "./components/EmojiPicker";
 import { PAGE_ICON } from "./components/MenuIcons";
 import SingleSelect from "./components/SingleSelect";
 import { formatDateLabel } from "../utils/dateGroup";
+import { PAGE_TITLE, HOME_TABS, ENTRY_TABS, SETTING_TABS } from "../utils/pageTitles";
 import { putPrefs } from "../utils/prefs";
 
 /**
@@ -60,14 +61,27 @@ const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
 /** 어디로 들어왔는지 — 로그인을 붙이면 여기 이름이 찍힌다 */
 const PROVIDER_NAME: Record<string, string> = { google: "구글", kakao: "카카오" };
 
-/** 첫 화면으로 고를 수 있는 곳 — 탭이 있는 화면만 */
-const HOME_CHOICES = [
-  { value: "/", label: "홈" },
-  { value: "/entries", label: "지출 내역" },
-  { value: "/calendar", label: "달력" },
-  { value: "/charts", label: "씀씀이" },
-  { value: "/nudges", label: "잔소리" },
+/**
+ * 첫 화면으로 고를 수 있는 곳 — 모든 화면.
+ *
+ * 아래 이동 막대의 세 묶음(홈 · 내역 · 설정)을 그대로 따라 늘어놓고, 묶음에
+ * 딸린 화면은 `홈 > 쓰기`처럼 어디에 딸린 것인지 함께 적는다. 목록은
+ * pageTitles가 들고 있는 것을 그대로 쓰므로, 화면을 하나 더해도 여기가
+ * 저절로 따라온다.
+ *
+ * 기간이 붙어야 열리는 화면(달력의 기간 내역)은 뺀다 — 첫 화면으로 열면
+ * 고른 날이 없어 빈 화면이 된다.
+ */
+const TAB_GROUPS: { name: string; root: string; kids: string[] }[] = [
+  { name: "홈", root: "/", kids: HOME_TABS.filter((t) => t !== "/") },
+  { name: "내역", root: "/history", kids: ENTRY_TABS },
+  { name: "설정", root: "/settings", kids: SETTING_TABS },
 ];
+
+const HOME_CHOICES = TAB_GROUPS.flatMap((g) => [
+  { value: g.root, label: g.name },
+  ...g.kids.map((to) => ({ value: to, label: `${g.name} > ${PAGE_TITLE[to]}` })),
+]);
 
 /** 지난 날을 사람이 읽는 말로 — "2년 2개월째" */
 function since(from: string): string {

@@ -12459,3 +12459,64 @@ html.modal-open .scroll-top {
   padding-left: 6px;
   padding-right: 6px;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   113. 첫 화면 고르개 — 두 모습이 같은 자리에(2026-08-31)
+   ────────────────────────────────────────────────────────────
+   줄 높이는 두 모습이 같았지만 글자가 옆으로 튀었다. 보기 모드에서는 글자
+   폭만큼만 차지해 오른쪽 끝에 붙고, 편집 모드에서는 고르는 칸이 자리를 다
+   써서 글자가 왼쪽으로 갔다 — [편집] 을 누를 때마다 값이 80px씩 미끄러졌다.
+
+   보기 쪽에도 고르는 칸과 같은 상자를 준다. 테두리만 없을 뿐 자리 · 키 ·
+   안여백 · 글씨가 같아 값이 한 픽셀도 움직이지 않는다.
+
+   화면 이름이 `설정 > 안쓴이 도전`처럼 길어졌으므로 넘치는 것은 말줄임으로
+   자른다. 고르는 목록은 제 폭을 따로 잡으므로 온전히 읽힌다.
+   ═════════════════════════════════════════════════════════════ */
+
+.me-pref__value {
+  width: 100%;
+  min-width: 0;
+  height: var(--set-input-h);
+  padding: 0 8px;
+  /* 고르는 칸에는 1px 테두리가 있다. 보이지 않는 같은 두께를 둘러 상자가
+     한 치도 다르지 않게 한다. */
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  /* 값은 오른쪽 끝에 붙인다 — 아래 켬·끔 단추와 같은 자리다. 상자는 고정이라
+     [편집] 을 눌러도 줄이 넓어지거나 좁아지지 않는다. */
+  justify-content: flex-end;
+  text-align: right;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+/* 고르는 칸 속 글자는 제 크기를 따로 갖고 있다(.ms-value 14px). 이 줄에서는
+   둘레와 같은 크기로 낮춰, 보기 쪽 글자와 한 치도 다르지 않게 한다. */
+.me-pref__control .ms-value {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.me-pref__control .ms-display {
+  min-width: 0;
+}
+
+/* 켬·끔 단추 줄은 원래 오른쪽 끝에 붙어 있었다. 그 자리는 그대로 둔다. */
+.me-pref__control > .set-hide-btn {
+  margin-left: auto;
+}
+
+/* 이름이 길어진 만큼 칸을 한 뼘 넓힌다 — `내역 > 지출 내역`까지 온전히 들어간다. */
+.me-pref__control {
+  flex: 0 0 104px;
+  width: 104px;
+}
