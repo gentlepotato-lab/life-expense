@@ -29,6 +29,20 @@ export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?
  * 같은 시간대(Asia/Seoul)라 그대로 읽으면 된다. 다만 new Date(문자열)은
  * 브라우저마다 해석이 달라서, 숫자를 직접 떼어 만든다.
  */
+/**
+ * `말일` 을 가리키는 day_of_month 값. 서버의 LAST_DAY 와 같은 값이다.
+ *
+ * 달마다 끝 날이 달라 하나의 숫자로는 적을 수 없어, 1~31 바깥의 값을 하나
+ * 정해 두고 서버가 셈할 때 그 달의 끝 날로 바꿔 쓴다.
+ */
+const LAST_DAY = 32;
+
+/** 며칠인지 적는 말. 말일은 숫자 대신 그 말로 적는다. */
+function dayLabel(day: number | string | null | undefined): string {
+  if (day === null || day === undefined || day === "") return "-일";
+  return Number(day) === LAST_DAY ? "말일" : `${day}일`;
+}
+
 function parseLocal(v: string | null | undefined): Date | null {
   if (!v) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(v);
@@ -539,8 +553,9 @@ export default function ScheduledEntries() {
     }
   };
 
-  // 일 선택 옵션 생성(1-31)
-  const dayOptions = Array.from({ length: 31 }, (_, i) => i + 1);
+  /* 일 선택 옵션 생성(1-31, 그리고 말일).
+     말일을 맨 뒤에 두는 것은 1일부터 세어 온 차례의 끝이기 때문이다. */
+  const dayOptions = [...Array.from({ length: 31 }, (_, i) => i + 1), LAST_DAY];
 
   return (
     <div className="page-wrap">
@@ -597,7 +612,7 @@ export default function ScheduledEntries() {
                 <EditField label="매월" span={4}>
                   <SingleSelect
                     noun="날짜"
-                    options={dayOptions.map((d) => ({ value: String(d), label: `${d}일` }))}
+                    options={dayOptions.map((d) => ({ value: String(d), label: dayLabel(d) }))}
                     selected={form.day_of_month}
                     onChange={(value) => setForm({ ...form, day_of_month: value })}
                     placeholder="(일)"
@@ -777,7 +792,7 @@ export default function ScheduledEntries() {
       {draft && (
         <CardEditModal
           title="스케줄 편집"
-          subtitle={`매월 ${draft.day_of_month ?? "-"}일 ${draft.time || toTimeString(draft.hour, draft.minute)}`}
+          subtitle={`매월 ${dayLabel(draft.day_of_month)} ${draft.time || toTimeString(draft.hour, draft.minute)}`}
           onClose={closeEditor}
           onSave={saveDraft}
           onDelete={() => handleDelete(draft.schedule_id)}
@@ -788,7 +803,7 @@ export default function ScheduledEntries() {
               <EditField label="매월" span={6}>
                 <SingleSelect
                   noun="날짜"
-                  options={dayOptions.map((d) => ({ value: String(d), label: `${d}일` }))}
+                  options={dayOptions.map((d) => ({ value: String(d), label: dayLabel(d) }))}
                   selected={String(draft.day_of_month ?? "")}
                   onChange={(value) => setField("day_of_month", value ? Number(value) : null)}
                   placeholder="(일)"
@@ -1033,7 +1048,7 @@ export function ScheduleCard({
             다음 예정일시는 위 날짜 단 머리말이 이미 말하고 있어 뺐다. */}
         <div className="schedule-card__row schedule-card__row--header">
           <div className="schedule-card__date-line">
-            <span className="schedule-card__month">매월 {s.day_of_month}일</span>
+            <span className="schedule-card__month">매월 {dayLabel(s.day_of_month)}</span>
             <span className="schedule-card__month">{timeDisplay}</span>
           </div>
           <span className="schedule-card__holiday">{holidayLabel}</span>

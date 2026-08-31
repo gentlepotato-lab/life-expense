@@ -104,7 +104,7 @@ class HolidayOut(BaseModel):
         orm_mode = True
 
 class ScheduledEntryIn(BaseModel):
-    day_of_month: int  # 1-31
+    day_of_month: int  # 1-31, 32는 말일
     hour: int  # 0-23
     minute: int  # 0-59
     holiday_handling: str  # 'before', 'on', 'after'

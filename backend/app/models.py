@@ -179,7 +179,7 @@ class ScheduledEntry(Base):
     schedule_id = Column(Integer, primary_key=True, autoincrement=True)
     
     # 스케줄 설정
-    day_of_month = Column(Integer, nullable=False)  # 매월 몇 일(1-31)
+    day_of_month = Column(Integer, nullable=False)  # 매월 몇 일(1-31, 32는 말일)
     hour = Column(Integer, nullable=False)  # 몇 시(0-23)
     minute = Column(Integer, nullable=False)  # 몇 분(0-59)
     

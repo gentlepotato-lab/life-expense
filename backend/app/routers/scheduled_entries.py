@@ -13,6 +13,20 @@ from app.routers.splits import copy_splits
 
 router = APIRouter()
 
+# `말일` 을 가리키는 day_of_month 값.
+#
+# 달마다 끝 날이 달라 하나의 숫자로는 적을 수 없다. 1~31 바깥의 값을 하나
+# 정해 두고 셈할 때 그 달의 끝 날로 바꿔 쓴다. 0이 아니라 32인 것은, 0이
+# 화면 쪽에서 "안 고름"과 구별되지 않기 때문이다.
+LAST_DAY = 32
+
+
+def day_in_month(year: int, month: int, day_of_month: int) -> int:
+    """그 달에서 실제로 쓸 날. 말일이면 그 달의 끝 날로 바꾼다"""
+    if day_of_month >= LAST_DAY:
+        return calendar.monthrange(year, month)[1]
+    return day_of_month
+
 @router.get("")
 def list_scheduled_entries(db: SessionDep = Depends()):
     """모든 스케줄된 항목 조회"""
@@ -69,8 +83,11 @@ def list_scheduled_entries(db: SessionDep = Depends()):
 @router.post("")
 def create_scheduled_entry(payload: ScheduledEntryIn, db: SessionDep = Depends()):
     """새 스케줄 항목 생성"""
-    if not (1 <= payload.day_of_month <= 31):
-        raise HTTPException(status_code=400, detail="day_of_month must be 1-31")
+    if not (1 <= payload.day_of_month <= LAST_DAY):
+        raise HTTPException(
+            status_code=400,
+            detail=f"day_of_month must be 1-31 or {LAST_DAY}(말일)",
+        )
     if not (0 <= payload.hour <= 23):
         raise HTTPException(status_code=400, detail="hour must be 0-23")
     if not (0 <= payload.minute <= 59):
@@ -216,8 +233,14 @@ def calculate_next_run_at(
         base_date = now.date()
     
     # 1단계: 이번 달의 원래 스케줄된 날짜 계산
+    #        말일이면 그 달의 끝 날로 바꿔 둔다 — 1~31은 값이 그대로라
+    #        지금까지의 셈이 달라지지 않는다.
     try:
-        scheduled_date = date(base_date.year, base_date.month, day_of_month)
+        scheduled_date = date(
+            base_date.year,
+            base_date.month,
+            day_in_month(base_date.year, base_date.month, day_of_month),
+        )
     except ValueError:
         # 유효하지 않은 날짜(예: 2월 30일) - 다음 달로 이동
         if base_date.month == 12:
@@ -232,10 +255,18 @@ def calculate_next_run_at(
     if scheduled_datetime <= now:
         # 다음 달로 이동
         if scheduled_date.month == 12:
-            scheduled_date = date(scheduled_date.year + 1, 1, day_of_month)
+            scheduled_date = date(
+                scheduled_date.year + 1,
+                1,
+                day_in_month(scheduled_date.year + 1, 1, day_of_month),
+            )
         else:
             try:
-                scheduled_date = date(scheduled_date.year, scheduled_date.month + 1, day_of_month)
+                scheduled_date = date(
+                    scheduled_date.year,
+                    scheduled_date.month + 1,
+                    day_in_month(scheduled_date.year, scheduled_date.month + 1, day_of_month),
+                )
             except ValueError:
                 # 유효하지 않은 날짜(예: 2월 30일)
                 last_day = calendar.monthrange(scheduled_date.year, scheduled_date.month + 1)[1]
