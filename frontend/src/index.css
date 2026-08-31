@@ -12415,3 +12415,47 @@ html.modal-open .scroll-top {
   height: 24px;
   min-height: 24px;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   112. N빵 세 칸의 몫을 다시 나눈다(2026-08-31)
+   ────────────────────────────────────────────────────────────
+   Who? · 금액 · 메모가 4:4:4로 똑같이 나눠 쓰고 있었다. 앞의 둘은 들어갈
+   글자가 정해져 있는데(사람 이름 · 금액) 메모만 남는 자리 없이 눌렸다.
+   3:3:6으로 바꿔 남는 만큼을 메모에 준다.
+
+   앞의 둘이 3칸(430px 화면에서 85px)으로 좁아져도 담을 것은 다 담긴다 —
+   한글 넉 자 45px에 안여백 20px과 화살표, 백만 원 `1000000` 58px에 안여백.
+   금액 칸은 오른쪽으로 밀어 적는 숫자뿐이라 안여백을 한 단 줄여 여유를 둔다.
+
+   380px 이하에서 세 칸을 접어 놓은 규칙(6:6:12)은 그대로 둔다.
+   ═════════════════════════════════════════════════════════════ */
+
+@media (min-width: 381px) {
+  .split-grid__label:nth-of-type(1),
+  .split-grid__label:nth-of-type(2) {
+    grid-column: span 3;
+  }
+
+  .split-grid__label:nth-of-type(3) {
+    grid-column: span 6;
+  }
+
+  .split-cell:nth-of-type(3n + 1),
+  .split-cell:nth-of-type(3n + 2) {
+    grid-column: span 3;
+  }
+
+  .split-cell:nth-of-type(3n) {
+    grid-column: span 6;
+  }
+}
+
+/* 금액 칸의 안여백. 남은 금액 힌트도 이 값을 읽어 자리를 잡는다. */
+.split-cell--amount {
+  --control-px: 6px;
+}
+
+.split-cell--amount > input.amount-input {
+  padding-left: 6px;
+  padding-right: 6px;
+}
