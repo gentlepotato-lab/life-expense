@@ -292,6 +292,7 @@ export default function Goals() {
 
     for (const g of amountChanged) await saveAmount(g.goal_id, draft[g.goal_id]);
     for (const g of memoChanged) await saveMemo(g.goal_id, memoDraft[g.goal_id]);
+    alert("저장 완료-!! ;-)");
     setEditMode(false);
   };
 

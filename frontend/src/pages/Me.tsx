@@ -203,6 +203,7 @@ export default function Me() {
     try {
       await axios.post("/profile", profile);
       await axios.post("/profile/prefs", prefs);
+      alert("저장 완료-!! ;-)");
       setEditMode(false);
       load();
     } catch (err) {

@@ -1168,6 +1168,7 @@ export default function Charts() {
           span: wideSet.has(k) ? 2 : 1,
         }))
       );
+      alert("저장 완료-!! ;-)");
       setEditMode(false);
     } catch (err) {
       alert(apiErrorMessage(err));
