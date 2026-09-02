@@ -16,6 +16,9 @@ PREF_KEYS = {
     "exclude_default": "1",
     "home_path": "/",
     "nudge_on": "1",
+    # 금액을 가리는 마스킹 테이프. 화면이 아는 일곱 가지 가운데 하나다
+    # (frontend/src/utils/tapes.ts).
+    "tape_style": "flower",
 }
 
 

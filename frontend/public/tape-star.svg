@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="30" viewBox="0 0 60 30">
+  <title>마스킹 테이프 — 반짝</title>
+  <!--
+    일곱 가지 가운데 일곱째. 연민트 바탕에 네 갈래 반짝임이다.
+
+    다섯 갈래 별은 작게 찍으면 뭉개져 덩어리로 보인다. 네 갈래로 하고
+    가운데를 잘록하게 깎으면 작아도 갈래가 살아, 반짝이는 결이 남는다.
+
+    꽃 · 하트와 같은 손놀림으로 옅은 것을 먼저 흩고 진한 것을 얹는다.
+    무늬는 가장자리에 걸치지 않게 안쪽에만 둔다.
+  -->
+  <defs>
+    <linearGradient id="starBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E6F7F4"/>
+      <stop offset="1" stop-color="#CFEDE7"/>
+    </linearGradient>
+
+    <!-- 네 갈래 반짝임 — 가운데가 (0,0)이고 지름 8쯤이다. -->
+    <path id="spark"
+      d="M0 -4 C0.5 -1.4 1.4 -0.5 4 0 C1.4 0.5 0.5 1.4 0 4
+         C-0.5 1.4 -1.4 0.5 -4 0 C-1.4 -0.5 -0.5 -1.4 0 -4 Z"/>
+  </defs>
+
+  <path
+    d="M0 3.4 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0
+       L60 26.6 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 Z"
+    fill="url(#starBody)"/>
+
+  <!-- 옅은 무늬가 먼저 — 작은 것을 더 흩어 놓아 밤하늘 결을 낸다. -->
+  <g fill="#A8DED3">
+    <use href="#spark" transform="translate(9 20) scale(0.62)"/>
+    <use href="#spark" transform="translate(27 21) scale(0.45)"/>
+    <use href="#spark" transform="translate(36 9) scale(0.6)"/>
+    <use href="#spark" transform="translate(51 20) scale(0.5)"/>
+  </g>
+
+  <!-- 진한 무늬가 그 위에 -->
+  <g fill="#4CBFAB">
+    <use href="#spark" transform="translate(18 11) rotate(12)"/>
+    <use href="#spark" transform="translate(45 12) rotate(-10) scale(0.8)"/>
+  </g>
+</svg>

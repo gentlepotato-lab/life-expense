@@ -18,6 +18,7 @@ const FALLBACK: Prefs = {
   exclude_default: "1",
   home_path: "/",
   nudge_on: "1",
+  tape_style: "flower",
 };
 
 const STORE_KEY = "life-expense:prefs";

@@ -8,6 +8,7 @@ import { PAGE_ICON } from "./components/MenuIcons";
 import SingleSelect from "./components/SingleSelect";
 import { formatDateLabel } from "../utils/dateGroup";
 import { PAGE_TITLE, HOME_TABS, ENTRY_TABS, SETTING_TABS } from "../utils/pageTitles";
+import { applyTape, DEFAULT_TAPE, TAPES } from "../utils/tapes";
 import { putPrefs } from "../utils/prefs";
 
 /**
@@ -203,6 +204,9 @@ export default function Me() {
     try {
       await axios.post("/profile", profile);
       await axios.post("/profile/prefs", prefs);
+      /* 담긴 뒤에 붙인다. 고르는 동안 미리 바뀌면 담지 않고 나가도 그대로
+         남아, 담은 것과 보이는 것이 어긋난다. */
+      applyTape(prefs.tape_style ?? DEFAULT_TAPE);
       alert("저장 완료-!! ;-)");
       setEditMode(false);
       load();
@@ -470,6 +474,30 @@ export default function Me() {
                 >
                   {prefs.nudge_on === "1" ? "켬" : "끔"}
                 </button>
+              </div>
+            </div>
+
+            {/* 마스킹 테이프 — 고르는 것은 위 넷과 같다. [저장] 을 눌러야 담기고,
+                담기는 그때 화면 곳곳의 테이프가 바뀐다. */}
+            <div className="me-pref me-pref--tape">
+              <span className="me-pref__name">마스킹 테이프</span>
+              <div className="me-tape">
+                {TAPES.map((t) => {
+                  const on = (prefs.tape_style ?? DEFAULT_TAPE) === t.key;
+                  return (
+                    <button
+                      key={t.key}
+                      type="button"
+                      className={`me-tape__btn${on ? " on" : ""}`}
+                      style={{ backgroundImage: `url("${t.file}")` }}
+                      disabled={!editMode}
+                      aria-pressed={on}
+                      aria-label={t.label}
+                      title={t.label}
+                      onClick={() => setPref("tape_style", t.key)}
+                    />
+                  );
+                })}
               </div>
             </div>
 

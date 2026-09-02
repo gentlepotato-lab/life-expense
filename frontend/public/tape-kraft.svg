@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="30" viewBox="0 0 60 30">
+  <title>마스킹 테이프 — 크라프트</title>
+  <!--
+    일곱 가지 가운데 다섯째. 무늬 없이 종이 결만 있는 크라프트 테이프다.
+    금액을 가리는 것이 본디 할 일이니, 아무 무늬도 거들지 않는 한 장을 둔다.
+
+    결은 아주 옅은 실오라기 몇 가닥이다. 선명하게 그으면 사선 테이프와
+    겹쳐 보이므로, 눈에 겨우 걸릴 만큼만 남긴다 — 무늬가 아니라 종이의 결이다.
+    길이와 자리를 제각각 두어 되풀이되는 티가 나지 않게 했다.
+  -->
+  <defs>
+    <linearGradient id="kraftBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4E8D6"/>
+      <stop offset="0.55" stop-color="#EEDCC2"/>
+      <stop offset="1" stop-color="#E4D0B0"/>
+    </linearGradient>
+
+    <path id="kraftShape"
+      d="M0 3.4 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0
+         L60 26.6 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 Z"/>
+
+    <clipPath id="kraftClip">
+      <use href="#kraftShape"/>
+    </clipPath>
+  </defs>
+
+  <use href="#kraftShape" fill="url(#kraftBody)"/>
+
+  <!-- 실오라기 — 짙은 것과 옅은 것이 섞여야 종이처럼 보인다. -->
+  <g clip-path="url(#kraftClip)" stroke-linecap="round" fill="none">
+    <g stroke="#CDAF85" stroke-opacity="0.28" stroke-width="0.45">
+      <path d="M2 9.5 H23"/>
+      <path d="M31 12.5 H49"/>
+      <path d="M7 17 H27"/>
+      <path d="M38 20.5 H58"/>
+      <path d="M14 23.5 H30"/>
+    </g>
+    <g stroke="#FFFFFF" stroke-opacity="0.4" stroke-width="0.45">
+      <path d="M26 8 H44"/>
+      <path d="M0 14 H15"/>
+      <path d="M45 16.5 H60"/>
+      <path d="M32 22 H47"/>
+    </g>
+  </g>
+</svg>

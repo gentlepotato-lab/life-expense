@@ -22,7 +22,8 @@ const Charts = lazy(() => import("./pages/Charts"));
 
 import PageHead from "./pages/components/PageHead";
 import TabBar from "./pages/components/TabBar";
-import { loadPrefs, takeHome } from "./utils/prefs";
+import { loadPrefs, pref, takeHome } from "./utils/prefs";
+import { applyTape } from "./utils/tapes";
 
 /** 앞머리 화면이 떠 있는 시간. 사라지는 데 걸리는 320ms는 여기에 포함하지 않는다. */
 const SPLASH_MS = 1500;
@@ -66,9 +67,13 @@ function App() {
   useSplashDismiss();
 
   /* 설정은 화면이 뜨기 전에 있어야 하므로 브라우저에 담아 둔 것으로 먼저 그리고,
-     서버에서 받아 온 것은 다음에 열 때부터 쓴다. */
+     서버에서 받아 온 것은 다음에 열 때부터 쓴다.
+
+     마스킹 테이프만은 받아 온 그 자리에서 갈아 끼운다 — 변수 하나라 다시
+     그릴 것이 없고, 다음에 열 때까지 기다릴 까닭도 없다. */
   useEffect(() => {
-    void loadPrefs();
+    applyTape(pref("tape_style"));
+    void loadPrefs().then(() => applyTape(pref("tape_style")));
   }, []);
 
   return (
