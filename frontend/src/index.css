@@ -13215,3 +13215,72 @@ html.modal-open .scroll-top {
               0 14px 30px -14px rgba(16, 24, 40, 0.24);
   transition: transform 140ms ease-out, box-shadow 140ms ease-out;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   120. 모두 펼치기|접기 · 정렬 횟수|금액 — 모든 화면 한 모양(2026-09)
+   ─────────────────────────────────────────────────────────────
+   같은 부품인데 화면마다 옷이 달랐다.
+   · 내역 넷(툴바)  높이 24px · 판 안여백 7px · 단추 여백 4/2px(좌우가 짝이 안 맞음)
+   · 설정 셋        높이 22px · 판 안여백 7px · 단추 여백 4/2px
+   · 어디 쓰나      높이 22px · 판 안여백 5px · 단추 여백 2/2px · 가름선 바짝
+   어디 쓰나의 짜임을 모든 화면에 입힌다.
+
+   판은 누르는 자리보다 작게 깐다. 단추 높이(22px)는 그대로 두어 손가락
+   자리는 줄이지 않고, 판만 위아래 3px씩 안으로 들여 글자에 바짝 붙인다.
+   정렬의 켜진 쪽 표시도 같은 크기로 맞춘다.
+
+   결제 수단 화면의 [+] 실적 구간별 혜택도 .set-bulk__btn을 입지만 묶음
+   바깥이라 여기서 건드리지 않는다 — 묶음 안(.set-bulk__pair)만 고른다.
+   ════════════════════════════════════════════════════════════ */
+
+.set-bulk,
+.wh-top .set-bulk {
+  gap: 4px;
+}
+
+.set-bulk__pair > .set-bulk__btn {
+  height: 22px;
+  min-height: 22px;
+  padding: 0 2px;
+}
+
+/* 가름선은 두 낱말이 한 벌이라는 표시다 — 묶음 간격만큼 당겨 바짝 붙인다. */
+.set-bulk__pair > .set-bulk__sep {
+  margin-left: -4px;
+  margin-right: -4px;
+}
+
+/* 판 — 누르는 자리 안쪽에 작게 */
+.set-bulk__pair,
+.wh-top .set-bulk__pair {
+  position: relative;
+  isolation: isolate;
+  padding: 0 4px;
+  background: none;
+}
+
+.set-bulk__pair::before {
+  content: "";
+  position: absolute;
+  inset: 3px 0;
+  z-index: -1;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.02);
+  pointer-events: none;
+}
+
+/* 정렬의 켜진 쪽 — 판과 같은 높이로 */
+.wh-sort .set-bulk__btn.on {
+  position: relative;
+  background: none;
+}
+
+.wh-sort .set-bulk__btn.on::before {
+  content: "";
+  position: absolute;
+  inset: 3px -1px;
+  z-index: -1;
+  border-radius: 999px;
+  background: rgba(91, 95, 239, 0.1);
+  pointer-events: none;
+}
