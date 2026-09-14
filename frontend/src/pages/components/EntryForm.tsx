@@ -5,6 +5,7 @@ import useBackClose from "../../hooks/useBackClose";
 import SingleSelect from "./SingleSelect";
 import { EditField } from "./CardEditModal";
 import PlacePicker from "./PlacePicker";
+import GoToButton from "./GoToButton";
 
 /**
  * 지출 한 건을 적는 입력 칸 묶음.
@@ -350,15 +351,20 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
         />
       )}
 
-      {/* Send Button */}
+      {/* Send Button.
+          왼쪽에 지출 내역으로 건너뛰는 단추를 둔다 — 적고 나서 바로 목록을
+          보러 가는 길이다. 쓰기 팝업도 바닥 왼쪽 끝에 같은 것을 단다. */}
       {showSubmit && (
-        <button
-          type="submit"
-          className="ui-btn primary w-full entry-form__submit"
-          disabled={!isDirty}
-        >
-          전송
-        </button>
+        <div className="entry-form__foot">
+          <GoToButton to="/entries" label="지출 내역" className="write-go" />
+          <button
+            type="submit"
+            className="ui-btn primary w-full entry-form__submit"
+            disabled={!isDirty}
+          >
+            전송
+          </button>
+        </div>
       )}
     </form>
   );

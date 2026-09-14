@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import CardEditModal from "./CardEditModal";
 import EntryForm from "./EntryForm";
+import GoToButton from "./GoToButton";
 
 /**
  * 지출 내역에서 바로 한 건 적는 팝업.
@@ -41,6 +42,9 @@ export default function WriteEntryModal({
       onSave={save}
       saveDisabled={!dirty}
       saveLabel="전송"
+      footerLead={
+        <GoToButton to="/entries" label="지출 내역" className="write-go" inPopup />
+      }
     >
       <EntryForm
         ref={formRef}

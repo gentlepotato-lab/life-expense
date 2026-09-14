@@ -13,6 +13,13 @@ type CardEditModalProps = {
   /** 저장 버튼 왼쪽에 들어가는 추가 액션(예: Pending의 "전송") */
   footerExtra?: ReactNode;
   /**
+   * 바닥 왼쪽 끝에 들어가는 것.
+   *
+   * 그 자리는 본디 [삭제]가 쓴다. 지울 것이 없는 팝업(쓰기)에서 비워 두느니
+   * 건너뛰는 단추를 둔다 — 잔소리 상세도 같은 자리에 같은 단추를 단다.
+   */
+  footerLead?: ReactNode;
+  /**
    * 머리말 아래에 붙는 날짜·시간 입력 줄.
    * 본문 그리드 사이에 끼면 칸이 좁아지고, 어차피 머리말이 날짜를 말하고 있으므로
    * 시점에 관한 입력은 여기에 모은다.
@@ -35,6 +42,7 @@ export default function CardEditModal({
   saveLabel = "저장",
   deleteLabel = "삭제",
   footerExtra,
+  footerLead,
   headerFields,
   children,
 }: CardEditModalProps) {
@@ -78,7 +86,7 @@ export default function CardEditModal({
               {deleteLabel}
             </button>
           ) : (
-            <span />
+            footerLead ?? <span />
           )}
 
           <div className="edit-modal__foot-right">
