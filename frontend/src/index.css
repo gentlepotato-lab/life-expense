@@ -12680,3 +12680,71 @@ html.modal-open .scroll-top {
 .edit-modal__foot > .write-go {
   min-width: 52px;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   117. 정기 카드 — 매달 뜯어 쓰는 표 한 장(2026-09-14)
+   ────────────────────────────────────────────────────────────
+   `매월 22일`과 `08:00`이 둘 다 16px 굵은 글씨라, 카드에서 분류보다도 먼저
+   눈에 들어왔다. 정작 읽어야 할 것은 무엇에 얼마인데 그렇다.
+
+   둘은 "언제 빠져나가는가" 하나를 말하므로 한 딱지에 담는다. 꼴은 이 화면
+   것으로 따로 짰다 — 이 앱의 다른 딱지는 모두 옅은 바탕을 채운 완전한
+   알약(.tag · .set-group__count · .filter-pill)이지만, 이것은 바탕을 비우고
+   테두리만 두른 네모다. 채운 것과 비운 것은 멀리서도 갈린다.
+
+   가운데 절취선은 정기 것에만 있다. 매달 한 칸씩 뜯어 쓰는 표처럼 날과
+   시각을 갈라 놓는 금이다.
+
+   빛깔은 먹색이다. 갈래 색(지출 남색 · 대기 주황 · 정기 청록)을 쓰면 이미
+   다섯 화면이 쓰는 청록 딱지와 섞이고, 다른 색을 들이면 카드에 색이 하나
+   더 는다. 채운 딱지가 아니라 테두리만 두른 네모라, 먹색이어도 무겁지 않다.
+
+   시각은 12시간제로 적는다(hour12) — 아침에 빠져나가는지 밤에 빠져나가는지가
+   셈 없이 읽힌다.
+   ═════════════════════════════════════════════════════════════ */
+
+.schedule-card__when {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid rgba(33, 37, 41, 0.3);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.schedule-card__when-day {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* 절취선 — 딱지 위아래로 걸치게 두어 뜯는 자리처럼 보이게 한다. */
+.schedule-card__when-cut {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 24px;
+  margin: 0 -1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(33, 37, 41, 0.3) 0 2px,
+    transparent 2px 4px
+  );
+}
+
+/* 시각은 곁들이는 값이라 한 단 옅다. 자릿수가 흔들리지 않게 고정폭 숫자로. */
+.schedule-card__when-time {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  opacity: 0.62;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 딱지가 들어가면서 줄 안에서 늘어나지 않도록 — 왼쪽 끝에 붙은 채로 둔다. */
+.schedule-card__row--header > .schedule-card__date-line {
+  flex: 0 0 auto;
+  align-items: center;
+}

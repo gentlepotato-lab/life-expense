@@ -37,6 +37,23 @@ export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?
  */
 const LAST_DAY = 32;
 
+/**
+ * 시각을 12시간제로 적는다 — `14:15` → `2:15 p.m.`
+ *
+ * 정기는 "아침에 빠져나가는가 밤에 빠져나가는가"가 눈에 들어와야 하는데,
+ * 24시간제 숫자는 한 번 셈을 해야 알 수 있다. 담는 값과 고치는 칸은
+ * 24시간제 그대로 두고 적을 때만 바꾼다.
+ */
+function hour12(v: string): string {
+  const m = /^(\d{1,2}):(\d{2})/.exec(v);
+  if (!m) return v;
+  const h = Number(m[1]);
+  const noon = h >= 12;
+  /* 0시는 12 a.m., 12시는 12 p.m. — 0으로 적는 시계는 없다. */
+  const shown = h % 12 === 0 ? 12 : h % 12;
+  return `${shown}:${m[2]} ${noon ? "p.m." : "a.m."}`;
+}
+
 /** 며칠인지 적는 말. 말일은 숫자 대신 그 말로 적는다. */
 function dayLabel(day: number | string | null | undefined): string {
   if (day === null || day === undefined || day === "") return "-일";
@@ -792,7 +809,9 @@ export default function ScheduledEntries() {
       {draft && (
         <CardEditModal
           title="스케줄 편집"
-          subtitle={`매월 ${dayLabel(draft.day_of_month)} ${draft.time || toTimeString(draft.hour, draft.minute)}`}
+          subtitle={`매월 ${dayLabel(draft.day_of_month)} ${hour12(
+            draft.time || toTimeString(draft.hour, draft.minute)
+          )}`}
           onClose={closeEditor}
           onSave={saveDraft}
           onDelete={() => handleDelete(draft.schedule_id)}
@@ -1032,7 +1051,7 @@ export function ScheduleCard({
     typeof shownAmount === "number" && !Number.isNaN(shownAmount)
       ? shownAmount.toLocaleString()
       : "-";
-  const timeDisplay = s.time || toTimeString(s.hour, s.minute);
+  const timeDisplay = hour12(s.time || toTimeString(s.hour, s.minute));
 
   return (
     <div
@@ -1048,8 +1067,13 @@ export function ScheduleCard({
             다음 예정일시는 위 날짜 단 머리말이 이미 말하고 있어 뺐다. */}
         <div className="schedule-card__row schedule-card__row--header">
           <div className="schedule-card__date-line">
-            <span className="schedule-card__month">매월 {dayLabel(s.day_of_month)}</span>
-            <span className="schedule-card__month">{timeDisplay}</span>
+            {/* 언제 빠져나가는가 — 날과 시각은 한 가지 사실이라 한 딱지에 담는다.
+                16px 굵은 글씨 둘로 적었더니 카드에서 제일 먼저 눈에 들어왔다. */}
+            <span className="schedule-card__when">
+              <span className="schedule-card__when-day">매월 {dayLabel(s.day_of_month)}</span>
+              <span className="schedule-card__when-cut" aria-hidden="true" />
+              <span className="schedule-card__when-time">{timeDisplay}</span>
+            </span>
           </div>
           <span className="schedule-card__holiday">{holidayLabel}</span>
         </div>
@@ -1108,15 +1132,11 @@ export function ScheduleCard({
           </span>
         </div>
 
+        {/* 메모 — 지출 · 대기 내역 카드와 같은 결(.memo-text)로 적는다.
+            "메모"라는 이름표는 떼었다. 카드에서 그 자리에 오는 것이 메모뿐이라
+            이름을 붙여 줄 까닭이 없다. */}
         <div className="schedule-card__row schedule-card__row--meta-single">
-          <div className="schedule-card__label">메모</div>
-          <span
-            className={`schedule-card__meta-value ${
-              s.memo ? "" : "schedule-card__meta-value--placeholder"
-            }`}
-          >
-            {s.memo || "-"}
-          </span>
+          <span className="memo-text">{s.memo || "-"}</span>
         </div>
 
         {/* 펼쳤을 때만 — 함께한 사람과 몫 */}
