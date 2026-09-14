@@ -1055,31 +1055,18 @@ export function ScheduleCard({
 
   return (
     <div
-      className={`card schedule-card card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
+      className={`card card--entry schedule-card card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
       {...(readOnly ? {} : handlers)}
       title={readOnly ? undefined : "꾹 눌러서 편집"}
     >
+      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국 */}
       <div
         className={`inout-bar ${s.inout === 1 ? "in-bar" : s.inout === -1 ? "out-bar" : ""}`}
       ></div>
       <div className="schedule-card__body">
-        {/* 머리 한 줄 — 날짜·시각은 왼쪽, 휴일 처리는 오른쪽 끝.
+        {/* 1행: 분류 + 금액 — 지출 · 대기 내역 카드와 같은 자리다.
             다음 예정일시는 위 날짜 단 머리말이 이미 말하고 있어 뺐다. */}
-        <div className="schedule-card__row schedule-card__row--header">
-          <div className="schedule-card__date-line">
-            {/* 언제 빠져나가는가 — 날과 시각은 한 가지 사실이라 한 딱지에 담는다.
-                16px 굵은 글씨 둘로 적었더니 카드에서 제일 먼저 눈에 들어왔다. */}
-            <span className="schedule-card__when">
-              <span className="schedule-card__when-day">매월 {dayLabel(s.day_of_month)}</span>
-              <span className="schedule-card__when-cut" aria-hidden="true" />
-              <span className="schedule-card__when-time">{timeDisplay}</span>
-            </span>
-          </div>
-          <span className="schedule-card__holiday">{holidayLabel}</span>
-        </div>
-
-        {/* 카테고리 행 */}
-        <div className="row-category">
+        <div className="entry-ln entry-ln--head">
           <span className="cat-display">
             <span className="cat-text">{cat1?.name || "-"}</span>
             <span className="cat-sep"> &gt; </span>
@@ -1091,57 +1078,65 @@ export function ScheduleCard({
               </>
             )}
           </span>
-        </div>
 
-        {/* 결제 수단 + 금액 행 */}
-        <div className="row-payment">
-          <span className="pay-method-text">{pay?.name || "-"}</span>
-
-          {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다.
-              그 줄을 누르면 아래에 함께한 사람과 몫이 펼쳐진다. */}
-          <span className="amount-stack">
-            {hasSplit && (
-              <span
-                className={`amount-split ${isBlur && !revealed ? "masked" : "revealed"} is-toggle${splitOpen ? " open" : ""}`}
-                role="button"
-                tabIndex={0}
-                data-no-longpress
-                title={splitOpen ? "몫 접기" : "함께한 사람 보기"}
-                onClick={(e) => { e.stopPropagation(); setSplitOpen((v) => !v); }}
-              >
-                {s.amount.toLocaleString()}
-                <span className="amount-split__op"> − </span>
-                {s.split_amount.toLocaleString()}
-                <span className="amount-split__caret" aria-hidden="true">›</span>
-              </span>
-            )}
-            <span
-              className={`amount-text ${
-                shownAmount === 0
-                  ? "zero"
-                  : s.inout === 1
-                  ? "schedule-card__amount-value--in"
-                  : "schedule-card__amount-value--out"
-              } ${isBlur && !revealed ? "masked" : "revealed"}`}
-              title={isBlur ? "끌면 잠깐 보인다." : undefined}
-              onMouseDown={isBlur ? startReveal : undefined}
-              onTouchStart={isBlur ? startReveal : undefined}
-            >
-              {amountDisplay}
-            </span>
+          <span
+            className={`amount-text ${
+              shownAmount === 0
+                ? "zero"
+                : s.inout === 1
+                ? "schedule-card__amount-value--in"
+                : "schedule-card__amount-value--out"
+            } ${isBlur && !revealed ? "masked" : "revealed"}`}
+            title={isBlur ? "끌면 잠깐 보인다." : undefined}
+            onMouseDown={isBlur ? startReveal : undefined}
+            onTouchStart={isBlur ? startReveal : undefined}
+          >
+            {amountDisplay}
           </span>
         </div>
 
-        {/* 메모 — 지출 · 대기 내역 카드와 같은 결(.memo-text)로 적는다.
-            "메모"라는 이름표는 떼었다. 카드에서 그 자리에 오는 것이 메모뿐이라
-            이름을 붙여 줄 까닭이 없다. */}
-        <div className="schedule-card__row schedule-card__row--meta-single">
-          <span className="memo-text">{s.memo || "-"}</span>
+        {/* 2행: 딱지 + 휴일 처리 — 지출 · 대기의 장소가 서던 자리다.
+            언제 빠져나가는가 — 날과 시각은 한 가지 사실이라 한 딱지에 담고,
+            휴일 처리도 같은 것을 말하므로 그 줄 오른쪽 끝에 둔다. */}
+        <div className="entry-ln">
+          <span className="schedule-card__when">
+            <span className="schedule-card__when-day">매월 {dayLabel(s.day_of_month)}</span>
+            <span className="schedule-card__when-cut" aria-hidden="true" />
+            <span className="schedule-card__when-time">{timeDisplay}</span>
+          </span>
+          <span className="schedule-card__holiday">{holidayLabel}</span>
         </div>
 
-        {/* 펼쳤을 때만 — 함께한 사람과 몫 */}
-        {hasSplit && splitOpen && (
-          <SplitRows base="/scheduled-entries" ownerId={s.schedule_id} />
+        {/* 3행: 메모 + 결제 수단 */}
+        {/* 세 화면 모두 결제 수단은 메모와 같은 줄, 카드 오른쪽 아래에 선다. */}
+        <div className="entry-ln">
+          <span className="memo-text">{s.memo || "-"}</span>
+          <span className="pay-method-text">{pay?.name || "-"}</span>
+        </div>
+
+        {/* 쪼갠 건 — 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다. */}
+        {hasSplit && (
+          <div className={`split-tab${splitOpen ? " open" : ""}`}>
+            <span
+              className={`amount-split ${isBlur && !revealed ? "masked" : "revealed"} is-toggle${splitOpen ? " open" : ""}`}
+              role="button"
+              tabIndex={0}
+              data-no-longpress
+              title={splitOpen ? "몫 접기" : "함께한 사람 보기"}
+              onClick={(e) => { e.stopPropagation(); setSplitOpen((v) => !v); }}
+            >
+              {/* 뺄셈 한 덩어리 — "모두 펼치기|접기"와 같은 음영을 깔고 손잡이만 밖에 둔다. */}
+              <span className="amount-split__calc">
+                {s.amount.toLocaleString()}
+                <span className="amount-split__op"> − </span>
+                {s.split_amount.toLocaleString()}
+              </span>
+              <span className="amount-split__caret" aria-hidden="true">›</span>
+            </span>
+            {splitOpen && (
+              <SplitRows base="/scheduled-entries" ownerId={s.schedule_id} />
+            )}
+          </div>
         )}
       </div>
     </div>

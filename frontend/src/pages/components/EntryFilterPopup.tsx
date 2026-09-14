@@ -346,9 +346,13 @@ export default function EntryFilterPopup({
           </EditField>
         </div>
 
+        {/* 내역 편집 팝업과 같은 차례로 — 되돌리는 것 · 닫기 · 하려던 것 */}
         <div className="btn-row popup-foot popup-foot--tight">
           <button className="ui-btn" onClick={() => setFilter(EMPTY_FILTER)}>
             초기화
+          </button>
+          <button className="ui-btn" onClick={onClose}>
+            닫기
           </button>
           <button className="ui-btn primary" onClick={onApply}>
             적용

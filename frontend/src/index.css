@@ -12748,3 +12748,360 @@ html.modal-open .scroll-top {
   flex: 0 0 auto;
   align-items: center;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   118. 내역 카드 — 항목마다 제 자리(2026-09)
+   ─────────────────────────────────────────────────────────────
+   지출 · 대기 · 정기 세 화면이 한 자를 쓴다. 카드 안의 줄 구성이 같다.
+
+     첫 줄   분류 경로 ........................ 금액
+     둘째 줄 장소(정기는 딱지) ........... 결제 수단
+     셋째 줄 메모 .......... (대기)전송 (정기)휴일 처리
+
+   한 줄에 둘이 들어가면 하나는 왼쪽 끝, 하나는 오른쪽 끝이다.
+   가운뎃점으로 잇지 않는다 — 그래야 장소는 장소끼리, 결제 수단은
+   결제 수단끼리 세로로 한 줄에 선다.
+
+   왼쪽에 세워 두던 IN/OUT 알약은 종이 귀퉁이를 접은 자국이 된다.
+   옅고 반투명해 카드를 두 구역으로 가르지 않는다. 색 규칙은 그대로다.
+
+   담긴 항목과 부품 생김새는 하나도 건드리지 않는다 —
+   전송 단추 · 건수 알약 · 딱지 · 몫 줄 · 테이프는 쓰던 것 그대로다.
+   ════════════════════════════════════════════════════════════ */
+
+.card--entry {
+  /* 금액 칸은 테이프 폭(96px)과 같다 — 가려도 카드가 들썩이지 않는다. */
+  --entry-amt: 96px;
+  padding: 10px var(--card-px);
+}
+
+/* 왼쪽 막대가 사라졌으니 그만큼 밀어 두던 여백도 거둔다. */
+.card--pressable.card--entry {
+  padding-left: var(--card-px);
+}
+
+/* ─── 종이 귀퉁이를 접은 자국 ──────────────────────────────────
+   같은 요소를 그대로 쓴다 — .in-bar / .out-bar 가 있어야 금액 빛깔
+   규칙(.card:has(.in-bar) .amount-text)이 살아 있다. */
+.card--entry > .inout-bar,
+.card--pressable.card--entry > .inout-bar {
+  top: 0;
+  left: 0;
+  width: 19px;
+  height: 19px;
+  border-radius: 0;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  /* 접힌 종이가 아래 장에 드리우는 그림자 — 빗변을 따라 한 줄 진다. */
+  filter: drop-shadow(1px 1px 1.2px rgba(16, 24, 40, 0.16));
+  cursor: default;
+  transition: none;
+}
+
+.card--pressable.card--entry:hover > .inout-bar {
+  height: 19px;
+}
+
+/* 접힌 안쪽(빗변 쪽)이 빛을 덜 받아 짙고, 끝으로 갈수록 옅어진다. */
+.card--entry > .in-bar {
+  background: linear-gradient(315deg,
+    rgba(0, 199, 190, 0.38) 0%, rgba(0, 199, 190, 0.20) 55%, rgba(0, 199, 190, 0.09) 100%);
+}
+
+.card--entry > .out-bar {
+  background: linear-gradient(315deg,
+    rgba(255, 92, 87, 0.34) 0%, rgba(255, 92, 87, 0.18) 55%, rgba(255, 92, 87, 0.08) 100%);
+}
+
+.card--entry:has(.amount-text.zero) > .inout-bar,
+.card--entry:has(.amount-text.zero) > .in-bar,
+.card--entry:has(.amount-text.zero) > .out-bar {
+  background: linear-gradient(315deg,
+    rgba(198, 164, 223, 0.46) 0%, rgba(198, 164, 223, 0.26) 55%, rgba(198, 164, 223, 0.11) 100%);
+}
+
+/* ─── 카드 경계 ────────────────────────────────────────────────
+   1px 실선이 또렷해 카드 한 장 한 장이 도드라졌다. 선을 지우고 경계를
+   그림자에 맡긴다 — 종이가 바탕에 녹아 목록이 한 장처럼 읽힌다.
+   테두리는 자리만 남겨 두고(투명) 지우므로 글자가 밀리지 않는다.
+   모서리는 16px에서 14px로 한 단만 덜 둥글게.
+   접은 자국이 앉을 왼쪽 위만 각지게 둔다. */
+.card--entry {
+  border-color: transparent;
+  border-radius: 0 14px 14px 14px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.025),
+              0 10px 26px -14px rgba(16, 24, 40, 0.13);
+}
+
+/* 정기 카드는 몫 칸이 .schedule-card__body 안에 있어 바로 아래 자식이 아니다. */
+.card--entry .split-tab {
+  border-radius: 0 0 14px 14px;
+}
+
+/* ─── 줄 ───────────────────────────────────────────────────── */
+.entry-ln {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.entry-ln + .entry-ln {
+  margin-top: 3px;
+}
+
+/* 왼쪽 자리 — 남는 폭을 다 쓰고, 넘치면 말줄임 */
+.entry-ln > .place-text,
+.entry-ln > .memo-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 오른쪽 자리 — 제 폭만 쓰고 오른쪽 끝에 붙는다 */
+.entry-ln > .amount-text,
+.entry-ln > .pay-method-text,
+.entry-ln > .schedule-card__holiday,
+.entry-ln > .card-right {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+/* 첫 줄 — 분류와 금액. 분류가 아주 길면 자르지 않고 두 줄로 접는다. */
+.entry-ln--head {
+  align-items: center;
+}
+
+/* 분류는 flex 판이 아니라 한 줄의 글로 흐르게 둔다. flex면 중 · 소 · 세분류가
+   저마다 제 칸 안에서 접혀 두 번째 줄이 안쪽으로 들여쓰기된 것처럼 보였다. */
+.card--entry .cat-display {
+  display: block;
+  font-size: var(--font-size-base);
+  line-height: 20px;
+  white-space: normal;
+  word-break: keep-all;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* 중 · 소분류는 짧으니 통으로 둔다 — "현재/미래"가 빗금에서 쪼개지던 것을 막는다.
+   접히는 것은 맨 뒤 세분류뿐이다. */
+.card--entry .cat-display > .cat-text {
+  white-space: nowrap;
+}
+
+/* 제목 줄에서는 분류가 남는 폭을 다 쓴다. */
+.entry-ln--head > .cat-display {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 딱지는 24px이라 글줄과 밑선을 맞추면 어긋난다 — 그 줄만 가운데로 */
+.card--entry .entry-ln:has(> .schedule-card__when) {
+  align-items: center;
+}
+
+.card--entry .amount-text {
+  width: var(--entry-amt);
+  min-width: var(--entry-amt);
+  text-align: right;
+  font-size: 21px;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 가린 상태와 드러난 상태의 높이를 같게 못 박는다 — 카드가 들썩이지 않는다. */
+.card--entry .amount-text.masked,
+.card--entry .amount-text.revealed,
+.card--pressable.card--entry .amount-text.masked,
+.card--pressable.card--entry .amount-text.revealed {
+  height: 24px;
+  min-height: 24px;
+  line-height: 24px;
+}
+
+.card--entry .amount-text.revealed {
+  width: var(--entry-amt);
+  min-width: var(--entry-amt);
+  font-size: 21px;
+}
+
+/* 테이프를 붙인 동안에는 금액이 아예 안 보여야 한다. 끌어서 떼면 그때 드러난다.
+   바로 위에서 글씨 크기를 21px로 정해 두었으므로 여기서 다시 0으로 돌린다. */
+.card--entry .amount-text.masked {
+  font-size: 0;
+  color: transparent;
+}
+
+.card--entry .amount-text.masked::after {
+  height: 22px;
+}
+
+/* 둘째 · 셋째 줄 */
+.card--entry .place-text,
+.card--entry .pay-method-text,
+.card--entry .memo-text,
+.card--entry .schedule-card__holiday {
+  font-size: var(--font-size-sm);
+  line-height: 18px;
+}
+
+.card--entry .schedule-card__holiday {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* 메모가 비어 있어도 한 줄 높이는 지켜야 옆의 결제 수단과 밑선이 맞는다.
+   빈 칸은 높이가 0이라 밑선이 아래로 내려앉았다. */
+.card--entry .memo-text:empty::before {
+  content: "\200B";
+}
+
+/* 긴 메모는 자르지 않고 결제 수단 앞에서 접어 여러 줄로 적는다.
+   카드의 맨 아래 줄이라 늘어나도 위 줄들이 밀리지 않고, 밑선은 첫 줄에
+   맞춰지므로 결제 수단과 여전히 같은 높이에 선다. */
+.card--entry .memo-text {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 정기 카드 — 줄 사이 간격은 .entry-ln 이 맡는다. */
+.card--entry .schedule-card__body {
+  gap: 0;
+}
+
+/* ─── 돌려받은 몫 — 카드 아래에 붙는 칸 ────────────────────────
+   카드 안에 끼워 넣으면 금액 옆에 붕 떠 보였다. 카드 바닥에 붙여
+   따로 세우고, 누르면 그 아래로 점선 안에 펼쳐진다. */
+.split-tab {
+  /* 줄 하나의 두께 · 손잡이가 차지하는 폭 — 돌려받은 금액과 사람들 몫이
+     같은 세로줄에 서도록 두 값을 함께 쓴다. */
+  --split-h: 26px;
+  --split-caret: 23px;
+  display: flex;
+  flex-direction: column;
+  margin: 8px calc(-1 * var(--card-px)) -10px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  overflow: hidden;
+}
+
+/* 알약 옷을 벗고 칸 전체를 쓴다 — 금액은 손잡이 바로 왼쪽에 오른쪽 맞춤으로. */
+.split-tab > .amount-split.is-toggle.revealed,
+.split-tab > .amount-split.is-toggle.revealed.open {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  height: var(--split-h);
+  padding: 0 var(--card-px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.split-tab > .amount-split.masked {
+  align-self: flex-end;
+  height: var(--split-h);
+  margin: 0 var(--card-px);
+}
+
+/* 뺄셈 한 덩어리 — "모두 펼치기|접기"와 같은 옅은 판을 깔아 셈이라는 것을 보인다.
+   빼기 기호 양옆은 flex 판에서 공백이 접히므로 margin으로 벌린다. */
+.split-tab > .amount-split.revealed .amount-split__calc {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.split-tab > .amount-split .amount-split__op {
+  margin: 0 3px;
+}
+
+.split-tab > .amount-split .amount-split__caret {
+  margin-left: 8px;
+}
+
+.split-tab > .amount-split.is-toggle.open .amount-split__caret {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-secondary);
+}
+
+/* 펼친 자리 — 점선으로 나눈 같은 두께의 줄이 한 사람씩 */
+.split-tab > .split-rows {
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border-top: 1px dashed var(--color-border);
+}
+
+.split-tab > .split-rows > .split-rows__row {
+  height: var(--split-h);
+  min-height: var(--split-h);
+  /* 오른쪽에 손잡이 폭만큼 비워 두면 몫이 위 금액과 같은 자리에 선다. */
+  padding: 0 calc(var(--card-px) + var(--split-caret)) 0 var(--card-px);
+  background: transparent;
+  border-radius: 0;
+}
+
+.split-tab > .split-rows > .split-rows__row + .split-rows__row {
+  border-top: 1px dashed var(--color-border);
+}
+
+/* 몫도 위 셈과 같은 굵기로 — 하나만 굵으면 오른쪽 끝이 어긋나 보인다. */
+.split-tab > .split-rows > .split-rows__row > .split-rows__amount {
+  font-weight: 400;
+}
+
+.split-tab > .split-rows__note {
+  height: var(--split-h);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--card-px);
+  border-top: 1px dashed var(--color-border);
+}
+
+/* ─── 날짜 머리말 ──────────────────────────────────────────────
+   볼드만 뺀다. 합계의 오른쪽 끝은 카드 안 금액과 같은 세로줄에 맞춘다 —
+   지금까지 둘이 1px 어긋나 있었다. */
+.card-list .date-group__head,
+.scheduled-card-list .date-group__head {
+  /* 카드에는 1px 테두리가 있어 속 오른쪽 끝이 그만큼 안쪽이다. */
+  padding-right: calc(var(--card-px) + 1px);
+}
+
+.date-group__label {
+  font-weight: 600;
+}
+
+/* ─── 카드 안 보조 단추 ────────────────────────────────────────
+   대기 내역의 [전송]이 28px이라 그 줄만 도드라졌다. 팝업 바닥 단추와
+   같은 24px로 낮춘다. 이 값을 쓰는 단추는 모든 화면에서 함께 낮아진다. */
+:root {
+  --control-h-sm: 24px;
+}
+
+/* ─── 잔소리 카드의 막대도 옅게 ────────────────────────────────
+   내역 카드의 접은 자국을 옅게 바꾸고 나니 잔소리 막대만 짙게 남아
+   같은 화면 안에서 혼자 목소리가 컸다. 굵기 · 높이 · 자리 · 둥근 정도는
+   그대로 두고 빛깔만 한 단 옅게 돌린다. */
+.nudge--bad > .nudge__bar {
+  background: linear-gradient(180deg,
+    rgba(255, 92, 87, 0.34) 0%, rgba(230, 72, 66, 0.20) 100%);
+}
+
+.nudge--watch > .nudge__bar {
+  background: linear-gradient(180deg,
+    rgba(198, 164, 223, 0.46) 0%, rgba(158, 125, 182, 0.28) 100%);
+}
+
+.nudge--good > .nudge__bar {
+  background: linear-gradient(180deg,
+    rgba(0, 199, 190, 0.38) 0%, rgba(0, 168, 159, 0.22) 100%);
+}

@@ -1148,6 +1148,10 @@ export default function PendingEntries() {
               >
                 초기화
               </button>
+              {/* 편집 팝업과 같은 차례로 — 되돌리는 것 · 닫기 · 하려던 것 */}
+              <button className="ui-btn" onClick={closeFilter}>
+                닫기
+              </button>
               <button className="ui-btn primary" onClick={applyFilter}>
                 적용
               </button>
@@ -1273,33 +1277,19 @@ export function PendingCard({
 
   return (
     <article
-      className={`card card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
+      className={`card card--entry card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
       {...(readOnly ? {} : handlers)}
       title={readOnly ? undefined : "꾹 눌러서 편집"}
     >
-      {/* IN/OUT 색상 바 */}
+      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국 */}
       <div
         className={`inout-bar ${
           row.inout === 1 ? "in-bar" : row.inout === -1 ? "out-bar" : ""
         }`}
       ></div>
 
-      {/* 1행: 장소 / Send 버튼 ── 날짜는 상단 날짜 단에서 표시한다. */}
-      <div className="card-row row-top">
-        <div className="card-left">
-          <span className="place-text">📍 {row.place_name || "—"}</span>
-        </div>
-        {!readOnly && (
-          <div className="card-right">
-            <button className="ui-btn small" onClick={() => onSend?.(row)}>
-              전송
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 2행: 카테고리 */}
-      <div className="row-category">
+      {/* 1행: 분류 + 금액 ── 날짜는 상단 날짜 단에서 표시한다. */}
+      <div className="entry-ln entry-ln--head">
         <span className="cat-display">
           <span className="cat-text">{cat1Name}</span>
           <span className="cat-sep"> &gt; </span>
@@ -1315,58 +1305,63 @@ export function PendingCard({
             </>
           )}
         </span>
-      </div>
 
-      {/* 3행: 결제 수단 + 금액 */}
-      <div className="row-payment">
-        <span className="pay-method-text">{payName}</span>
-
-        {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다.
-            그 줄을 누르면 아래에 함께한 사람과 몫이 펼쳐진다. */}
-        <span className="amount-stack">
-          {hasSplit && (
-            <span
-              className={`amount-split ${isBlur && !row.reveal_amount ? "masked" : "revealed"} is-toggle${open ? " open" : ""}`}
-              role="button"
-              tabIndex={0}
-              data-no-longpress
-              title={open ? "몫 접기" : "함께한 사람 보기"}
-              onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-            >
-              {row.amount.toLocaleString("ko-KR")}
-              <span className="amount-split__op"> − </span>
-              {row.split_amount.toLocaleString("ko-KR")}
-              <span className="amount-split__caret" aria-hidden="true">›</span>
-            </span>
-          )}
-          <span
-            className={`amount-text ${shownAmount === 0 ? "zero " : ""}${
-              isBlur && !row.reveal_amount ? "masked" : "revealed"
-            }`}
-            data-no-longpress
-            onMouseDown={(e) => isBlur && onStartReveal(row.entry_id, e)}
-            onTouchStart={(e) => isBlur && onStartReveal(row.entry_id, e)}
-          >
-            {typeof shownAmount === "number"
-              ? shownAmount.toLocaleString("ko-KR")
-              : ""}
-          </span>
+        <span
+          className={`amount-text ${shownAmount === 0 ? "zero " : ""}${
+            isBlur && !row.reveal_amount ? "masked" : "revealed"
+          }`}
+          data-no-longpress
+          onMouseDown={(e) => isBlur && onStartReveal(row.entry_id, e)}
+          onTouchStart={(e) => isBlur && onStartReveal(row.entry_id, e)}
+        >
+          {typeof shownAmount === "number"
+            ? shownAmount.toLocaleString("ko-KR")
+            : ""}
         </span>
       </div>
 
-      {/* 4행: 메모 */}
-      {/* 메모가 없으면 줄도 만들지 않는다 — 빈 줄이 카드를 20px씩 늘렸다. */}
-      {row.memo && (
-        <div className="card-row row-bottom">
-          <div className="card-left">
-            <span className="memo-text">{row.memo}</span>
-          </div>
+      {/* 2행: 장소 + 전송 ── 정기 내역의 휴일 처리가 서는 그 자리다. */}
+      {(row.place_name || !readOnly) && (
+        <div className="entry-ln">
+          {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
+          {!readOnly && (
+            <div className="card-right">
+              <button className="ui-btn small" onClick={() => onSend?.(row)}>
+                전송
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* 펼쳤을 때만 — 함께한 사람과 몫 */}
-      {hasSplit && open && (
-        <SplitRows base="/pending-entries" ownerId={row.entry_id} />
+      {/* 3행: 메모 + 결제 수단 */}
+      {/* 세 화면 모두 결제 수단은 메모와 같은 줄, 카드 오른쪽 아래에 선다. */}
+      <div className="entry-ln">
+        <span className="memo-text">{row.memo || ""}</span>
+        <span className="pay-method-text">{payName}</span>
+      </div>
+
+      {/* 쪼갠 건 — 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다. */}
+      {hasSplit && (
+        <div className={`split-tab${open ? " open" : ""}`}>
+          <span
+            className={`amount-split ${isBlur && !row.reveal_amount ? "masked" : "revealed"} is-toggle${open ? " open" : ""}`}
+            role="button"
+            tabIndex={0}
+            data-no-longpress
+            title={open ? "몫 접기" : "함께한 사람 보기"}
+            onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+          >
+            {/* 뺄셈 한 덩어리 — "모두 펼치기|접기"와 같은 음영을 깔고 손잡이만 밖에 둔다. */}
+            <span className="amount-split__calc">
+              {row.amount.toLocaleString("ko-KR")}
+              <span className="amount-split__op"> − </span>
+              {row.split_amount.toLocaleString("ko-KR")}
+            </span>
+            <span className="amount-split__caret" aria-hidden="true">›</span>
+          </span>
+          {open && <SplitRows base="/pending-entries" ownerId={row.entry_id} />}
+        </div>
       )}
     </article>
   );
