@@ -12977,7 +12977,9 @@ html.modal-open .scroll-top {
   /* 줄 하나의 두께 · 손잡이가 차지하는 폭 — 돌려받은 금액과 사람들 몫이
      같은 세로줄에 서도록 두 값을 함께 쓴다. */
   --split-h: 26px;
-  --split-caret: 23px;
+  /* 손잡이 15px + 태그와의 사이 5px + 태그 안여백 6px — 태그 속 숫자의 오른쪽 끝이
+     아래 몫 숫자의 오른쪽 끝과 같은 세로줄에 선다. */
+  --split-caret: 26px;
   display: flex;
   flex-direction: column;
   margin: 8px calc(-1 * var(--card-px)) -10px;
@@ -13015,7 +13017,7 @@ html.modal-open .scroll-top {
   display: inline-flex;
   align-items: center;
   height: 18px;
-  padding: 0 7px;
+  padding: 0 6px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.02);
 }
@@ -13025,7 +13027,7 @@ html.modal-open .scroll-top {
 }
 
 .split-tab > .amount-split .amount-split__caret {
-  margin-left: 8px;
+  margin-left: 5px;
 }
 
 .split-tab > .amount-split.is-toggle.open .amount-split__caret {
@@ -13104,4 +13106,112 @@ html.modal-open .scroll-top {
 .nudge--good > .nudge__bar {
   background: linear-gradient(180deg,
     rgba(0, 199, 190, 0.38) 0%, rgba(0, 168, 159, 0.22) 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   119. 접은 자국 떼기 — 포스트잇(2026-09)
+   ─────────────────────────────────────────────────────────────
+   왼쪽 위 접은 자국을 잡아 오른쪽으로 끌면 그 귀퉁이가 접혀 넘어온다.
+   카드는 기울이지 않는다 — 종이가 구부러지는 것은 귀퉁이다.
+
+   hooks/usePeel.ts가 매 틀마다 접는 선을 셈해 카드에 변수로 적는다.
+   · --peel-cut   떼어져 비는 자리(카드 좌표의 polygon)
+   · --peel-flap  접혀 넘어온 조각(같은 좌표계)
+   · --peel-grad  조각 위의 명암 — 접힌 골 · 말린 등성이 · 끝
+   · --peel-shade 들린 바닥에 조각이 드리우는 그늘
+   · --peel-sx/sy 조각이 카드에 드리우는 그림자 쪽
+
+   두 겹을 깐다.
+   ① .peel-patch  빈 자리를 바탕색으로 덮는다 — 카드를 자르면(clip-path)
+                  카드 그림자까지 잘려 나가므로 덮는 쪽을 택했다.
+   ② .peel-flap   겉은 그림자만, 속(__face)이 조각을 그린다 — 조각에 직접
+                  drop-shadow를 걸면 자기 clip-path에 잘려 그림자가 안 보인다.
+
+   떼는 중(.is-peeling) · 펴지는 중(.is-settling)이 아닐 때는 둘 다 숨긴다.
+   ════════════════════════════════════════════════════════════ */
+
+/* 잡는 자리 — 접은 자국(19px)보다 넉넉히 깐다. 30px은 손가락으로 겨누기 빠듯했다.
+   위아래 굴림은 막지 않는다. 옆으로 끌 때만 떼기가 된다. */
+.peel-grip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  width: 42px;
+  height: 42px;
+  cursor: grab;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card--entry.is-peeling .peel-grip {
+  cursor: grabbing;
+}
+
+.peel-patch,
+.peel-flap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.card--entry.is-peeling > .peel-patch,
+.card--entry.is-peeling > .peel-flap,
+.card--entry.is-settling > .peel-patch,
+.card--entry.is-settling > .peel-flap {
+  visibility: visible;
+}
+
+/* ① 떼어져 빈 자리 — 뒤로 화면 바탕이 비친다 */
+.peel-patch {
+  z-index: 3;
+  background-color: var(--color-bg);
+  background-image: var(--peel-shade, none);
+  clip-path: var(--peel-cut, polygon(0 0, 0 0, 0 0));
+}
+
+/* ② 접혀 넘어온 조각 */
+.peel-flap {
+  z-index: 4;
+  filter: drop-shadow(var(--peel-sx, 0px) var(--peel-sy, 0px) 5px rgba(16, 24, 40, 0.22));
+}
+
+.peel-flap__face {
+  position: absolute;
+  inset: 0;
+  clip-path: var(--peel-flap, polygon(0 0, 0 0, 0 0));
+  background-image: var(--peel-grad, none);
+}
+
+/* 종이 뒷면에 책갈피 빛깔이 옅게 비친다 — 수입 · 지출 · 0원 */
+.card--entry {
+  --peel-tint: rgba(173, 181, 189, 0.12);
+}
+
+.card--entry:has(> .out-bar) {
+  --peel-tint: rgba(255, 92, 87, 0.16);
+}
+
+.card--entry:has(> .in-bar) {
+  --peel-tint: rgba(0, 199, 190, 0.18);
+}
+
+.card--entry:has(.amount-text.zero) {
+  --peel-tint: rgba(198, 164, 223, 0.24);
+}
+
+/* 끄는 동안 카드 자체는 그대로 둔다. 마우스로 누르면 .card:active의
+   scale(1.02)이 걸리므로(우선순위 0-4-0) 같은 무게로 눌러 둔다. */
+.card.card--entry.card--pressable.is-peeling,
+.card.card--entry.card--pressable.is-settling {
+  transform: none;
+}
+
+/* 끝까지 떼었을 때 — 한 뼘 들려 "떨어졌다"는 것을 알린다 */
+.card.card--entry.card--pressable.is-peeling.is-peeled {
+  transform: translateY(-2px);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03),
+              0 14px 30px -14px rgba(16, 24, 40, 0.24);
+  transition: transform 140ms ease-out, box-shadow 140ms ease-out;
 }

@@ -15,6 +15,7 @@ import { CollapseAllButtons } from "./components/CollapseToggle";
 import SplitRows from "./components/SplitRows";
 import QuickActions from "./components/QuickActions";
 import useLongPress from "../hooks/useLongPress";
+import usePeel from "../hooks/usePeel";
 import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
 
 const EMPTY_FILTER = {
@@ -1194,6 +1195,7 @@ export function EntryCard({
 }) {
   const openEditor = useCallback(() => onOpenEditor(row), [onOpenEditor, row]);
   const { pressing, handlers } = useLongPress(openEditor);
+  const peel = usePeel(openEditor);
 
   const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
   const isBlur = blurred ?? (cat2List.find(c => c.id === row.cat2_id)?.blur === 1);
@@ -1216,6 +1218,14 @@ export function EntryCard({
           row.inout === 1 ? "in-bar" : row.inout === -1 ? "out-bar" : ""
         }`}
       ></div>
+      {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리 · 접혀 넘어오는 조각.
+          보기만 하는 화면(기간 상세)에서도 뗄 수 있다 — 거기서는 끝까지 떼어도
+          열 팝업이 없으니 제자리로 펴져 붙기만 한다. */}
+      <span className="peel-patch" aria-hidden="true" />
+      <span className="peel-flap" aria-hidden="true">
+        <span className="peel-flap__face" />
+      </span>
+      <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
 
       {/* ───── 1행: 분류 + 금액 ───── 날짜는 상단 날짜 단에서 표시한다. */}
       <div className="entry-ln entry-ln--head">

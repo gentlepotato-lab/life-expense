@@ -8,6 +8,7 @@ import SplitEditor from "./components/SplitEditor";
 import type { SplitDraft } from "./components/SplitEditor";
 import PlacePicker from "./components/PlacePicker";
 import useLongPress from "../hooks/useLongPress";
+import usePeel from "../hooks/usePeel";
 import useRevealDrag from "../hooks/useRevealDrag";
 import DateGroupHeader from "./components/DateGroupHeader";
 import SplitRows from "./components/SplitRows";
@@ -1027,6 +1028,7 @@ export function ScheduleCard({
 }) {
   const openEditor = useCallback(() => onOpenEditor?.(s), [onOpenEditor, s]);
   const { pressing, handlers } = useLongPress(openEditor);
+  const peel = usePeel(openEditor);
 
   const [revealed, setRevealed] = useState(false);
   const startReveal = useRevealDrag(setRevealed);
@@ -1063,6 +1065,14 @@ export function ScheduleCard({
       <div
         className={`inout-bar ${s.inout === 1 ? "in-bar" : s.inout === -1 ? "out-bar" : ""}`}
       ></div>
+      {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리 · 접혀 넘어오는 조각.
+          보기만 하는 화면(기간 상세)에서도 뗄 수 있다 — 거기서는 끝까지 떼어도
+          열 팝업이 없으니 제자리로 펴져 붙기만 한다. */}
+      <span className="peel-patch" aria-hidden="true" />
+      <span className="peel-flap" aria-hidden="true">
+        <span className="peel-flap__face" />
+      </span>
+      <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
       <div className="schedule-card__body">
         {/* 1행: 분류 + 금액 — 지출 · 대기 내역 카드와 같은 자리다.
             다음 예정일시는 위 날짜 단 머리말이 이미 말하고 있어 뺐다. */}
