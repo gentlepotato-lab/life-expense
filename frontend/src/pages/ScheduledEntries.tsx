@@ -104,6 +104,26 @@ export default function ScheduledEntries() {
 
   /* 뒤로 가기 · Backspace로 지금 열린 것만 닫는다. */
   useBackClose(showForm, () => setShowForm(false));
+
+  /* 폼을 닫고 적던 값을 비운다. 바깥을 눌러 닫을 때와 [닫기]가 같게 움직인다. */
+  const closeForm = useCallback(() => {
+    setShowForm(false);
+    // 폼 닫을 때 초기화
+    setForm({
+      day_of_month: "",
+      time: "",
+      holiday_handling: "on",
+      cat1_id: "",
+      cat2_id: "",
+      cat3_id: "",
+      inout: "-1",
+      amount: "",
+      pay_method: "",
+      memo: "",
+      place_id: "",
+    });
+    setCat2List([]);
+  }, []);
   useBackClose(placePickerFor !== null, () => setPlacePickerFor(null));
   // 아직 DB에 없는 카카오 장소는 저장 직전에 등록해야 하므로 원본을 들고 있는다.
   const [draftPlace, setDraftPlace] = useState<any | null>(null);
@@ -600,24 +620,7 @@ export default function ScheduledEntries() {
 
       {/* 등록 폼 팝업 */}
       {showForm && (
-        <div className="popup-overlay" onClick={() => {
-          setShowForm(false);
-          // 폼 닫을 때 초기화
-          setForm({
-            day_of_month: "",
-            time: "",
-            holiday_handling: "on",
-            cat1_id: "",
-            cat2_id: "",
-            cat3_id: "",
-            inout: "-1",
-            amount: "",
-            pay_method: "",
-            memo: "",
-            place_id: "",
-          });
-          setCat2List([]);
-        }}>
+        <div className="popup-overlay" onClick={closeForm}>
           <div className="popup-panel popup-panel--framed" onClick={(e) => e.stopPropagation()}>
             {/* 머리·본문·바닥을 편집 팝업과 같은 짜임으로 */}
             <header className="popup-head">
@@ -762,6 +765,10 @@ export default function ScheduledEntries() {
               </div>
 
               <div className="btn-row popup-foot">
+                {/* 다른 팝업과 같은 차례로 — 닫기 · 하려던 것 */}
+                <button type="button" className="ui-btn" onClick={closeForm}>
+                  닫기
+                </button>
                 <button type="submit" className="ui-btn primary">
                   등록
                 </button>

@@ -70,6 +70,10 @@ export default function PlacePeriodPopup({
           <button className="ui-btn" onClick={() => setDraft({ since: "", until: "" })}>
             초기화
           </button>
+          {/* 다른 팝업과 같은 차례로 — 되돌리는 것 · 닫기 · 하려던 것 */}
+          <button className="ui-btn" onClick={onClose}>
+            닫기
+          </button>
           <button
             className="ui-btn primary"
             onClick={() => {
