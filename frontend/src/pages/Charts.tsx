@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -10,16 +10,23 @@ import {
   LineChart,
   Pie,
   PieChart,
+  Rectangle,
   ResponsiveContainer,
+  Sector,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import type { PieSectorShapeProps, RectangleProps } from "recharts";
+import { useNavigate } from "react-router-dom";
+import { stash, takeStash } from "../utils/pageState";
 import axios from "../api/client";
 import useRevealDrag from "../hooks/useRevealDrag";
+import useLongPress from "../hooks/useLongPress";
 import useBackClose from "../hooks/useBackClose";
 import QuickActions from "./components/QuickActions";
 import EntryFilterPopup from "./components/EntryFilterPopup";
+import CardPerkPopup, { type PerkTier } from "./components/CardPerkPopup";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { apiErrorMessage } from "../utils/apiError";
 import {
@@ -33,6 +40,7 @@ import {
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { prefOn } from "../utils/prefs";
+import { manwon } from "../utils/amount";
 import {
   EMPTY_FILTER,
   blurSetsFrom,
@@ -86,6 +94,147 @@ const AXIS = { fontSize: 11, fill: "#ADB5BD" };
 /* 추이에서 볼 수 있는 달 수. 받아 오는 것은 늘 이 최대치다. */
 const TREND_MIN = 2;
 const TREND_MAX = 18;
+
+/* ─── 그림 항목을 누르면 그것만 툭 부푼다 ─────────────────────
+   내역 카드를 눌렀을 때와 같은 결의 되먹임이다. 잡고 있는 동안이 아니라
+   한 번 부풀었다 제자리로 돌아온다 — 그림은 옆으로 넘겨 보는 자리라
+   누른 상태를 붙들면 넘기기와 엉킨다.
+   부푸는 방향은 항목이 붙어 있는 자리를 붙박아 둔다. 세로 막대는 바닥,
+   가로 막대는 왼쪽 끝, 부채꼴은 도넛 한가운데다 — 축에서 떨어지면
+   그만큼 값이 달라 보인다. */
+const POP_MS = 260;
+const POP_EASE = `transform ${POP_MS}ms cubic-bezier(.34, 1.3, .64, 1)`;
+
+/**
+ * 눌린 항목이 무엇인지는 **맥락**으로 흘려보낸다.
+ *
+ * 그림에 넘기는 모양 그리개를 Recharts는 부품으로 삼아 부른다. 그릴 때마다
+ * 새 함수를 넘기면 React에게는 매번 다른 부품이라 항목을 통째로 버리고 새로
+ * 만든다 — 누르는 사이에 갈아치워지니 클릭이 성립하지 않고, 도넛의 갈래
+ * 고르기까지 함께 놓친다. 그래서 그리개는 이 파일에 한 번만 만들어 두고,
+ * 눌린 것이 무엇인지는 맥락에서 읽는다. 신원이 고정되니 항목이 살아남는다.
+ *
+ * 값을 낱개의 속성으로 넘기지 않는 까닭도 있다. Recharts는 넘겨받은 낱개를
+ * 제 곳간에 담아 두는데, 그 곳간이 안에 든 것을 통째로 얼려 버린다.
+ */
+type PopApi = { hit: string; pop: (key: string) => void };
+
+const PopContext = createContext<PopApi>({ hit: "", pop: () => {} });
+
+function usePop(): PopApi {
+  const [hit, setHit] = useState("");
+  const timer = useRef(0);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const pop = useCallback((key: string) => {
+    window.clearTimeout(timer.current);
+    setHit(key);
+    timer.current = window.setTimeout(() => setHit(""), POP_MS);
+  }, []);
+  return useMemo(() => ({ hit, pop }), [hit, pop]);
+}
+
+/** 부푼 만큼을 담는 껍데기. 눌린 자리를 붙박아 두고 그 둘레로만 커진다. */
+function Pop({
+  on,
+  at,
+  children,
+}: {
+  on: boolean;
+  /** 붙박아 둘 자리(그림 좌표계) */
+  at: [number, number];
+  children: React.ReactNode;
+}) {
+  return (
+    <g
+      style={{
+        transformOrigin: `${at[0]}px ${at[1]}px`,
+        transform: on ? "scale(1.08)" : "scale(1)",
+        transition: POP_EASE,
+      }}
+    >
+      {children}
+    </g>
+  );
+}
+
+/** 막대 하나를 그리는 그리개를 만든다. dir는 부푸는 쪽. */
+function barPop(chart: string, dir: "up" | "right") {
+  return function PoppedBar(p: RectangleProps & { index?: number }) {
+    const { hit } = useContext(PopContext);
+    const x = p.x ?? 0;
+    const y = p.y ?? 0;
+    const w = p.width ?? 0;
+    const h = p.height ?? 0;
+    return (
+      <Pop
+        on={hit === `${chart}:${p.index}`}
+        at={dir === "up" ? [x + w / 2, y + h] : [x, y + h / 2]}
+      >
+        <Rectangle {...p} />
+      </Pop>
+    );
+  };
+}
+
+/** 부채꼴 하나를 그리는 그리개. 도넛 한가운데를 붙박고 바깥으로 부푼다. */
+function sectorPop(chart: string) {
+  return function PoppedSector(p: PieSectorShapeProps) {
+    const { hit } = useContext(PopContext);
+    return (
+      <Pop on={hit === `${chart}:${p.index}`} at={[p.cx, p.cy]}>
+        <Sector {...p} />
+      </Pop>
+    );
+  };
+}
+
+/* 그리개는 화면이 몇 번 그려지든 늘 이 넷이다. */
+const ShapeDaily = barPop("daily", "up");
+const ShapePay = barPop("pay", "right");
+const ShapeDow = barPop("weekday", "up");
+const ShapeCat = sectorPop("cat1");
+
+/**
+ * 추이 선 그림의 점.
+ *
+ * 점은 그림 전체가 아니라 저마다 눌려야 하므로 누르는 자리를 직접 단다.
+ * 보이는 점(반지름 4)은 손가락으로 겨누기에 작아 속이 빈 큰 원을 하나 더
+ * 겹쳐 둔다 — 보이지 않고 누르는 자리만 넓힌다.
+ *
+ * Recharts가 이 낱개를 복제하며 제 값(cx · cy · index · r)을 덮어씌우므로,
+ * 그려지는 모양은 여기 적힌 값으로만 정한다. 밖에 쓴 r과 strokeWidth는
+ * 점이 잘리지 않게 그림 가장자리 여백을 잡는 데 쓰인다.
+ */
+function PopDot({
+  cx,
+  cy,
+  index,
+}: {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  r?: number;
+  strokeWidth?: number;
+}) {
+  const { hit, pop } = useContext(PopContext);
+  if (cx == null || cy == null) return null;
+  return (
+    <Pop on={hit === `trend:${index}`} at={[cx, cy]}>
+      <circle cx={cx} cy={cy} r={4} fill={ETC_COLOR} stroke="#FFFFFF" strokeWidth={2} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={12}
+        fill="transparent"
+        style={{ cursor: "pointer" }}
+        /* 누르는 순간에 잡는다. 손을 떼기까지 기다리면 그 사이 Recharts가
+           툴팁을 띄우며 점을 다시 그려, 누른 곳과 뗀 곳이 다른 낱개가 되어
+           클릭이 성립하지 않는다 — 판에 들어와 처음 누르는 한 번이 늘 그랬다. */
+        onPointerDown={() => pop(`trend:${index}`)}
+      />
+    </Pop>
+  );
+}
 
 /** 1,234,567 → "123만". 축에는 자리가 없다. */
 function shortWon(v: number): string {
@@ -189,6 +338,125 @@ function Tip({
  * 덮개는 숫자마다 따로 걷힌다 — 하나를 끌었다고 다른 것까지 드러나면
  * 가린 뜻이 없다. 그래서 드러난 상태를 이 부품이 저마다 들고 있다.
  */
+/** 카드 실적 한 장 — 꾹 누르면 그 카드로 그은 내역을 상세로 펼친다. */
+/** 상세로 갔다 되돌아왔을 때 되살릴 것 */
+type ChartKeep = {
+  yearMonth: string;
+  on: Record<Src, boolean>;
+  blurOn: boolean;
+  excludeOn: boolean;
+  filter: Filter;
+  appliedFilter: Filter;
+  cardOpen: boolean;
+  cardAt: number;
+};
+
+function CardPerfItem({
+  card,
+  tiers,
+  onOpen,
+  onPerks,
+}: {
+  card: { code: string; name: string; charged: number; mine: number; count: number; hasBlur: boolean };
+  /** 그 카드의 실적 구간과 혜택. 문턱이 낮은 것부터. 없으면 빈 배열 */
+  tiers: PerkTier[];
+  onOpen: (code: string) => void;
+  onPerks: (code: string) => void;
+}) {
+  const open = useCallback(() => onOpen(card.code), [onOpen, card.code]);
+  const { pressing, handlers } = useLongPress(open);
+
+  /* 실적 구간이 있으면 띠는 자가 된다 — 0에서 맨 위 구간까지 늘어놓고
+     그은 돈이 어디까지 왔는지 채운다. 구간과 구간 사이는 띠를 끊어 가른다.
+     구간을 적어 두지 않은 카드는 잴 자가 없으므로 예전처럼
+     그은 돈 가운데 내 몫이 얼마인지를 보인다. */
+  const top = tiers.length ? tiers[tiers.length - 1].threshold : 0;
+  const ruler = top > 0;
+  /* 자의 끝은 맨 위 구간보다 조금 길게 잡는다. 딱 맞추면 마지막 칸막이가 띠의
+     둥근 끝에 걸려 보이지 않고, 구간을 넘겨도 넘긴 만큼이 드러나지 않는다. */
+  const span = top * 1.08;
+  const fill = ruler
+    ? Math.min(100, (card.charged / span) * 100)
+    : card.charged > 0
+    ? Math.min(100, (card.mine / card.charged) * 100)
+    : 0;
+
+  return (
+    <article
+      className={`card-perf__item card-perf__item--pressable${pressing ? " pressing" : ""}`}
+      title="꾹 눌러서 상세"
+      {...handlers}
+    >
+      <div className="card-perf__line">
+        <span className="card-perf__name">{card.name}</span>
+        <MaskedAmount
+          className="card-perf__value"
+          hide={card.hasBlur}
+          value={Math.round(card.charged).toLocaleString("ko-KR")}
+        />
+      </div>
+
+      {/* 넓은 줄을 숫자 하나로 비워 두지 않고, 이 판이 말하려는 바로 그것을 담는다.
+          비율만 보이고 금액은 드러나지 않으므로 덮개가 덮여 있어도 그린다. */}
+      {/* 채움은 띠 전체에 깔린 그라데이션을 왼쪽부터 드러내는 것이다. 폭을
+          줄이면 그라데이션까지 눌려 같은 자리의 빛깔이 달마다 달라진다. */}
+      <div className="card-perf__ruler" aria-hidden="true">
+        <div className="card-perf__bar">
+          <span
+            className="card-perf__bar-fill"
+            style={{ clipPath: `inset(0 ${100 - fill}% 0 0)` }}
+          />
+          {ruler &&
+            tiers.map((t) => (
+              <span
+                key={t.threshold}
+                className="card-perf__tick"
+                style={{ left: `${Math.min(100, (t.threshold / span) * 100)}%` }}
+              />
+            ))}
+        </div>
+        {ruler && (
+          /* 눈금 금액은 그 칸의 오른쪽 끝에 맞춰 세운다. 가운데에 걸치면
+             마지막 구간의 글자가 띠 밖으로 밀려난다. */
+          <div className="card-perf__scale">
+            {tiers.map((t) => (
+              <span
+                key={t.threshold}
+                className={`card-perf__mark${card.charged >= t.threshold ? " is-past" : ""}`}
+                style={{ right: `${100 - Math.min(100, (t.threshold / span) * 100)}%` }}
+              >
+                {manwon(t.threshold)}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card-perf__line card-perf__line--sub">
+        {tiers.length > 0 && (
+          <button
+            type="button"
+            className="card-perf__perk"
+            data-no-longpress
+            onClick={(e) => {
+              e.stopPropagation();
+              onPerks(card.code);
+            }}
+          >
+            혜택
+          </button>
+        )}
+        <span className="card-perf__subs">
+          <span className="card-perf__sub">{card.count}건</span>
+          <span className="card-perf__sub">
+            내 몫 {Math.round(card.mine).toLocaleString("ko-KR")}
+          </span>
+        </span>
+      </div>
+    </article>
+  );
+}
+
 function MaskedAmount({
   value,
   className,
@@ -312,25 +580,35 @@ function ChartCardBox({
 }
 
 export default function Charts() {
-  const [yearMonth, setYearMonth] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
+  /* 상세에서 되돌아온 참이면 보던 자리를 그대로 이어 받는다. 한 번 꺼내면
+     사라지므로, 탭으로 새로 들어오면 늘 하던 대로 이 달 · 접힌 채로다. */
+  const kept = useMemo(() => takeStash<ChartKeep>("charts"), []);
+
+  const [yearMonth, setYearMonth] = useState(
+    () =>
+      kept?.yearMonth ??
+      (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      })()
+  );
 
   /* 겹쳐 볼 자료 — 처음에는 셋 다 켠다. */
-  const [on, setOn] = useState<Record<Src, boolean>>({
+  const [on, setOn] = useState<Record<Src, boolean>>(() =>
+    kept?.on ?? {
     expense: true,
     pending: true,
     scheduled: true,
-  });
+  }
+  );
 
   const [rows, setRows] = useState<Row[]>([]);
 
   /* Blur를 걸어 둔 갈래를 셈에 넣을지. 처음에는 빼 둔다. */
-  const [blurOn, setBlurOn] = useState(() => prefOn("blur_default"));
+  const [blurOn, setBlurOn] = useState(() => kept?.blurOn ?? prefOn("blur_default"));
 
   /* Exclude를 걸어 둔 갈래를 뺄지. 처음에는 뺀다(켜짐) */
-  const [excludeOn, setExcludeOn] = useState(() => prefOn("exclude_default"));
+  const [excludeOn, setExcludeOn] = useState(() => kept?.excludeOn ?? prefOn("exclude_default"));
 
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -342,8 +620,8 @@ export default function Charts() {
   const [wideSet, setWideSet] = useState<Set<string>>(new Set());
   /* [편집] 을 누른 순간의 모습 — 바뀐 것이 없으면 그렇게 알린다 */
   const [beforeEdit, setBeforeEdit] = useState("");
-  const [filter, setFilter] = useState<Filter>(EMPTY_FILTER);
-  const [appliedFilter, setAppliedFilter] = useState<Filter>(EMPTY_FILTER);
+  const [filter, setFilter] = useState<Filter>(() => kept?.filter ?? EMPTY_FILTER);
+  const [appliedFilter, setAppliedFilter] = useState<Filter>(() => kept?.appliedFilter ?? EMPTY_FILTER);
 
   const wide = useWide();
 
@@ -355,6 +633,85 @@ export default function Charts() {
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
 
   const isFilterActive = useMemo(() => hasCondition(appliedFilter), [appliedFilter]);
+
+  const navigate = useNavigate();
+
+  /* 카드 실적을 꾹 누르면 그 카드로 그은 내역을 상세로 펼친다.
+     달력이 날을 골라 넘어가는 그 화면 · 그 주소를 그대로 쓴다 — 보고 있던 달과
+     자료 갈래 · Blur · Exclude · 걸린 조건을 그대로 싣고, 거기에 이 카드만
+     더한다. 그래야 실적이 센 것과 상세에 보이는 것이 어긋나지 않는다. */
+  /* 카드마다의 실적 구간과 그 구간의 혜택. 실적 띠가 칸을 가르는 데도,
+     [혜택] 팝업이 펼치는 데도 같은 자료를 쓴다.
+     구간은 결제 수단 화면에서 적어 두는 값이라 자주 바뀌지 않는다 —
+     화면에 들어올 때 카드 갈래만 한 번 받아 둔다. */
+  const [tiers, setTiers] = useState<Record<string, PerkTier[]>>({});
+
+  useEffect(() => {
+    const cards = payList.filter((p) => p.category === "카드");
+    if (!cards.length) return;
+    let alive = true;
+    Promise.all(
+      cards.map((c) =>
+        axios
+          .get(`/payment-methods/${c.code}/tiers`)
+          .then(
+            (r) =>
+              [
+                c.code,
+                (r.data as PerkTier[]).map((t) => ({
+                  threshold: Number(t.threshold),
+                  benefits: t.benefits ?? [],
+                })),
+              ] as const
+          )
+          .catch(() => [c.code, [] as PerkTier[]] as const)
+      )
+    ).then((pairs) => {
+      if (!alive) return;
+      const bag: Record<string, PerkTier[]> = {};
+      pairs.forEach(([code, list]) => {
+        bag[code] = [...list].sort((a, b) => a.threshold - b.threshold);
+      });
+      setTiers(bag);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [payList]);
+
+  /* 혜택을 펼쳐 볼 카드. 팝업은 보기만 하는 자리라 코드만 들고 있으면 된다. */
+  const [perkOf, setPerkOf] = useState<string | null>(null);
+
+  /* 그림에서 방금 누른 항목 — 막대든 부채꼴이든 점이든 이 하나로 가린다. */
+  const popApi = usePop();
+  const { pop } = popApi;
+
+  const openCardDetail = useCallback(
+    (code: string) => {
+      const [y, m] = yearMonth.split("-").map(Number);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const last = new Date(y, m, 0).getDate();
+      const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
+      /* 되돌아왔을 때 이 자리가 그대로이도록 맡겨 둔다 — 보던 달 · 켜 둔 것 ·
+         걸린 조건, 그리고 카드 실적을 펼친 채 몇째 장을 보고 있었는지. */
+      stash("charts", {
+        yearMonth,
+        on,
+        blurOn,
+        excludeOn,
+        filter,
+        appliedFilter,
+        cardOpen: true,
+        cardAt: cardAtRef.current,
+      });
+      navigate(
+        `/calendar/detail?from=${yearMonth}-01&to=${yearMonth}-${pad(last)}` +
+          `&src=${src}&blur=${blurOn ? 1 : 0}&exclude=${excludeOn ? 1 : 0}`,
+        { state: { filter: { ...appliedFilter, pay: [code] }, back: "씀씀이" } }
+      );
+    },
+    [yearMonth, on, blurOn, excludeOn, filter, appliedFilter, navigate]
+  );
 
   useEffect(() => {
     axios.get("/categories/lvl1").then((r) => setCat1List(r.data));
@@ -739,7 +1096,7 @@ export default function Charts() {
 
   /* 카드 실적은 접어 둔다. 요약 판과 그림 사이에 늘 펼쳐져 있으면
      지출 흐름을 읽다가 다른 얘기에 걸려 넘어진다. 볼 때만 편다. */
-  const [cardOpen, setCardOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(() => kept?.cardOpen ?? false);
 
   /* 지금 보고 있는 카드 — 옆으로 넘겨 하나씩 본다. */
   const [cardAt, setCardAt] = useState(0);
@@ -761,6 +1118,24 @@ export default function Charts() {
   };
 
   /** 넘긴 만큼 점을 옮긴다 — 손가락으로 쓸든 단추를 누르든 한 곳에서 센다. */
+  /* 맡길 때 쓰려고 지금 보는 장을 따로 들고 있는다 — 맡기는 함수가 장이 바뀔
+     때마다 새로 만들어지지 않게. */
+  const cardAtRef = useRef(0);
+  useEffect(() => {
+    cardAtRef.current = cardAt;
+  }, [cardAt]);
+
+  /* 되돌아왔다면 보던 장으로 굴려 둔다. 카드가 다 실린 뒤라야 굴릴 자리가 있다. */
+  const restoreAt = useRef(kept?.cardOpen ? kept.cardAt : 0);
+  useEffect(() => {
+    const el = cardStripRef.current;
+    const want = restoreAt.current;
+    if (!el || !cardOpen || !want || byCard.length <= want) return;
+    restoreAt.current = 0;
+    el.scrollLeft = want * cardStep();
+    setCardAt(want);
+  }, [cardOpen, byCard.length]);
+
   const onCardScroll = useCallback(() => {
     const el = cardStripRef.current;
     if (!el) return;
@@ -814,7 +1189,14 @@ export default function Charts() {
                     <XAxis dataKey="day" tick={AXIS} tickLine={false} axisLine={false} interval={4} />
                     <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
                     <Tooltip {...TIP_PROPS} content={<Tip suffix="일" />} />
-                    <Bar dataKey="지출" fill={SPEND} radius={[4, 4, 0, 0]} maxBarSize={18} />
+                    <Bar
+                      dataKey="지출"
+                      fill={SPEND}
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={18}
+                      shape={ShapeDaily}
+                      onPointerDown={(_d: unknown, i: number) => pop(`daily:${i}`)}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -901,7 +1283,7 @@ export default function Charts() {
                       stroke={ETC_COLOR}
                       strokeWidth={3}
                       strokeLinejoin="miter"
-                      dot={{ r: 4, fill: ETC_COLOR, stroke: "#FFFFFF", strokeWidth: 2 }}
+                      dot={<PopDot r={4} strokeWidth={2} />}
                       activeDot={{ r: 6, strokeWidth: 2, stroke: "#FFFFFF" }}
                       isAnimationActive={false}
                     />
@@ -954,7 +1336,13 @@ export default function Charts() {
                         stroke="none"
                         isAnimationActive={false}
                         className="chart-pie--pickable"
-                        onClick={(slice: { name?: string; color?: string }) => {
+                        shape={ShapeCat}
+                        /* 도넛만은 누르는 순간이 아니라 클릭에 잡는다. 여기서
+                           상태를 먼저 바꾸면 그 사이 부채꼴이 다시 그려져,
+                           뒤따라야 할 클릭 — 갈래 고르기가 통째로 사라진다.
+                           그래서 고르기와 같은 자리에서 함께 한다. */
+                        onClick={(slice: { name?: string; color?: string }, i: number) => {
+                          pop(`cat1:${i}`);
                           /* "기타"는 여러 갈래를 묶은 것이라 더 쪼갤 것이 없다. */
                           if (!slice?.name || slice.name === "기타") return;
                           setPickedCat((prev) =>
@@ -1020,7 +1408,14 @@ export default function Charts() {
                       }}
                     />
                     <Tooltip {...TIP_PROPS} content={<Tip />} />
-                    <Bar dataKey="value" name="지출" radius={[0, 8, 8, 0]} maxBarSize={22}>
+                    <Bar
+                      dataKey="value"
+                      name="지출"
+                      radius={[0, 8, 8, 0]}
+                      maxBarSize={22}
+                      shape={ShapePay}
+                      onPointerDown={(_d: unknown, i: number) => pop(`pay:${i}`)}
+                    >
                       {byPay.map((p) => (
                         <Cell key={p.name} fill={p.color} />
                       ))}
@@ -1055,7 +1450,13 @@ export default function Charts() {
                     <XAxis dataKey="요일" tick={AXIS} tickLine={false} axisLine={false} />
                     <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
                     <Tooltip {...TIP_PROPS} content={<Tip suffix="요일" />} />
-                    <Bar dataKey="지출" radius={[8, 8, 0, 0]} maxBarSize={44}>
+                    <Bar
+                      dataKey="지출"
+                      radius={[8, 8, 0, 0]}
+                      maxBarSize={44}
+                      shape={ShapeDow}
+                      onPointerDown={(_d: unknown, i: number) => pop(`weekday:${i}`)}
+                    >
                       {byDow.map((d) => (
                         <Cell key={d.요일} fill={d.color} />
                       ))}
@@ -1183,6 +1584,8 @@ export default function Charts() {
   }, [appliedFilter]);
 
   return (
+    /* 그림 안의 그리개들이 눌린 항목을 여기서 읽는다. */
+    <PopContext.Provider value={popApi}>
     <div className="page-wrap">
       {/* 월 넘기기 + 필터 — 달력과 같은 툴바 */}
       <div className="toolbar-wrap">
@@ -1304,35 +1707,13 @@ export default function Charts() {
             onScroll={onCardScroll}
           >
             {byCard.map((c) => (
-              <article key={c.code} className="card-perf__item">
-                <div className="card-perf__line">
-                  <span className="card-perf__name">{c.name}</span>
-                  <MaskedAmount
-                    className="card-perf__value"
-                    hide={c.hasBlur}
-                    value={Math.round(c.charged).toLocaleString("ko-KR")}
-                  />
-                </div>
-
-                {/* 넓은 줄을 숫자 하나로 비워 두지 않고, 이 판이 말하려는 바로
-                    그것을 담는다 — 그은 돈 가운데 얼마가 내 돈이었는지.
-                    비율만 보이고 금액은 드러나지 않으므로 덮개가 덮여 있어도 그린다. */}
-                <div className="card-perf__bar" aria-hidden="true">
-                  <span
-                    className="card-perf__bar-fill"
-                    style={{
-                      width: `${c.charged > 0 ? Math.min(100, (c.mine / c.charged) * 100) : 0}%`,
-                    }}
-                  />
-                </div>
-
-                <div className="card-perf__line card-perf__line--sub">
-                  <span className="card-perf__sub">{c.count}건</span>
-                  <span className="card-perf__sub">
-                    내 몫 {Math.round(c.mine).toLocaleString("ko-KR")}
-                  </span>
-                </div>
-              </article>
+              <CardPerfItem
+                key={c.code}
+                card={c}
+                tiers={tiers[c.code] ?? []}
+                onOpen={openCardDetail}
+                onPerks={setPerkOf}
+              />
             ))}
           </div>
           )}
@@ -1412,6 +1793,16 @@ export default function Charts() {
         />
       )}
 
+      {/* 실적 구간별 혜택 — 띠 옆 [혜택]을 누르면 그 카드 것만 펼친다. */}
+      {perkOf !== null && (
+        <CardPerkPopup
+          cardName={byCard.find((c) => c.code === perkOf)?.name ?? ""}
+          tiers={tiers[perkOf] ?? []}
+          charged={byCard.find((c) => c.code === perkOf)?.charged ?? 0}
+          onClose={() => setPerkOf(null)}
+        />
+      )}
+
       {drillOpen && pickedCat && byCat2.length > 0 && (
         <CatDrillPopup
           cat={pickedCat}
@@ -1423,6 +1814,7 @@ export default function Charts() {
 
       <QuickActions />
     </div>
+    </PopContext.Provider>
   );
 }
 

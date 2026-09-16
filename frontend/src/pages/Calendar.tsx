@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { stash, takeStash } from "../utils/pageState";
 import { useNavigate } from "react-router-dom";
 import axios from "../api/client";
 import useRevealDrag from "../hooks/useRevealDrag";
@@ -43,42 +44,63 @@ function dayOf(v: string | null | undefined): number | null {
   return m ? Number(m[2]) : null;
 }
 
+/** 상세로 갔다 되돌아왔을 때 되살릴 것 */
+type CalKeep = {
+  yearMonth: string;
+  on: Record<Src, boolean>;
+  blurOn: boolean;
+  excludeOn: boolean;
+  pick: number[];
+  filter: Filter;
+  appliedFilter: Filter;
+};
+
 export default function Calendar() {
-  const [yearMonth, setYearMonth] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
+  /* 상세에서 되돌아온 참이면 보던 자리를 그대로 이어 받는다. 한 번 꺼내면
+     사라지므로, 탭으로 새로 들어오면 늘 하던 대로 이 달 · 고른 날 없음이다. */
+  const kept = useMemo(() => takeStash<CalKeep>("calendar"), []);
+
+  const [yearMonth, setYearMonth] = useState(
+    () =>
+      kept?.yearMonth ??
+      (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      })()
+  );
 
   /* 겹쳐 볼 자료 — 처음에는 셋 다 켠다. */
-  const [on, setOn] = useState<Record<Src, boolean>>({
-    expense: true,
-    pending: true,
-    scheduled: true,
-  });
+  const [on, setOn] = useState<Record<Src, boolean>>(() =>
+    kept?.on ?? {
+      expense: true,
+      pending: true,
+      scheduled: true,
+    }
+  );
 
   const [rows, setRows] = useState<Row[]>([]);
 
   /* Blur를 걸어 둔 갈래를 셈에 넣을지. 처음에는 빼 둔다 —
      가릴 것이 아예 없으면 테이프도 뜨지 않는다. */
-  const [blurOn, setBlurOn] = useState(() => prefOn("blur_default"));
+  const [blurOn, setBlurOn] = useState(() => kept?.blurOn ?? prefOn("blur_default"));
 
   /* Exclude를 걸어 둔 갈래를 뺄지. 처음에는 뺀다(켜짐) —
      끄면 수입 · 저축까지 들어와 Net이 보인다. */
-  const [excludeOn, setExcludeOn] = useState(() => prefOn("exclude_default"));
+  const [excludeOn, setExcludeOn] = useState(() => kept?.excludeOn ?? prefOn("exclude_default"));
 
   /* 눌러서 고른 기간.
      한 번 누르면 시작일만 잡히고(end === null), 한 번 더 누르면 끝일까지 잡힌다.
      시작일만 잡힌 상태에서 같은 날 또는 달력 바깥을 누르면 고르기를 접는다. */
   /* 고른 날들. 이어진 기간일 필요가 없어 그냥 날짜를 담아 둔다 */
-  const [pick, setPick] = useState<number[]>([]);
+  const [pick, setPick] = useState<number[]>(() => kept?.pick ?? []);
   const calRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
   /* 적고 나면 그 날 칸에 바로 드러나야 한다 — 한 달치를 다시 읽는다. */
   const [reloadKey, setReloadKey] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filter, setFilter] = useState<Filter>(EMPTY_FILTER);
-  const [appliedFilter, setAppliedFilter] = useState<Filter>(EMPTY_FILTER);
+  const [filter, setFilter] = useState<Filter>(() => kept?.filter ?? EMPTY_FILTER);
+  const [appliedFilter, setAppliedFilter] = useState<Filter>(() => kept?.appliedFilter ?? EMPTY_FILTER);
 
   /* 고르는 목록들 */
   const [cat1List, setCat1List] = useState<{ id: number; name: string; exclude?: number; is_active?: number }[]>([]);
@@ -329,13 +351,15 @@ export default function Calendar() {
     /* 고른 날을 그대로 죽 적어 보낸다 — 이어져 있을 필요가 없다 */
     const days = pick.map((d) => `${yearMonth}-${pad(d)}`).join(",");
     const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
+    /* 되돌아왔을 때 이 자리가 그대로이도록 맡겨 둔다. */
+    stash("calendar", { yearMonth, on, blurOn, excludeOn, pick, filter, appliedFilter });
     navigate(
       `/calendar/detail?days=${days}&src=${src}&blur=${blurOn ? 1 : 0}&exclude=${excludeOn ? 1 : 0}`,
       {
       /* 걸린 조건도 함께 넘긴다 — 달력에 보이던 것과 상세가 어긋나면 안 된다. */
       state: { filter: appliedFilter },
     });
-  }, [pick, yearMonth, on, blurOn, excludeOn, appliedFilter, navigate]);
+  }, [pick, yearMonth, on, blurOn, excludeOn, filter, appliedFilter, navigate]);
 
   const closeFilter = useCallback(() => {
     setFilter(appliedFilter);

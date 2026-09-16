@@ -103,6 +103,13 @@ export default function CalendarDetail() {
     [location.state]
   );
 
+  /* 어느 화면에서 왔는지. 뒤로 가기는 늘 바로 앞 화면으로 돌아가므로
+     이름만 그 화면 것으로 적는다. 실려 오지 않으면 달력에서 온 것이다. */
+  const backName = useMemo(
+    () => (location.state as { back?: string } | null)?.back ?? "달력",
+    [location.state]
+  );
+
   /* 고르는 목록 — 카드가 이름을 찾는 데 쓴다.
      결제 수단은 화면마다 코드를 숫자로도 문자로도 쓰고 있어 두 벌을 만든다.
      카드 안의 비교 방식을 건드리지 않으려면 이쪽에서 맞춰 주는 편이 낫다. */
@@ -330,11 +337,11 @@ export default function CalendarDetail() {
             <button
               type="button"
               className="filter-pill"
-              aria-label="달력으로 돌아가기"
+              aria-label={`${backName}(으)로 돌아가기`}
               onClick={() => navigate(-1)}
             >
               <span className="cal-back__arrow" aria-hidden="true">‹</span>
-              달력
+              {backName}
             </button>
             <span className="cal-back__range">{rangeLabel}</span>
           </div>
