@@ -13644,3 +13644,95 @@ html.modal-open .scroll-top {
 .recharts-wrapper :focus:not(:focus-visible) {
   outline: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   126. 안쓴이 도전 · 잔소리 — 꾹 누르기와 띠(2026-09)
+   ─────────────────────────────────────────────────────────────
+   ① 두 줄 다 꾹 누르면 상세가 뜨는 것은 내역 카드와 같은데, 눌리는 모습만
+      달랐다. 줄이 살짝 **작아지기만** 하고 언제 팝업이 열리는지 알려 주는
+      것이 없어, 데스크톱에서는 아무 반응 없이 팝업이 튀어나오는 것처럼
+      보였다. 내역 카드의 되먹임을 그대로 가져온다 — 살짝 커지고, 그림자가
+      들리고, 위에서 한 줄이 차오른다.
+
+      다만 차오르는 줄을 담는 방법은 다르다. 내역 카드는 카드에 overflow를
+      걸어 잘라 내지만, 여기서는 그럴 수가 없다. 잔소리 줄은 마스킹 테이프가
+      일부러 줄 밖으로 삐져나와 있고, 목표 줄은 고치는 중에 입력칸의 초점
+      테두리가 밖으로 나온다 — 자르면 둘 다 함께 잘린다. 그래서 줄을 자르는
+      대신 **바탕 그림을 키운다.** 제 모서리에 맞춰 둥글게 깎이므로 담는
+      그릇을 건드릴 일이 없다.
+
+   ② 안쓴이 도전의 띠는 씀씀이의 실적 띠와 같은 결로 맞춘다 — 같은 바탕색,
+      그리고 폭을 줄이는 대신 깔아 둔 그라데이션을 왼쪽부터 드러내는 방식.
+      빛깔은 한 톤 옅게 간다. 여기 띠는 카드 실적과 달리 줄마다 하나씩
+      늘어서서, 짙은 색이 여럿이면 화면이 소란스럽다.
+      세 가지 뜻(잘 지키는 중 · 넘길 낌새 · 넘겼다)은 그대로 두고 빛깔의
+      진하기만 --goal-tone 하나로 갈아 끼운다.
+   ════════════════════════════════════════════════════════════ */
+
+.goal-row,
+.nudge {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.goal-row.is-pressing,
+.nudge.is-pressing {
+  position: relative;
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lift);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* 차오르는 줄 — 제 모서리에 맞춰 깎인 바탕 그림이 옆으로 자란다. */
+.goal-row.is-pressing::after,
+.nudge.is-pressing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: linear-gradient(var(--color-primary), var(--color-primary));
+  background-repeat: no-repeat;
+  background-size: 0 2px;
+  animation: longpress-sweep var(--longpress-delay) linear forwards;
+  pointer-events: none;
+}
+
+@keyframes longpress-sweep {
+  from { background-size: 0 2px; }
+  to   { background-size: 100% 2px; }
+}
+
+/* 진행 표시는 장식이 아니라 "언제 팝업이 열리는지"를 알려 주는 신호다 —
+   내역 카드와 같이, 움직임을 줄이는 자리에서도 이것만은 남긴다. */
+@media (prefers-reduced-motion: reduce) {
+  .goal-row.is-pressing::after,
+  .nudge.is-pressing::after {
+    animation: longpress-sweep var(--longpress-delay) linear forwards !important;
+  }
+}
+
+.goal-bar {
+  position: relative;
+  background: var(--color-border);
+}
+
+.goal-row .goal-bar__fill {
+  --goal-tone: var(--color-success);
+  position: absolute;
+  inset: 0;
+  width: auto;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--goal-tone) 34%, #fff) 0%,
+    color-mix(in srgb, var(--goal-tone) 60%, #fff) 58%,
+    color-mix(in srgb, var(--goal-tone) 84%, #fff) 100%
+  );
+  transition: clip-path 240ms var(--ease);
+}
+
+.goal-row--watch .goal-bar__fill {
+  --goal-tone: #F5A524;
+}
+
+.goal-row--over .goal-bar__fill {
+  --goal-tone: var(--color-danger);
+}

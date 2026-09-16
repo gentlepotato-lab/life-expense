@@ -141,10 +141,13 @@ function GoalRowView({
         />
       )}
 
+      {/* 채움은 띠 전체에 깔린 그라데이션을 왼쪽부터 드러내는 것이다 — 씀씀이의
+          실적 띠와 같다. 폭을 줄이면 그라데이션까지 눌려 같은 자리의 빛깔이
+          목표마다 달라진다. */}
       <div className="goal-bar">
         <span
           className="goal-bar__fill"
-          style={{ width: `${Math.min(100, Math.round(st.ratio * 100))}%` }}
+          style={{ clipPath: `inset(0 ${100 - Math.min(100, Math.round(st.ratio * 100))}% 0 0)` }}
         />
       </div>
 
