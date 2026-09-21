@@ -351,15 +351,28 @@ def place_board(
                  , COALESCE(u.used_count, 0) AS used_count
                  , COALESCE(u.total, 0)      AS total
                  , u.last_used
+                 , COALESCE(u.has_blur, FALSE) AS has_blur
               FROM life_expense.places p
               {joint} (
                     SELECT e.place_id
                          , COUNT(*) AS used_count
                          , SUM(COALESCE(vn.net_amount, e.amount)) AS total
                          , MAX(e.tx_date) AS last_used
+                         -- 가려 둔 갈래가 한 건이라도 섞였는지. 금액에 테이프를
+                         -- 붙일지 가리는 데만 쓴다 — 셈에서 빼지는 않는다.
+                         -- 중·소·세 어느 한 겹에 걸려 있으면 가린 것으로 본다.
+                         , BOOL_OR(COALESCE(c1.blur_flag, 0) = 1
+                                OR COALESCE(c2.blur_flag, 0) = 1
+                                OR COALESCE(c3.blur_flag, 0) = 1) AS has_blur
                       FROM life_expense.entries e
                       LEFT JOIN life_expense.v_entries_net vn
                              ON vn.entry_id = e.entry_id
+                      LEFT JOIN life_expense.categories_lvl1 c1
+                             ON c1.cat1_id = e.cat1_id
+                      LEFT JOIN life_expense.categories_lvl2 c2
+                             ON c2.cat2_id = e.cat2_id
+                      LEFT JOIN life_expense.categories_lvl3 c3
+                             ON c3.cat3_id = e.cat3_id
                      WHERE e.place_id IS NOT NULL
                        AND e.inout <> 1{span}
                   GROUP BY e.place_id
@@ -401,6 +414,7 @@ def place_board(
             "used_count": r["used_count"],
             "total": float(r["total"]),
             "last_used": str(r["last_used"]) if r["last_used"] else None,
+            "has_blur": bool(r["has_blur"]),
         }
         for r in rows
     ]

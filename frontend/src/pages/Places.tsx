@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import axios from "../api/client";
+import useRevealDrag from "../hooks/useRevealDrag";
 import QuickActions from "./components/QuickActions";
 import PlaceMapPopup from "./components/PlaceMapPopup";
 import PlacePeriodPopup from "./components/PlacePeriodPopup";
@@ -45,6 +46,37 @@ import {
 const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
 
 /**
+ * 가려 둔 갈래가 섞인 금액 — 테이프를 붙이고 끌면 잠깐 걷힌다.
+ *
+ * 다른 화면의 금액과 같은 손놀림이다. 셈에서 빼지는 않는다 — 어디에 많이
+ * 썼는지를 보는 자리인데 가려 둔 것만 빠지면 차례가 어긋난다. 가리는 것은
+ * 남이 볼 때 드러나면 안 되는 액수뿐이다.
+ */
+function Won({
+  amount,
+  className,
+  hide,
+}: {
+  amount: number;
+  className: string;
+  hide: boolean;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  const startReveal = useRevealDrag(setRevealed);
+  const covered = hide && !revealed;
+  return (
+    <span
+      className={`${className}${hide ? (covered ? " masked" : " revealed") : ""}`}
+      title={hide ? "끌면 잠깐 보인다." : undefined}
+      onMouseDown={hide ? startReveal : undefined}
+      onTouchStart={hide ? startReveal : undefined}
+    >
+      {won(amount)}
+    </span>
+  );
+}
+
+/**
  * 묶음의 셈 — 청록 딱지로.
  *
  * 다녀온 횟수를 함께 적는다. 묶음 차례를 횟수로 세울 수 있는데 그 값이
@@ -55,7 +87,7 @@ function Sum({ node }: { node: BoardNode }) {
     <span className="tag-row wh-sum">
       <span className="tag">{node.visits}번</span>
       <span className="tag">{node.count}곳</span>
-      <span className="tag">{won(node.total)}</span>
+      <Won className="tag wh-sum__won" amount={node.total} hide={node.hasBlur} />
     </span>
   );
 }
@@ -109,13 +141,14 @@ function SortButtons({
 function PlaceRow({
   no,
   place,
-  right,
+  money,
   view,
   onPick,
 }: {
   no: number;
   place: BoardPlace;
-  right: string;
+  /** 오른쪽에 금액을 적을지, 다녀온 횟수를 적을지 */
+  money: boolean;
   view: BoardView;
   onPick: () => void;
 }) {
@@ -132,7 +165,15 @@ function PlaceRow({
         <span className="wh-row__name">{place.place_name}</span>
         {sub && <span className="wh-row__sub">{sub}</span>}
       </span>
-      <span className="wh-row__val">{right}</span>
+      {money ? (
+        <Won
+          className="wh-row__val"
+          amount={place.total}
+          hide={place.has_blur}
+        />
+      ) : (
+        <span className="wh-row__val">{place.used_count}번</span>
+      )}
     </button>
   );
 }
@@ -188,6 +229,7 @@ export default function Places() {
       count: nodes.reduce((n, g) => n + g.count, 0),
       visits: nodes.reduce((n, g) => n + g.visits, 0),
       total: nodes.reduce((n, g) => n + g.total, 0),
+      hasBlur: nodes.some((g) => g.hasBlur),
       places: [],
       children: [],
     }),
@@ -219,7 +261,7 @@ export default function Places() {
         key={p.place_id}
         no={i + 1}
         place={p}
-        right={byMoney ? won(p.total) : `${p.used_count}번`}
+        money={byMoney}
         view={view}
         onPick={() => setPicked(p)}
       />

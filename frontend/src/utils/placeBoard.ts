@@ -21,6 +21,8 @@ export type BoardPlace = {
   used_count: number;
   total: number;
   last_used: string | null;
+  /** 가려 둔 갈래가 한 건이라도 섞여 있는지 — 금액에 테이프를 붙일지 가린다 */
+  has_blur: boolean;
 };
 
 /** 서버가 알려 주는, 고를 수 있는 앞뒤 달 */
@@ -116,6 +118,8 @@ export type BoardNode = {
   /** 그 곳들에 다녀온 횟수를 다 더한 것 */
   visits: number;
   total: number;
+  /** 든 곳 가운데 하나라도 가려 둔 것이 섞였는지 — 묶음 금액도 그만큼 가린다 */
+  hasBlur: boolean;
   places: BoardPlace[];
   children: BoardNode[];
 };
@@ -146,6 +150,8 @@ const placeBy = (sort: BoardSort) => (sort === "visits" ? often : rich);
 
 const sum = (list: BoardPlace[]) => list.reduce((n, p) => n + p.total, 0);
 const hits = (list: BoardPlace[]) => list.reduce((n, p) => n + p.used_count, 0);
+/* 한 곳만 가려 둔 것이 섞여 있어도 묶음 금액은 이미 그것을 품고 있다. */
+const veiled = (list: BoardPlace[]) => list.some((p) => p.has_blur);
 
 /**
  * 묶음 차례.
@@ -196,6 +202,7 @@ export function board(
         count: sorted.length,
         visits: hits(sorted),
         total: sum(sorted),
+        hasBlur: veiled(sorted),
         places: sorted,
         children: [],
       },
@@ -210,6 +217,7 @@ export function board(
         count: places.length,
         visits: hits(places),
         total: sum(places),
+        hasBlur: veiled(places),
         places: places.sort(byPlace),
         children: [],
       }))
@@ -225,6 +233,7 @@ export function board(
           count: places.length,
           visits: hits(places),
           total: sum(places),
+          hasBlur: veiled(places),
           places: places.sort(byPlace),
           children: [],
         }))
@@ -236,6 +245,7 @@ export function board(
         count: inCity.length,
         visits: hits(inCity),
         total: sum(inCity),
+        hasBlur: veiled(inCity),
         places: [],
         children,
       };
