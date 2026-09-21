@@ -123,6 +123,12 @@ function App() {
             </Suspense>
           }
         />
+        {/* 씀씀이에서 펼치는 상세 — 씀씀이에 딸린 화면이다.
+            화면 자체는 달력의 상세와 똑같은 것이라(고른 범위와 걸린 조건에
+            드는 내역을 죽 늘어놓는 일) 같은 부품을 쓴다. 주소를 따로 두는
+            까닭은 소속 때문이다 — 이름표도 돌아갈 곳도 아래 막대가 켜는
+            묶음도 씀씀이 것이어야 한다. */}
+        <Route path="/charts/detail" element={<CalendarDetail />} />
         <Route path="/nudges" element={<Nudges />} />
 
         {/* 존재하지 않는 경로 → 홈으로 */}

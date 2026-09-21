@@ -104,10 +104,14 @@ export default function CalendarDetail() {
   );
 
   /* 어느 화면에서 왔는지. 뒤로 가기는 늘 바로 앞 화면으로 돌아가므로
-     이름만 그 화면 것으로 적는다. 실려 오지 않으면 달력에서 온 것이다. */
+     이름만 그 화면 것으로 적는다.
+     실려 오지 않았으면(주소만으로 들어왔거나 새로 고쳤으면) 이 화면이 딸린
+     자리의 이름을 쓴다 — 같은 화면이 두 주소를 섬기고 있어서다. */
   const backName = useMemo(
-    () => (location.state as { back?: string } | null)?.back ?? "달력",
-    [location.state]
+    () =>
+      (location.state as { back?: string } | null)?.back ??
+      (location.pathname.startsWith("/charts") ? "씀씀이" : "달력"),
+    [location.state, location.pathname]
   );
 
   /* 고르는 목록 — 카드가 이름을 찾는 데 쓴다.

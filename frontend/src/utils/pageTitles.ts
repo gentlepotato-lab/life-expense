@@ -12,6 +12,10 @@ export const PAGE_TITLE: Record<string, string> = {
   "/me": "돈쓴이",
   "/places": "어디 쓰나",
   "/charts": "씀씀이",
+  /* 씀씀이에 딸린 곁가지. 홈 묶음에 넣지 않는다 — HOME_TABS는 돈쓴이의
+     첫 화면 고르개가 늘어놓는 목록이기도 해서, 곁가지가 섞이면 첫 화면으로
+     고를 수 있는 것처럼 보인다. */
+  "/charts/detail": "씀씀이 내역",
   "/nudges": "잔소리",
 
   /* 내역 탭 */

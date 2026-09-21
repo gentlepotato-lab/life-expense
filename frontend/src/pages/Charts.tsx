@@ -637,7 +637,7 @@ export default function Charts() {
   const navigate = useNavigate();
 
   /* 카드 실적을 꾹 누르면 그 카드로 그은 내역을 상세로 펼친다.
-     달력이 날을 골라 넘어가는 그 화면 · 그 주소를 그대로 쓴다 — 보고 있던 달과
+     씀씀이의 상세로 간다 — 보고 있던 달과
      자료 갈래 · Blur · Exclude · 걸린 조건을 그대로 싣고, 거기에 이 카드만
      더한다. 그래야 실적이 센 것과 상세에 보이는 것이 어긋나지 않는다. */
   /* 카드마다의 실적 구간과 그 구간의 혜택. 실적 띠가 칸을 가르는 데도,
@@ -705,7 +705,7 @@ export default function Charts() {
         cardAt: cardAtRef.current,
       });
       navigate(
-        `/calendar/detail?from=${yearMonth}-01&to=${yearMonth}-${pad(last)}` +
+        `/charts/detail?from=${yearMonth}-01&to=${yearMonth}-${pad(last)}` +
           `&src=${src}&blur=${blurOn ? 1 : 0}&exclude=${excludeOn ? 1 : 0}`,
         { state: { filter: { ...appliedFilter, pay: [code] }, back: "씀씀이" } }
       );
@@ -1164,6 +1164,34 @@ export default function Charts() {
     return () => ro.disconnect();
   }, [cardOpen, byCard.length]);
 
+  /* 지금 보고 있는 그대로 — 이 달 · 켜 둔 자료 갈래 · 걸린 조건 — 를 상세로
+     펼친다. 카드 실적을
+     꾹 눌러 가는 길(openCardDetail)과 한 가지만 다르다: 거기서는 그 카드
+     하나로 좁히지만, 여기서는 좁히지 않는다.
+     맡겨 두는 자리에는 카드 실적을 펼쳐 두었는지를 지금 값 그대로 담는다 —
+     꾹 누르는 길과 달리 접힌 채로도 누를 수 있는 단추다. */
+  const openDetail = useCallback(() => {
+    const [y, m] = yearMonth.split("-").map(Number);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const last = new Date(y, m, 0).getDate();
+    const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
+    stash("charts", {
+      yearMonth,
+      on,
+      blurOn,
+      excludeOn,
+      filter,
+      appliedFilter,
+      cardOpen,
+      cardAt: cardAtRef.current,
+    });
+    navigate(
+      `/charts/detail?from=${yearMonth}-01&to=${yearMonth}-${pad(last)}` +
+        `&src=${src}&blur=${blurOn ? 1 : 0}&exclude=${excludeOn ? 1 : 0}`,
+      { state: { filter: appliedFilter, back: "씀씀이" } }
+    );
+  }, [yearMonth, on, blurOn, excludeOn, filter, appliedFilter, cardOpen, navigate]);
+
   /** 한 달 중 가장 많이 쓴 하루 */
   const peak = useMemo(
     () => byDay.reduce((best, d) => (d.지출 > best.지출 ? d : best), { day: 0, 지출: 0 }),
@@ -1601,6 +1629,17 @@ export default function Charts() {
           </div>
 
           <div className="toolbar-btns">
+            {/* 달력과 같은 자리 — 필터 왼쪽. 달력은 날을 골라야 나타나지만
+                여기서는 늘 누를 수 있어 알약에 불을 켜 두지 않는다. 이 툴바에서
+                켜진 불은 "걸린 것이 있다"는 뜻이고, 그 뜻을 흐리면 안 된다. */}
+            <button
+              type="button"
+              className="filter-pill"
+              onClick={openDetail}
+              title="이 달의 내역을 지금 걸린 조건 그대로 본다."
+            >
+              상세
+            </button>
             <button
               type="button"
               onClick={() => setFilterOpen(true)}
