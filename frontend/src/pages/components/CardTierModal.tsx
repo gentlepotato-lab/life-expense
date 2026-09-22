@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CardEditModal from "./CardEditModal";
 
 /**
@@ -16,9 +16,14 @@ import CardEditModal from "./CardEditModal";
  * 카드 한 장치를 통째로 저장하는 일은 부르는 쪽이 맡는다.
  */
 
-export type TierTarget = { area: string; stores: string };
+export type TierTarget = { area: string; detail: string };
 /** limit는 월간 통합 할인한도. 없는 혜택도 있어 빈 글일 수 있다. */
-export type TierBenefit = { content: string; memo: string; limit: string; targets: TierTarget[] };
+export type TierBenefit = {
+  content: string;
+  description: string;
+  limit: string;
+  targets: TierTarget[];
+};
 export type TierDraft = { threshold: string; benefits: TierBenefit[] };
 
 /** 이미 적어 둔 혜택 한 벌 — 고르면 내용까지 그대로 옮겨 온다. */
@@ -31,8 +36,64 @@ const nextKey = () => {
   return `k${seq}`;
 };
 
+/**
+ * 줄바꿈되는 글칸.
+ *
+ * 혜택의 설명과 대상의 상세가 함께 쓴다. 한 줄짜리 입력칸이던 것을 여러
+ * 줄로 바꾼다 — 둘 다 "정기결제 자동이체 시 결제일 할인 → 건별 1천 원, 월
+ * 최대 2천 원"처럼 길어서, 한 줄에 가두면 적는 동안 앞이 밀려 나가 무엇을
+ * 쓰고 있는지 보이지 않는다.
+ *
+ * 키는 담긴 글만큼 자란다. 줄 수를 미리 못 박으면 짧은 것에는 빈 자리가
+ * 남고 긴 것은 그래도 잘린다. 값이 밖에서 바뀔 때도(힌트를 골라 통째로
+ * 물어 올 때) 다시 재야 하므로 값을 보고 맞춘다.
+ */
+function GrowArea({
+  value,
+  className,
+  placeholder,
+  maxLength,
+  onChange,
+}: {
+  value: string;
+  className: string;
+  placeholder: string;
+  maxLength: number;
+  onChange: (next: string) => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    /* scrollHeight 는 안쪽(글 + 여백)까지다. 이 칸은 테두리까지 키에 넣는
+       셈(border-box)이라 테두리 두 줄을 더해야 마지막 줄이 잘리지 않는다. */
+    const edge = el.offsetHeight - el.clientHeight;
+    el.style.height = `${el.scrollHeight + edge}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      className={className}
+      rows={1}
+      value={value}
+      placeholder={placeholder}
+      maxLength={maxLength}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
+}
+
 type Target = TierTarget & { key: string };
-type Benefit = { key: string; content: string; memo: string; limit: string; targets: Target[] };
+type Benefit = {
+  key: string;
+  content: string;
+  description: string;
+  limit: string;
+  targets: Target[];
+};
 
 const trim = (b: Benefit[]) =>
   JSON.stringify(
@@ -40,9 +101,9 @@ const trim = (b: Benefit[]) =>
       .filter((x) => x.content.trim())
       .map((x) => [
         x.content.trim(),
-        x.memo.trim(),
+        x.description.trim(),
         x.limit.trim(),
-        x.targets.filter((t) => t.stores.trim()).map((t) => [t.area.trim(), t.stores.trim()]),
+        x.targets.filter((t) => t.detail.trim()).map((t) => [t.area.trim(), t.detail.trim()]),
       ])
   );
 
@@ -71,18 +132,18 @@ export default function CardTierModal({
         {
           key: nextKey(),
           content: "",
-          memo: "",
+          description: "",
           limit: "",
-          targets: [{ key: nextKey(), area: "", stores: "" }],
+          targets: [{ key: nextKey(), area: "", detail: "" }],
         },
       ];
     }
     return tier.benefits.map((b) => ({
       key: nextKey(),
       content: b.content,
-      memo: b.memo,
+      description: b.description,
       limit: b.limit ?? "",
-      targets: b.targets.map((t) => ({ key: nextKey(), area: t.area, stores: t.stores })),
+      targets: b.targets.map((t) => ({ key: nextKey(), area: t.area, detail: t.detail })),
     }));
   });
 
@@ -91,9 +152,9 @@ export default function CardTierModal({
       (tier?.benefits ?? []).map((b) => ({
         key: "",
         content: b.content,
-        memo: b.memo,
+        description: b.description,
         limit: b.limit ?? "",
-        targets: b.targets.map((t) => ({ key: "", area: t.area, stores: t.stores })),
+        targets: b.targets.map((t) => ({ key: "", area: t.area, detail: t.detail })),
       }))
     )}`,
     [tier]
@@ -155,11 +216,11 @@ export default function CardTierModal({
         .filter((b) => b.content.trim())
         .map((b) => ({
           content: b.content.trim(),
-          memo: b.memo.trim(),
+          description: b.description.trim(),
           limit: b.limit.trim(),
           targets: b.targets
-            .filter((t) => t.stores.trim())
-            .map((t) => ({ area: t.area.trim(), stores: t.stores.trim() })),
+            .filter((t) => t.detail.trim())
+            .map((t) => ({ area: t.area.trim(), detail: t.detail.trim() })),
         })),
     });
 
@@ -231,12 +292,12 @@ export default function CardTierModal({
                       patch(b.key, (x) => ({
                         ...x,
                         content: h.benefit.content,
-                        memo: h.benefit.memo,
+                        description: h.benefit.description,
                         limit: h.benefit.limit ?? "",
                         targets: h.benefit.targets.map((t) => ({
                           key: nextKey(),
                           area: t.area,
-                          stores: t.stores,
+                          detail: t.detail,
                         })),
                       }));
                       setHintFor(null);
@@ -248,13 +309,12 @@ export default function CardTierModal({
               </div>
             )}
 
-            <input
-              type="text"
-              className="benefit__memo"
-              value={b.memo}
-              placeholder="(상세)"
+            <GrowArea
+              className="benefit__desc"
+              placeholder="(설명)"
               maxLength={200}
-              onChange={(e) => patch(b.key, (x) => ({ ...x, memo: e.target.value }))}
+              value={b.description}
+              onChange={(v) => patch(b.key, (x) => ({ ...x, description: v }))}
             />
 
             {/* 월간 통합 할인한도 — 상세 글에 섞어 적으면 셈에 쓸 수가 없다. */}
@@ -290,17 +350,18 @@ export default function CardTierModal({
                       }))
                     }
                   />
-                  <input
-                    type="text"
-                    className="target__stores"
-                    value={tg.stores}
-                    placeholder="(가맹점)"
+                  {/* 가맹점만 적는 칸이 아니다 — `아파트 관리비, 도시가스,
+                      전기요금`처럼 그 영역에서 무엇이 걸리는지를 적는다. */}
+                  <GrowArea
+                    className="target__detail"
+                    placeholder="(가맹점 · 상세)"
                     maxLength={400}
-                    onChange={(e) =>
+                    value={tg.detail}
+                    onChange={(v) =>
                       patch(b.key, (x) => ({
                         ...x,
                         targets: x.targets.map((y) =>
-                          y.key === tg.key ? { ...y, stores: e.target.value } : y
+                          y.key === tg.key ? { ...y, detail: v } : y
                         ),
                       }))
                     }
@@ -328,7 +389,7 @@ export default function CardTierModal({
                 onClick={() =>
                   patch(b.key, (x) => ({
                     ...x,
-                    targets: [...x.targets, { key: nextKey(), area: "", stores: "" }],
+                    targets: [...x.targets, { key: nextKey(), area: "", detail: "" }],
                   }))
                 }
               >
@@ -344,7 +405,7 @@ export default function CardTierModal({
           onClick={() =>
             setBenefits((prev) => [
               ...prev,
-              { key: nextKey(), content: "", memo: "", limit: "", targets: [] },
+              { key: nextKey(), content: "", description: "", limit: "", targets: [] },
             ])
           }
         >

@@ -386,7 +386,7 @@ class CardBenefit(Base):
     """
     구간 하나가 주는 혜택 한 줄.
 
-    content는 항목 이름, memo는 그 옆에 적는 상세다 —
+    content는 항목 이름, description은 그 밑에 적는 설명이다 —
     "커피 할인" 만으로는 어느 가게에서 얼마인지가 남지 않는다.
     """
     __tablename__ = "card_benefits"
@@ -394,7 +394,7 @@ class CardBenefit(Base):
     benefit_id = Column(Integer, primary_key=True, autoincrement=True)
     tier_id = Column(Integer, ForeignKey("card_tiers.tier_id", ondelete="CASCADE"), nullable=False)
     content = Column(String(200), nullable=False)
-    memo = Column(String(200))
+    description = Column(String(200))
     # 월간 통합 할인한도. 없는 혜택도 있어 비울 수 있다.
     limit_amount = Column(Numeric(14, 2))
     sort_order = Column(Integer, nullable=False, default=0)
@@ -406,14 +406,16 @@ class CardBenefitTarget(Base):
     혜택 하나가 걸리는 대상.
 
     "디지털 구독 할인" 아래에 OTT → 넷플릭스·유튜브프리미엄, 음원 → 멜론·지니
-    처럼 영역과 가맹점이 짝으로 붙는다. 영역 구분이 없는 혜택도 있어 area는 비울 수 있다.
+    처럼 영역과 그 영역에서 걸리는 것이 짝으로 붙는다. detail 은 가맹점만이
+    아니라 요금 종류나 결제 방식까지 담는다 — `아파트 관리비, 도시가스`처럼.
+    영역 구분이 없는 혜택도 있어 area는 비울 수 있다.
     """
     __tablename__ = "card_benefit_targets"
 
     target_id = Column(Integer, primary_key=True, autoincrement=True)
     benefit_id = Column(Integer, ForeignKey("card_benefits.benefit_id", ondelete="CASCADE"), nullable=False)
     area = Column(String(60))
-    stores = Column(String(400), nullable=False)
+    detail = Column(String(400), nullable=False)
     sort_order = Column(Integer, nullable=False, default=0)
     created_at = Column(TIMESTAMP, server_default=func.now())
 

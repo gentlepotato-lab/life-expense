@@ -10282,7 +10282,7 @@ button.cat2-inout:active {
   font-weight: 700;
 }
 
-.benefit__memo {
+.benefit__desc {
   width: 100%;
   min-width: 0;
 }
@@ -10344,7 +10344,7 @@ input.target__area {
 }
 
 /* 가맹점은 길게 이어 적는 곳이라 크기를 줄이지 않는다. */
-.target__stores {
+.target__detail {
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -13589,7 +13589,7 @@ html.modal-open .scroll-top {
   white-space: nowrap;
 }
 
-.perk__memo {
+.perk__desc {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
   word-break: keep-all;
@@ -13614,7 +13614,7 @@ html.modal-open .scroll-top {
   white-space: nowrap;
 }
 
-.perk__stores {
+.perk__detail {
   min-width: 0;
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
@@ -13821,4 +13821,125 @@ html.modal-open .scroll-top {
 
 .wh-body > .wh-row:nth-child(4n + 4) {
   --tape-shift: 0.7deg;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   129. 실적 구간별 혜택 팝업 — 글칸은 여러 줄, 대상은 한 크기(2026-09)
+   ─────────────────────────────────────────────────────────────
+   ① 설명과 대상의 상세를 한 줄짜리 입력칸에 가두어 두었더니, 적는 동안
+      앞이 밀려 나가 무엇을 쓰고 있는지 보이지 않았다. 둘 다 여러 줄 칸으로
+      바꾸고 담긴 글만큼 키가 자라게 한다(키 맞추는 일은 화면 파일이 한다).
+
+      이 판에 여러 줄 칸은 이것이 처음이라, 입력칸의 결을 그대로 옮겨 적는다
+      — 공통 규칙은 input 과 select 만 집어서 textarea 에는 닿지 않는다.
+      한 줄일 때의 키(32px)가 입력칸과 한 치도 다르지 않아야 한다:
+      글줄 20px + 위아래 5px + 테두리 1px = 32px.
+
+   ② 대상 줄은 (영역) 딱지와 × 를 첫 줄에 맞춘다. 상세가 여러 줄로 자라면
+      가운데 맞추기로는 딱지가 글 가운데로 내려가 짝이 어긋나 보인다.
+
+   ③ 그 (영역)만 글자가 한 단 작아서(11px) 옆의 (가맹점 · 상세)와 안내글
+      크기가 어긋났다. 좁은 딱지에 넣으려고 줄여 둔 것인데, 재어 보니 가장
+      긴 값(`생활 편의`)이 13px에서도 48px이라 76px 딱지에 든다.
+   ════════════════════════════════════════════════════════════ */
+
+textarea.benefit__desc,
+textarea.target__detail {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: var(--control-h);
+  padding: 5px var(--control-px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  line-height: 20px;
+  color: var(--color-text-primary);
+  /* 키는 글에 맞춰 화면이 잡는다 — 손으로 끌어 늘이는 손잡이는 걷어 낸다. */
+  resize: none;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+/* 공통 초점 규칙(.ui-input:focus, input:focus)이 textarea 는 비켜 간다. */
+textarea.benefit__desc:focus,
+textarea.target__detail:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.target {
+  align-items: flex-start;
+}
+
+input.target__area {
+  font-size: var(--font-size-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   130. 결제 수단 — 긴 이름 말줄임, 꾹 눌러 혜택 보기(2026-09)
+   ─────────────────────────────────────────────────────────────
+   ① 고치는 중에 긴 이름([신한] K-패스(알뜰교통 S20))이 오른쪽 것들을 화면
+      밖으로 밀어냈다. 말줄임 규칙은 이미 있었는데 먹히지 않았다 — flex 칸의
+      기본 최소 너비가 글 너비라(min-width: auto) 칸이 줄어들기를 버텼기
+      때문이다. 줄과 이름 칸의 최소 너비를 풀어 준다. 이러면 카드는 제 너비를
+      지키고 이름만 깎여, 줄마다 오른쪽 끝이 한 줄로 선다.
+
+   ② 카드 줄을 꾹 누르면 그 카드의 혜택이 펼쳐진다. 되먹임은 내역 카드와
+      같은 것을 쓴다(126절의 차오르는 줄).
+
+   ③ [+] 실적 구간별 혜택과 [혜택]을 한 줄에 둔다 — 하나는 적으러 가는 길,
+      하나는 적어 둔 것을 보는 길이라 같은 자리에서 갈린다.
+   ════════════════════════════════════════════════════════════ */
+
+.pm-item {
+  min-width: 0;
+}
+
+.pm-item .cat1-name {
+  min-width: 0;
+}
+
+.pm-item.is-pressing {
+  position: relative;
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lift);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.pm-item.is-pressing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: linear-gradient(var(--color-primary), var(--color-primary));
+  background-repeat: no-repeat;
+  background-size: 0 2px;
+  animation: longpress-sweep var(--longpress-delay) linear forwards;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pm-item.is-pressing::after {
+    animation: longpress-sweep var(--longpress-delay) linear forwards !important;
+  }
+}
+
+/* 구간 목록의 맨 아랫줄 — [+]는 왼쪽, [혜택]은 오른쪽 끝 */
+.pm-tier-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pm-tier-foot > .pm-tier__add {
+  align-self: auto;
+}
+
+.pm-tier__perk {
+  margin-left: auto;
 }

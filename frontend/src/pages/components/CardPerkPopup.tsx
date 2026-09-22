@@ -1,12 +1,12 @@
 import useBackClose from "../../hooks/useBackClose";
 import { manwon } from "../../utils/amount";
 
-/** 혜택 하나에 걸린 대상 — 어느 동네의 어느 가게인지 */
-export type PerkTarget = { area: string | null; stores: string | null };
+/** 혜택 하나에 걸린 대상 — 어느 영역의 무엇인지 */
+export type PerkTarget = { area: string | null; detail: string | null };
 /** limit는 월간 통합 할인한도. 없는 혜택도 있어 비어 있을 수 있다. */
 export type PerkBenefit = {
   content: string;
-  memo: string | null;
+  description: string | null;
   limit: number | null;
   targets: PerkTarget[];
 };
@@ -20,6 +20,11 @@ export type PerkTier = { threshold: number; benefits: PerkBenefit[] };
  * 싶은 순간은 실적을 보고 있는 지금이다. 그래서 여기서 바로 펼친다.
  *
  * 고치지는 않는다. 적어 두는 자리는 결제 수단 화면 하나로 남긴다.
+ *
+ * 결제 수단 화면에서도 같은 부품을 쓴다. 다만 그 화면은 이 달에 얼마를
+ * 그었는지를 모르므로(카드를 적어 두는 자리이지 셈하는 자리가 아니다)
+ * charged 를 싣지 않는다. 그때는 어느 구간을 넘겼는지 표시하지 않는다 —
+ * 모르는 것을 "못 넘겼다"고 적으면 거짓이 된다.
  */
 export default function CardPerkPopup({
   cardName,
@@ -30,8 +35,9 @@ export default function CardPerkPopup({
   cardName: string;
   /** 구간들. 문턱이 낮은 것부터 */
   tiers: PerkTier[];
-  /** 이 달에 그 카드로 그은 돈 — 어느 구간까지 왔는지 표시하는 데 쓴다. */
-  charged: number;
+  /** 이 달에 그 카드로 그은 돈 — 어느 구간까지 왔는지 표시하는 데 쓴다.
+      모르는 자리에서는 싣지 않는다. */
+  charged?: number;
   onClose: () => void;
 }) {
   useBackClose(true, onClose);
@@ -51,7 +57,7 @@ export default function CardPerkPopup({
 
         <div className="popup-body perk-body">
           {tiers.map((t, i) => {
-            const reached = charged >= t.threshold;
+            const reached = charged !== undefined && charged >= t.threshold;
             return (
               <section key={i} className={`perk-tier${reached ? " is-reached" : ""}`}>
                 <header className="perk-tier__head">
@@ -75,13 +81,15 @@ export default function CardPerkPopup({
                             </span>
                           )}
                         </span>
-                        {b.memo && <span className="perk__memo">{b.memo}</span>}
+                        {b.description && (
+                          <span className="perk__desc">{b.description}</span>
+                        )}
                         {/* 대상은 줄로 세운다 — 가게 이름을 여럿 적어 둔 것이 많아
                             알약에 담으면 알약 하나가 서너 줄로 부푼다. */}
                         {b.targets.map((g, k) => (
                           <span key={k} className="perk__target">
                             {g.area && <span className="perk__area">{g.area}</span>}
-                            <span className="perk__stores">{g.stores}</span>
+                            <span className="perk__detail">{g.detail}</span>
                           </span>
                         ))}
                       </li>

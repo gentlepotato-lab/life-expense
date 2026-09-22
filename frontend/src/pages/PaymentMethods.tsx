@@ -23,7 +23,32 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import QuickActions from "./components/QuickActions";
 import CardTierModal, { type BenefitHint, type TierDraft } from "./components/CardTierModal";
+import CardPerkPopup, { type PerkTier } from "./components/CardPerkPopup";
+import useLongPress from "../hooks/useLongPress";
 import { manwon } from "../utils/amount";
+
+/**
+ * 카드 줄 — 꾹 누르면 그 카드의 혜택이 펼쳐진다.
+ *
+ * 줄마다 hook 을 걸어야 해서 따로 떼어 둔다. 고치는 중에는 걸지 않는다 —
+ * 그때는 이름을 누르면 고쳐 쓰는 칸이 되고 끌어 옮기기도 열려 있다.
+ */
+function PmRow({
+  pressable,
+  onPick,
+  children,
+}: {
+  pressable: boolean;
+  onPick: () => void;
+  children: React.ReactNode;
+}) {
+  const { pressing, handlers } = useLongPress(onPick, { disabled: !pressable });
+  return (
+    <div className={`pm-item${pressing ? " is-pressing" : ""}`} {...handlers}>
+      {children}
+    </div>
+  );
+}
 
 function SortableItem({ id, children, dragHandle = false }: any) {
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -98,37 +123,68 @@ export default function PaymentMethods() {
       prev.map((x) => (x.method_id === methodId ? { ...x, annual_fee: value } : x))
     );
 
-  /** 카드 한 장의 구간을 다시 읽는다. */
-  const loadTiers = async (methodId: number) => {
+  /** 카드 한 장의 구간을 다시 읽는다. 받아 온 것을 그대로도 돌려준다 —
+      바로 뒤에 쓰려면 상태가 갱신되기를 기다릴 수 없다. */
+  const loadTiers = async (methodId: number): Promise<TierDraft[]> => {
     try {
-      type RawTarget = { area: string | null; stores: string };
+      type RawTarget = { area: string | null; detail: string };
       type RawBenefit = {
         content: string;
-        memo: string | null;
+        description: string | null;
         limit: number | null;
         targets?: RawTarget[];
       };
       type RawTier = { threshold: number; benefits?: RawBenefit[] };
 
       const r = await axios.get(`/payment-methods/${methodId}/tiers`);
-      setTiers((prev) => ({
-        ...prev,
-        [methodId]: (r.data as RawTier[]).map((t) => ({
-          threshold: String(Math.round(t.threshold)),
-          benefits: (t.benefits ?? []).map((b) => ({
-            content: b.content ?? "",
-            memo: b.memo ?? "",
-            limit: b.limit == null ? "" : String(Math.round(b.limit)),
-            targets: (b.targets ?? []).map((x) => ({
-              area: x.area ?? "",
-              stores: x.stores ?? "",
-            })),
+      const next: TierDraft[] = (r.data as RawTier[]).map((t) => ({
+        threshold: String(Math.round(t.threshold)),
+        benefits: (t.benefits ?? []).map((b) => ({
+          content: b.content ?? "",
+          description: b.description ?? "",
+          limit: b.limit == null ? "" : String(Math.round(b.limit)),
+          targets: (b.targets ?? []).map((x) => ({
+            area: x.area ?? "",
+            detail: x.detail ?? "",
           })),
         })),
       }));
+      setTiers((prev) => ({ ...prev, [methodId]: next }));
+      return next;
     } catch {
       setTiers((prev) => ({ ...prev, [methodId]: [] }));
+      return [];
     }
+  };
+
+  /* 혜택을 펼쳐 볼 카드. 팝업은 보기만 하는 자리라 이름과 구간만 들면 된다. */
+  const [perkOf, setPerkOf] = useState<{ name: string; tiers: PerkTier[] } | null>(null);
+
+  /**
+   * 고쳐 쓰는 꼴(TierDraft)을 보는 꼴(PerkTier)로 옮긴다.
+   *
+   * 고치는 쪽은 칸에 그대로 담기게 글로 들고 있고 보는 쪽은 셈할 수 있게
+   * 숫자로 든다. 한쪽을 다른 쪽에 맞추면 둘 중 하나가 불편해지므로 여기서
+   * 갈아 준다.
+   */
+  const perkTiersOf = (drafts: TierDraft[]): PerkTier[] =>
+    drafts.map((t) => ({
+      threshold: Number(t.threshold) || 0,
+      benefits: t.benefits.map((b) => ({
+        content: b.content,
+        description: b.description || null,
+        limit: b.limit === "" ? null : Number(b.limit),
+        targets: b.targets.map((g) => ({ area: g.area || null, detail: g.detail })),
+      })),
+    }));
+
+  /* 구간은 줄을 펼칠 때 받아 온다. 접힌 채로 꾹 눌러 들어올 수도 있어,
+     아직 없으면 먼저 받아 둔다. 적어 둔 구간이 없으면 펼칠 것이 없다 —
+     빈 팝업을 띄우는 대신 아무 일도 하지 않는다. */
+  const openPerks = async (m: { method_id: number; method_name: string }) => {
+    const drafts = tiers[m.method_id] ?? (await loadTiers(m.method_id));
+    if (!drafts.length) return;
+    setPerkOf({ name: m.method_name, tiers: perkTiersOf(drafts) });
   };
 
   /* 펼칠 때 처음 한 번만 받아 온다 — 카드가 몇 장뿐이라 미리 다 받을 이유가 없다. */
@@ -614,7 +670,10 @@ export default function PaymentMethods() {
             {g.items.map((m) => (
               <Fragment key={m.method_id}>
               <SortableItem id={m.method_id} dragHandle={editMode}>
-                <div className="pm-item">
+                <PmRow
+                  pressable={g.cat?.name === CARD_CATEGORY && !editMode}
+                  onPick={() => openPerks(m)}
+                >
 
                   {editMode && m.editing ? (
                     <input
@@ -645,7 +704,11 @@ export default function PaymentMethods() {
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        width: "100%"
+                        width: "100%",
+                        /* 이 칸이 줄어들 수 있어야 긴 이름이 말줄임된다.
+                           flex 칸의 기본 최소 너비는 글 너비라, 풀어 두지
+                           않으면 이름이 오른쪽 것들을 화면 밖으로 밀어낸다. */
+                        minWidth: 0
                       }}
                     >
                       <span
@@ -725,7 +788,7 @@ export default function PaymentMethods() {
                       label={`${m.method_name} 실적 구간`}
                     />
                   )}
-                </div>
+                </PmRow>
               </SortableItem>
 
                 {g.cat?.name === CARD_CATEGORY && openCards.has(m.method_id) && (
@@ -770,15 +833,27 @@ export default function PaymentMethods() {
                       </div>
                     ))}
 
-                    {/* 테두리 없는 글자 단추 — "모두 펼치기|접기"와 같은 결이다. */}
+                    {/* 테두리 없는 글자 단추 — "모두 펼치기|접기"와 같은 결이다.
+                        [혜택]은 같은 줄 오른쪽 끝에 — 적어 둔 것이 있을 때만. */}
                     {!editMode && (
-                      <button
-                        type="button"
-                        className="set-bulk__btn pm-tier__add"
-                        onClick={() => setTierOf({ method: m, index: -1, draft: null })}
-                      >
-                        [+] 실적 구간별 혜택
-                      </button>
+                      <div className="pm-tier-foot">
+                        <button
+                          type="button"
+                          className="set-bulk__btn pm-tier__add"
+                          onClick={() => setTierOf({ method: m, index: -1, draft: null })}
+                        >
+                          [+] 실적 구간별 혜택
+                        </button>
+                        {(tiers[m.method_id] ?? []).length > 0 && (
+                          <button
+                            type="button"
+                            className="ui-btn small pm-tier__perk"
+                            onClick={() => openPerks(m)}
+                          >
+                            혜택
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -794,6 +869,15 @@ export default function PaymentMethods() {
         </SortableContext>
         </DndContext>
       </div>
+
+      {/* 보기만 하는 혜택 팝업 — 씀씀이의 카드 실적에서 뜨는 그것과 같은 부품 */}
+      {perkOf && (
+        <CardPerkPopup
+          cardName={perkOf.name}
+          tiers={perkOf.tiers}
+          onClose={() => setPerkOf(null)}
+        />
+      )}
 
       {tierOf && (
         <CardTierModal
