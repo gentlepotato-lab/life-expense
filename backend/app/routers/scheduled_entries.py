@@ -274,10 +274,33 @@ def calculate_next_run_at(
     
     # 3단계: 휴일 처리 적용하여 실제 실행 날짜 결정
     target_date = find_nearest_non_holiday(scheduled_date, holiday_handling, db)
-    
+
+    # 3.5단계: 당겨진 날짜가 과거로 넘어갔으면 다음 달로 미룬다.
+    #
+    # 2단계는 휴일 처리 **전** 날짜로 과거인지 따진다. 그런데 '휴일 전'은
+    # 날짜를 앞으로 당기므로, 원래 날짜는 아직 안 왔는데 당겨진 날짜는 이미
+    # 지나 있을 수 있다 — 매월 25일·휴일 전인 스케줄을 추석(2026-09-24~26)
+    # 앞의 9월 23일 오후에 고치면 "9월 23일 오전 10시"가 나왔다. 이미 지난
+    # 자리라 스케줄러가 매분 다시 집어 들고, 화면에도 지난 날로 적힌다.
+    #
+    # 실제로 도는 시각은 당겨진 날짜이므로 그 값으로 다시 따진다. 한 달을
+    # 미루고 휴일 처리를 다시 걸어, 앞으로 올 자리가 나올 때까지 되풀이한다.
+    # 열세 번으로 끊는 것은 한 해를 넘기면 더 볼 것이 없기 때문이다.
+    for _ in range(13):
+        moment = datetime.combine(
+            target_date, datetime.min.time().replace(hour=hour, minute=minute)
+        )
+        if moment > now:
+            break
+        nxt = _first_of_next_month(scheduled_date)
+        scheduled_date = date(
+            nxt.year, nxt.month, day_in_month(nxt.year, nxt.month, day_of_month)
+        )
+        target_date = find_nearest_non_holiday(scheduled_date, holiday_handling, db)
+
     # 4단계: 최종 DateTime 반환
     target_datetime = datetime.combine(target_date, datetime.min.time().replace(hour=hour, minute=minute))
-    
+
     return target_datetime
 
 def process_scheduled_entries(db: Session):
@@ -292,7 +315,10 @@ def process_scheduled_entries(db: Session):
     ).all()
     
     created_count = 0
-    
+    # 만든 것은 없어도 다음 실행 일시만 고쳐 둔 경우를 따로 센다 — 아래 커밋
+    # 조건에 쓴다.
+    fixed_count = 0
+
     for schedule in schedules:
         # 중복 방지 확인
         target_date = schedule.next_run_at.date()
@@ -314,6 +340,7 @@ def process_scheduled_entries(db: Session):
                 db,
                 base_date=_first_of_next_month(schedule.next_run_at.date())
             )
+            fixed_count += 1
             continue
         
         # PendingEntry 생성
@@ -345,9 +372,13 @@ def process_scheduled_entries(db: Session):
             base_date=_first_of_next_month(schedule.next_run_at.date())
         )
     
-    if created_count > 0:
+    # 만든 것이 없어도 고쳐 둔 것이 있으면 담아야 한다. 예전에는 만든 것만
+    # 보고 커밋해서, 중복 막이로 건너뛰며 다시 셈해 둔 다음 실행 일시가
+    # 세션이 닫힐 때 버려졌다 — 같은 스케줄을 매분 다시 집어 드는 꼴이었고,
+    # 다른 스케줄이 같은 분에 걸려 커밋이 일어날 때만 우연히 고쳐졌다.
+    if created_count > 0 or fixed_count > 0:
         db.commit()
-    
+
     return created_count
 
 @router.post("/migrate-next-run-at")
