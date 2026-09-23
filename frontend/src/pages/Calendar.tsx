@@ -390,7 +390,23 @@ export default function Calendar() {
           </div>
 
           <div className="toolbar-btns">
-            {/* 날짜를 고르면 필터 왼쪽에 나타난다 */}
+            {/* 날짜를 고르면 필터 왼쪽에 둘이 나타난다 — 고른 것을 무르는
+                [초기화]가 왼쪽, 보러 가는 [상세]가 오른쪽. 불은 하려던 일
+                하나에만 켜 둔다. */}
+            {pick.length > 0 && (
+              <button
+                type="button"
+                className="filter-pill"
+                onClick={() => setPick([])}
+                title={
+                  pick.length === 1
+                    ? `${pick[0]}일을 뺀다.`
+                    : `고른 ${pick.length}일을 모두 뺀다.`
+                }
+              >
+                초기화
+              </button>
+            )}
             {pick.length > 0 && (
               <button
                 type="button"
