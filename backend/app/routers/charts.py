@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from app.deps import SessionDep
 
-# 자리는 main.py에서 /api/charts로 붙인다
+# 자리는 main.py에서 /api/charts로 붙인다.
 router = APIRouter()
 
 

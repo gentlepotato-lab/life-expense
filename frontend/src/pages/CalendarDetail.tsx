@@ -66,7 +66,7 @@ export default function CalendarDetail() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  /* 고른 날들. 예전 주소로 들어오면 from~to 사이를 채워 같은 꼴로 만든다 */
+  /* 고른 날들. 예전 주소로 들어오면 from~to 사이를 채워 같은 꼴로 만든다. */
   const days = useMemo(() => {
     const listed = (params.get("days") ?? "").split(",").filter(Boolean);
     if (listed.length) return [...new Set(listed)].sort();
@@ -313,7 +313,7 @@ export default function CalendarDetail() {
   );
 
   /* 머리말 — 죽 이어 고르면 예전처럼 "8. 3. ~ 8. 7.", 띄엄띄엄 고르면 날을 늘어놓는다.
-     너무 길어지면 앞의 둘만 적고 나머지는 수로 접는다 */
+     너무 길어지면 앞의 둘만 적고 나머지는 수로 접는다. */
   const rangeLabel = useMemo(() => {
     if (!days.length) return "";
     if (days.length === 1) return shortDate(days[0]);

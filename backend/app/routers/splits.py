@@ -3,7 +3,7 @@
 
 설계 요지
   · 원본 금액(amount)은 결제 총액 그대로 둔다. 여기서는 건드리지 않는다.
-  · 실지출 = amount - SUM(splits) 이며, 정의는 v_*_net 뷰에 있다.
+  · 실지출 = amount - SUM(splits)이며, 정의는 v_*_net 뷰에 있다.
   · 분할은 자기 자신을 쪼갤 수 없으므로 깊이는 항상 1이다.
 
 내역은 scheduled → pending → entries로 흘러가고 각 단계에 같은 모양의

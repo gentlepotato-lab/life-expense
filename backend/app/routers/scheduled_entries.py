@@ -13,7 +13,7 @@ from app.routers.splits import copy_splits
 
 router = APIRouter()
 
-# `말일` 을 가리키는 day_of_month 값.
+# `말일`을 가리키는 day_of_month 값.
 #
 # 달마다 끝 날이 달라 하나의 숫자로는 적을 수 없다. 1~31 바깥의 값을 하나
 # 정해 두고 셈할 때 그 달의 끝 날로 바꿔 쓴다. 0이 아니라 32인 것은, 0이
@@ -22,7 +22,7 @@ LAST_DAY = 32
 
 
 def day_in_month(year: int, month: int, day_of_month: int) -> int:
-    """그 달에서 실제로 쓸 날. 말일이면 그 달의 끝 날로 바꾼다"""
+    """그 달에서 실제로 쓸 날. 말일이면 그 달의 끝 날로 바꾼다."""
     if day_of_month >= LAST_DAY:
         return calendar.monthrange(year, month)[1]
     return day_of_month
@@ -39,7 +39,7 @@ def list_scheduled_entries(db: SessionDep = Depends()):
         for p in db.query(Place).filter(Place.place_id.in_(place_ids)).all():
             place_names[p.place_id] = p.place_name
 
-    # 분할 합계도 한 번에 모은다(스케줄은 건수가 적어 단순 집계로 충분하다)
+    # 분할 합계도 한 번에 모은다(스케줄은 건수가 적어 단순 집계로 충분하다).
     split_agg: dict[int, tuple[float, int]] = {}
     # 달력이 "함께한 상대"로 걸러 낼 때 쓸 상대 ID도 함께 모은다.
     cp_agg: dict[int, list[int]] = {}

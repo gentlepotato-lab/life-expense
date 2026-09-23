@@ -78,7 +78,7 @@ API = "/api"
 #   /api/holidays          holidays.py           (화면 없음)
 #
 # 자리는 여기 한 곳에서만 붙인다. 라우터 파일 안에서 또 붙이지 않는다.
-# 예전에는 분류·결제 수단·상대가 /api/meta 라는 껍데기 밑에 묶여 있었는데,
+# 예전에는 분류·결제 수단·상대가 /api/meta라는 껍데기 밑에 묶여 있었는데,
 # 셋 다 어엿한 자원이라 그 껍데기를 없앴다.
 app.include_router(categories.router, prefix=f"{API}/categories", tags=["categories"])
 app.include_router(payment_methods.router, prefix=f"{API}/payment-methods", tags=["payment_methods"])

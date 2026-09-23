@@ -91,7 +91,7 @@ export default function Calendar() {
   /* 눌러서 고른 기간.
      한 번 누르면 시작일만 잡히고(end === null), 한 번 더 누르면 끝일까지 잡힌다.
      시작일만 잡힌 상태에서 같은 날 또는 달력 바깥을 누르면 고르기를 접는다. */
-  /* 고른 날들. 이어진 기간일 필요가 없어 그냥 날짜를 담아 둔다 */
+  /* 고른 날들. 이어진 기간일 필요가 없어 그냥 날짜를 담아 둔다. */
   const [pick, setPick] = useState<number[]>(() => kept?.pick ?? []);
   const calRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
@@ -273,7 +273,7 @@ export default function Calendar() {
   const startSumReveal = useRevealDrag(setSumRevealed);
   const sumMasked = monthSum.hasBlur && !sumRevealed;
 
-  /** 날짜 한 칸을 눌렀을 때 — 담겨 있으면 빼고, 없으면 담는다 */
+  /** 날짜 한 칸을 눌렀을 때 — 담겨 있으면 빼고, 없으면 담는다. */
   const pickDay = useCallback((day: number) => {
     setPick((prev) =>
       prev.includes(day)
@@ -287,7 +287,7 @@ export default function Calendar() {
      떼는 순간 그 사이를 통째로 담는다. 한 칸 안에서 누르고 떼면 그냥 하루를
      누른 것으로 본다.
 
-     손가락이 지나간 칸은 pointermove 가 알려 주지 않는다 — 누른 칸이 이후
+     손가락이 지나간 칸은 pointermove가 알려 주지 않는다 — 누른 칸이 이후
      신호를 붙잡기(setPointerCapture) 때문이다. 그래서 좌표로 어느 칸 위인지
      되짚는다. 마우스와 손가락을 한 갈래로 다루려면 이 편이 낫다. */
   const dragFrom = useRef<number | null>(null);
@@ -333,12 +333,12 @@ export default function Calendar() {
     setDragTo(null);
     if (from === null) return;
 
-    /* 한 칸 안에서 누르고 뗐다 — 하루를 담거나 뺀다 */
+    /* 한 칸 안에서 누르고 뗐다 — 하루를 담거나 뺀다. */
     if (!dragMoved.current || to === null || to === from) {
       pickDay(from);
       return;
     }
-    /* 끌었다 — 지나온 날을 통째로 담는다. 이미 담긴 날은 그대로 둔다 */
+    /* 끌었다 — 지나온 날을 통째로 담는다. 이미 담긴 날은 그대로 둔다. */
     const lo = Math.min(from, to);
     const hi = Math.max(from, to);
     setPick((prev) => {
@@ -356,7 +356,7 @@ export default function Calendar() {
   const openDetail = useCallback(() => {
     if (!pick.length) return;
     const pad = (n: number) => String(n).padStart(2, "0");
-    /* 고른 날을 그대로 죽 적어 보낸다 — 이어져 있을 필요가 없다 */
+    /* 고른 날을 그대로 죽 적어 보낸다 — 이어져 있을 필요가 없다. */
     const days = pick.map((d) => `${yearMonth}-${pad(d)}`).join(",");
     const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
     /* 되돌아왔을 때 이 자리가 그대로이도록 맡겨 둔다. */
@@ -515,7 +515,7 @@ export default function Calendar() {
 
             /* 고른 날 표시. 끄는 중이면 그 사이도 미리 담긴 것처럼 보여 준다.
                앞뒤로 이어진 날이 없을 때만 그 자리에서 끝을 둥글게 하므로,
-               나란한 날을 고르면 한 줄로 이어져 보인다 */
+               나란한 날을 고르면 한 줄로 이어져 보인다. */
             const inDrag = (d: number) =>
               dragFrom.current !== null &&
               dragTo !== null &&
@@ -541,8 +541,8 @@ export default function Calendar() {
                 onPointerMove={onCellMove}
                 onPointerUp={onCellUp}
                 onPointerCancel={onCellUp}
-                /* 손짓을 pointer 로 옮기면서 키보드가 갈 곳을 잃었다.
-                   Enter · Space 는 하루를 담고 빼는 것으로 받는다 */
+                /* 손짓을 pointer로 옮기면서 키보드가 갈 곳을 잃었다.
+                   Enter · Space는 하루를 담고 빼는 것으로 받는다. */
                 onKeyDown={(e) => {
                   if (e.key !== "Enter" && e.key !== " ") return;
                   e.preventDefault();

@@ -65,7 +65,7 @@ END $$;
 CREATE INDEX IF NOT EXISTS payment_methods_category_idx
     ON life_expense.payment_methods (category_id);
 
--- 기존 문자열 값으로 채워 둔다(현재는 전부 NULL이라 바뀌는 행이 없다)
+-- 기존 문자열 값으로 채워 둔다(현재는 전부 NULL이라 바뀌는 행이 없다).
 UPDATE life_expense.payment_methods p
    SET category_id = c.category_id
   FROM life_expense.payment_method_categories c

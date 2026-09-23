@@ -21,7 +21,7 @@ export type BoardPlace = {
   used_count: number;
   total: number;
   last_used: string | null;
-  /** 가려 둔 갈래가 한 건이라도 섞여 있는지 — 금액에 테이프를 붙일지 가린다 */
+  /** 가려 둔 갈래가 한 건이라도 섞여 있는지 — 금액에 테이프를 붙일지 가린다. */
   has_blur: boolean;
 };
 
@@ -118,13 +118,13 @@ export type BoardNode = {
   /** 그 곳들에 다녀온 횟수를 다 더한 것 */
   visits: number;
   total: number;
-  /** 든 곳 가운데 하나라도 가려 둔 것이 섞였는지 — 묶음 금액도 그만큼 가린다 */
+  /** 든 곳 가운데 하나라도 가려 둔 것이 섞였는지 — 묶음 금액도 그만큼 가린다. */
   hasBlur: boolean;
   places: BoardPlace[];
   children: BoardNode[];
 };
 
-/** 이름 · 동네 · 업종 어느 쪽으로 쳐도 걸리게 한다 */
+/** 이름 · 동네 · 업종 어느 쪽으로 쳐도 걸리게 한다. */
 export function narrow(rows: BoardPlace[], q: string): BoardPlace[] {
   const key = q.trim().toLowerCase();
   if (!key) return rows;

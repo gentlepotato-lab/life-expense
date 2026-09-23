@@ -18,11 +18,11 @@ import { putPrefs } from "../utils/prefs";
  *
  * 프로필 칸은 바깥 인증(구글·카카오)이 돌려주는 것에 맞춰 두었다. 아직 로그인이
  * 없어 손으로 적지만, 나중에 로그인을 붙이면 그 값이 그대로 이 자리에 들어온다.
- * 그래서 provider 가 있는 줄은 손으로 고치지 못하게 막아 둔다 — 바깥에서 온 것을
+ * 그래서 provider가 있는 줄은 손으로 고치지 못하게 막아 둔다 — 바깥에서 온 것을
  * 여기서 덮어써 봐야 다음 로그인에 다시 덮인다.
  *
  * 틀은 씀씀이·잔소리가 쓰는 카드(.chart-card)를 그대로 쓴다. 고치는 흐름은
- * 설정 세 화면과 같다 — [편집] 으로 열고 [저장] 으로 담는다.
+ * 설정 세 화면과 같다 — [편집]으로 열고 [저장]으로 담는다.
  */
 
 type Profile = {
@@ -58,7 +58,7 @@ const EMPTY: Profile = {
 
 const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
 
-/** 어디로 들어왔는지 — 로그인을 붙이면 여기 이름이 찍힌다 */
+/** 어디로 들어왔는지 — 로그인을 붙이면 여기 이름이 찍힌다. */
 const PROVIDER_NAME: Record<string, string> = { google: "구글", kakao: "카카오" };
 
 /**
@@ -108,7 +108,7 @@ function RankRow({ rank, name, right }: { rank: number; name: string; right: str
   );
 }
 
-/** 곳간에 쌓인 것 — 청록 딱지로 늘어놓는다 */
+/** 곳간에 쌓인 것 — 청록 딱지로 늘어놓는다. */
 function Tags({ items }: { items: string[] }) {
   return (
     <div className="tag-row">
@@ -127,7 +127,7 @@ export default function Me() {
   const [prefs, setPrefs] = useState<Prefs>({});
   const [summary, setSummary] = useState<Summary | null>(null);
   const [ready, setReady] = useState(false);
-  /* [편집] 을 누른 순간의 모습 — 바뀐 것이 없으면 그렇게 알린다 */
+  /* [편집]을 누른 순간의 모습 — 바뀐 것이 없으면 그렇게 알린다. */
   const [before, setBefore] = useState("");
 
   const load = () => {
@@ -178,7 +178,7 @@ export default function Me() {
     }
   };
 
-  /* 바깥에서 온 프로필은 손으로 고치지 못한다 — 다음 로그인에 다시 덮인다 */
+  /* 바깥에서 온 프로필은 손으로 고치지 못한다 — 다음 로그인에 다시 덮인다. */
   const fromOutside = !!profile.provider;
   const face = profile.emoji || "🙂";
   const name = profile.display_name || "이름 없음";
@@ -454,7 +454,7 @@ export default function Me() {
               </div>
             </div>
 
-            {/* 마스킹 테이프 — 고르는 것은 위 넷과 같다. [저장] 을 눌러야 담기고,
+            {/* 마스킹 테이프 — 고르는 것은 위 넷과 같다. [저장]을 눌러야 담기고,
                 담기는 그때 화면 곳곳의 테이프가 바뀐다. */}
             <div className="me-pref me-pref--tape">
               <span className="me-pref__name">마스킹 테이프</span>

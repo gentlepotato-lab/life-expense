@@ -6,7 +6,7 @@ from sqlalchemy import text
 from app.deps import SessionDep
 from app.xlsx import sheet_bytes
 
-# 자리는 main.py에서 /api/profile로 붙인다
+# 자리는 main.py에서 /api/profile로 붙인다.
 router = APIRouter()
 
 # 담아 두는 앱 설정. 여기 없는 열쇠는 받지 않는다 —
@@ -19,7 +19,7 @@ PREF_KEYS = {
     # 내역 세 화면에서 카드 아래 메모 판을 보일지. 끄면 메모는 꾹 눌러 뜨는
     # 편집 팝업에서만 본다.
     "memo_show": "1",
-    # 금액을 가리는 마스킹 테이프. 화면이 아는 일곱 가지 가운데 하나다
+    # 금액을 가리는 마스킹 테이프. 화면이 아는 일곱 가지 가운데 하나다.
     # (frontend/src/utils/tapes.ts).
     "tape_style": "flower",
 }
@@ -30,7 +30,7 @@ def get_profile(db: SessionDep = Depends()):
     """
     쓰는 사람. 아직 아무것도 적지 않았으면 빈 줄을 돌려준다.
 
-    칸은 바깥 인증이 돌려주는 것에 맞춰 두었다. provider 가 비어 있으면
+    칸은 바깥 인증이 돌려주는 것에 맞춰 두었다. provider가 비어 있으면
     사람이 손으로 적어 넣은 것이다.
     """
     row = db.execute(text("""
@@ -52,7 +52,7 @@ def get_profile(db: SessionDep = Depends()):
 
 @router.post("")
 def save_profile(payload: dict, db: SessionDep = Depends()):
-    """손으로 적는 것만 고친다 — provider·provider_id 는 로그인이 채울 자리다"""
+    """손으로 적는 것만 고친다 — provider·provider_id는 로그인이 채울 자리다."""
     def cut(key: str, size: int) -> str | None:
         v = (payload.get(key) or "").strip()
         if not v:
@@ -93,7 +93,7 @@ def save_profile(payload: dict, db: SessionDep = Depends()):
 
 @router.get("/prefs")
 def get_prefs(db: SessionDep = Depends()):
-    """앱 설정. 담아 둔 것이 없으면 기본값을 돌려준다"""
+    """앱 설정. 담아 둔 것이 없으면 기본값을 돌려준다."""
     rows = db.execute(text("""
         SELECT pref_key, pref_value FROM life_expense.app_prefs
     """)).mappings().all()
@@ -131,7 +131,7 @@ def get_summary(db: SessionDep = Depends()):
 
     화면이 세 달치를 받아 세는 대신 여기서 한 번에 센다 — 처음 적은 날부터
     지금까지가 셈의 바탕이라 화면으로 다 내려보낼 것이 아니다.
-    실지출은 v_entries_net 을 쓴다. 다른 화면과 같은 잣대여야 한다.
+    실지출은 v_entries_net을 쓴다. 다른 화면과 같은 잣대여야 한다.
     """
     span = db.execute(text("""
         SELECT MIN(tx_date) AS first_day
@@ -208,7 +208,7 @@ def get_summary(db: SessionDep = Depends()):
          LIMIT 1
     """)).mappings().first()
 
-    # 가장 길게 이어 적은 날 — 날짜에서 순번을 빼면 이어진 날끼리 같은 값이 된다
+    # 가장 길게 이어 적은 날 — 날짜에서 순번을 빼면 이어진 날끼리 같은 값이 된다.
     streak = db.execute(text("""
         WITH days AS (
             SELECT DISTINCT tx_date FROM life_expense.entries WHERE inout <> 1
@@ -263,7 +263,7 @@ def export_all(db: SessionDep = Depends()):
     적어 온 것을 통째로 파일 하나에 담는다.
 
     표를 그대로 옮긴다 — 화면이 셈한 값이 아니라 날것이라야 되살릴 수 있다.
-    날짜·시각·소수는 글자로 바꾼다. JSON 이 그것들을 모른다.
+    날짜·시각·소수는 글자로 바꾼다. JSON이 그것들을 모른다.
     """
     from datetime import date, datetime
     from decimal import Decimal
@@ -292,7 +292,7 @@ def export_all(db: SessionDep = Depends()):
     )
 
 
-# 내려받는 지출 내역의 머리글과 뽑는 말. CSV 와 엑셀이 같은 것을 내려보내야
+# 내려받는 지출 내역의 머리글과 뽑는 말. CSV와 엑셀이 같은 것을 내려보내야
 # 하므로 한자리에 둔다 — 한쪽만 고쳐 둘이 어긋나는 일을 막는다.
 ENTRY_HEAD = ["날짜", "중분류", "소분류", "세분류", "결제 수단", "장소", "메모", "결제액", "실지출"]
 
@@ -313,7 +313,7 @@ ENTRY_SQL = """
 
 
 def entry_rows(db) -> list[list]:
-    """머리글 차례대로 한 줄씩. 날짜와 금액은 값 그대로 둔다"""
+    """머리글 차례대로 한 줄씩. 날짜와 금액은 값 그대로 둔다."""
     rows = db.execute(text(ENTRY_SQL)).mappings().all()
     return [
         [
@@ -327,7 +327,7 @@ def entry_rows(db) -> list[list]:
 
 @router.get("/export/entries.csv")
 def export_entries_csv(db: SessionDep = Depends()):
-    """지출 내역만 CSV 로. 표 프로그램에서 바로 열어 보려는 자리다"""
+    """지출 내역만 CSV로. 표 프로그램에서 바로 열어 보려는 자리다."""
     import csv
     import io as _io
 
@@ -339,7 +339,7 @@ def export_entries_csv(db: SessionDep = Depends()):
 
     from datetime import datetime
     stamp = datetime.now().strftime("%Y%m%d")
-    # 엑셀이 한글을 알아보도록 BOM 을 앞에 둔다
+    # 엑셀이 한글을 알아보도록 BOM을 앞에 둔다.
     return Response(
         content="﻿" + buf.getvalue(),
         media_type="text/csv; charset=utf-8",
@@ -352,7 +352,7 @@ def export_entries_xlsx(db: SessionDep = Depends()):
     """
     지출 내역을 엑셀로.
 
-    CSV 와 같은 것을 담지만 날짜는 날짜로, 금액은 숫자로 들어간다. 받아서
+    CSV와 같은 것을 담지만 날짜는 날짜로, 금액은 숫자로 들어간다. 받아서
     바로 걸러 보고 더해 보려면 그래야 한다.
     """
     from datetime import datetime

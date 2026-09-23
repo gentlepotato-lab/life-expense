@@ -267,7 +267,7 @@ export default function Places() {
       />
     ));
 
-  /** 묶음 머리말 — 겹에 따라 크기만 다르고 짜임은 같다 */
+  /** 묶음 머리말 — 겹에 따라 크기만 다르고 짜임은 같다. */
   const head = (node: BoardNode, deep: boolean) => (
     <div className={`wh-head${deep ? " wh-head--in" : ""}`}>
       <CollapseToggle

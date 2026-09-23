@@ -10,7 +10,7 @@ import { monthOptions, type Period } from "../../utils/placeBoard";
  * 달 단위로만 고른다 — 어느 동네를 다녔는지는 달로 보면 되고, 날짜까지
  * 고르게 하면 고르는 일이 셈보다 번거로워진다.
  *
- * 고르는 동안에는 팝업 안에서만 바뀌고, [적용] 을 눌러야 화면이 다시 받아
+ * 고르는 동안에는 팝업 안에서만 바뀌고, [적용]을 눌러야 화면이 다시 받아
  * 온다. 달을 하나 옮길 때마다 500곳을 다시 받아 오면 손이 무겁다.
  */
 export default function PlacePeriodPopup({

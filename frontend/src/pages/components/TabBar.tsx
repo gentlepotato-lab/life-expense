@@ -52,7 +52,7 @@ const TABS: Tab[] = [
     label: "내역",
     to: "/history",
     /* 기간 내역은 달력에 딸린 곁가지라 갈래 탭에 자리가 없다. 그래서
-       ENTRY_TABS 에는 없고 여기에만 따로 붙인다. */
+       ENTRY_TABS에는 없고 여기에만 따로 붙인다. */
     match: ["/history", ...ENTRY_TABS, "/calendar/detail"],
     icon: (
       <svg viewBox="0 0 24 24" {...stroke}>
@@ -65,7 +65,7 @@ const TABS: Tab[] = [
     label: "설정",
     to: "/settings",
     /* 안쓴이 도전이 빠져 있어 그 화면에서는 세 묶음이 모두 꺼져 있었다.
-       목록을 따로 적지 않고 SETTING_TABS 를 그대로 본다 — 설정에 화면을
+       목록을 따로 적지 않고 SETTING_TABS를 그대로 본다 — 설정에 화면을
        더해도 막대가 저절로 따라온다. */
     match: ["/settings", ...SETTING_TABS],
     icon: (

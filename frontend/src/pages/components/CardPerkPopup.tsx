@@ -23,7 +23,7 @@ export type PerkTier = { threshold: number; benefits: PerkBenefit[] };
  *
  * 결제 수단 화면에서도 같은 부품을 쓴다. 다만 그 화면은 이 달에 얼마를
  * 그었는지를 모르므로(카드를 적어 두는 자리이지 셈하는 자리가 아니다)
- * charged 를 싣지 않는다. 그때는 어느 구간을 넘겼는지 표시하지 않는다 —
+ * charged를 싣지 않는다. 그때는 어느 구간을 넘겼는지 표시하지 않는다 —
  * 모르는 것을 "못 넘겼다"고 적으면 거짓이 된다.
  */
 export default function CardPerkPopup({

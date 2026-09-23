@@ -20,11 +20,11 @@ import CollapseToggle from "./CollapseToggle";
  * 않게 하려는 것이다 — 두 줄까지는 그대로 다 보인다.
  *
  * 펼치는 손잡이는 이 판의 접기 손잡이(CollapseToggle)를 그대로 쓰고, 끊긴
- * 끝의 (...) 와 **같은 줄** 오른쪽에 둔다. 제 줄을 통째로 차지하면 두 줄을
+ * 끝의 (...)와 **같은 줄** 오른쪽에 둔다. 제 줄을 통째로 차지하면 두 줄을
  * 보이려고 세 줄만큼 자리를 쓰는 셈이 된다.
  */
 
-/** 두 줄에 해당하는 키. CSS의 --memo-two 와 같아야 한다. */
+/** 두 줄에 해당하는 키. CSS의 --memo-two와 같아야 한다. */
 const TWO_LINES = 40;
 
 export default function MemoPad({ memo }: { memo: string | null | undefined }) {
@@ -58,7 +58,7 @@ export default function MemoPad({ memo }: { memo: string | null | undefined }) {
         <div ref={bodyRef} className={`memo-body${cut ? " is-cut" : ""}`}>
           {text}
         </div>
-        {/* 끊긴 끝 — 뒤쪽을 길게 걸쳐 옅어지다 (...) 로 이어진다. 짧게 덮으면
+        {/* 끊긴 끝 — 뒤쪽을 길게 걸쳐 옅어지다 (...)로 이어진다. 짧게 덮으면
             끝이 딱 떨어져 테이프를 붙여 놓은 것처럼 보인다. */}
         {cut && (
           <span className="memo-fade" aria-hidden="true">

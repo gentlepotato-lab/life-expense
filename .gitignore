@@ -43,7 +43,7 @@ htmlcov/
 .tox/
 .hypothesis/
 
-# Node.js (프로젝트 루트에 있을 경우)
+# Node.js(프로젝트 루트에 있을 경우)
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -55,7 +55,7 @@ lerna-debug.log*
 dist/
 build/
 *.tsbuildinfo
-# *.ini  ← TO-BE: alembic.ini 까지 무시되어 비활성화
+# *.ini  ← TO-BE: alembic.ini까지 무시되어 비활성화
 
 # 환경 변수 파일
 .env
@@ -94,7 +94,7 @@ Thumbs.db
 .AppleDouble
 .LSOverride
 
-# 압축 파일 (필요시 주석 해제)
+# 압축 파일(필요시 주석 해제)
 *.zip
 *.tar.gz
 *.rar
@@ -122,12 +122,12 @@ build-*.bat
 start-*.bat
 stop-*.bat
 # ─────────────────────────────────────────────
-# TO-BE 보완 (2026-08-09)
+# TO-BE 보완(2026-08-09)
 # ─────────────────────────────────────────────
 
 # 런타임 산출물
 .api.pid
 
-# 설정 예시 파일은 추적한다 (실제 .env 는 위에서 계속 무시됨)
+# 설정 예시 파일은 추적한다(실제 .env는 위에서 계속 무시됨).
 !.env.example
 !**/.env.example

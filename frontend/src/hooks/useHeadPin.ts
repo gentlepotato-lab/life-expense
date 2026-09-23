@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom";
 /**
  * 머리말과 첫 줄 도구를 위에 붙인다.
  *
- * 내용이 긴 화면에서는 [편집] 이나 [필터] 를 한 번 누르려고 맨 위까지 되감아
+ * 내용이 긴 화면에서는 [편집]이나 [필터]를 한 번 누르려고 맨 위까지 되감아
  * 올라가야 했다. 그렇다고 늘 붙여 두면 좁은 화면에서 볼 자리를 그만큼
  * 빼앗는다. 그래서 내릴 때는 함께 밀려 올라가 사라지고, 올릴 때 다시
  * 내려온다 — 되감으려는 손짓이 곧 부르는 손짓이다.
@@ -18,22 +18,22 @@ import { useLocation } from "react-router-dom";
  * 굴렸는지만 알려 준다(html.pin-off).
  */
 
-/** 붙일 도구 줄 — 본문 맨 앞에 오는 것만 고른다 */
+/** 붙일 도구 줄 — 본문 맨 앞에 오는 것만 고른다. */
 const TOOLS = [
   ".toolbar-wrap",
   ".cat-toolbar",
   ".cal-sources",
 ];
 
-/** 손이 흔들리는 정도로는 감추지 않는다 */
+/** 손이 흔들리는 정도로는 감추지 않는다. */
 const NUDGE = 6;
 
-/** 이만큼 내려가기 전에는 늘 보인다 — 위쪽에서는 감출 것이 없다 */
+/** 이만큼 내려가기 전에는 늘 보인다 — 위쪽에서는 감출 것이 없다. */
 const FREE = 8;
 
 const PIN_OFF = "pin-off";
 
-/** 머리말 다음에 붙일 것들을 위에서부터 차례로 모은다 */
+/** 머리말 다음에 붙일 것들을 위에서부터 차례로 모은다. */
 function pinnedNow(): HTMLElement[] {
   const out: HTMLElement[] = [];
   const head = document.querySelector<HTMLElement>(".page-head");
@@ -63,7 +63,7 @@ export default function useHeadPin() {
     const docEl = document.documentElement;
     let marked: HTMLElement[] = [];
 
-    /** 몇 픽셀에 설지 위에서부터 쌓아 정한다 */
+    /** 몇 픽셀에 설지 위에서부터 쌓아 정한다. */
     const measure = () => {
       const now = pinnedNow();
 

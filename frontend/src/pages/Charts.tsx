@@ -488,14 +488,14 @@ const TIP_PROPS = {
   wrapperStyle: { outline: "none" },
 };
 
-/** 그림 카드 하나가 들고 있는 것 — 껍데기는 ChartCardBox 가 씌운다 */
+/** 그림 카드 하나가 들고 있는 것 — 껍데기는 ChartCardBox가 씌운다. */
 type CardDef = { key: string; name: string; node: React.ReactNode };
 
 /* 카드 열쇠와 그 차례. 그림은 달마다 새로 그려지지만 열쇠는 그대로라
-   바깥에 둔다 — 안에 두면 그릴 때마다 새 배열이 되어 훅이 헛돈다 */
+   바깥에 둔다 — 안에 두면 그릴 때마다 새 배열이 되어 훅이 헛돈다. */
 const CARD_KEYS = ["daily", "cumulative", "trend", "cat1", "pay", "weekday"];
 
-/* 처음 넓이 — 사람이 고치기 전까지 쓰는 값. 가로로 긴 그림은 한 줄을 다 쓴다 */
+/* 처음 넓이 — 사람이 고치기 전까지 쓰는 값. 가로로 긴 그림은 한 줄을 다 쓴다. */
 const CARD_WIDE = ["daily", "cumulative", "trend", "weekday"];
 
 /**
@@ -518,7 +518,7 @@ function ChartCardBox({
   def: CardDef;
   editMode: boolean;
   hidden: boolean;
-  /** 한 줄을 다 쓰는가. 좁은 화면에서는 어차피 한 줄에 하나씩이라 뜻이 없다 */
+  /** 한 줄을 다 쓰는가. 좁은 화면에서는 어차피 한 줄에 하나씩이라 뜻이 없다. */
   wide: boolean;
   onToggleHide: () => void;
   onToggleWide: () => void;
@@ -612,13 +612,13 @@ export default function Charts() {
 
   const [filterOpen, setFilterOpen] = useState(false);
 
-  /* 그림 카드의 차례와 감춤 — 다른 설정 화면처럼 [편집] 을 눌러야 손댈 수 있다 */
+  /* 그림 카드의 차례와 감춤 — 다른 설정 화면처럼 [편집]을 눌러야 손댈 수 있다. */
   const [editMode, setEditMode] = useState(false);
   const [cardOrder, setCardOrder] = useState<string[]>([]);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  /* 한 줄을 다 쓰는 카드. 처음 값은 코드가 적어 둔 것을 따른다 */
+  /* 한 줄을 다 쓰는 카드. 처음 값은 코드가 적어 둔 것을 따른다. */
   const [wideSet, setWideSet] = useState<Set<string>>(new Set());
-  /* [편집] 을 누른 순간의 모습 — 바뀐 것이 없으면 그렇게 알린다 */
+  /* [편집]을 누른 순간의 모습 — 바뀐 것이 없으면 그렇게 알린다. */
   const [beforeEdit, setBeforeEdit] = useState("");
   const [filter, setFilter] = useState<Filter>(() => kept?.filter ?? EMPTY_FILTER);
   const [appliedFilter, setAppliedFilter] = useState<Filter>(() => kept?.appliedFilter ?? EMPTY_FILTER);
@@ -1200,8 +1200,8 @@ export default function Charts() {
   const empty = shown.length === 0;
 
   /* 그림 카드 여섯. 코드가 적어 둔 이 차례가 기본값이고, 사람이 바꾼 차례는
-     서버에 담아 두었다가 덮어쓴다. 껍데기(카드 틀·손잡이)는 ChartCardBox 가
-     맡으므로 여기에는 안쪽 그림만 든다 */
+     서버에 담아 두었다가 덮어쓴다. 껍데기(카드 틀·손잡이)는 ChartCardBox가
+     맡으므로 여기에는 안쪽 그림만 든다. */
   const CARD_DEFS: CardDef[] = [
     {
       key: "daily",
@@ -1506,14 +1506,14 @@ export default function Charts() {
     },
   ];
 
-  /* 끌기는 편집 모드에서만 산다. 설정 화면들이 쓰는 것과 같은 감지기다 */
+  /* 끌기는 편집 모드에서만 산다. 설정 화면들이 쓰는 것과 같은 감지기다. */
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 160, tolerance: 6 } })
   );
 
   /* 담아 둔 차례와 감춤을 받아 온다. 표에 없는 카드는 코드가 적어 둔
-     차례 그대로 맨 뒤에 선다 — 그림을 새로 만들어도 저절로 따라온다 */
+     차례 그대로 맨 뒤에 선다 — 그림을 새로 만들어도 저절로 따라온다. */
   useEffect(() => {
     axios
       .get("/charts/cards")
@@ -1522,7 +1522,7 @@ export default function Charts() {
         const saved = rows.map((x) => x.card_key).filter((k) => CARD_KEYS.includes(k));
         setCardOrder([...saved, ...CARD_KEYS.filter((k) => !saved.includes(k))]);
         setHidden(new Set(rows.filter((x) => !x.is_active).map((x) => x.card_key)));
-        /* 담아 둔 것이 있으면 그것을, 없으면 코드가 적어 둔 넓이를 쓴다 */
+        /* 담아 둔 것이 있으면 그것을, 없으면 코드가 적어 둔 넓이를 쓴다. */
         setWideSet(
           new Set(
             CARD_KEYS.filter((k) => {
@@ -1539,7 +1539,7 @@ export default function Charts() {
   }, []);
 
   /* 그릴 카드 — 평소에는 감춘 것을 빼고, 편집 모드에서는 되살릴 수 있도록 남긴다.
-     여섯 장뿐이라 따로 기억해 둘 것 없이 그때그때 고른다 */
+     여섯 장뿐이라 따로 기억해 둘 것 없이 그때그때 고른다. */
   const byKey = new Map(CARD_DEFS.map((c) => [c.key, c]));
   const shownCards = (cardOrder.map((k) => byKey.get(k)).filter(Boolean) as CardDef[])
     .filter((c) => editMode || !hidden.has(c.key));
@@ -1576,7 +1576,7 @@ export default function Charts() {
   const stamp = (order: string[], off: Set<string>, big: Set<string>) =>
     JSON.stringify(order.map((k) => [k, off.has(k) ? 0 : 1, big.has(k) ? 2 : 1]));
 
-  /* 다른 설정 화면과 같은 흐름 — [편집] 으로 열고 [저장] 으로 담는다 */
+  /* 다른 설정 화면과 같은 흐름 — [편집]으로 열고 [저장]으로 담는다. */
   const toggleEdit = async () => {
     if (!editMode) {
       setBeforeEdit(stamp(cardOrder, hidden, wideSet));

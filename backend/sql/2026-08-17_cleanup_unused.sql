@@ -9,7 +9,7 @@
 --      결제 수단 구분을 제대로 된 분류 표로 올리면서 쓸 일이 없어졌다.
 --      담긴 행도 0건이다.
 --
---   2) payment_methods.category (문자열)
+--   2) payment_methods.category(문자열)
 --      구분을 문자열로 들고 있던 시절의 컬럼이다.
 --      지금은 payment_methods.category_id가 분류 행을 가리키고,
 --      조회는 그 행의 이름을 가져오므로 읽는 곳이 없다.

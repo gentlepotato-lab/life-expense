@@ -4,7 +4,7 @@
   사용법:
     .\lab.ps1 api        백엔드(uvicorn) 포그라운드 실행 :18101
     .\lab.ps1 api-bg     백엔드 백그라운드 실행
-    .\lab.ps1 dev        프론트 개발 서버 :28101 (백엔드 프록시 포함)
+    .\lab.ps1 dev        프론트 개발 서버 :28101(백엔드 프록시 포함)
     .\lab.ps1 build      프론트 프로덕션 빌드 → frontend\dist
                          ★ 게이트웨이가 이 폴더를 직접 서빙한다. 복사 단계 없음.
     .\lab.ps1 stop       백그라운드 백엔드 정지
@@ -34,7 +34,7 @@ switch ($Action) {
   'api' {
     Set-Location $BackendDir
     # --reload는 쓰지 않는다. main.py가 임포트 시점에 스케줄러 3개를 띄우기 때문에
-    # 리로드가 걸릴 때마다 잡이 중복 등록될 수 있다. (AS-IS의 알려진 문제)
+    # 리로드가 걸릴 때마다 잡이 중복 등록될 수 있다(AS-IS의 알려진 문제).
     & $Py -m uvicorn app.main:app --host 0.0.0.0 --port $ApiPort
   }
 

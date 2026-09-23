@@ -28,7 +28,7 @@ export default function GrowArea({
   className: string;
   placeholder?: string;
   maxLength?: number;
-  /** 폼이 한 덩어리로 다룰 때 쓴다 — input 의 name 과 같은 쓰임 */
+  /** 폼이 한 덩어리로 다룰 때 쓴다 — input의 name과 같은 쓰임 */
   name?: string;
   readOnly?: boolean;
   onChange: (next: string, e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -39,7 +39,7 @@ export default function GrowArea({
     const el = ref.current;
     if (!el) return;
     el.style.height = "auto";
-    /* scrollHeight 는 안쪽(글 + 여백)까지다. 이 칸은 테두리까지 키에 넣는
+    /* scrollHeight는 안쪽(글 + 여백)까지다. 이 칸은 테두리까지 키에 넣는
        셈(border-box)이라 테두리 두 줄을 더해야 마지막 줄이 잘리지 않는다. */
     const edge = el.offsetHeight - el.clientHeight;
     el.style.height = `${el.scrollHeight + edge}px`;

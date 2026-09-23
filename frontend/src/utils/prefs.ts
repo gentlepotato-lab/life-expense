@@ -54,7 +54,7 @@ export function putPrefs(next: Prefs): void {
   try {
     window.localStorage.setItem(STORE_KEY, JSON.stringify(cache));
   } catch {
-    /* 저장 공간이 막혀 있어도 이번 판은 그대로 돈다 */
+    /* 저장 공간이 막혀 있어도 이번 판은 그대로 돈다. */
   }
 }
 
@@ -64,7 +64,7 @@ export async function loadPrefs(): Promise<void> {
     const res = await axios.get<Prefs>("/profile/prefs");
     putPrefs(res.data);
   } catch {
-    /* 못 받아 오면 지난번에 담아 둔 것으로 돈다 */
+    /* 못 받아 오면 지난번에 담아 둔 것으로 돈다. */
   }
 }
 

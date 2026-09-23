@@ -1202,7 +1202,7 @@ export function EntryCard({
   const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
   const isBlur = blurred ?? (cat2List.find(c => c.id === row.cat2_id)?.blur === 1);
 
-  // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount 다.
+  // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount다.
   const hasSplit = (row.split_count ?? 0) > 0;
   /* 쪼갠 몫을 펼쳤는지. 카드마다 따로 기억한다. */
   const [open, setOpen] = useState(false);

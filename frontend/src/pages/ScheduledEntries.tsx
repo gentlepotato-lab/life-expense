@@ -33,7 +33,7 @@ export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?
  * 브라우저마다 해석이 달라서, 숫자를 직접 떼어 만든다.
  */
 /**
- * `말일` 을 가리키는 day_of_month 값. 서버의 LAST_DAY 와 같은 값이다.
+ * `말일`을 가리키는 day_of_month 값. 서버의 LAST_DAY와 같은 값이다.
  *
  * 달마다 끝 날이 달라 하나의 숫자로는 적을 수 없어, 1~31 바깥의 값을 하나
  * 정해 두고 서버가 셈할 때 그 달의 끝 날로 바꿔 쓴다.
@@ -1057,7 +1057,7 @@ export function ScheduleCard({
   const pay = payList.find((p) => p.code === String(s.pay_method));
   const holidayLabel =
     s.holiday_handling === "before" ? "휴일 전" : s.holiday_handling === "after" ? "휴일 후" : "당일";
-  // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount 다.
+  // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount다.
   const hasSplit = (s.split_count ?? 0) > 0;
   const shownAmount = hasSplit ? s.net_amount : s.amount;
   const amountDisplay =

@@ -406,7 +406,7 @@ class CardBenefitTarget(Base):
     혜택 하나가 걸리는 대상.
 
     "디지털 구독 할인" 아래에 OTT → 넷플릭스·유튜브프리미엄, 음원 → 멜론·지니
-    처럼 영역과 그 영역에서 걸리는 것이 짝으로 붙는다. detail 은 가맹점만이
+    처럼 영역과 그 영역에서 걸리는 것이 짝으로 붙는다. detail은 가맹점만이
     아니라 요금 종류나 결제 방식까지 담는다 — `아파트 관리비, 도시가스`처럼.
     영역 구분이 없는 혜택도 있어 area는 비울 수 있다.
     """
@@ -453,7 +453,7 @@ class ChartCard(Base):
     card_key = Column(String(40), primary_key=True)
     sort_order = Column(Integer, nullable=False, default=0)
     is_active = Column(SmallInteger, nullable=False, default=1)
-    # 1이면 반 칸, 2면 한 줄을 다 쓴다. 좁은 화면은 이 값과 상관없이 한 줄에 하나씩이다
+    # 1이면 반 칸, 2면 한 줄을 다 쓴다. 좁은 화면은 이 값과 상관없이 한 줄에 하나씩이다.
     span = Column(SmallInteger, nullable=False, default=1)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
@@ -463,7 +463,7 @@ class Profile(Base):
     돈쓴이 — 쓰는 사람.
 
     지금은 혼자 쓰는 앱이라 줄이 하나뿐이다. 그래도 칸은 바깥 인증(구글·카카오)이
-    돌려주는 것에 맞춰 두었다. provider 가 비어 있으면 손으로 적어 넣은 것이다.
+    돌려주는 것에 맞춰 두었다. provider가 비어 있으면 손으로 적어 넣은 것이다.
     """
     __tablename__ = "profile"
 

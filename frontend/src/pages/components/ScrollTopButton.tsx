@@ -12,7 +12,7 @@ import ArrowUpIcon from "./ArrowUpIcon";
  * 차지한다. 사라지고 나타나는 것은 CSS가 맡는다(.is-on).
  */
 
-/** 이만큼 내려와야 나타난다 */
+/** 이만큼 내려와야 나타난다. */
 const SHOW_AT = 200;
 
 export default function ScrollTopButton() {

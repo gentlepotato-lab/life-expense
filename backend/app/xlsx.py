@@ -1,11 +1,11 @@
 """
 표 하나를 엑셀 파일(.xlsx)로 만든다.
 
-.xlsx 는 XML 몇 장을 zip 으로 묶은 것이라, 표 한 장만 내보내는 데에는 바깥
-꾸러미가 필요하지 않다. 표준 라이브러리의 zipfile 로 충분하다 — 이것 하나
-때문에 openpyxl 을 들이지 않는다.
+.xlsx는 XML 몇 장을 zip으로 묶은 것이라, 표 한 장만 내보내는 데에는 바깥
+꾸러미가 필요하지 않다. 표준 라이브러리의 zipfile로 충분하다 — 이것 하나
+때문에 openpyxl을 들이지 않는다.
 
-CSV 로도 열리기는 하지만 날짜가 글자로, 금액이 글자로 들어간다. 받아서
+CSV로도 열리기는 하지만 날짜가 글자로, 금액이 글자로 들어간다. 받아서
 바로 걸러 보고 더해 보려면 날짜는 날짜로, 금액은 숫자로 들어가야 한다.
 """
 
@@ -15,10 +15,10 @@ from decimal import Decimal
 from io import BytesIO
 
 # 엑셀이 날짜를 세는 기준. 1900년을 윤년으로 잘못 아는 옛 버릇 때문에
-# 실제 기준일은 1899-12-30 이다.
+# 실제 기준일은 1899-12-30이다.
 EPOCH = date(1899, 12, 30)
 
-# 칸에 입힐 모양. 아래 STYLES 의 cellXfs 차례와 맞춘다.
+# 칸에 입힐 모양. 아래 STYLES의 cellXfs 차례와 맞춘다.
 S_PLAIN = 0
 S_HEAD = 1
 S_DATE = 2
@@ -81,7 +81,7 @@ def _book(sheet_name: str) -> str:
 
 
 def _esc(s: str) -> str:
-    """XML 이 삼키는 글자를 막고, 제어 문자는 걷어 낸다(파일이 깨진다)"""
+    """XML이 삼키는 글자를 막고, 제어 문자는 걷어 낸다(파일이 깨진다)."""
     out = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     return "".join(c for c in out if c >= " " or c in "\t\n")
 
@@ -124,7 +124,7 @@ def sheet_bytes(
     """
     머리글 한 줄과 자료 줄들을 엑셀 파일로 묶어 돌려준다.
 
-    money_cols 에 든 자리는 천 단위 쉼표를 붙인다. 날짜는 값의 생김새를 보고
+    money_cols에 든 자리는 천 단위 쉼표를 붙인다. 날짜는 값의 생김새를 보고
     알아서 날짜 칸으로 넣으므로 따로 일러 줄 것이 없다.
     """
     money = money_cols or set()
@@ -164,7 +164,7 @@ def sheet_bytes(
     )
 
     buf = BytesIO()
-    # 압축해 두어야 줄이 많아져도 내려받는 데 오래 걸리지 않는다
+    # 압축해 두어야 줄이 많아져도 내려받는 데 오래 걸리지 않는다.
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("[Content_Types].xml", CONTENT_TYPES)
         z.writestr("_rels/.rels", ROOT_RELS)

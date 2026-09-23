@@ -2,9 +2,9 @@
 --
 -- 지금은 혼자 쓰는 앱이라 줄이 하나뿐이다. 그래도 칸은 바깥 인증(구글·카카오)이
 -- 돌려주는 것에 맞춰 두었다 — 나중에 로그인을 붙일 때 표를 다시 짜지 않으려는
--- 것이다. provider 가 비어 있으면 사람이 손으로 적어 넣은 것이다.
+-- 것이다. provider가 비어 있으면 사람이 손으로 적어 넣은 것이다.
 --
--- avatar_url 은 바깥에서 받은 사진 주소다. 없으면 emoji 로 얼굴을 대신한다.
+-- avatar_url은 바깥에서 받은 사진 주소다. 없으면 emoji로 얼굴을 대신한다.
 
 CREATE TABLE IF NOT EXISTS life_expense.profile (
     profile_id   integer PRIMARY KEY DEFAULT 1,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS life_expense.profile (
     emoji        varchar(8),
     -- 한마디
     bio          varchar(200),
-    -- 이 앱을 처음 연 날. 내역보다 뒤일 수 있어 따로 둔다
+    -- 이 앱을 처음 연 날. 내역보다 뒤일 수 있어 따로 둔다.
     joined_on    date,
     created_at   timestamp DEFAULT now(),
     CONSTRAINT ck_profile_single CHECK (profile_id = 1)
