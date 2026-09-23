@@ -302,8 +302,16 @@ export default function Calendar() {
   };
 
   const onCellDown = (day: number) => (e: React.PointerEvent<HTMLDivElement>) => {
-    /* 덮인 금액은 제 손짓(끌어서 잠깐 보기)이 있으므로 비켜 준다 */
-    if (e.target instanceof Element && e.target.closest(".cal__net")) return;
+    /* 가려 둔 갈래가 섞인 날의 금액은 제 손짓(끌어서 잠깐 보기)이 있으므로
+       비켜 준다. 가릴 것이 없는 날의 금액에는 그 손짓이 붙지 않으므로 비켜
+       주면 안 된다 — 그러면 그 글자를 누른 손짓이 아무 데도 가지 않아, 칸의
+       가로폭을 통째로 차지하는 금액 줄을 누를 때마다 하루가 담기지도 빠지지도
+       않는다. masked·revealed 둘 중 하나가 붙은 것만이 제 손짓을 가진 금액이다. */
+    if (
+      e.target instanceof Element &&
+      e.target.closest(".cal__net.masked, .cal__net.revealed")
+    )
+      return;
     dragFrom.current = day;
     dragMoved.current = false;
     setDragTo(day);
