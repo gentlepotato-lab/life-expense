@@ -1332,18 +1332,13 @@ export function PendingCard({
         </span>
       </div>
 
-      {/* 2행: 장소 ── 지출 내역과 같은 자리. 없으면 줄도 만들지 않는다. */}
-      {row.place_name && (
-        <div className="entry-ln">
-          <span className="place-text">📍 {row.place_name}</span>
-        </div>
-      )}
-
-      {/* 3행: 결제 수단 + 전송 */}
-      {/* 세 화면 모두 결제 수단은 카드 오른쪽 아래에 선다. [전송]은 그 오른쪽 —
-          보내는 것은 이 결제 수단으로 그었다고 굳히는 일이라 한 줄에 둔다.
-          메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
+      {/* 2행: 장소 + 결제 수단 + [전송] */}
+      {/* 장소와 결제 수단은 지출 · 정기와 같이 한 줄이다 — 장소가 왼쪽 끝,
+          결제 수단이 오른쪽 끝. [전송]은 그 오른쪽 — 보내는 것은 이 결제 수단으로
+          그었다고 굳히는 일이라 떼어 놓지 않는다. 장소는 남는 폭만 쓰고 넘치면
+          말줄임된다. 메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
       <div className="entry-ln entry-ln--send">
+        {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
         <span className="pay-method-text">{payName}</span>
         {!readOnly && (
           <div className="card-right">

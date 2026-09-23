@@ -1261,23 +1261,18 @@ export function EntryCard({
         </span>
       </div>
 
-      {/* ───── 2행: 장소 ───── 장소가 없으면 줄도 만들지 않는다. */}
-      {row.place_name && (
+      {/* ───── 2행: 장소 + 결제 수단 ───── */}
+      {/* 메모를 카드 밖 제 판(MemoPad)으로 옮기면서 결제 수단이 혼자 한 줄을
+          차지했다. 장소와 같은 줄로 올려 정기와 같은 두 칸 짜임이 된다 —
+          장소는 왼쪽 끝, 결제 수단은 오른쪽 끝. 둘 다 없으면 줄도 만들지 않는다. */}
+      {(row.place_name || row.pay_method) && (
         <div className="entry-ln">
-          <span className="place-text">
-            📍 {row.place_name}
+          {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
+          <span className="pay-method-text">
+            {payList.find((p) => p.code === row.pay_method)?.name ?? ""}
           </span>
         </div>
       )}
-
-      {/* ───── 3행: 결제 수단 ───── */}
-      {/* 세 화면 모두 결제 수단은 카드 오른쪽 아래에 선다. 메모는 카드에서
-          빼내 바로 아래 제 판에 담는다(MemoPad). */}
-      <div className="entry-ln">
-        <span className="pay-method-text">
-          {payList.find((p) => p.code === row.pay_method)?.name ?? ""}
-        </span>
-      </div>
 
       <MemoPad memo={row.memo} />
 
