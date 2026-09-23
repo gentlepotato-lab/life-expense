@@ -427,6 +427,20 @@ export default function Me() {
             </div>
 
             <div className="me-pref">
+              <span className="me-pref__name">내역에 메모 보이기</span>
+              <div className="me-pref__control">
+                <button
+                  type="button"
+                  className={`set-hide-btn${prefs.memo_show === "1" ? " on" : ""}`}
+                  disabled={!editMode}
+                  onClick={() => setPref("memo_show", prefs.memo_show === "1" ? "0" : "1")}
+                >
+                  {prefs.memo_show === "1" ? "켬" : "끔"}
+                </button>
+              </div>
+            </div>
+
+            <div className="me-pref">
               <span className="me-pref__name">잔소리 받기</span>
               <div className="me-pref__control">
                 <button

@@ -14,6 +14,8 @@ import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import SplitRows from "./components/SplitRows";
 import QuickActions from "./components/QuickActions";
+import MemoPad from "./components/MemoPad";
+import GrowArea from "./components/GrowArea";
 import useLongPress from "../hooks/useLongPress";
 import usePeel from "../hooks/usePeel";
 import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
@@ -895,11 +897,11 @@ export default function Entries() {
 
             {/* 4행 — 메모 */}
             <EditField label="메모" span={12}>
-              <input
-                type="text"
+              <GrowArea
+                className="memo-input memo-area"
                 value={draft.memo || ""}
-                onChange={(e) => setField("memo", e.target.value)}
-                className="memo-input"
+                maxLength={200}
+                onChange={(v) => setField("memo", v)}
               />
             </EditField>
           </div>
@@ -1268,14 +1270,16 @@ export function EntryCard({
         </div>
       )}
 
-      {/* ───── 3행: 메모 + 결제 수단 ───── */}
-      {/* 세 화면 모두 결제 수단은 메모와 같은 줄, 카드 오른쪽 아래에 선다. */}
+      {/* ───── 3행: 결제 수단 ───── */}
+      {/* 세 화면 모두 결제 수단은 카드 오른쪽 아래에 선다. 메모는 카드에서
+          빼내 바로 아래 제 판에 담는다(MemoPad). */}
       <div className="entry-ln">
-        <span className="memo-text">{row.memo || ""}</span>
         <span className="pay-method-text">
           {payList.find((p) => p.code === row.pay_method)?.name ?? ""}
         </span>
       </div>
+
+      <MemoPad memo={row.memo} />
 
       {/* 쪼갠 건 — 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다.
           카드 안 금액 옆에 끼워 두었더니 자리가 붕 떠 보였다. */}

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import CardEditModal from "./CardEditModal";
+import GrowArea from "./GrowArea";
 
 /**
  * 실적 구간 하나를 적는 팝업.
@@ -35,56 +36,6 @@ const nextKey = () => {
   seq += 1;
   return `k${seq}`;
 };
-
-/**
- * 줄바꿈되는 글칸.
- *
- * 혜택의 설명과 대상의 상세가 함께 쓴다. 한 줄짜리 입력칸이던 것을 여러
- * 줄로 바꾼다 — 둘 다 "정기결제 자동이체 시 결제일 할인 → 건별 1천 원, 월
- * 최대 2천 원"처럼 길어서, 한 줄에 가두면 적는 동안 앞이 밀려 나가 무엇을
- * 쓰고 있는지 보이지 않는다.
- *
- * 키는 담긴 글만큼 자란다. 줄 수를 미리 못 박으면 짧은 것에는 빈 자리가
- * 남고 긴 것은 그래도 잘린다. 값이 밖에서 바뀔 때도(힌트를 골라 통째로
- * 물어 올 때) 다시 재야 하므로 값을 보고 맞춘다.
- */
-function GrowArea({
-  value,
-  className,
-  placeholder,
-  maxLength,
-  onChange,
-}: {
-  value: string;
-  className: string;
-  placeholder: string;
-  maxLength: number;
-  onChange: (next: string) => void;
-}) {
-  const ref = useRef<HTMLTextAreaElement | null>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "auto";
-    /* scrollHeight 는 안쪽(글 + 여백)까지다. 이 칸은 테두리까지 키에 넣는
-       셈(border-box)이라 테두리 두 줄을 더해야 마지막 줄이 잘리지 않는다. */
-    const edge = el.offsetHeight - el.clientHeight;
-    el.style.height = `${el.scrollHeight + edge}px`;
-  }, [value]);
-
-  return (
-    <textarea
-      ref={ref}
-      className={className}
-      rows={1}
-      value={value}
-      placeholder={placeholder}
-      maxLength={maxLength}
-      onChange={(e) => onChange(e.target.value)}
-    />
-  );
-}
 
 type Target = TierTarget & { key: string };
 type Benefit = {

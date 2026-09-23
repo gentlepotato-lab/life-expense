@@ -1,4 +1,5 @@
 import { visible } from "../../utils/visible";
+import GrowArea from "./GrowArea";
 import React, { forwardRef, useEffect, useState } from "react";
 import axios from "../../api/client";
 import useBackClose from "../../hooks/useBackClose";
@@ -112,7 +113,9 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
   }, []);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setIsDirty(true);
@@ -323,12 +326,13 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
 
         {/* 4행 — 메모 */}
         <EditField label="메모" span={12}>
-          <input
-            type="text"
+          <GrowArea
+            className="memo-area"
             name="memo"
             value={form.memo}
             placeholder="(메모)"
-            onChange={handleChange}
+            maxLength={200}
+            onChange={(_v, e) => handleChange(e)}
           />
         </EditField>
       </div>

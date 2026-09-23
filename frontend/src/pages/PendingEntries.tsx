@@ -12,6 +12,8 @@ import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import QuickActions from "./components/QuickActions";
+import MemoPad from "./components/MemoPad";
+import GrowArea from "./components/GrowArea";
 import SplitRows from "./components/SplitRows";
 import useLongPress from "../hooks/useLongPress";
 import usePeel from "../hooks/usePeel";
@@ -959,11 +961,11 @@ export default function PendingEntries() {
 
             {/* 4행 — 메모 */}
             <EditField label="메모" span={12}>
-              <input
-                type="text"
+              <GrowArea
+                className="memo-input memo-area"
                 value={draft.memo || ""}
-                onChange={(e) => setField("memo", e.target.value)}
-                className="memo-input"
+                maxLength={200}
+                onChange={(v) => setField("memo", v)}
               />
             </EditField>
           </div>
@@ -1330,26 +1332,29 @@ export function PendingCard({
         </span>
       </div>
 
-      {/* 2행: 장소 + 전송 ── 정기 내역의 휴일 처리가 서는 그 자리다. */}
-      {(row.place_name || !readOnly) && (
+      {/* 2행: 장소 ── 지출 내역과 같은 자리. 없으면 줄도 만들지 않는다. */}
+      {row.place_name && (
         <div className="entry-ln">
-          {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
-          {!readOnly && (
-            <div className="card-right">
-              <button className="ui-btn small" onClick={() => onSend?.(row)}>
-                전송
-              </button>
-            </div>
-          )}
+          <span className="place-text">📍 {row.place_name}</span>
         </div>
       )}
 
-      {/* 3행: 메모 + 결제 수단 */}
-      {/* 세 화면 모두 결제 수단은 메모와 같은 줄, 카드 오른쪽 아래에 선다. */}
-      <div className="entry-ln">
-        <span className="memo-text">{row.memo || ""}</span>
+      {/* 3행: 결제 수단 + 전송 */}
+      {/* 세 화면 모두 결제 수단은 카드 오른쪽 아래에 선다. [전송]은 그 오른쪽 —
+          보내는 것은 이 결제 수단으로 그었다고 굳히는 일이라 한 줄에 둔다.
+          메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
+      <div className="entry-ln entry-ln--send">
         <span className="pay-method-text">{payName}</span>
+        {!readOnly && (
+          <div className="card-right">
+            <button className="ui-btn small" onClick={() => onSend?.(row)}>
+              전송
+            </button>
+          </div>
+        )}
       </div>
+
+      <MemoPad memo={row.memo} />
 
       {/* 쪼갠 건 — 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다. */}
       {hasSplit && (

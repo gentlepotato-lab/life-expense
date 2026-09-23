@@ -16,6 +16,9 @@ PREF_KEYS = {
     "exclude_default": "1",
     "home_path": "/",
     "nudge_on": "1",
+    # 내역 세 화면에서 카드 아래 메모 판을 보일지. 끄면 메모는 꾹 눌러 뜨는
+    # 편집 팝업에서만 본다.
+    "memo_show": "1",
     # 금액을 가리는 마스킹 테이프. 화면이 아는 일곱 가지 가운데 하나다
     # (frontend/src/utils/tapes.ts).
     "tape_style": "flower",

@@ -15,6 +15,8 @@ import SplitRows from "./components/SplitRows";
 import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import QuickActions from "./components/QuickActions";
+import MemoPad from "./components/MemoPad";
+import GrowArea from "./components/GrowArea";
 import { groupByDate } from "../utils/dateGroup";
 
 export type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?: number; inout?: number | null; is_active?: number };
@@ -508,7 +510,9 @@ export default function ScheduledEntries() {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -753,13 +757,13 @@ export default function ScheduledEntries() {
                 </EditField>
 
                 <EditField label="메모" span={12}>
-                  <input
-                    type="text"
+                  <GrowArea
+                    className="memo-input memo-area"
                     name="memo"
                     value={form.memo}
-                    onChange={handleChange}
-                    className="memo-input"
                     placeholder="(메모)"
+                    maxLength={200}
+                    onChange={(_v, e) => handleChange(e)}
                   />
                 </EditField>
               </div>
@@ -951,12 +955,12 @@ export default function ScheduledEntries() {
 
             {/* 5행 — 메모 */}
             <EditField label="메모" span={12}>
-              <input
-                type="text"
+              <GrowArea
+                className="memo-input memo-area"
                 value={draft.memo || ""}
-                onChange={(e) => setField("memo", e.target.value)}
-                className="memo-input"
                 placeholder="(메모)"
+                maxLength={200}
+                onChange={(v) => setField("memo", v)}
               />
             </EditField>
           </div>
@@ -1112,9 +1116,11 @@ export function ScheduleCard({
           </span>
         </div>
 
-        {/* 2행: 딱지 + 휴일 처리 — 지출 · 대기의 장소가 서던 자리다.
+        {/* 2행: 딱지 + 휴일 처리 + 결제 수단 — 지출 · 대기의 장소가 서던 자리다.
             언제 빠져나가는가 — 날과 시각은 한 가지 사실이라 한 딱지에 담고,
-            휴일 처리도 같은 것을 말하므로 그 줄 오른쪽 끝에 둔다. */}
+            휴일 처리도 같은 것을 말하므로 그 딱지 바로 오른쪽에 붙인다.
+            결제 수단은 세 화면 모두 그렇듯 줄 오른쪽 끝에 선다.
+            메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
         <div className="entry-ln">
           <span className="schedule-card__when">
             <span className="schedule-card__when-day">매월 {dayLabel(s.day_of_month)}</span>
@@ -1122,14 +1128,10 @@ export function ScheduleCard({
             <span className="schedule-card__when-time">{timeDisplay}</span>
           </span>
           <span className="schedule-card__holiday">{holidayLabel}</span>
-        </div>
-
-        {/* 3행: 메모 + 결제 수단 */}
-        {/* 세 화면 모두 결제 수단은 메모와 같은 줄, 카드 오른쪽 아래에 선다. */}
-        <div className="entry-ln">
-          <span className="memo-text">{s.memo || "-"}</span>
           <span className="pay-method-text">{pay?.name || "-"}</span>
         </div>
+
+        <MemoPad memo={s.memo} />
 
         {/* 쪼갠 건 — 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다. */}
         {hasSplit && (
