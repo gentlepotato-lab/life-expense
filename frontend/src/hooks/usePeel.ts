@@ -24,6 +24,25 @@ import { LONG_PRESS_DELAY } from "./useLongPress";
 /** 끝까지 떼었다고 볼 거리 — 카드 폭에 곱한다. */
 const PEEL_FULL = 0.55;
 
+/**
+ * 그 거리의 상한.
+ *
+ * 카드는 화면이 넓어지면 784px까지 자란다(.page-wrap). 폭에만 곱하면 폰에서
+ * 196px이던 것이 태블릿 · 노트북에서 417px이 되어, 손가락이 두 배 넘게 가야
+ * 했다. 마우스는 한 번에 그만큼 끌 수 있어 표가 안 났지만 태블릿에서는 같은
+ * 손짓으로 절반도 못 가 제자리로 펴졌다.
+ *
+ * 가장 넓은 폰 카드가 드는 거리(430px 화면에서 218px)를 상한으로 둔다. 폰은
+ * 전과 한 치도 다르지 않고, 넓은 화면만 그 거리로 내려온다 — 접히는 귀퉁이도
+ * 어느 화면에서나 같은 크기의 종이가 된다.
+ */
+const PEEL_FULL_MAX = 220;
+
+/** 이 폭의 카드에서 끝까지 떼는 데 드는 거리 */
+function fullPeel(w: number) {
+  return Math.min(w * PEEL_FULL, PEEL_FULL_MAX);
+}
+
 /** 이만큼 움직이기 전에는 떼는 중으로 보지 않는다. */
 const PEEL_SLOP = 5;
 
@@ -37,7 +56,7 @@ const CURL = 0.84;
 const SETTLE_MS = 360;
 
 type Pt = [number, number];
-type Drag = { x: number; y: number; w: number; h: number; p: number; moved: boolean };
+type Drag = { x: number; y: number; w: number; h: number; full: number; p: number; moved: boolean };
 
 const VARS = ["--peel", "--peel-cut", "--peel-flap", "--peel-grad", "--peel-shade", "--peel-sx", "--peel-sy"];
 
@@ -102,8 +121,8 @@ function shape(w: number, h: number, d: number) {
   return { cut: polygon(cut), flap: polygon(flap), grad, shade, nx, ny };
 }
 
-function paint(card: HTMLElement, p: number, w: number, h: number) {
-  const g = shape(w, h, p * w * PEEL_FULL);
+function paint(card: HTMLElement, p: number, w: number, h: number, full: number) {
+  const g = shape(w, h, p * full);
   if (!g) {
     VARS.forEach((v) => card.style.removeProperty(v));
     return;
@@ -153,7 +172,7 @@ export default function usePeel(onPeeled: () => void, disabled = false) {
 
   /** 펴져 붙는다. 움직임 줄이기를 켠 사람에게는 바로 붙인다. */
   const settle = useCallback(
-    (card: HTMLElement, from: number, w: number, h: number) => {
+    (card: HTMLElement, from: number, w: number, h: number, full: number) => {
       clearSettle();
       card.classList.remove("is-peeling", "is-peeled");
       card.classList.add("is-settling");
@@ -165,7 +184,7 @@ export default function usePeel(onPeeled: () => void, disabled = false) {
       const step = (now: number) => {
         const t = Math.min(1, (now - t0) / SETTLE_MS);
         const eased = 1 - Math.pow(1 - t, 3);
-        paint(card, from * (1 - eased), w, h);
+        paint(card, from * (1 - eased), w, h, full);
         if (t < 1) {
           settleRef.current = window.requestAnimationFrame(step);
         } else {
@@ -200,6 +219,7 @@ export default function usePeel(onPeeled: () => void, disabled = false) {
         y: e.clientY,
         w: card.clientWidth,
         h: card.clientHeight,
+        full: fullPeel(card.clientWidth),
         p: 0,
         moved: false,
       };
@@ -240,12 +260,12 @@ export default function usePeel(onPeeled: () => void, disabled = false) {
         card.classList.add("is-peeling");
       }
 
-      d.p = Math.max(0, Math.min(1, dx / (d.w * PEEL_FULL)));
+      d.p = Math.max(0, Math.min(1, dx / d.full));
       if (frameRef.current === null) {
         frameRef.current = window.requestAnimationFrame(() => {
           frameRef.current = null;
           const live = dragRef.current;
-          if (live && cardRef.current) paint(cardRef.current, live.p, live.w, live.h);
+          if (live && cardRef.current) paint(cardRef.current, live.p, live.w, live.h, live.full);
         });
       }
     },
@@ -261,7 +281,7 @@ export default function usePeel(onPeeled: () => void, disabled = false) {
       dragRef.current = null;
       if (!d || !card || !d.moved) return;
 
-      settle(card, d.p, d.w, d.h);
+      settle(card, d.p, d.w, d.h, d.full);
       if (fire && d.p >= 1) onPeeled();
     },
     [clearHold, clearFrame, settle, onPeeled]
