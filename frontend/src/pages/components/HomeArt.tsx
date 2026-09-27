@@ -83,48 +83,79 @@ export function ArtChart() {
   );
 }
 
-/** 잔소리 — 종과 영수증 */
+/**
+ * 잔소리 — 방금 흔들린 종과, 그 뒤에 기대어 선 영수증.
+ *
+ * 다른 칸의 그림은 모두 한순간을 담고 있다 — 쓰기는 펜에서 동전이 흐르고,
+ * 씀씀이는 꺾은선이 고점을 찍고 내려오며, 어디 쓰나는 길이 두 핀을 잇는다.
+ * 종만 반듯하게 서 있으면 아무 일도 일어나지 않는다. 종은 울릴 때 종이다.
+ *
+ * 종을 13도 눕히고 추를 그 방향으로 따라 내보낸다. 소리는 옅은 물결 둘로
+ * 양옆에 퍼뜨린다. 영수증은 반대쪽으로 7도 눕혀 종에 기대 세운다 — 둘이
+ * 서로 어긋난 방향으로 누워야 멈춰 있지 않고 흔들리는 중으로 읽힌다.
+ *
+ * 영수증은 폭을 33에서 28로 좁혀 종과 겹친다. 종의 몸통이 흰색으로 차 있어
+ * 겹친 자리에서 영수증 선이 가려지고, 그래서 앞뒤가 생긴다.
+ */
 export function ArtNudge() {
   return (
     <svg className="home-art" viewBox="0 0 140 72" aria-hidden="true">
-      {/* 영수증 — 아래쪽은 톱니로 뜯긴 모양.
-          영수증은 길쭉한 종이니 종보다 키가 커야 그럴듯하다. 폭은 좁히고 키는
-          키워 종과의 비율을 실제에 가깝게 뒀다(종 높이 : 영수증 높이 ≈ 3 : 4).
+      {/* 영수증 — 아래쪽은 톱니로 뜯긴 모양. 종과 반대쪽으로 눕는다.
           눌러 그리지 않고 좌표를 다시 잡았다 — 그래야 선 두께가 고르다. */}
-      <path
-        d="M63.5 14h33a3.5 3.5 0 0 1 3.5 3.5v35.5l-5 3.5-5-3.5-5 3.5-5-3.5-5 3.5-5-3.5-5 3.5-5-3.5V17.5a3.5 3.5 0 0 1 3.5-3.5Z"
-        fill="#FFFFFF"
-        stroke={INK}
-        strokeWidth="2.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M67 24.5h26M67 33h26M67 41.5h14"
-        stroke="#C9CDF6"
-        strokeWidth="2.8"
-        strokeLinecap="round"
-      />
-
-      {/* 종 — 위가 둥글고 아래로 벌어진 뒤 테두리에서 딱 끊긴다.
-          영수증이 길어지면서 둘의 세로 가운데가 어긋나 6만큼 내려 맞췄다. */}
-      <g transform="translate(2.24 8.4) scale(0.92)">
+      <g transform="rotate(7 72 36)">
         <path
-          d="M28 15c-7.2 0-11.4 5.2-11.4 12 0 8-1.8 11.4-4.2 13.8h31.2C41.2 38.4 39.4 35 39.4 27c0-6.8-4.2-12-11.4-12Z"
+          d="M57 12h28a3 3 0 0 1 3 3v39l-4 3-4-3-4 3-4-3-4 3-4-3-4 3-4-3V15a3 3 0 0 1 3-3Z"
           fill="#FFFFFF"
-          stroke={AQUA}
-          strokeWidth="3"
+          stroke={INK}
+          strokeWidth="2.6"
           strokeLinejoin="round"
         />
-        {/* 꼭지 */}
-        <path d="M28 10.5v4.5" stroke={AQUA} strokeWidth="3" strokeLinecap="round" />
-        {/* 추 — 종이 울린다. */}
         <path
-          d="M23.6 45a4.4 4.4 0 0 0 8.8 0"
+          d="M60.5 22h21M60.5 30h21M60.5 38h11"
+          stroke="#C9CDF6"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+        />
+      </g>
+
+      {/* 종 — 위가 둥글고 아래로 벌어진 뒤 테두리에서 딱 끊긴다. */}
+      <g transform="translate(12 12) scale(0.92)">
+        {/* 몸통과 꼭지는 꼭지 자리를 축으로 함께 눕는다. 추는 몸통을 따라
+            나가지만 함께 돌지는 않는다 — 매달린 것이라 제 방향으로 흐른다. */}
+        <g transform="rotate(-13 28 12)">
+          <path
+            d="M28 15c-7.2 0-11.4 5.2-11.4 12 0 8-1.8 11.4-4.2 13.8h31.2C41.2 38.4 39.4 35 39.4 27c0-6.8-4.2-12-11.4-12Z"
+            fill="#FFFFFF"
+            stroke={AQUA}
+            strokeWidth="3"
+            strokeLinejoin="round"
+          />
+          <path d="M28 10.5v4.5" stroke={AQUA} strokeWidth="3" strokeLinecap="round" />
+        </g>
+        <path
+          d="M27.2 45.6a4.4 4.4 0 0 0 8.8-.9"
           fill="none"
           stroke={AQUA}
           strokeWidth="3"
           strokeLinecap="round"
         />
+        {/* 소리 — 양옆으로 퍼진다. 종보다 옅게 두어 몸통과 다투지 않는다.
+            맨 위에 얹는다. 오른쪽 물결은 영수증과 겹치지만, 소리는 양쪽으로
+            고르게 퍼져야 흔들리는 것으로 읽힌다.
+
+            겹치는 자리가 영수증의 남색 테두리라 옅은 청록이 그대로 묻힌다.
+            흰 테를 먼저 깔아 띄운다 — 흰 바탕 위에서는 보이지 않으므로
+            왼쪽 물결의 모습은 달라지지 않는다. */}
+        <g fill="none" strokeLinecap="round">
+          <g stroke="#FFFFFF" strokeWidth="5.4">
+            <path d="M6.4 22a13 13 0 0 0-1.2 14" />
+            <path d="M49.6 18.5a13 13 0 0 1 1.6 14" />
+          </g>
+          <g stroke={AQUA} strokeWidth="2.6" opacity="0.5">
+            <path d="M6.4 22a13 13 0 0 0-1.2 14" />
+            <path d="M49.6 18.5a13 13 0 0 1 1.6 14" />
+          </g>
+        </g>
       </g>
     </svg>
   );
