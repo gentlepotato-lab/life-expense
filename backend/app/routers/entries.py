@@ -34,6 +34,22 @@ def list_entries(start: date, end: date, db=Depends(get_db)):
     rows = db.scalars(select(Entry).where(Entry.tx_date.between(start, end))).all()
     return [r.to_dict() for r in rows]
 
+@router.put("/{entry_id}/perf-exclude")
+def set_perf_exclude(entry_id: int, value: int = Query(...), db: SessionDep = Depends()):
+    """카드 실적에서 뺄지를 켜고 끈다.
+
+    내역 카드의 기호를 누를 때마다 부르는 자리라 한 칸만 손댄다. 묶음 수정
+    (PUT /bulk)은 장소를 함께 다루느라 무거워, 표 하나 뒤집자고 태울 길이 아니다.
+    """
+    sql = text("""
+        UPDATE life_expense.entries
+           SET perf_exclude = :v
+         WHERE entry_id = :id
+    """)
+    result = db.execute(sql, {"v": 1 if value else 0, "id": entry_id})
+    db.commit()
+    return {"status": "ok", "updated": result.rowcount}
+
 @router.put("/bulk")
 def update_entries_bulk(rows: list[dict], db: SessionDep = Depends()):
     updated = 0

@@ -24,6 +24,8 @@ export type Row = {
   place_name?: string | null;
   amount: number;
   counterpart_ids?: number[] | null;
+  /** 1이면 카드 실적에서 뺀다. 씀씀이의 카드 실적만 본다. */
+  perf_exclude?: number | null;
 };
 
 export const EMPTY_FILTER = {

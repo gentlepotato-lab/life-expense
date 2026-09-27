@@ -16,8 +16,13 @@ import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import QuickActions from "./components/QuickActions";
 import MemoPad from "./components/MemoPad";
+import PerfExcludeButton from "./components/PerfExcludeButton";
 import GrowArea from "./components/GrowArea";
 import { groupByDate } from "../utils/dateGroup";
+
+/* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
+   카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
+type PerfRow = { schedule_id: number; perf_exclude?: number | null };
 
 export type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?: number; inout?: number | null; is_active?: number };
 export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?: number; is_active?: number };
@@ -93,7 +98,9 @@ export default function ScheduledEntries() {
   const [cat3List, setCat3List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
   const [cat2All, setCat2All] = useState<CategoryL2Meta[]>([]);
   const [cat3All, setCat3All] = useState<CategoryL3Meta[]>([]);
-  const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
+  const [payList, setPayList] = useState<
+    { code: string; name: string; is_active?: number; category?: string }[]
+  >([]);
   const [cat2Map, setCat2Map] = useState<Record<number, CategoryL2Meta>>({});
   const [cat3Map, setCat3Map] = useState<Record<number, CategoryL3Meta>>({});
 
@@ -198,6 +205,8 @@ export default function ScheduledEntries() {
             code: String(p.method_id),
             name: p.method_name,
             is_active: p.is_active,
+            /* 카드인 줄에만 실적 제외 기호가 선다. */
+            category: p.category,
           }))
         );
       })
@@ -311,6 +320,27 @@ export default function ScheduledEntries() {
     editable: false,
     __dirty: false,
   });
+
+  /* 카드 실적에서 뺄지 — 기호를 누르는 즉시 담는다. 여기서 켜 두면 이
+     스케줄이 대기 내역으로 나갈 때마다 표가 따라간다. 목록을 다시 읽지 않고
+     그 줄만 갈아 끼우고, 담기지 않으면 되돌린다. */
+  const togglePerfExclude = async (row: PerfRow, next: boolean) => {
+    const id = row.schedule_id;
+    const after = next ? 1 : 0;
+    const before = row.perf_exclude ?? 0;
+    const stamp = (v: number) =>
+      setSchedules((prev) =>
+        prev.map((x) => (x.schedule_id === id ? { ...x, perf_exclude: v } : x))
+      );
+    stamp(after);
+    try {
+      await axios.put(`/scheduled-entries/${id}/perf-exclude`, null, { params: { value: after } });
+    } catch (err) {
+      console.error(err);
+      stamp(before);
+      alert("실적 제외를 담지 못했습니다.");
+    }
+  };
 
   // 스케줄 목록 로드
   const loadSchedules = async () => {
@@ -810,6 +840,7 @@ export default function ScheduledEntries() {
               toTimeString={toTimeString}
               onOpenEditor={openEditor}
               blurred={isBlurred(s, blurSets)}
+              onTogglePerfExclude={togglePerfExclude}
             />
             ))}
           </section>
@@ -1022,14 +1053,17 @@ export function ScheduleCard({
   onOpenEditor,
   blurred,
   readOnly = false,
+  onTogglePerfExclude,
 }: {
   s: any;
   cat1List: { id: number; name: string }[];
   cat2Map: Record<number, CategoryL2Meta>;
   cat3Map: Record<number, CategoryL3Meta>;
-  payList: { code: string; name: string }[];
+  payList: { code: string; name: string; category?: string }[];
   toTimeString: (hour?: number, minute?: number) => string;
   onOpenEditor?: (schedule: any) => void;
+  /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
+  onTogglePerfExclude?: (schedule: PerfRow, next: boolean) => void;
   /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
      넘기지 않으면 예전처럼 소분류만 본다. */
   blurred?: boolean;
@@ -1128,6 +1162,14 @@ export function ScheduleCard({
             <span className="schedule-card__when-time">{timeDisplay}</span>
           </span>
           <span className="schedule-card__holiday">{holidayLabel}</span>
+          {/* 카드로 긋는 건에만 실적 제외 기호가 선다. */}
+          {pay?.category === "카드" && (
+            <PerfExcludeButton
+              on={!!s.perf_exclude}
+              readOnly={readOnly || !onTogglePerfExclude}
+              onToggle={(next) => onTogglePerfExclude?.(s, next)}
+            />
+          )}
           <span className="pay-method-text">{pay?.name || "-"}</span>
         </div>
 

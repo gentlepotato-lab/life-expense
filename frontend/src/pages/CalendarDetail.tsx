@@ -120,8 +120,10 @@ export default function CalendarDetail() {
   const [cat1List, setCat1List] = useState<{ id: number; name: string; exclude?: number; blur?: number }[]>([]);
   const [cat2List, setCat2List] = useState<CategoryL2Meta[]>([]);
   const [cat3List, setCat3List] = useState<CategoryL3Meta[]>([]);
-  const [payNum, setPayNum] = useState<{ code: string; name: string }[]>([]);
-  const [payStr, setPayStr] = useState<{ code: string; name: string }[]>([]);
+  /* 구분(`카드`인지)도 함께 든다 — 카드로 그은 줄에만 실적 제외 기호가
+     서기 때문이다. 이 화면에서는 보기만 하므로 켜고 끄는 손은 넘기지 않는다. */
+  const [payNum, setPayNum] = useState<{ code: string; name: string; category?: string }[]>([]);
+  const [payStr, setPayStr] = useState<{ code: string; name: string; category?: string }[]>([]);
 
   const cat2Map = useMemo(() => {
     const m: Record<number, CategoryL2Meta> = {};
@@ -142,10 +144,18 @@ export default function CalendarDetail() {
     axios
       .get("/payment-methods")
       .then((r) => {
-        type Pay = { method_id: number; method_name: string };
+        type Pay = { method_id: number; method_name: string; category?: string };
         const list: Pay[] = Array.isArray(r.data) ? r.data : [];
-        setPayNum(list.map((p) => ({ code: p.method_id as unknown as string, name: p.method_name })));
-        setPayStr(list.map((p) => ({ code: String(p.method_id), name: p.method_name })));
+        setPayNum(
+          list.map((p) => ({
+            code: p.method_id as unknown as string,
+            name: p.method_name,
+            category: p.category,
+          }))
+        );
+        setPayStr(
+          list.map((p) => ({ code: String(p.method_id), name: p.method_name, category: p.category }))
+        );
       })
       .catch(() => {
         setPayNum([]);

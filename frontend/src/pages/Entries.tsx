@@ -15,10 +15,15 @@ import { CollapseAllButtons } from "./components/CollapseToggle";
 import SplitRows from "./components/SplitRows";
 import QuickActions from "./components/QuickActions";
 import MemoPad from "./components/MemoPad";
+import PerfExcludeButton from "./components/PerfExcludeButton";
 import GrowArea from "./components/GrowArea";
 import useLongPress from "../hooks/useLongPress";
 import usePeel from "../hooks/usePeel";
 import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
+
+/* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
+   카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
+type PerfRow = { entry_id: number; perf_exclude?: number | null };
 
 const EMPTY_FILTER = {
   dateFrom: "",
@@ -65,7 +70,9 @@ export default function Entries() {
   const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout: number | null; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; is_active?: number }[]>([]);
 
-  const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
+  const [payList, setPayList] = useState<
+    { code: string; name: string; is_active?: number; category?: string }[]
+  >([]);
 
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다.
   const [draft, setDraft] = useState<any | null>(null);
@@ -100,6 +107,8 @@ export default function Entries() {
           code: p.method_id,
           name: p.method_name,
           is_active: p.is_active,
+          /* 카드인 줄에만 실적 제외 기호가 선다. */
+          category: p.category,
         }))
       )
     );
@@ -284,6 +293,26 @@ export default function Entries() {
     } catch (err) {
       console.error(err);
       alert("제거 중 오류가 발생했습니다.");
+    }
+  };
+
+  /* 카드 실적에서 뺄지 — 기호를 누르는 즉시 담는다.
+     목록을 다시 읽지 않고 그 줄만 갈아 끼운다. 한 칸만 바뀌는 일에
+     한 달치를 다시 받아 오면 훑던 자리가 흔들린다. 담기지 않으면
+     되돌려 손이 헛놀지 않게 한다. */
+  const togglePerfExclude = async (row: PerfRow, next: boolean) => {
+    const id = row.entry_id;
+    const before = row.perf_exclude ?? 0;
+    const after = next ? 1 : 0;
+    const stamp = (v: number) =>
+      setRows((prev) => prev.map((r) => (r.entry_id === id ? { ...r, perf_exclude: v } : r)));
+    stamp(after);
+    try {
+      await axios.put(`/entries/${id}/perf-exclude`, null, { params: { value: after } });
+    } catch (err) {
+      console.error(err);
+      stamp(before);
+      alert("실적 제외를 담지 못했습니다.");
     }
   };
 
@@ -793,6 +822,7 @@ export default function Entries() {
                 onOpenEditor={openEditor}
                 onStartReveal={startReveal}
                 blurred={isBlurred(row, blurSets)}
+                onTogglePerfExclude={togglePerfExclude}
               />
             ))}
           </section>
@@ -1181,11 +1211,12 @@ export function EntryCard({
   onStartReveal,
   blurred,
   readOnly = false,
+  onTogglePerfExclude,
 }: {
   row: any;
   cat1List: { id: number; name: string }[];
   cat2List: { id: number; name: string; cat1_id: number; blur?: number; inout: number | null }[];
-  payList: { code: string; name: string }[];
+  payList: { code: string; name: string; category?: string }[];
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
   /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
@@ -1194,6 +1225,8 @@ export function EntryCard({
   /* 보기만 하는 화면(기간 상세)에서는 꾹 눌러 편집하지 않는다.
      기본값은 지금까지와 같으므로 이 화면의 동작은 그대로다. */
   readOnly?: boolean;
+  /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
+  onTogglePerfExclude?: (row: PerfRow, next: boolean) => void;
 }) {
   const openEditor = useCallback(() => onOpenEditor(row), [onOpenEditor, row]);
   const { pressing, handlers } = useLongPress(openEditor);
@@ -1201,6 +1234,7 @@ export function EntryCard({
 
   const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
   const isBlur = blurred ?? (cat2List.find(c => c.id === row.cat2_id)?.blur === 1);
+  const pay = payList.find((p) => p.code === row.pay_method);
 
   // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount다.
   const hasSplit = (row.split_count ?? 0) > 0;
@@ -1268,9 +1302,16 @@ export function EntryCard({
       {(row.place_name || row.pay_method) && (
         <div className="entry-ln">
           {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
-          <span className="pay-method-text">
-            {payList.find((p) => p.code === row.pay_method)?.name ?? ""}
-          </span>
+          {/* 카드로 그은 건에만 실적 제외 기호가 선다. 현금 · 계좌이체에는
+              실적이라는 것이 없다. */}
+          {pay?.category === "카드" && (
+            <PerfExcludeButton
+              on={!!row.perf_exclude}
+              readOnly={readOnly || !onTogglePerfExclude}
+              onToggle={(next) => onTogglePerfExclude?.(row, next)}
+            />
+          )}
+          <span className="pay-method-text">{pay?.name ?? ""}</span>
         </div>
       )}
 

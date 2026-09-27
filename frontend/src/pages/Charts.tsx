@@ -357,7 +357,16 @@ function CardPerfItem({
   onOpen,
   onPerks,
 }: {
-  card: { code: string; name: string; charged: number; mine: number; count: number; hasBlur: boolean };
+  card: {
+    code: string;
+    name: string;
+    charged: number;
+    mine: number;
+    count: number;
+    /** 실적에서 뺀 건들의 합. 0이면 딱지를 띄우지 않는다. */
+    excluded: number;
+    hasBlur: boolean;
+  };
   /** 그 카드의 실적 구간과 혜택. 문턱이 낮은 것부터. 없으면 빈 배열 */
   tiers: PerkTier[];
   onOpen: (code: string) => void;
@@ -447,6 +456,24 @@ function CardPerfItem({
           </button>
         )}
         <span className="card-perf__subs">
+          {/* 뺀 것이 있을 때만 — 내역에서 본 그 기호가 여기서 다시 나와야
+              무엇이 빠졌는지가 이어진다. 뺀 건이 없으면 줄은 예전과 같다. */}
+          {card.excluded > 0 && (
+            <span
+              className="card-perf__sub card-perf__sub--x"
+              title="카드 실적에서 뺀 금액"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10.3" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                <g stroke="currentColor" fill="none">
+                  <rect x="5.8" y="8.5" width="12.4" height="8" rx="1.7" strokeWidth="1.4" />
+                  <path d="M5.8 11.1h12.4" strokeWidth="1.4" />
+                  <path d="M6.9 17.3 17.1 6.9" strokeWidth="1.6" strokeLinecap="round" />
+                </g>
+              </svg>
+              {Math.round(card.excluded).toLocaleString("ko-KR")}
+            </span>
+          )}
           <span className="card-perf__sub">{card.count}건</span>
           <span className="card-perf__sub">
             내 몫 {Math.round(card.mine).toLocaleString("ko-KR")}
@@ -771,6 +798,8 @@ export default function Charts() {
             pay_method: x.pay_method as number,
             memo: x.memo as string,
             place_name: x.place_name as string,
+            /* 씀씀이의 카드 실적만 본다. 다른 그림은 이 표를 보지 않는다. */
+            perf_exclude: (x.perf_exclude as number) ?? 0,
             counterpart_ids: (x.counterpart_ids as number[]) ?? [],
           });
         });
@@ -957,6 +986,8 @@ export default function Charts() {
             pay_method: x.pay_method as number,
             memo: x.memo as string,
             place_name: x.place_name as string,
+            /* 씀씀이의 카드 실적만 본다. 다른 그림은 이 표를 보지 않는다. */
+            perf_exclude: (x.perf_exclude as number) ?? 0,
             counterpart_ids: (x.counterpart_ids as number[]) ?? [],
           });
         });
@@ -1076,11 +1107,20 @@ export default function Charts() {
   const byCard = useMemo(() => {
     const cards = payList.filter((p) => p.category === "카드");
     if (!cards.length) return [];
-    const seen = new Map<string, { charged: number; mine: number; count: number; hasBlur: boolean }>();
+    const empty = () => ({ charged: 0, mine: 0, count: 0, excluded: 0, hasBlur: false });
+    const seen = new Map<string, ReturnType<typeof empty>>();
     shown.forEach((r) => {
       const code = String(r.pay_method);
       if (!cards.some((c) => c.code === code)) return;
-      const cur = seen.get(code) ?? { charged: 0, mine: 0, count: 0, hasBlur: false };
+      const cur = seen.get(code) ?? empty();
+      /* 실적에서 빼 둔 건(상품권 · 세금 등)은 그은 돈 · 건수 · 내 몫 어디에도
+         넣지 않는다. 얼마를 뺐는지만 따로 모아 딱지로 알린다. 쓴 돈은 쓴
+         돈이므로 다른 그림은 그대로 센다. */
+      if (r.perf_exclude) {
+        cur.excluded += r.amount;
+        seen.set(code, cur);
+        return;
+      }
       cur.charged += r.amount;
       cur.mine += r.net;
       cur.count += 1;
@@ -1090,7 +1130,7 @@ export default function Charts() {
     return cards.map((c) => ({
       code: c.code,
       name: c.name,
-      ...(seen.get(c.code) ?? { charged: 0, mine: 0, count: 0, hasBlur: false }),
+      ...(seen.get(c.code) ?? empty()),
     }));
   }, [shown, payList, blurSets]);
 

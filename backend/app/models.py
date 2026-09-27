@@ -64,6 +64,9 @@ class Entry(Base):
     # place_lat = Column(Numeric(10,6), nullable=True)
     # place_lng = Column(Numeric(10,6), nullable=True)
     place_id = Column(Integer, ForeignKey("places.place_id"), nullable=True)
+    # 1이면 카드 실적에서 뺀다. 상품권 · 세금처럼 카드로 긋고도 실적으로
+    # 쳐 주지 않는 건이 있다. 갈래가 아니라 건마다 정한다.
+    perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
     place = relationship("Place", back_populates="entries")
 
     def to_dict(self):
@@ -127,6 +130,8 @@ class PendingEntry(Base):
 
     created_at = Column(TIMESTAMP, server_default=func.now())
     sended = Column(Integer, default=0, nullable=False)
+    # 1이면 카드 실적에서 뺀다. 전송하면 지출 내역으로 그대로 따라간다.
+    perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
 
     def to_dict(self):
         return {
@@ -198,7 +203,9 @@ class ScheduledEntry(Base):
     pay_method = Column(Integer, ForeignKey("payment_methods.method_id"), nullable=True)
     memo = Column(String, nullable=True)
     place_id = Column(Integer, ForeignKey("places.place_id"), nullable=True)
-    
+    # 1이면 카드 실적에서 뺀다. 대기 내역으로 나갈 때 그대로 따라간다.
+    perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
+
     # 활성화 여부
     is_active = Column(SmallInteger, default=1, nullable=False)    # 1: 활성, 0: 비활성
     

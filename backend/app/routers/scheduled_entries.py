@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text, func
 from sqlalchemy.orm import Session
 from datetime import date, datetime, timedelta
@@ -74,6 +74,7 @@ def list_scheduled_entries(db: SessionDep = Depends()):
             "memo": r.memo,
             "place_id": r.place_id,
             "place_name": place_names.get(r.place_id),
+            "perf_exclude": r.perf_exclude,
             "is_active": r.is_active,
             "created_at": str(r.created_at),
             "updated_at": str(r.updated_at) if r.updated_at else None,
@@ -124,6 +125,20 @@ def create_scheduled_entry(payload: ScheduledEntryIn, db: SessionDep = Depends()
     db.commit()
     db.refresh(new_schedule)
     return {"status": "ok", "schedule_id": new_schedule.schedule_id}
+
+@router.put("/{schedule_id}/perf-exclude")
+def set_perf_exclude(schedule_id: int, value: int = Query(...), db: SessionDep = Depends()):
+    """카드 실적에서 뺄지를 켜고 끈다. 지출 · 대기와 같은 자리다.
+
+    여기서 켜 두면 이 스케줄이 대기 내역으로 나갈 때마다 표가 따라간다.
+    """
+    result = db.execute(text("""
+        UPDATE life_expense.scheduled_entries
+           SET perf_exclude = :v
+         WHERE schedule_id = :id
+    """), {"v": 1 if value else 0, "id": schedule_id})
+    db.commit()
+    return {"status": "ok", "updated": result.rowcount}
 
 @router.put("/{schedule_id}")
 def update_scheduled_entry(schedule_id: int, payload: ScheduledEntryUpdate, db: SessionDep = Depends()):
@@ -354,6 +369,7 @@ def process_scheduled_entries(db: Session):
             pay_method=schedule.pay_method,
             memo=schedule.memo,
             place_id=schedule.place_id,
+            perf_exclude=schedule.perf_exclude,
             sended=0,
         )
         db.add(new_pending)

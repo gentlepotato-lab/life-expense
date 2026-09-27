@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi import APIRouter, UploadFile, File, Depends, Query
 from sqlalchemy import text
 from app.deps import get_db, SessionDep
 from app.models import PendingEntry, CategoryL1, CategoryL2, CategoryL3, PaymentMethod, Place
@@ -135,6 +135,17 @@ async def import_pending_entries(
     db.commit()
     return {"status": "ok", "inserted": inserted}
 
+@router.put("/{entry_id}/perf-exclude")
+def set_perf_exclude(entry_id: int, value: int = Query(...), db: SessionDep = Depends()):
+    """카드 실적에서 뺄지를 켜고 끈다. 지출 내역과 같은 자리다."""
+    result = db.execute(text("""
+        UPDATE life_expense.pending_entries
+           SET perf_exclude = :v
+         WHERE entry_id = :id
+    """), {"v": 1 if value else 0, "id": entry_id})
+    db.commit()
+    return {"status": "ok", "updated": result.rowcount}
+
 @router.get("")
 def list_pending_entries(db: SessionDep = Depends()):
     sql = text("""
@@ -201,7 +212,8 @@ def send_pending(entry_id: int, db: SessionDep = Depends()):
         amount=float(p.amount),
         pay_method=p.pay_method,
         memo=p.memo,
-        place_id=p.place_id  # ← ← ← 중요: 기존 장소 그대로 전달
+        place_id=p.place_id,  # ← ← ← 중요: 기존 장소 그대로 전달
+        perf_exclude=p.perf_exclude,
     )
 
     db.add(new_entry)
@@ -235,7 +247,8 @@ def send_all_pending(db: SessionDep = Depends()):
             amount=float(p.amount),
             pay_method=p.pay_method,
             memo=p.memo,
-            place_id=p.place_id
+            place_id=p.place_id,
+            perf_exclude=p.perf_exclude,
         )
         
         db.add(new_entry)
@@ -280,7 +293,8 @@ def send_filtered_pending(payload: SendFilteredRequest, db: SessionDep = Depends
             amount=float(p.amount),
             pay_method=p.pay_method,
             memo=p.memo,
-            place_id=p.place_id
+            place_id=p.place_id,
+            perf_exclude=p.perf_exclude,
         )
         
         db.add(new_entry)
