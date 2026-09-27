@@ -475,8 +475,31 @@ function CardPerfItem({
             </span>
           )}
           <span className="card-perf__sub">{card.count}건</span>
-          <span className="card-perf__sub">
-            내 몫 {Math.round(card.mine).toLocaleString("ko-KR")}
+          {/* 그은 돈 가운데 돌려받고 남은, 실제로 부담한 내 몫. 여럿 가운데
+              하나만 짙은 기호로 짚는다 — N빵의 그 뜻이라 말을 붙이지 않는다. */}
+          <span
+            className="card-perf__sub card-perf__sub--mine"
+            title="그은 돈 가운데 돌려받고 남은 내 몫"
+          >
+            {/* 둘 다 꽉 채워 그린다. 뒤쪽을 테두리로 그리면 14px에서 획이
+                앞사람 어깨와 엉겨 한 덩이로 보였다 — 채우면 옅고 짙은 두
+                덩이로 갈려 읽힌다. */}
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+              {/* 나 — 짙게 */}
+              <circle cx="7.6" cy="9.4" r="3.2" fill="currentColor" />
+              <path
+                d="M2.2 18.4c0-3 2.4-4.5 5.4-4.5s5.4 1.5 5.4 4.5"
+                fill="currentColor"
+              />
+              {/* 함께한 사람 — 옅게 */}
+              <circle cx="18.4" cy="10" r="2.6" fill="currentColor" fillOpacity="0.32" />
+              <path
+                d="M14.6 18.4c0-2.3 1.7-3.4 3.8-3.4s3.8 1.1 3.8 3.4"
+                fill="currentColor"
+                fillOpacity="0.32"
+              />
+            </svg>
+            {Math.round(card.mine).toLocaleString("ko-KR")}
           </span>
         </span>
       </div>
