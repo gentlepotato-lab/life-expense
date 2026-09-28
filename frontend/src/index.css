@@ -15156,3 +15156,36 @@ textarea.memo-input.memo-area {
     opacity: 1;
   }
 }
+/* ═══════════════════════════════════════════════════════════════
+   149. 어두운 바탕에서 테이프의 테를 눕힌다(2026-09)
+   ─────────────────────────────────────────────────────────────
+   141절에서 테이프 마감을 한 가지로 모으며 안쪽에 흰 테를 한 겹 넣었다.
+   밝은 바탕에서는 종이의 윤기로 읽히던 것이, 어두운 바탕에서는 옅은 종이와
+   어두운 카드 사이에 또렷한 흰 선으로 서서 테두리를 그린 것처럼 보인다.
+   함께 넣어 둔 바깥 그림자는 어두운 바탕에서 아예 보이지 않아, 테이프를
+   바닥에 앉혀 주는 일을 못 하고 있었다.
+
+   어두운 쪽에서는 흰 테를 빼고 그늘을 짙게 바꾼다. 테이프가 선으로 잘린
+   조각이 아니라 위에 얹힌 종이로 읽힌다.
+   ════════════════════════════════════════════════════════════ */
+
+:root[data-dark="1"] .amount-text.masked::after,
+:root[data-dark="1"] .amount-split.masked::after,
+:root[data-dark="1"] .date-group__sum.masked::after,
+:root[data-dark="1"] .cal__net.masked::after,
+:root[data-dark="1"] .cal-sum__in.masked::after,
+:root[data-dark="1"] .cal-sum__out.masked::after,
+:root[data-dark="1"] .chart-tile__value.masked::after,
+:root[data-dark="1"] .card-perf__value.masked::after,
+:root[data-dark="1"] .wh-row__val.masked::after,
+:root[data-dark="1"] .wh-sum__won.masked::after,
+:root[data-dark="1"] .nudge__tape,
+:root[data-dark="1"] .nudge-detail__amount.is-taped::after {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.42);
+}
+
+/* 잔소리 목록의 테이프는 filter로 그늘을 지고 있었는데, 147절이 밝기를
+   눌러쓰면서 그 그늘이 사라졌다. 둘을 함께 적어 되살린다. */
+:root[data-dark="1"] .nudge__tape {
+  filter: brightness(0.88) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
