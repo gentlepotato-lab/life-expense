@@ -37,18 +37,21 @@ export default function useRevealDrag(setRevealed: (on: boolean) => void) {
 
       const onEnd = () => {
         setRevealed(false);
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("touchmove", onMove);
-        window.removeEventListener("mouseup", onEnd);
-        window.removeEventListener("touchend", onEnd);
-        window.removeEventListener("touchcancel", onEnd);
+        window.removeEventListener("mousemove", onMove, true);
+        window.removeEventListener("touchmove", onMove, true);
+        window.removeEventListener("mouseup", onEnd, true);
+        window.removeEventListener("touchend", onEnd, true);
+        window.removeEventListener("touchcancel", onEnd, true);
       };
 
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("touchmove", onMove, { passive: true });
-      window.addEventListener("mouseup", onEnd);
-      window.addEventListener("touchend", onEnd);
-      window.addEventListener("touchcancel", onEnd);
+      /* 잡는 단계로 듣는다. 씀씀이의 말풍선처럼 중간에서 손짓을 끊어야 하는
+         자리가 있어서다 — 거기서 끊기면 거품 단계로 듣는 이 손은 못 듣는다.
+         끊는 곳이 없는 다른 화면에서는 듣는 차례만 앞설 뿐 하는 일이 같다. */
+      window.addEventListener("mousemove", onMove, true);
+      window.addEventListener("touchmove", onMove, { passive: true, capture: true });
+      window.addEventListener("mouseup", onEnd, true);
+      window.addEventListener("touchend", onEnd, true);
+      window.addEventListener("touchcancel", onEnd, true);
     },
     [setRevealed]
   );

@@ -154,7 +154,7 @@ export default function PalettePopup({
   return (
     <div className="popup-overlay" onClick={onClose}>
       <div
-        className="popup-panel"
+        className="popup-panel popup-panel--pal"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

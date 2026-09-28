@@ -22,7 +22,7 @@ import { useNavigate } from "react-router-dom";
 import { stash, takeStash } from "../utils/pageState";
 import axios from "../api/client";
 import useRevealDrag from "../hooks/useRevealDrag";
-import useLongPress from "../hooks/useLongPress";
+import useLongPress, { LONG_PRESS_DELAY } from "../hooks/useLongPress";
 import useBackClose from "../hooks/useBackClose";
 import QuickActions from "./components/QuickActions";
 import EntryFilterPopup from "./components/EntryFilterPopup";
@@ -190,11 +190,68 @@ function sectorPop(chart: string) {
   };
 }
 
-/* 그리개는 화면이 몇 번 그려지든 늘 이 넷이다. */
+/**
+ * 지난달 막대를 그리는 그리개.
+ *
+ * 제 빛깔로 연하게 칠한다. 칠은 이 달 막대와 같은 빛깔이라 그 위에 겹쳐도
+ * 색이 달라지지 않는다 — 그래서 앞에 두어도 뒤에 둔 것처럼 보인다.
+ *
+ * 앞에 두는 까닭은 지난달이 더 적을 때다. 뒤에만 두면 이 달 막대에 통째로
+ * 가려 아무것도 안 보이고, 지난달에 안 썼는지 그림이 없는지 가릴 수가 없다.
+ * 그럴 때는 이 달 막대 위에 눈금을 하나 판다 — 지난달 끝이 여기라는 뜻이다.
+ * 눈금은 바탕색이다. 같은 빛깔로 그으면 제 막대에 묻혀 보이지 않는다.
+ */
+type GhostProps = RectangleProps & { payload?: Record<string, unknown> };
+
+function ghostBar(curKey: string, prevKey: string, dir: "up" | "right") {
+  return function GhostBar(p: GhostProps) {
+    const x = p.x ?? 0;
+    const y = p.y ?? 0;
+    const w = p.width ?? 0;
+    const h = p.height ?? 0;
+    const 이달 = Number(p.payload?.[curKey] ?? 0);
+    const 지난달 = Number(p.payload?.[prevKey] ?? 0);
+    if (지난달 <= 0 || w <= 0 || h <= 0) return null;
+    const 덮임 = 이달 >= 지난달;
+    return (
+      <g style={{ pointerEvents: "none" }}>
+        <Rectangle {...p} />
+        {덮임 &&
+          (dir === "up" ? (
+            <line
+              x1={x + 0.5}
+              x2={x + w - 0.5}
+              y1={y}
+              y2={y}
+              stroke="var(--color-surface)"
+              strokeWidth={2}
+              strokeLinecap="round"
+              opacity={0.9}
+            />
+          ) : (
+            <line
+              x1={x + w}
+              x2={x + w}
+              y1={y + 0.5}
+              y2={y + h - 0.5}
+              stroke="var(--color-surface)"
+              strokeWidth={2}
+              strokeLinecap="round"
+              opacity={0.9}
+            />
+          ))}
+      </g>
+    );
+  };
+}
+
+/* 그리개는 화면이 몇 번 그려지든 늘 이 일곱이다. */
 const ShapeDaily = barPop("daily", "up");
 const ShapePay = barPop("pay", "right");
 const ShapeDow = barPop("weekday", "up");
 const ShapeCat = sectorPop("cat1");
+const GhostUp = ghostBar("지출", "전월", "up");
+const GhostRight = ghostBar("value", "전월", "right");
 
 /**
  * 추이 선 그림의 점.
@@ -272,6 +329,72 @@ function topN(map: Map<string, number>, n: number): Slice[] {
 const colorOf = (name: string, i: number) =>
   name === "기타" ? ETC_COLOR() : PALETTE()[i % PALETTE().length];
 
+/**
+ * 이름별로 모으면서 가려야 할 줄이 섞였는지도 함께 적어 둔다.
+ *
+ * 그림의 말풍선과 견줌 보기 팝업에도 내역 카드와 같은 규칙으로 테이프를
+ * 붙이기 위해서다. 합에 가릴 줄이 한 줄이라도 섞였으면 그 합도 가린다 —
+ * 달력의 한 달 합계가 따르는 규칙 그대로다.
+ */
+function 모으기(
+  list: Row[],
+  key: (r: Row) => string,
+  가림: (r: Row) => boolean
+): { 합: Map<string, number>; 덮개: Map<string, boolean> } {
+  const 합 = new Map<string, number>();
+  const 덮개 = new Map<string, boolean>();
+  list.forEach((r) => {
+    const k = key(r);
+    합.set(k, (합.get(k) ?? 0) + r.net);
+    if (가림(r)) 덮개.set(k, true);
+  });
+  return { 합, 덮개 };
+}
+
+/**
+ * topN이 내준 조각에 가림 딱지를 붙인다.
+ *
+ * "기타"는 남은 것을 묶은 조각이므로 묶인 것 가운데 하나라도 가려야 하면
+ * 기타도 가린다. 이름이 그대로 "기타"인 진짜 갈래가 따로 있을 수도 있어
+ * 제 딱지와 묶은 것의 딱지를 함께 본다.
+ */
+function 딱지(
+  slices: Slice[],
+  합: Map<string, number>,
+  덮개: Map<string, boolean>
+): (Slice & { 가림: boolean })[] {
+  const 선 = new Set(slices.map((s) => s.name));
+  let 나머지 = false;
+  합.forEach((_, k) => {
+    if (!선.has(k) && 덮개.get(k)) 나머지 = true;
+  });
+  return slices.map((s) => ({
+    ...s,
+    가림: (덮개.get(s.name) ?? false) || (s.name === "기타" && 나머지),
+  }));
+}
+
+/** 견줌 보기 팝업의 한 줄 */
+type CmpRow = {
+  name: string;
+  cur: number;
+  prev: number;
+  curBlur: boolean;
+  prevBlur: boolean;
+};
+
+/** 견줌 보기 팝업이 한 번에 들고 있는 것 */
+type PrevCmp = {
+  title: string;
+  칸: string;
+  총이달: number;
+  총지난달: number;
+  총가림: boolean;
+  rows: CmpRow[];
+};
+
+
+
 /** 넓은 화면인지 — 값 이름표를 붙일지 말지를 여기서 정한다. */
 function useWide(query = "(min-width: 640px)") {
   const [wide, setWide] = useState(
@@ -286,12 +409,28 @@ function useWide(query = "(min-width: 640px)") {
   return wide;
 }
 
+/** "2026-08" → "26' 08". 말풍선과 견줌 보기 팝업이 함께 쓴다. */
+const ymTag = (ym: string) => `${ym.slice(2, 4)}' ${ym.slice(5, 7)}`;
+const prevTag = (ym: string) => `전월(${ymTag(ym)})`;
+const curTag = (ym: string) => `당월(${ymTag(ym)})`;
+
+/* 그림의 값 열쇠마다 그 값이 가려야 하는지를 적어 둔 열쇠. 말풍선은 어느
+   그림인지 모르고 dataKey만 받으므로, 여기서 되묻는다. */
+const 가림열쇠: Record<string, string> = {
+  지출: "가림",
+  value: "가림",
+  누적: "누적가림",
+  전월: "전월가림",
+  전월누적: "전월누적가림",
+};
+
 /** 그림 위에 뜨는 말풍선 — 화면 톤에 맞춰 우리가 그린다. */
 type TipItem = {
   name?: string;
   value?: number | string;
   color?: string;
-  payload?: { name?: string; color?: string };
+  dataKey?: string | number;
+  payload?: Record<string, unknown> & { name?: string; color?: string; prev?: boolean };
 };
 function Tip({
   active,
@@ -300,6 +439,8 @@ function Tip({
   suffix = "",
   useSliceName = false,
   labelFormat,
+  prevLabel = "전월",
+  curLabel = "당월",
 }: {
   active?: boolean;
   payload?: TipItem[];
@@ -309,28 +450,205 @@ function Tip({
   useSliceName?: boolean;
   /** 축에 담긴 값과 말풍선에 쓸 말이 다를 때 */
   labelFormat?: (v: string | number) => string;
+  /** 지난달 줄에 붙일 딱지 — 전월(26' 08) */
+  prevLabel?: string;
+  /** 이 달 줄에 붙일 딱지 — 당월(26' 09) */
+  curLabel?: string;
 }) {
+  /**
+   * 들고 남을 그림이 모르게 한다.
+   *
+   * 밖에서 말풍선 위로 바로 들어오면 Recharts는 그것을 "그림에 들어왔다"로
+   * 셌어 손이 닿은 자리를 다시 재고, 그 자리는 그림 밖이라 말풍선을 거둔다.
+   * 리액트는 이 손질을 뿌리에서 모아 듣고 들고 남을 따로 계산하므로, 리액트 손으로
+   * 끓는 것은 이미 늦다. 뿌리까지 닿기 전에 여기서 끓는다.
+   */
+  const 상자 = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = 상자.current;
+    if (!el) return;
+    const 끓기 = (e: Event) => e.stopPropagation();
+    el.addEventListener("mouseover", 끓기);
+    el.addEventListener("mouseout", 끓기);
+    return () => {
+      el.removeEventListener("mouseover", 끓기);
+      el.removeEventListener("mouseout", 끓기);
+    };
+  });
+
   if (!active || !payload?.length) return null;
+  const slice = payload[0]?.payload;
   const head = useSliceName
-    ? payload[0]?.payload?.name
+    ? slice?.name
     : labelFormat
     ? labelFormat(label ?? "")
     : `${label ?? ""}${suffix}`;
+
+  /* 도넛은 조각마다 말풍선이 따로 뜨므로 지난달 줄을 여기서 한 줄 더 만든다.
+     가는 고리를 겨누게 하지 않으려는 것이다 — 이 달 조각만 누르면 두 달이
+     함께 나온다. */
+  const 도넛지난달 = useSliceName && slice?.전월 !== undefined ? Number(slice.전월) : null;
+
+  /* 두 달을 나란히 놓을 때만 이름표를 붙인다. 한 줄뿐인 그림에서는 무엇을
+     말하는지가 머리말에 이미 적혀 있다. */
+  const 견줌 = payload.length > 1 || 도넛지난달 !== null;
+  /**
+   * 말풍선 위의 누름은 여기서 끓는다.
+   *
+   * 그대로 두면 두 가지가 일어난다. 하나는 Recharts가 "그림을 눌렀다"로 받는
+   * 것이고, 다른 하나는 그림에 서 있던 포커스가 말풍선으로 옮겨가는 것이다.
+   * 둘 다 말풍선을 바로 내려버려, 테이프를 끼려는 순간 말풍선이 먼저 사라졌다
+   * (Recharts는 그림이 포커스를 잃으면 눈금만으로 놓은 말풍선을 거둔다).
+   *
+   * 누름을 여기서 끓고, 누름의 본래 일기리인 포커스 옮기기도 막는다. 안쪽
+   * 금액의 끓기 손질은 이보다 먼저 일어나므로 그대로 산다.
+   */
+  const 끓기 = (e: React.SyntheticEvent) => e.stopPropagation();
+  const 누름 = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    /* 포커스가 그림에 남아 있게 한다. 글자 고르기도 함께 막히는데,
+       테이프를 끼는 자리에서는 그편이 낫다. */
+    e.preventDefault();
+  };
   return (
-    <div className="chart-tip">
+    <div
+      ref={상자}
+      className="chart-tip"
+      onPointerDown={끓기}
+      onMouseDown={누름}
+      onTouchStart={끓기}
+      onPointerMove={끓기}
+      onMouseMove={끓기}
+      onTouchMove={끓기}
+      /* 들고 남도 끓는다. 밖에서 말풍선 위로 바로 들어오면 Recharts는 그것을
+         "그림에 들어왔다"로 셌어 손이 닿은 자리를 다시 재고, 그 자리는 그림 바깥이라
+         말풍선을 거둔다. */
+      onMouseOver={끓기}
+      onMouseOut={끓기}
+      onClick={끓기}
+    >
       {head && <div className="chart-tip__head">{head}</div>}
-      {payload.map((p, i) => (
-        <div key={i} className="chart-tip__row">
-          {/* 빛깔은 그 조각이 들고 있는 것을 그대로 쓴다 — 말풍선 차례로
-              고르면 조각이 하나뿐인 그림에서 늘 첫 빛깔만 나온다. */}
+      {payload.map((p, i) => {
+        /* 지난달 줄은 한 단 흐리게 두고 딱지를 붙인다 — 같은 빛깔의 두 줄이
+           이름 없이 나란히 서면 어느 쪽이 이 달인지 알 수 없다. */
+        const prev = p.name === "전월" || p.payload?.prev === true;
+        /* 가려야 할 갈래가 섞인 값은 숫자 대신 테이프를 붙인다. 말풍선은
+           손이 닿지 않는 자리라(pointer-events: none) 끌어서 보는 길은 없다. */
+        const 가림 = !!p.payload?.[가림열쇠[String(p.dataKey ?? "")] ?? "가림"];
+        return (
+          <div key={i} className={`chart-tip__row${prev ? " chart-tip__row--prev" : ""}`}>
+            {/* 빛깔은 그 조각이 들고 있는 것을 그대로 쓴다 — 말풍선 차례로
+                고르면 조각이 하나뿐인 그림에서 늘 첫 빛깔만 나온다. */}
+            <span
+              className="chart-tip__dot"
+              style={{ background: p.payload?.color ?? p.color ?? ETC_COLOR() }}
+            />
+            {견줌 && (
+              <span className="chart-tip__when">{prev ? prevLabel : curLabel}</span>
+            )}
+            <MaskedAmount
+              className="chart-tip__value"
+              hide={가림}
+              value={won(Number(p.value ?? 0))}
+            />
+          </div>
+        );
+      })}
+      {도넛지난달 !== null && (
+        <div className="chart-tip__row chart-tip__row--prev">
           <span
             className="chart-tip__dot"
-            style={{ background: p.payload?.color ?? p.color ?? ETC_COLOR() }}
+            style={{ background: (slice?.color as string) ?? ETC_COLOR() }}
           />
-          <span className="chart-tip__value">{won(Number(p.value ?? 0))}</span>
+          <span className="chart-tip__when">{prevLabel}</span>
+          <MaskedAmount
+            className="chart-tip__value"
+            hide={slice?.전월가림 === true}
+            value={won(도넛지난달)}
+          />
         </div>
-      ))}
+      )}
     </div>
+  );
+}
+
+/**
+ * 지난달을 겹쳐 보는 단추. 그림마다 따로 켜고 끄며, 기억해 두지 않는다.
+ * 꾹 누르면 숫자로 견줘 보는 팝업이 뜬다.
+ *
+ * 꾹 누르기를 useLongPress로 넣지 못한 까닭은 그 훅이 단추에서 시작한 누름을
+ * 일부러 무시하기 때문이다 — 카드 안의 단추를 꾹 누른 것을 카드를 꾹 누른
+ * 것으로 잡지 않으려는 규칙이다. 누르는 시간과 흔들림 허용치는 그쪽 것을 쓴다.
+ */
+const PREV_MOVE = 10;
+
+function PrevBtn({
+  on,
+  onToggle,
+  onHold,
+}: {
+  on: boolean;
+  onToggle: () => void;
+  onHold: () => void;
+}) {
+  const timer = useRef(0);
+  const origin = useRef<{ x: number; y: number } | null>(null);
+  const fired = useRef(false);
+  const [pressing, setPressing] = useState(false);
+
+  const stop = useCallback(() => {
+    window.clearTimeout(timer.current);
+    origin.current = null;
+    setPressing(false);
+  }, []);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  return (
+    <button
+      type="button"
+      className={`chart-prev-btn${on ? " on" : ""}${pressing ? " pressing" : ""}`}
+      aria-pressed={on}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        fired.current = false;
+        origin.current = { x: e.clientX, y: e.clientY };
+        setPressing(true);
+        timer.current = window.setTimeout(() => {
+          origin.current = null;
+          fired.current = true;
+          setPressing(false);
+          onHold();
+        }, LONG_PRESS_DELAY);
+      }}
+      onPointerMove={(e) => {
+        const o = origin.current;
+        if (!o) return;
+        if (Math.abs(e.clientX - o.x) > PREV_MOVE || Math.abs(e.clientY - o.y) > PREV_MOVE) stop();
+      }}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+      onContextMenu={(e) => {
+        if (pressing || fired.current) e.preventDefault();
+      }}
+      onClick={() => {
+        /* 꾹 누른 뒤에 따라오는 클릭까지 받으면 팝업을 열면서 겹쳐 보기까지
+           함께 켜진다. 한 번만 삼킨다. */
+        if (fired.current) {
+          fired.current = false;
+          return;
+        }
+        onToggle();
+      }}
+      title={
+        on
+          ? "지난달 겹쳐 보기를 끈다. 꾹 누르면 숫자로 본다."
+          : "지난달을 흐리게 겹쳐 본다. 꾹 누르면 숫자로 본다."
+      }
+    >
+      <span className="chart-prev-btn__key" aria-hidden="true" />
+      전월 대비
+    </button>
   );
 }
 
@@ -534,10 +852,21 @@ function MaskedAmount({
   );
 }
 
+/**
+ * 말풍선은 손을 얻으면 사라지는 것이 아니라 누르면 뜨고 붙어 있는다(trigger: click).
+ * 금액에 붙은 테이프를 끼어서 보려면 말풍선이 그동안 서 있어야 하기 때문이다.
+ * 내려놓는 것은 그림 바깥을 한 번 누를 때다(Charts의 tipAt).
+ *
+ * 붙들어 두는 힘은 active={true}에서 나온다. Recharts는 손이 그림 밖으로
+ * 나가거나 말풍선 위로 옮겨 올 때마다 닿은 자리를 다시 재는데, active가 참이면
+ * 한 번이라도 눌렸던 자리를 그대로 붙잡고 있는다. 거짓이면 아예 안 뜨므로,
+ * 그림마다 눈금을 하나 두고 눌린 그림에만 참을 준다.
+ */
 const TIP_PROPS = {
   animationDuration: 160,
   cursor: { fill: "rgba(180, 124, 255, 0.12)" },
   wrapperStyle: { outline: "none" },
+  trigger: "click" as const,
 };
 
 /** 그림 카드 하나가 들고 있는 것 — 껍데기는 ChartCardBox가 씌운다. */
@@ -912,8 +1241,11 @@ export default function Charts() {
   /* ─── 날짜별 · 누적 ───────────────────────────────────────── */
   const byDay = useMemo(() => {
     const spend = new Array<number>(daysInMonth + 1).fill(0);
+    const 덮개 = new Array<boolean>(daysInMonth + 1).fill(false);
     shown.forEach((r) => {
-      if (r.day <= daysInMonth) spend[r.day] += r.net;
+      if (r.day > daysInMonth) return;
+      spend[r.day] += r.net;
+      if (isBlurred(r, blurSets)) 덮개[r.day] = true;
     });
 
     /* 돈이 있는 마지막 날까지만 그린다. 이번 달을 보면 남은 날이
@@ -923,34 +1255,44 @@ export default function Charts() {
     if (last === 0) last = daysInMonth;
 
     let acc = 0;
+    let acc가림 = false;
     return Array.from({ length: last }, (_, i) => {
       const day = i + 1;
       acc += spend[day];
-      return { day, 지출: Math.round(spend[day]), 누적: Math.round(acc), dow: (firstDow + i) % 7 };
+      if (덮개[day]) acc가림 = true;
+      return {
+        day,
+        지출: Math.round(spend[day]),
+        누적: Math.round(acc),
+        dow: (firstDow + i) % 7,
+        가림: 덮개[day],
+        누적가림: acc가림,
+      };
     });
-  }, [shown, daysInMonth, firstDow]);
+  }, [shown, daysInMonth, firstDow, blurSets]);
 
   /* ─── 중분류별 ────────────────────────────────────────────── */
+  const cat1Name = useMemo(() => new Map(cat1List.map((c) => [c.id, c.name])), [cat1List]);
+  const payName = useMemo(() => new Map(payList.map((p) => [p.code, p.name])), [payList]);
+
   const byCat = useMemo(() => {
-    const name = new Map(cat1List.map((c) => [c.id, c.name]));
-    const m = new Map<string, number>();
-    shown.forEach((r) => {
-      const k = name.get(Number(r.cat1_id)) ?? "분류 없음";
-      m.set(k, (m.get(k) ?? 0) + r.net);
-    });
-    return topN(m, 5).map((s, i) => ({ ...s, color: colorOf(s.name, i) }));
-  }, [shown, cat1List]);
+    const { 합, 덮개 } = 모으기(
+      shown,
+      (r) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음",
+      (r) => isBlurred(r, blurSets)
+    );
+    return 딱지(topN(합, 5), 합, 덮개).map((s, i) => ({ ...s, color: colorOf(s.name, i) }));
+  }, [shown, cat1Name, blurSets]);
 
   /* ─── 결제 수단별 ─────────────────────────────────────────── */
   const byPay = useMemo(() => {
-    const name = new Map(payList.map((p) => [p.code, p.name]));
-    const m = new Map<string, number>();
-    shown.forEach((r) => {
-      const k = name.get(String(r.pay_method)) ?? "수단 없음";
-      m.set(k, (m.get(k) ?? 0) + r.net);
-    });
-    return topN(m, 5).map((s, i) => ({ ...s, color: colorOf(s.name, i) }));
-  }, [shown, payList]);
+    const { 합, 덮개 } = 모으기(
+      shown,
+      (r) => payName.get(String(r.pay_method)) ?? "수단 없음",
+      (r) => isBlurred(r, blurSets)
+    );
+    return 딱지(topN(합, 5), 합, 덮개).map((s, i) => ({ ...s, color: colorOf(s.name, i) }));
+  }, [shown, payName, blurSets]);
 
   /* ─── 12개월 추이 ─────────────────────────────────────────────
      고른 달을 끝으로 열두 달. 달마다 따로 물어 와서 이 화면이 쓰는 잣대(keep)로
@@ -1033,17 +1375,21 @@ export default function Charts() {
 
   const byMonth = useMemo(() => {
     const sums = new Map<string, number>();
+    const 덮개 = new Map<string, boolean>();
     months.forEach((ym) => sums.set(ym, 0));
     trendRows.forEach((r) => {
-      if (keep(r)) sums.set(r.ym, (sums.get(r.ym) ?? 0) + r.net);
+      if (!keep(r)) return;
+      sums.set(r.ym, (sums.get(r.ym) ?? 0) + r.net);
+      if (isBlurred(r, blurSets)) 덮개.set(r.ym, true);
     });
     /* 열쇠는 연-월 그대로 둔다. "8월"로 두면 열두 달을 넘길 때
        작년 8월과 올해 8월이 같은 칸으로 뭉쳐 값이 더해진다. */
     return months.map((ym) => ({
       ym,
       지출: Math.round(sums.get(ym) ?? 0),
+      가림: 덮개.get(ym) ?? false,
     }));
-  }, [months, trendRows, keep]);
+  }, [months, trendRows, keep, blurSets]);
 
   /* ─── 중분류 하나를 골랐을 때 ─────────────────────────────────
      누르자마자 팝업이 덮으면 도넛을 더 들여다볼 수가 없다.
@@ -1109,17 +1455,354 @@ export default function Charts() {
   /* ─── 요일별 ──────────────────────────────────────────────── */
   const byDow = useMemo(() => {
     const sums = new Array<number>(7).fill(0);
-    byDay.forEach((d) => (sums[d.dow] += d.지출));
+    const 덮개 = new Array<boolean>(7).fill(false);
+    byDay.forEach((d) => {
+      sums[d.dow] += d.지출;
+      if (d.가림) 덮개[d.dow] = true;
+    });
     /* 주말만 색을 달리해 한 주의 마디가 보이게 한다.
        빛깔을 자료에 실어 두면 막대 · 말풍선이 한 값을 본다. */
     return WEEKDAYS.map((w, i) => ({
       요일: w,
       지출: Math.round(sums[i]),
+      가림: 덮개[i],
       color: i === 0 ? SPEND() : i === 6 ? ACC() : WEEKDAY(),
     }));
   }, [byDay]);
 
   const catTotal = useMemo(() => byCat.reduce((s, c) => s + c.value, 0), [byCat]);
+
+  /* ─── 전월 대비 ───────────────────────────────────────────────
+     그림마다 머리말의 단추로 켜면 지난달이 제 빛깔로 연하게 뒤에 깔린다.
+     들어올 때는 늘 꺼진 채이고, 켠 것을 담아 두지 않는다.
+
+     지난달 값은 추이가 이미 받아 둔 열여덟 달에서 꺼내 쓴다. 따로 물어 오면
+     걸러 내기와 Exclude, Blur 규칙을 두 벌로 두게 되고, 언젠가 한쪽만 고쳐져
+     겹쳐 놓은 두 달이 서로 다른 잣대로 그려진다.
+
+     날짜를 맞추는 법 — 같은 일자끼리 맞추되, 이 달에 없는 날은 이 달 말일에
+     몰아 더한다. 2월 28일 자리에 지난 1월의 28~31일이 함께 선다. 그러지
+     않으면 짧은 달을 볼 때마다 지난달 끝자락이 통째로 사라진다. */
+  const [prevOn, setPrevOn] = useState<Record<string, boolean>>({});
+  const togglePrev = useCallback(
+    (key: string) => setPrevOn((p) => ({ ...p, [key]: !p[key] })),
+    []
+  );
+
+  const prevYm = useMemo(() => {
+    const [y, m] = yearMonth.split("-").map(Number);
+    const d = new Date(y, m - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, [yearMonth]);
+
+  const prevRows = useMemo(
+    () => trendRows.filter((r) => r.ym === prevYm && keep(r)),
+    [trendRows, prevYm, keep]
+  );
+
+  /* 지난달 하루치 — 자리는 이 달 일자에 맞춰 둔다. */
+  const prevByDay = useMemo(() => {
+    const spend = new Array<number>(daysInMonth + 1).fill(0);
+    const 덮개 = new Array<boolean>(daysInMonth + 1).fill(false);
+    prevRows.forEach((r) => {
+      const d = Math.min(r.day, daysInMonth);
+      spend[d] += r.net;
+      if (isBlurred(r, blurSets)) 덮개[d] = true;
+    });
+    return { spend, 덮개 };
+  }, [prevRows, daysInMonth, blurSets]);
+
+  const dayRows = useMemo(() => {
+    let acc = 0;
+    let acc가림 = false;
+    return byDay.map((d) => {
+      acc += prevByDay.spend[d.day] ?? 0;
+      if (prevByDay.덮개[d.day]) acc가림 = true;
+      return {
+        ...d,
+        전월: Math.round(prevByDay.spend[d.day] ?? 0),
+        전월누적: Math.round(acc),
+        전월가림: prevByDay.덮개[d.day] ?? false,
+        전월누적가림: acc가림,
+      };
+    });
+  }, [byDay, prevByDay]);
+
+  /* 요일만은 일자를 옮겨 붙이지 않는다. 말일에 몰아 둔 값을 이 달 요일로 세면
+     지난달 목요일에 쓴 돈이 이 달 토요일 자리에 가서 앉는다. 지난달은 제
+     달력으로 센다. 보는 창은 이 달 그림과 같게 맞춘다 — 이 달이 20일까지
+     그려져 있으면 지난달도 20일까지만 센다. */
+  const prevByDow = useMemo(() => {
+    const [y, m] = prevYm.split("-").map(Number);
+    const first = new Date(y, m - 1, 1).getDay();
+    const lastDay = byDay.length;
+    const sums = new Array<number>(7).fill(0);
+    const 덮개 = new Array<boolean>(7).fill(false);
+    prevRows.forEach((r) => {
+      if (Math.min(r.day, daysInMonth) > lastDay) return;
+      const i = (first + r.day - 1) % 7;
+      sums[i] += r.net;
+      if (isBlurred(r, blurSets)) 덮개[i] = true;
+    });
+    return { sums, 덮개 };
+  }, [prevRows, prevYm, byDay, daysInMonth, blurSets]);
+
+  const dowRows = useMemo(
+    () =>
+      byDow.map((d, i) => ({
+        ...d,
+        전월: Math.round(prevByDow.sums[i]),
+        전월가림: prevByDow.덮개[i],
+      })),
+    [byDow, prevByDow]
+  );
+
+  /* 지난달 묶음은 이번 달과 같은 잣대(큰 것 다섯에 나머지는 기타)로 묶는다.
+     빛깔은 이번 달 도넛에 있는 이름이면 그것을 그대로 쓰고, 지난달에만 있던
+     이름은 회색으로 둔다 — 갈래 색을 주면 그 색이 이번 달의 다른 갈래를
+     가리켜 거짓말이 된다. */
+  const byCatPrev = useMemo(() => {
+    const { 합, 덮개 } = 모으기(
+      prevRows,
+      (r) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음",
+      (r) => isBlurred(r, blurSets)
+    );
+    const cur = new Map(byCat.map((c) => [c.name, c.color]));
+    return 딱지(topN(합, 5), 합, 덮개).map((s) => ({
+      ...s,
+      color: cur.get(s.name) ?? ETC_COLOR(),
+      prev: true,
+    }));
+  }, [prevRows, cat1Name, byCat, blurSets]);
+
+  const catPrevTotal = useMemo(
+    () => byCatPrev.reduce((s, c) => s + c.value, 0),
+    [byCatPrev]
+  );
+
+  /* 이 달에 한 푼도 쓰지 않은 갈래만 이름표에 줄을 따로 얻는다. 고리에만
+     두면 이름을 읽을 곳이 없어 무엇이 사라졌는지 알 수 없다. 이 달에도 썼지만
+     "기타"로 묶인 갈래는 여기 세우지 않는다 — 값이 0인 줄로 서면 이번 달에
+     안 썼다는 거짓말이 된다. */
+  const catOnlyPrev = useMemo(() => {
+    const name = new Map(cat1List.map((c) => [c.id, c.name]));
+    const 쓴것 = new Set(shown.map((r) => name.get(Number(r.cat1_id)) ?? "분류 없음"));
+    return byCatPrev.filter((c) => c.name !== "기타" && !쓴것.has(c.name));
+  }, [shown, cat1List, byCatPrev]);
+
+  /* 도넛 조각마다 지난달 몫을 실어 둔다. 고리는 손이 닿지 않게 두고, 이 달
+     조각 하나만 눌러도 두 달이 함께 보이게 하려는 것이다. 결제 수단별과 같은
+     셈법으로 "기타"에 묶인 몫도 그 줄이 받는다. */
+  const catRows = useMemo(() => {
+    if (!prevOn.cat1) return byCat.map((c) => ({ ...c }));
+    const 키 = (r: Row) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음";
+    const 가림 = (r: Row) => isBlurred(r, blurSets);
+    const 이달 = 모으기(shown, 키, 가림).합;
+    const { 합: 지난달, 덮개: 지난달덮개 } = 모으기(prevRows, 키, 가림);
+    const 줄이름 = new Set(byCat.map((r) => r.name));
+    let 나머지 = 0;
+    let 나머지가림 = false;
+    지난달.forEach((v, k) => {
+      if (줄이름.has(k) || !이달.has(k)) return;
+      나머지 += v;
+      if (지난달덮개.get(k)) 나머지가림 = true;
+    });
+    return byCat.map((c) => {
+      const 묶음 = c.name === "기타";
+      return {
+        ...c,
+        전월: Math.round((지난달.get(c.name) ?? 0) + (묶음 ? 나머지 : 0)),
+        전월가림: (지난달덮개.get(c.name) ?? false) || (묶음 && 나머지가림),
+      };
+    });
+  }, [prevOn.cat1, byCat, cat1Name, shown, prevRows, blurSets]);
+
+  const payRows = useMemo(() => {
+    const rows = byPay.map((p) => ({ ...p, 전월: 0, 전월가림: false }));
+    if (!prevOn.pay) return rows;
+    const 키 = (r: Row) => payName.get(String(r.pay_method)) ?? "수단 없음";
+    const 가림 = (r: Row) => isBlurred(r, blurSets);
+    const 이달 = 모으기(shown, 키, 가림).합;
+    const 지난달묶음 = 모으기(prevRows, 키, 가림);
+    const 지난달 = 지난달묶음.합;
+    const 지난달덮개 = 지난달묶음.덮개;
+    const 줄이름 = new Set(rows.map((r) => r.name));
+    /* 이 달에 제 줄을 못 얻고 "기타"로 묶인 수단은 지난달 몫도 그 줄이
+       받는다. 이름으로만 찾으면 기타 줄의 지난달이 턴에 비게 된다. */
+    let 나머지 = 0;
+    let 나머지가림 = false;
+    지난달.forEach((v, k) => {
+      if (줄이름.has(k) || !이달.has(k)) return;
+      나머지 += v;
+      if (지난달덮개.get(k)) 나머지가림 = true;
+    });
+    rows.forEach((r) => {
+      const 묶음 = r.name === "기타";
+      r.전월 = Math.round((지난달.get(r.name) ?? 0) + (묶음 ? 나머지 : 0));
+      r.전월가림 = (지난달덮개.get(r.name) ?? false) || (묶음 && 나머지가림);
+    });
+    /* 이 달에 아예 쓰지 않은 수단만 줄을 새로 얻는다. 빼 두면 이번 달에
+       안 쓴 것인지 애초에 없던 것인지 가릴 수가 없다. */
+    [...지난달.entries()]
+      .filter(([k, v]) => v > 0 && !줄이름.has(k) && !이달.has(k))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .forEach(([k, v]) => {
+        rows.push({
+          name: k,
+          value: 0,
+          color: ETC_COLOR(),
+          가림: false,
+          전월: Math.round(v),
+          전월가림: 지난달덮개.get(k) ?? false,
+        });
+      });
+    return rows;
+  }, [prevOn.pay, byPay, payName, prevRows, shown, blurSets]);
+
+  /* 말풍선이 붙어 있는 그림. 그림 바깥을 누르면 내려놓는다 — 금액의 테이프를
+     끌어서 보려면 말풍선이 그동안 서 있어야 한다. */
+  const [tipAt, setTipAt] = useState<{ key: string; i?: number } | null>(null);
+  /* 말풍선을 붙이는 손. 그림 몸통을 누르면 그 그림으로, 항목을 누르면
+     몇째 항목인지까지 적어 둔다. 자리를 적어 두면 Recharts가 손길을 다시 재다가
+     놓치더라도 defaultIndex로 그 자리를 되살릴 수 있다. */
+  const 붙이기 = useCallback(
+    (key: string, i?: number) =>
+      setTipAt((p) => {
+        /* 몸통을 누른 것(i 없음)은 적어 둔 자리를 지우지 않는다. 지우면
+           말풍선을 누를 때마다 자리가 날아가 제자리로 되살릴 수 없다. */
+        if (p?.key === key && (i === undefined || p.i === i)) return p;
+        return { key, i: i ?? (p?.key === key ? p.i : undefined) };
+      }),
+    []
+  );
+
+  useEffect(() => {
+    if (!tipAt) return;
+    const 내려놓기 = (e: PointerEvent) => {
+      const t = e.target as HTMLElement | null;
+      /* 그림 카드 안이면 둔다. 말풍선도 그 안에 있어 끄는 동안 안 꺼진다. */
+      if (t?.closest?.(".chart-card")) return;
+      setTipAt(null);
+    };
+    /* 말풍선 위를 오가는 손질은 뿌리에 닿기 전에 끓는다. 리액트는 손질을 뿌리
+       한 곳에서 모아 듣고 거기서 들고 남을 지어내므로, 그러기 전에 끓지 않으면
+       그림은 밖에서 말풍선으로 들어온 손을 "그림에 들어왔다"로 셌어 닿은 자리를
+       다시 재고, 그 자리는 그림 밖이라 말풍선을 거둔다.
+       누름과 뗴은 남긴다 — 금액을 끼는 손질이 그것으로 시작하기 때문이다. */
+    const 오가는것 = ["mouseover", "mouseout", "mousemove", "pointerover", "pointerout", "pointermove"];
+    const 끓기 = (e: Event) => {
+      const t = e.target as HTMLElement | null;
+      /* 나가는 손질은 떠나는 쪽에서 시작하고 말풍선을 상대로 가리키므로,
+         양쪽을 다 봐야 한다. 한쪽만 보면 밖에서 말풍선으로 바로 들어오는 길이 산다. */
+      const r = (e as MouseEvent).relatedTarget as HTMLElement | null;
+      if (t?.closest?.(".chart-tip") || r?.closest?.(".chart-tip")) e.stopPropagation();
+    };
+    document.addEventListener("pointerdown", 내려놓기, true);
+    오가는것.forEach((ev) => document.addEventListener(ev, 끓기, true));
+    return () => {
+      document.removeEventListener("pointerdown", 내려놓기, true);
+      오가는것.forEach((ev) => document.removeEventListener(ev, 끓기, true));
+    };
+  }, [tipAt]);
+
+  /* 꾹 누른 그림의 열쇠. 팝업을 닫으면 비운다. */
+  const [cmpKey, setCmpKey] = useState<string | null>(null);
+  const prevLabel = useMemo(() => prevTag(prevYm), [prevYm]);
+  const curLabel = useMemo(() => curTag(yearMonth), [yearMonth]);
+
+  const 견줌 = useCallback(
+    (key: (r: Row) => string): CmpRow[] => {
+      const 가림 = (r: Row) => isBlurred(r, blurSets);
+      const a = 모으기(shown, key, 가림);
+      const b = 모으기(prevRows, key, 가림);
+      return [...new Set([...a.합.keys(), ...b.합.keys()])]
+        .map((n) => ({
+          name: n,
+          cur: Math.round(a.합.get(n) ?? 0),
+          prev: Math.round(b.합.get(n) ?? 0),
+          curBlur: a.덮개.get(n) ?? false,
+          prevBlur: b.덮개.get(n) ?? false,
+        }))
+        .filter((r) => r.cur > 0 || r.prev > 0)
+        .sort((x, y) => y.cur + y.prev - (x.cur + x.prev));
+    },
+    [shown, prevRows, blurSets]
+  );
+
+  const prevCmp = useMemo((): PrevCmp | null => {
+    if (!cmpKey) return null;
+
+    if (cmpKey === "daily") {
+      return {
+        title: "날짜별",
+        칸: "일자",
+        총이달: dayRows.reduce((a, d) => a + d.지출, 0),
+        총지난달: dayRows.reduce((a, d) => a + d.전월, 0),
+        총가림: dayRows.some((d) => d.가림 || d.전월가림),
+        /* 두 달 다 0인 날은 세울 것이 없다. 그 밖에는 있는 그대로 다 적는다. */
+        rows: dayRows
+          .filter((d) => d.지출 > 0 || d.전월 > 0)
+          .map((d) => ({
+            name: `${d.day}일`,
+            cur: d.지출,
+            prev: d.전월,
+            curBlur: d.가림,
+            prevBlur: d.전월가림,
+          })),
+      };
+    }
+
+    if (cmpKey === "cumulative") {
+      const 끝 = dayRows[dayRows.length - 1];
+      return {
+        title: "누적",
+        칸: "~까지",
+        총이달: 끝?.누적 ?? 0,
+        총지난달: 끝?.전월누적 ?? 0,
+        총가림: !!끝 && (끝.누적가림 || 끝.전월누적가림),
+        rows: dayRows.map((d) => ({
+          name: `${d.day}일`,
+          cur: d.누적,
+          prev: d.전월누적,
+          curBlur: d.누적가림,
+          prevBlur: d.전월누적가림,
+        })),
+      };
+    }
+
+    if (cmpKey === "weekday") {
+      return {
+        title: "요일별",
+        칸: "요일",
+        총이달: dowRows.reduce((a, d) => a + d.지출, 0),
+        총지난달: dowRows.reduce((a, d) => a + d.전월, 0),
+        총가림: dowRows.some((d) => d.가림 || d.전월가림),
+        rows: dowRows.map((d) => ({
+          name: d.요일,
+          cur: d.지출,
+          prev: d.전월,
+          curBlur: d.가림,
+          prevBlur: d.전월가림,
+        })),
+      };
+    }
+
+    const 분류 = cmpKey === "cat1";
+    const rows = 견줌(
+      분류
+        ? (r) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음"
+        : (r) => payName.get(String(r.pay_method)) ?? "수단 없음"
+    );
+    return {
+      title: 분류 ? "중분류별" : "결제 수단별",
+      칸: 분류 ? "중분류" : "결제 수단",
+      총이달: rows.reduce((a, r) => a + r.cur, 0),
+      총지난달: rows.reduce((a, r) => a + r.prev, 0),
+      총가림: rows.some((r) => r.curBlur || r.prevBlur),
+      rows,
+    };
+  }, [cmpKey, dayRows, dowRows, 견줌, cat1Name, payName]);
 
   /* ─── 카드 실적 ───────────────────────────────────────────────
      쓴 돈이 아니라 카드에 그은 돈이다. 열 명이 먹은 값 10만 원을 내가
@@ -1275,21 +1958,48 @@ export default function Charts() {
         <>
               <header className="chart-card__head">
                 <h3 className="chart-card__title">날짜별</h3>
+                <PrevBtn
+                  on={!!prevOn.daily}
+                  onToggle={() => togglePrev("daily")}
+                  onHold={() => setCmpKey("daily")}
+                />
               </header>
-              <div className="chart-card__body">
+              <div className="chart-card__body" onPointerDownCapture={() => 붙이기("daily")}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={byDay} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
+                  <BarChart data={dayRows} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
                     <XAxis dataKey="day" tick={AXIS} tickLine={false} axisLine={false} interval={4} />
+                    {/* 지난달 막대는 이 달 막대와 같은 자리에 겹쳐야 한다. Recharts는
+                        한 축에 달린 막대를 나란히 세우므로, 숨긴 축을 하나 더 두어
+                        따로 세운다. 그래야 둘 다 칸 한가운데에 선다. */}
+                    {prevOn.daily && <XAxis xAxisId="prev" dataKey="day" hide />}
                     <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
-                    <Tooltip {...TIP_PROPS} content={<Tip suffix="일" />} />
+                    <Tooltip {...TIP_PROPS} content={<Tip suffix="일" prevLabel={prevLabel} curLabel={curLabel} />} active={tipAt?.key === "daily"}
+                      defaultIndex={tipAt?.key === "daily" ? tipAt.i : undefined} />
                     <Bar
                       dataKey="지출"
                       fill={SPEND()}
                       radius={[4, 4, 0, 0]}
                       maxBarSize={18}
                       shape={ShapeDaily}
-                      onPointerDown={(_d: unknown, i: number) => pop(`daily:${i}`)}
+                      onPointerDown={(_d: unknown, i: number) => {
+                        pop(`daily:${i}`);
+                        붙이기("daily", i);
+                      }}
                     />
+                    {prevOn.daily && (
+                      <Bar
+                        xAxisId="prev"
+                        dataKey="전월"
+                        name="전월"
+                        fill={SPEND()}
+                        fillOpacity={0.3}
+                        radius={[4, 4, 0, 0]}
+                        maxBarSize={18}
+                        shape={GhostUp}
+                        isAnimationActive={false}
+                        style={{ pointerEvents: "none" }}
+                      />
+                    )}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -1303,10 +2013,15 @@ export default function Charts() {
         <>
               <header className="chart-card__head">
                 <h3 className="chart-card__title">누적</h3>
+                <PrevBtn
+                  on={!!prevOn.cumulative}
+                  onToggle={() => togglePrev("cumulative")}
+                  onHold={() => setCmpKey("cumulative")}
+                />
               </header>
-              <div className="chart-card__body chart-card__body--short">
+              <div className="chart-card__body chart-card__body--short" onPointerDownCapture={() => 붙이기("cumulative")}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={byDay} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
+                  <AreaChart data={dayRows} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
                     <defs>
                       <linearGradient id="acc-fill" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor={ACC()} stopOpacity={0.28} />
@@ -1315,7 +2030,29 @@ export default function Charts() {
                     </defs>
                     <XAxis dataKey="day" tick={AXIS} tickLine={false} axisLine={false} interval={4} />
                     <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
-                    <Tooltip {...TIP_PROPS} cursor={{ stroke: WEEKDAY(), strokeWidth: 2 }} content={<Tip suffix="일까지" />} />
+                    <Tooltip
+                      {...TIP_PROPS}
+                      cursor={{ stroke: WEEKDAY(), strokeWidth: 2 }}
+                      content={<Tip suffix="일까지" prevLabel={prevLabel} curLabel={curLabel} />}
+                      active={tipAt?.key === "cumulative"}
+                      defaultIndex={tipAt?.key === "cumulative" ? tipAt.i : undefined}
+                    />
+                    {prevOn.cumulative && (
+                      <Area
+                        type="monotone"
+                        dataKey="전월누적"
+                        name="전월"
+                        stroke={ACC()}
+                        strokeOpacity={0.4}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        fill="url(#acc-fill)"
+                        fillOpacity={0.5}
+                        activeDot={false}
+                        isAnimationActive={false}
+                        style={{ pointerEvents: "none" }}
+                      />
+                    )}
                     <Area
                       type="monotone"
                       dataKey="누적"
@@ -1353,7 +2090,7 @@ export default function Charts() {
                   <span className="chart-range__end">{TREND_MAX}개월</span>
                 </span>
               </header>
-              <div className="chart-card__body">
+              <div className="chart-card__body" onPointerDownCapture={() => 붙이기("trend")}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={byMonth} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
                     <XAxis
@@ -1367,6 +2104,8 @@ export default function Charts() {
                     <Tooltip
                       {...TIP_PROPS}
                       content={<Tip labelFormat={(v) => `${String(v).slice(0, 4)}. ${Number(String(v).slice(5))}.`} />}
+                      active={tipAt?.key === "trend"}
+                      defaultIndex={tipAt?.key === "trend" ? tipAt.i : undefined}
                     />
                     <Line
                       type="linear"
@@ -1413,13 +2152,39 @@ export default function Charts() {
                     ›
                   </span>
                 </button>
+                <PrevBtn
+                  on={!!prevOn.cat1}
+                  onToggle={() => togglePrev("cat1")}
+                  onHold={() => setCmpKey("cat1")}
+                />
               </header>
-              <div className="chart-donut">
+              <div className="chart-donut" onPointerDownCapture={() => 붙이기("cat1")}>
                 <div className="chart-donut__plot">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
+                      {/* 지난달은 도넛 바깥에 가는 고리로 두른다. 안쪽에 겹치면
+                          이 달 몫을 덮어 두 달 다 못 읽는다. */}
+                      {prevOn.cat1 && (
+                        <Pie
+                          data={byCatPrev}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius="96%"
+                          outerRadius="100%"
+                          cornerRadius={2}
+                          paddingAngle={2}
+                          stroke="none"
+                          opacity={0.55}
+                          isAnimationActive={false}
+                          className="chart-pie--ghost"
+                        >
+                          {byCatPrev.map((c) => (
+                            <Cell key={c.name} fill={c.color} />
+                          ))}
+                        </Pie>
+                      )}
                       <Pie
-                        data={byCat}
+                        data={catRows}
                         dataKey="value"
                         nameKey="name"
                         innerRadius="52%"
@@ -1436,6 +2201,7 @@ export default function Charts() {
                            그래서 고르기와 같은 자리에서 함께 한다. */
                         onClick={(slice: { name?: string; color?: string }, i: number) => {
                           pop(`cat1:${i}`);
+                          붙이기("cat1", i);
                           /* "기타"는 여러 갈래를 묶은 것이라 더 쪼갤 것이 없다. */
                           if (!slice?.name || slice.name === "기타") return;
                           setPickedCat((prev) =>
@@ -1449,7 +2215,8 @@ export default function Charts() {
                           <Cell key={c.name} fill={c.color} />
                         ))}
                       </Pie>
-                      <Tooltip {...TIP_PROPS} cursor={false} content={<Tip useSliceName />} />
+                      <Tooltip {...TIP_PROPS} cursor={false} content={<Tip useSliceName prevLabel={prevLabel} curLabel={curLabel} />} active={tipAt?.key === "cat1"}
+                      defaultIndex={tipAt?.key === "cat1" ? tipAt.i : undefined} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -1464,6 +2231,17 @@ export default function Charts() {
                       </span>
                     </li>
                   ))}
+                  {prevOn.cat1 &&
+                    catOnlyPrev.map((c) => (
+                      <li key={`prev-${c.name}`} className="chart-legend__row is-prev">
+                        <span className="chart-legend__key" style={{ background: c.color }} />
+                        <span className="chart-legend__name">{c.name}</span>
+                        <span className="chart-legend__prev">지난달</span>
+                        <span className="chart-legend__pct">
+                          {catPrevTotal ? Math.round((c.value / catPrevTotal) * 100) : 0}%
+                        </span>
+                      </li>
+                    ))}
                 </ul>
               </div>
         </>
@@ -1476,18 +2254,27 @@ export default function Charts() {
         <>
               <header className="chart-card__head">
                 <h3 className="chart-card__title">결제 수단별</h3>
+                <PrevBtn
+                  on={!!prevOn.pay}
+                  onToggle={() => togglePrev("pay")}
+                  onHold={() => setCmpKey("pay")}
+                />
               </header>
               <div
                 className="chart-card__body chart-card__body--rows"
-                style={{ "--rows": byPay.length } as React.CSSProperties}
+                style={{ "--rows": payRows.length } as React.CSSProperties}
+                onPointerDownCapture={() => 붙이기("pay")}
               >
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={byPay}
+                    data={payRows}
                     layout="vertical"
                     margin={{ top: 0, right: wide ? 64 : 10, bottom: 0, left: 0 }}
                   >
                     <XAxis type="number" hide />
+                    {/* 가로 막대는 줄 축이 칸을 나눈다. 날짜별과 같은 까닭으로
+                        숨긴 줄 축을 하나 더 두어 지난달을 같은 자리에 겹친다. */}
+                    {prevOn.pay && <YAxis yAxisId="prev" type="category" dataKey="name" hide />}
                     <YAxis
                       type="category"
                       dataKey="name"
@@ -1500,16 +2287,20 @@ export default function Charts() {
                         return v.length <= max ? v : `${v.slice(0, max - 1)}…`;
                       }}
                     />
-                    <Tooltip {...TIP_PROPS} content={<Tip />} />
+                    <Tooltip {...TIP_PROPS} content={<Tip prevLabel={prevLabel} curLabel={curLabel} />} active={tipAt?.key === "pay"}
+                      defaultIndex={tipAt?.key === "pay" ? tipAt.i : undefined} />
                     <Bar
                       dataKey="value"
                       name="지출"
                       radius={[0, 8, 8, 0]}
                       maxBarSize={22}
                       shape={ShapePay}
-                      onPointerDown={(_d: unknown, i: number) => pop(`pay:${i}`)}
+                      onPointerDown={(_d: unknown, i: number) => {
+                        pop(`pay:${i}`);
+                        붙이기("pay", i);
+                      }}
                     >
-                      {byPay.map((p) => (
+                      {payRows.map((p) => (
                         <Cell key={p.name} fill={p.color} />
                       ))}
                       {/* 자리가 넉넉할 때만 값을 적는다. 좁으면 눌러서 본다. */}
@@ -1523,6 +2314,23 @@ export default function Charts() {
                         />
                       )}
                     </Bar>
+                    {prevOn.pay && (
+                      <Bar
+                        yAxisId="prev"
+                        dataKey="전월"
+                        name="전월"
+                        radius={[0, 8, 8, 0]}
+                        maxBarSize={22}
+                        fillOpacity={0.3}
+                        shape={GhostRight}
+                        isAnimationActive={false}
+                        style={{ pointerEvents: "none" }}
+                      >
+                        {payRows.map((p) => (
+                          <Cell key={p.name} fill={p.color} />
+                        ))}
+                      </Bar>
+                    )}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -1536,21 +2344,31 @@ export default function Charts() {
         <>
               <header className="chart-card__head">
                 <h3 className="chart-card__title">요일별</h3>
+                <PrevBtn
+                  on={!!prevOn.weekday}
+                  onToggle={() => togglePrev("weekday")}
+                  onHold={() => setCmpKey("weekday")}
+                />
               </header>
-              <div className="chart-card__body chart-card__body--short">
+              <div className="chart-card__body chart-card__body--short" onPointerDownCapture={() => 붙이기("weekday")}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={byDow} margin={{ top: wide ? 18 : 8, right: 6, bottom: 0, left: -6 }}>
+                  <BarChart data={dowRows} margin={{ top: wide ? 18 : 8, right: 6, bottom: 0, left: -6 }}>
                     <XAxis dataKey="요일" tick={AXIS} tickLine={false} axisLine={false} />
+                    {prevOn.weekday && <XAxis xAxisId="prev" dataKey="요일" hide />}
                     <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
-                    <Tooltip {...TIP_PROPS} content={<Tip suffix="요일" />} />
+                    <Tooltip {...TIP_PROPS} content={<Tip suffix="요일" prevLabel={prevLabel} curLabel={curLabel} />} active={tipAt?.key === "weekday"}
+                      defaultIndex={tipAt?.key === "weekday" ? tipAt.i : undefined} />
                     <Bar
                       dataKey="지출"
                       radius={[8, 8, 0, 0]}
                       maxBarSize={44}
                       shape={ShapeDow}
-                      onPointerDown={(_d: unknown, i: number) => pop(`weekday:${i}`)}
+                      onPointerDown={(_d: unknown, i: number) => {
+                        pop(`weekday:${i}`);
+                        붙이기("weekday", i);
+                      }}
                     >
-                      {byDow.map((d) => (
+                      {dowRows.map((d) => (
                         <Cell key={d.요일} fill={d.color} />
                       ))}
                       {wide && (
@@ -1563,6 +2381,23 @@ export default function Charts() {
                         />
                       )}
                     </Bar>
+                    {prevOn.weekday && (
+                      <Bar
+                        xAxisId="prev"
+                        dataKey="전월"
+                        name="전월"
+                        radius={[8, 8, 0, 0]}
+                        maxBarSize={44}
+                        fillOpacity={0.3}
+                        shape={GhostUp}
+                        isAnimationActive={false}
+                        style={{ pointerEvents: "none" }}
+                      >
+                        {dowRows.map((d) => (
+                          <Cell key={d.요일} fill={d.color} />
+                        ))}
+                      </Bar>
+                    )}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -1907,6 +2742,15 @@ export default function Charts() {
         />
       )}
 
+      {prevCmp && (
+        <PrevCmpPopup
+          cmp={prevCmp}
+          prevLabel={prevLabel}
+          curLabel={curLabel}
+          onClose={() => setCmpKey(null)}
+        />
+      )}
+
       {drillOpen && pickedCat && byCat2.length > 0 && (
         <CatDrillPopup
           cat={pickedCat}
@@ -1919,6 +2763,122 @@ export default function Charts() {
       <QuickActions />
     </div>
     </PopContext.Provider>
+  );
+}
+
+/** 견줌 보기 팝업의 금액 한 칸. 가려야 할 갈래가 섞였으면 테이프를 붙인다. */
+function CmpAmt({
+  v,
+  blur,
+  sign = false,
+  short = false,
+}: {
+  v: number;
+  blur: boolean;
+  /** 차이 칸 — 부호를 앞에 붙인다 */
+  sign?: boolean;
+  /** 표 안에서는 짧게 적는다(34만) */
+  short?: boolean;
+}) {
+  const 숫자 = short ? shortWon(v) : won(v);
+  const 글 = sign ? `${v > 0 ? "+" : v < 0 ? "-" : ""}${숫자}` : 숫자;
+  return <MaskedAmount className="prev-cmp__val" hide={blur} value={글} />;
+}
+
+/**
+ * 전월 대비 단추를 꾹 누르면 뜨는 팝업이다. 그림이 보이는 만큼을 숫자로 다시 적는다.
+ *
+ * 껍데기는 필터 팝업과 같은 틀(popup-overlay, popup-panel--framed)을 쓴다.
+ * 가려야 할 갈래가 섞인 칸은 내역 카드와 같이 테이프를 붙인다 — 숫자를 모아
+ * 놓았다고 가린 것이 드러나면 가린 뜻이 없다.
+ */
+function PrevCmpPopup({
+  cmp,
+  prevLabel,
+  curLabel,
+  onClose,
+}: {
+  cmp: PrevCmp;
+  prevLabel: string;
+  curLabel: string;
+  onClose: () => void;
+}) {
+  useBackClose(true, onClose);
+
+  useEffect(() => {
+    document.documentElement.classList.add("modal-open");
+    return () => document.documentElement.classList.remove("modal-open");
+  }, []);
+
+  const 차이 = cmp.총이달 - cmp.총지난달;
+
+  return (
+    <div className="popup-overlay" onClick={onClose}>
+      <div
+        className="popup-panel popup-panel--framed popup-panel--scroll"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${cmp.title} 전월 대비`}
+      >
+        <header className="popup-head">
+          <h3 className="popup-head__title">{cmp.title}</h3>
+          <span className="prev-cmp__tag">{prevLabel}</span>
+        </header>
+
+        <div className="popup-body prev-cmp">
+          <div className="prev-cmp__sum">
+            <div className="prev-cmp__cell">
+              <span className="prev-cmp__lab">{curLabel}</span>
+              <CmpAmt v={cmp.총이달} blur={cmp.총가림} />
+            </div>
+            <div className="prev-cmp__cell">
+              <span className="prev-cmp__lab">{prevLabel}</span>
+              <CmpAmt v={cmp.총지난달} blur={cmp.총가림} />
+            </div>
+            <div
+              className={`prev-cmp__cell prev-cmp__cell--diff${
+                차이 > 0 ? " up" : 차이 < 0 ? " down" : ""
+              }`}
+            >
+              <span className="prev-cmp__lab">차이</span>
+              <CmpAmt v={차이} blur={cmp.총가림} sign />
+            </div>
+          </div>
+
+          <table className="prev-cmp__tbl">
+            <thead>
+              <tr>
+                <th scope="col">{cmp.칸}</th>
+                <th scope="col">당월</th>
+                <th scope="col">전월</th>
+                <th scope="col">차이</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cmp.rows.map((r) => {
+                const d = r.cur - r.prev;
+                return (
+                  <tr key={r.name}>
+                    <th scope="row">{r.name}</th>
+                    <td>
+                      <CmpAmt v={r.cur} blur={r.curBlur} short />
+                    </td>
+                    <td>
+                      <CmpAmt v={r.prev} blur={r.prevBlur} short />
+                    </td>
+                    <td className={d > 0 ? "up" : d < 0 ? "down" : ""}>
+                      <CmpAmt v={d} blur={r.curBlur || r.prevBlur} sign short />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+    </div>
   );
 }
 

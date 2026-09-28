@@ -15189,3 +15189,546 @@ textarea.memo-input.memo-area {
 :root[data-dark="1"] .nudge__tape {
   filter: brightness(0.88) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
+/* ═══════════════════════════════════════════════════════════════
+   150. 드러난 금액이 칸을 넘으면 칸을 늘린다(2026-09)
+   ─────────────────────────────────────────────────────────────
+   금액 칸은 96px로 못 박혀 있다. 마스킹 테이프 폭과 같게 두어, 가린 동안에는
+   자릿수가 길이로 새어 나가지 않게 하려는 것이다(142절).
+
+   그런데 드러난 금액에도 같은 폭이 걸려 있었다. 21px 글씨에 tabular-nums면
+   `10,000,000`이 117px이라 21px이 넘치고, overflow가 visible이라 잘리지도
+   않고 그대로 흘러 카드 테두리를 10px 넘어 밖으로 나갔다. 내역 세 화면과
+   기간 상세에서 모두 그랬다.
+
+   드러난 금액은 이미 보이는 값이므로 칸을 늘려도 잃을 것이 없다. width만
+   auto로 돌린다 — min-width가 96px로 남아 있어 짧은 금액은 전과 똑같이
+   96px 자리를 지키고, 카드끼리의 오른쪽 줄맞춤도 그대로다. 긴 금액일 때만
+   칸이 글씨만큼 늘고 왼쪽 분류가 그만큼 접힌다.
+
+   가린 상태(.masked)는 손대지 않는다. 테이프는 96px 그대로여야 한다.
+   ════════════════════════════════════════════════════════════ */
+
+.card--entry .amount-text.revealed {
+  width: auto;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   151. 씀씀이의 전월 대비 단추(2026-09)
+   ───────────────────────────────────────────────────────────
+   그림 머리말 오른쪽 끝에 서서 지난달을 겹쳐 놓는다. 생김새는 같은 자리의 파고드는
+   단추(.chart-drill-btn)를 그대로 따른다 — 한 머리말에 둔 둘이 서로 다른 알약이면
+   어느 쪽이 누르는 것인지 눈이 한 번 더 가려야 한다.
+
+   머리말에 키를 따로 박지 않는다. 단추가 22px라 단추를 든 머리말은 저절로
+   22px가 된다. `.chart-card__head`는 돈쓴이와 잔소리도 같이 쓰므로,
+   거기에 키를 박으면 단추가 없는 화면까지 함께 늘어난다.
+   ════════════════════════════════════════════════════════════ */
+
+.chart-prev-btn {
+  margin-left: auto;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  padding: 0 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease;
+}
+
+/* 눈금 — 켜지면 그림에 깔린 지난달과 같은 농도로 흐려진다. */
+.chart-prev-btn__key {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.3;
+}
+
+.chart-prev-btn:hover {
+  border-color: var(--color-text-tertiary);
+  color: var(--color-text-primary);
+}
+
+.chart-prev-btn.on {
+  border-color: transparent;
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.chart-prev-btn.on .chart-prev-btn__key {
+  opacity: 0.45;
+}
+
+
+/* 지난달에만 있던 갈래는 이름표에 줄을 따로 얻는다. 이 달 줄보다
+   한 단 물러서야 지금 쓰는 것과 섞이지 않는다. */
+.chart-legend__row.is-prev {
+  opacity: 0.62;
+}
+
+.chart-legend__prev {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   152. 전월 대비 — 파고드는 단추 옆에, 숫자는 팝업에(2026-09)
+   ───────────────────────────────────────────────────────────
+   ① 중분류별 머리말은 둘이 모두 auto 여백을 가져 빈 자리를 나눠 가졌다. 파고드는 단추는
+     가운데에, 전월 대비는 끝에 서서 둘이 따로 놓인 것처럼 보였다. auto를
+     파고드는 단추 쪽에만 남기면 둘이 한 덩어리로 오른쪽 끝에 붙는다.
+   ② 단추를 꾹 누르는 동안의 되먹임. 내역 카드가 쓰던 결을 그대로 따른다.
+   ③ 말풍선과 견줌 보기 팝업의 금액에도 테이프를 붙인다. 그림은 가린 갈래를 묶어
+     보이는 자리라, 숫자만 그대로 적으면 내역에서 가려 둔 것이 여기서 드러난다.
+     테이프 그림과 마감은 114절, 141절, 149절이 정해 둔 것을 그대로 쓴다.
+     말풍선은 손이 닿지 않는 자리라(pointer-events: none) 끌어서 보는 길은 없다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ① 파고드는 단추를 전월 대비 바로 왼쪽에 바짝 붙인다. */
+.chart-card__head--drill {
+  gap: 4px;
+}
+
+.chart-card__head--drill .chart-prev-btn {
+  margin-left: 0;
+}
+
+/* ② 꾹 누르는 동안의 되먹임은 153절이 내역 카드와 같게 준다. */
+
+/* ③ 말풍선과 팝업의 가린 금액 — 숫자 대신 테이프 */
+.chart-tip__value.masked,
+.prev-cmp__val.masked {
+  position: relative;
+  display: inline-block;
+  /* 길이가 자릿수를 말하지 않게 못 박는다(142절과 같은 규칙). */
+  width: 72px;
+  min-width: 72px;
+  /* 글씨를 0으로 죽이면 칸도 함께 납작해져 테이프가 위줄을 덮는다.
+     숨긴 숫자가 차지하던 만큼을 키로 다시 세운다. */
+  height: 20px;
+  min-height: 20px;
+  vertical-align: middle;
+  font-size: 0;
+  color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.prev-cmp__val.masked {
+  width: 54px;
+  min-width: 54px;
+  height: 18px;
+  min-height: 18px;
+}
+
+.chart-tip__value.masked::after,
+.prev-cmp__val.masked::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 17px;
+  transform: translateY(-50%) rotate(-1.4deg);
+  background-image: var(--tape-img);
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  border-radius: 2px;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+
+/* 149절과 같이 어두운 바탕에서는 흰 테를 뺀다. */
+:root[data-dark="1"] .chart-tip__value.masked::after,
+:root[data-dark="1"] .prev-cmp__val.masked::after {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.42);
+}
+
+/* ─── 견줌 보기 팝업 ───────────────────────────── */
+.prev-cmp__tag {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.prev-cmp__sum {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 0 0 var(--space-3);
+}
+
+.prev-cmp__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+/* 위의 세 칸은 금액을 오른쪽에 붙인다 — 자릿수가 달라도 끝자리가 한 줄로 서야
+   세 칸을 눈으로 바로 견줄 수 있다. 이름표는 왼쪽 그대로 둔다. */
+.prev-cmp__cell > .prev-cmp__val {
+  align-self: flex-end;
+  text-align: right;
+}
+
+.prev-cmp__lab {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prev-cmp__val {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.prev-cmp__cell--diff.up .prev-cmp__val {
+  color: var(--color-danger);
+}
+
+.prev-cmp__cell--diff.down .prev-cmp__val {
+  color: var(--color-success);
+}
+
+.prev-cmp__tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.prev-cmp__tbl th,
+.prev-cmp__tbl td {
+  padding: 6px 4px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.prev-cmp__tbl thead th {
+  border-bottom: 1px solid var(--color-border);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+}
+
+.prev-cmp__tbl tbody th {
+  max-width: 96px;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.prev-cmp__tbl tbody tr + tr th,
+.prev-cmp__tbl tbody tr + tr td {
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+}
+
+.prev-cmp__tbl td .prev-cmp__val {
+  color: var(--color-text-primary);
+}
+
+.prev-cmp__tbl td.up .prev-cmp__val {
+  color: var(--color-danger);
+}
+
+.prev-cmp__tbl td.down .prev-cmp__val {
+  color: var(--color-success);
+}
+
+.prev-cmp__note {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.prev-cmp__note + .prev-cmp__note {
+  margin-top: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   153. 말풍선을 붙들어 두고, 테이프를 끌 수 있게 한다(2026-09)
+   ─────────────────────────────────────────────────────────────
+   말풍선의 금액에 테이프를 붙여 놓고 보니 끌어서 볼 길이 없었다. 손이 닿지
+   않게 막아 두었고(pointer-events: none), 손을 떼면 말풍선이 사라졌다.
+
+   그래서 둘을 함께 푼다 — Recharts 쪽은 눌러서 띄우고 붙어 있게 바꾸고
+   (trigger: click), 여기서는 말풍선에 손이 닿게 연다. 그림 바깥을 한 번
+   누르면 내려놓는다. 끄는 동안 꺼지지 않아야 하므로 말풍선을 감싼 자리까지
+   함께 열어야 한다 — 감싼 쪽이 막혀 있으면 안쪽도 눌리지 않는다.
+
+   꾹 누르는 되먹임은 내역 카드가 쓰던 것 그대로다(살짝 커지고, 위에서 한 줄이
+   차오른다). 켜진 단추는 바탕이 이미 강조색이라 차오르는 줄만 흰색으로 바꾼다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── ① 붙어 있는 말풍선 — 손이 닿게 ──────────────────────── */
+.chart-card .recharts-tooltip-wrapper,
+.popup-panel .recharts-tooltip-wrapper {
+  pointer-events: auto;
+}
+
+.chart-card .chart-tip,
+.popup-panel .chart-tip {
+  pointer-events: auto;
+}
+
+/* ─── ② 말풍선과 견줌 보기 팝업의 금액 — 끌면 잠깐 보인다 ──── */
+.chart-tip__value.masked,
+.prev-cmp__val.masked {
+  cursor: ew-resize;
+  touch-action: pan-y;
+}
+
+/* 가린 상태와 드러난 상태의 줄 높이를 하나로 — 끌 때 줄이 들썩이지 않는다. */
+.chart-tip__value,
+.chart-tip__value.revealed {
+  display: inline-block;
+  height: 20px;
+  min-height: 20px;
+  line-height: 20px;
+  vertical-align: middle;
+}
+
+.prev-cmp__val,
+.prev-cmp__val.revealed {
+  display: inline-block;
+  height: 18px;
+  min-height: 18px;
+  line-height: 18px;
+  vertical-align: middle;
+}
+
+/* ─── ③ 전월 대비를 꾹 누르는 동안 — 내역 카드와 같은 결 ──── */
+.chart-prev-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-prev-btn.pressing {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lift);
+}
+
+.chart-prev-btn.pressing::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 2px;
+  width: 0;
+  background: var(--color-primary);
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  animation: longpress-progress var(--longpress-delay) linear forwards;
+}
+
+/* 켜진 단추는 바탕이 이미 강조색이라 같은 색으로는 줄이 보이지 않는다. */
+.chart-prev-btn.on.pressing::after {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.chart-prev-btn:active:not(.pressing) {
+  transform: scale(0.96);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   154. 말풍선은 두 달을 나란히, 크기는 그대로(2026-09)
+   ─────────────────────────────────────────────────────────────
+   ① 전월 조각은 이 달 조각 뒤에 깔린 가는 자리라 손가락으로 겨누기가 어렵다.
+     겨누는 것은 이 달 항목 하나로 하고, 말풍선이 두 달을 함께 적는다.
+     두 줄이 나란히 서므로 줄마다 어느 달인지를 딱지로 밝힌다.
+   ② 테이프를 끌면 말풍선이 들썩이던 것 — 가린 칸과 드러난 칸의 폭이 달라서였다.
+     두 상태에 같은 폭을 준다. 폭이 한 가지라 자릿수가 새어 나가지도 않는다
+     (142절과 같은 규칙).
+   ③ 견줌 보기 팝업은 줄을 다 적으므로 본문이 길어진다. 판을 세로로 세워
+     본문만 구르게 한다 — 머리말은 늘 보인다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── ① 줄마다 어느 달인지 ─────────────────────────────────── */
+/* 지난달 고리는 가느라 손가락으로 겨누기 어렵다. 겨누는 것은 이 달 조각
+   하나로 하고, 말풍선이 두 달을 함께 적는다. */
+.chart-pie--ghost {
+  pointer-events: none;
+}
+
+.chart-tip__when {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+}
+
+/* ─── ② 가린 칸과 드러난 칸의 폭을 하나로 ─────────────────── */
+.chart-tip__value.masked,
+.chart-tip__value.revealed {
+  width: 104px;
+  min-width: 104px;
+  text-align: right;
+}
+
+.prev-cmp__val.masked,
+.prev-cmp__val.revealed {
+  width: 54px;
+  min-width: 54px;
+  text-align: right;
+}
+
+/* 위 세 칸은 금액을 통으로 적어 자리가 더 든다. */
+.prev-cmp__cell .prev-cmp__val.masked,
+.prev-cmp__cell .prev-cmp__val.revealed {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ─── ③ 줄이 많아도 머리말은 남는다 ───────────────────────── */
+.popup-panel--scroll {
+  display: flex;
+  flex-direction: column;
+}
+
+.popup-panel--scroll > .popup-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   155. 말풍선 — 이름은 왼쪽, 금액은 오른쪽 끝(2026-09)
+   ─────────────────────────────────────────────────────────────
+   도넛에서 네 가지가 한꺼번에 어긋나 있었다. 뿌리는 하나다 — 말풍선이 그림
+   상자 안에 갇혀 제 크기를 못 가진 것이다. 도넛 그림은 128px밖에 안 되는데
+   말풍선은 이름과 금액을 나란히 놓느라 190px쯤이 필요했다.
+
+   ① 갇히지 않게 한다. 말풍선은 제 속이 필요한 만큼 넓어진다(max-content).
+      그래야 테이프가 상자 밖으로 삐져나가지 않고, 잘리지도 않는다.
+   ② 빛깔 점이 폭 0으로 눌려 사라져 있었다. 눌리지 않게 못 박는다.
+   ③ 금액은 오른쪽 끝에 붙인다. 두 달의 자릿수가 한 줄로 서야 눈으로 바로
+      견준다. 이름은 왼쪽 그대로다.
+   ④ 전월 줄은 그림에서 연하게 깔리듯 여기서도 한 단 물러선다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ① 제 속만큼 넓어진다 */
+.chart-tip {
+  width: max-content;
+  max-width: 260px;
+  white-space: nowrap;
+}
+
+/* 머리말은 이름이라 길 수 있다. 줄을 바꾸지 않기로 했으므로 넘치면 줄임표를 붙인다. */
+.chart-tip__head {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ② 눌리지 않는 것들 */
+.chart-tip__dot,
+.chart-tip__when,
+.chart-tip__value {
+  flex: 0 0 auto;
+}
+
+/* ③ 금액은 오른쪽 끝 */
+.chart-tip__value {
+  margin-left: auto;
+  text-align: right;
+}
+
+/* ④ 전월 줄은 한 단 물러선다 */
+.chart-tip__row--prev {
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   156. 견줌 보기 팝업 — 세 칸을 똑같이, 판은 적당히(2026-09)
+   ─────────────────────────────────────────────────────────────
+   ① 테이프를 뗄 때 칸이 들썩이던 까닭은 둘이었다. 하나는 `1fr`이
+     `minmax(auto, 1fr)`이라 칸이 속을 따라 자라난 것이고, 다른 하나는 차이
+     칸만 금액 옆에 비율을 하나 더 달고 있어 셋이 같은 몫으로는 맞지 않았던
+     것이다. 비율을 걷어 내고 세 칸을 똑같이 나눈다. 이제 속이 무엇이든 칸은
+     제자리다.
+   ② 줄이 많은 그림(날짜별은 서른 줄)에서 판이 창의 90%까지 자라 화면을 다
+     덮었다. 적당한 키에서 멈추고 본문만 구른다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ① 세 칸은 똑같은 몫이고, 속을 따라 자라지 않는다 */
+.prev-cmp__sum {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* 긴 금액이 칸을 넘을 때를 대비해 안쪽 여백을 좀 줄인다. 칸을 늘리면 또
+   흔들리므로 여백이 품게 한다. */
+.prev-cmp__cell {
+  padding: 8px 6px;
+}
+
+/* ② 판은 적당한 키에서 멈추고, 가로는 덮개가 남긴 자리를 다 쓴다 —
+   세 칸과 네 열짜리 표가 들어가야 하므로 여느 팝업보다 속이 많다. */
+.popup-panel--scroll {
+  width: 100%;
+  max-height: min(70vh, 540px);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   157. 빛깔 예시 팔업은 굴리지 않는다(2026-09)
+   ───────────────────────────────────────────────────────────
+   그림 폭을 팔업 폭에만 맞춰 두었더니, 창이 낮은 기기에서 그림이 세로로 넘쳐 팔업이
+   굴렀다. 예시는 한눈에 보고 고르는 것이라 굴리면 고르는 뜻이 줄어든다.
+
+   그림 위아래의 껴데기(제목, 탭 두 줄, 딸지, 순서 점, 발)는 폭과 상관없이
+   240px로 일정하다(360~412px에서 재 보았다). 남는 키에 그림 비(585:1050)를
+   곱해 가로를 정하면 세로가 따라서 줄어 굴릴 일이 없다. 넓은 창에서는 가로 쪽이
+   먼저 걸려 지금과 똑같이 보인다.
+
+   키는 vh가 아니라 dvh도 함께 본다. 손전화의 vh는 주소창이 접힌 때를 기준으로
+   잡혀 실제 보이는 것보다 크기 때문이다.
+   ════════════════════════════════════════════════════════════ */
+
+.popup-panel--pal {
+  --pal-room: min(90vh, 90dvh);
+  max-height: var(--pal-room);
+}
+
+/* 껴데기 240px을 빼고 남는 키에 그림 비를 곱한다. 252는 탭이 한 줄 더 접힐 때를
+   두고 조금 여유를 둔 것이다. */
+.popup-panel--pal .pal-pop__frame {
+  max-width: calc((var(--pal-room) - 252px) * 0.5571);
+}
+
+/* 줄어든 때 남는 자리를 양쪽으로 나눠 창이 가운데 서게 한다. 줄지 않을 때는
+   남는 자리가 없어 보이는 것이 달라지지 않는다. */
+.popup-panel--pal .pal-pop__stage {
+  justify-content: center;
+}
