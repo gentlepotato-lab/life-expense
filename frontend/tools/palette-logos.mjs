@@ -24,27 +24,31 @@ const OUT = path.join(HERE, "..", "public", "palette");
 /** 원본에 박힌 두 가지. src/utils/palettes.ts의 쪽빛 art와 같다. */
 const 원본 = { ink: "#5B5FEF", aqua: "#00C7BE" };
 
-/** 벌마다의 두 가지. src/utils/palettes.ts의 art와 같아야 한다. */
+/** 벌마다의 두 가지. src/utils/palettes.ts의 art와 같아야 한다.
+    dark는 어두운 칸에서 쓸 먹빛 — palettes.ts의 dark.artInk와 같아야 한다.
+    짙은 벌은 어두운 바탕에서 로고가 묻히기 때문이다. */
 const ART = {
-  jjok: { ink: "#5B5FEF", aqua: "#00C7BE" },
-  hwangto: { ink: "#8C5E3C", aqua: "#6F9055" },
-  meok: { ink: "#3F4E63", aqua: "#3E9E82" },
-  sut: { ink: "#2F3033", aqua: "#5FAE2E" },
-  podo: { ink: "#6B3F5E", aqua: "#8CA83F" },
-  crayon: { ink: "#1E5FD8", aqua: "#00A84F" },
+  jjok: { ink: "#5B5FEF", aqua: "#00C7BE", dark: "#8A8DF7" },
+  hwangto: { ink: "#8C5E3C", aqua: "#6F9055", dark: "#C89A70" },
+  meok: { ink: "#3F4E63", aqua: "#3E9E82", dark: "#9DB2CC" },
+  sut: { ink: "#2F3033", aqua: "#5FAE2E", dark: "#D2D7DD" },
+  podo: { ink: "#6B3F5E", aqua: "#8CA83F", dark: "#C28FB2" },
+  crayon: { ink: "#1E5FD8", aqua: "#00A84F", dark: "#6D9CF3" },
 };
 
 export default function makeLogos() {
   const src = fs.readFileSync(SRC, "utf8");
   fs.mkdirSync(OUT, { recursive: true });
   for (const [key, art] of Object.entries(ART)) {
-    /* 한 번에 바꾼다. 차례로 바꾸면 먼저 넣은 값이 다음 짝에 다시 잡힐 수 있다. */
-    const out = src.replace(/#5B5FEF|#00C7BE/gi, (m) =>
-      m.toUpperCase() === 원본.ink ? art.ink : art.aqua
-    );
-    fs.writeFileSync(path.join(OUT, `logo-${key}.svg`), out, "utf8");
+    for (const [꼬리, ink] of [["", art.ink], ["-dark", art.dark]]) {
+      /* 한 번에 바꾼다. 차례로 바꾸면 먼저 넣은 값이 다음 짝에 다시 잡힐 수 있다. */
+      const out = src.replace(/#5B5FEF|#00C7BE/gi, (m) =>
+        m.toUpperCase() === 원본.ink ? ink : art.aqua
+      );
+      fs.writeFileSync(path.join(OUT, `logo-${key}${꼬리}.svg`), out, "utf8");
+    }
   }
-  return Object.keys(ART).length;
+  return Object.keys(ART).length * 2;
 }
 
 /* 창에서는 드라이브 글자 때문에 문자열로 견주면 어긋난다. URL로 맞춘다. */

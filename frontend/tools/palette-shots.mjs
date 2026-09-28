@@ -33,6 +33,15 @@ const H = 700;
 /** 벌 여섯. src/utils/palettes.ts의 key와 같아야 한다. */
 const PALETTES = ["jjok", "hwangto", "meok", "sut", "podo", "crayon"];
 
+/** 밝기 둘. 어두운 칸에서 팝업을 열면 밝은 쪽 사진이 뜨는 것을 막는다.
+    칸은 여섯이지만 그림까지 여섯 벌로 찍지는 않는다 — 밝기는 누르면 그
+    자리에서 온 화면이 바뀌므로 그 자체가 예시다. 벌을 견주는 데 필요한 것은
+    밝은 쪽 한 벌과 어두운 쪽 한 벌이면 된다. */
+const 밝기 = [
+  { key: "now", mode: "light", 꼬리: "" },
+  { key: "moon", mode: "dark", 꼬리: "_dark" },
+];
+
 /** 네 화면. 파일 이름은 components/PalettePopup.tsx의 SHOTS와 같아야 한다. */
 const SHOTS = [
   { file: "home", url: "/" },
@@ -125,6 +134,7 @@ fs.mkdirSync(OUT, { recursive: true });
 /* 로고를 먼저 물들여 둔다. 첫 화면을 찍을 때 이미 있어야 한다. */
 console.log(`로고 ${makeLogos()}장`);
 
+for (const 밝 of 밝기) {
 for (const key of PALETTES) {
   for (const shot of SHOTS) {
     const c = await attach(BASE + shot.url);
@@ -139,6 +149,9 @@ for (const key of PALETTES) {
         const k = "life-expense:prefs";
         const p = JSON.parse(localStorage.getItem(k) || "{}");
         p.palette = ${JSON.stringify(key)};
+        p.theme_mode = ${JSON.stringify(밝.mode)};
+        p.theme_light = "now";
+        p.theme_dark = ${JSON.stringify(밝.key)};
         localStorage.setItem(k, JSON.stringify(p));
       })();`,
     });
@@ -148,14 +161,18 @@ for (const key of PALETTES) {
 
     /* 제 벌로 떴는지 확인한다. 틀린 채로 찍히면 예시가 거짓말을 하게 된다.
        한 번 더 열어 보고 그래도 아니면 멈춘다 — 조용히 넘어가지 않는다. */
-    let 붙은벌 = await c.ev(`document.documentElement.dataset.palette || ""`);
-    if (붙은벌 !== key) {
+    const 본다 = () => c.ev(
+      `document.documentElement.dataset.palette + "/" + document.documentElement.dataset.step`
+    );
+    const 바라는것 = `${key}/${밝.key}`;
+    let 붙은것 = await 본다();
+    if (붙은것 !== 바라는것) {
       await c.send("Page.reload", { ignoreCache: true });
       await 쉬다(shot.file === "charts" ? 5000 : 4000);
-      붙은벌 = await c.ev(`document.documentElement.dataset.palette || ""`);
+      붙은것 = await 본다();
     }
-    if (붙은벌 !== key) {
-      throw new Error(`${key}/${shot.file}: 화면에 붙은 벌이 "${붙은벌}"이다`);
+    if (붙은것 !== 바라는것) {
+      throw new Error(`${바라는것}/${shot.file}: 화면에 붙은 것이 "${붙은것}"이다`);
     }
 
     /* 지출 내역에는 들어온 돈이 한 줄이라도 보여야 한다. 나간 돈만 찍히면
@@ -202,11 +219,12 @@ for (const key of PALETTES) {
        스물네 장을 미리 받아 두는데, 무거우면 정작 볼 한 장이 대역을 나눠
        쓰느라 늦게 온다. 한 번 재어 보니 872ms가 5188ms로 늘었다. */
     const s = await c.send("Page.captureScreenshot", { format: "webp", quality: 82 });
-    const file = path.join(OUT, `${key}_${shot.file}.webp`);
+    const file = path.join(OUT, `${key}_${shot.file}${밝.꼬리}.webp`);
     fs.writeFileSync(file, Buffer.from(s.data, "base64"));
     console.log(path.relative(process.cwd(), file));
     c.ws.close();
   }
+}
 }
 
 /* 담아 둔 빛깔을 원래대로 돌려놓는다. 안 그러면 다음에 브라우저를 열 때
@@ -216,9 +234,12 @@ await c.ev(`(() => {
   const k = "life-expense:prefs";
   const p = JSON.parse(localStorage.getItem(k) || "{}");
   delete p.palette;
+  delete p.theme_mode;
+  delete p.theme_light;
+  delete p.theme_dark;
   localStorage.setItem(k, JSON.stringify(p));
   return 1;
 })()`);
 c.ws.close();
-console.log(`${PALETTES.length * SHOTS.length}장 완료`);
+console.log(`${밝기.length * PALETTES.length * SHOTS.length}장 완료`);
 process.exit(0);

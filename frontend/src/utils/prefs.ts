@@ -21,6 +21,9 @@ const FALLBACK: Prefs = {
   memo_show: "1",
   tape_style: "flower",
   palette: "jjok",
+  theme_mode: "light",
+  theme_light: "now",
+  theme_dark: "moon",
 };
 
 const STORE_KEY = "life-expense:prefs";

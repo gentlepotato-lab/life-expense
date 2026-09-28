@@ -7,11 +7,13 @@
  * 색은 로고와 같은 두 가지다. 값은 고른 빛깔 벌이 CSS 변수로 내려 준다
  * (utils/palettes.ts). 그림 속성에 var()를 그대로 쓸 수 있어 여기서는
  * 변수만 가리키고, 벌이 바뀌면 다시 그릴 것 없이 따라 바뀐다.
- * 로고도 벌을 따른다. `<img>`로 붙는 그림 파일이라 CSS가 닿지 않으므로
- * 벌마다 한 장씩 미리 물들여 둔다(tools/palette-logos.mjs).
+ * 로고도 벌과 밝기를 따른다. `<img>`로 붙는 그림 파일이라 CSS가 닿지 않으므로
+ * 벌마다 밝은 쪽과 어두운 쪽 한 장씩 미리 물들여 둔다(tools/palette-logos.mjs).
+ * 짙은 벌은 어두운 바탕에서 로고가 묻히기 때문이다.
  */
 
 import { currentPalette } from "../../utils/palettes";
+import { currentStep } from "../../utils/theme";
 
 const INK = "var(--art-ink)";
 const AQUA = "var(--art-aqua)";
@@ -22,7 +24,7 @@ export function ArtWrite() {
   return (
     <img
       className="home-art home-art--logo"
-      src={`/palette/logo-${currentPalette().key}.svg`}
+      src={`/palette/logo-${currentPalette().key}${currentStep().dark ? "-dark" : ""}.svg`}
       alt=""
       aria-hidden="true"
     />
@@ -113,10 +115,15 @@ export function ArtNudge() {
   return (
     <svg className="home-art" viewBox="0 0 140 72" aria-hidden="true">
       {/* 영수증 — 아래쪽은 톱니로 뜯긴 모양. 종과 반대쪽으로 눕는다.
-          눌러 그리지 않고 좌표를 다시 잡았다 — 그래야 선 두께가 고르다. */}
+          눌러 그리지 않고 좌표를 다시 잡았다 — 그래야 선 두께가 고르다.
+
+          시작점은 윗변 한가운데다. 모서리에서 시작하면 그 자리가 이음매가
+          되어 둥근 모서리에 자국이 남는다. 곧은 변 위라면 이음매가 보이지
+          않는다. 왼쪽 위는 x=59에서 곡선이 끝나므로 윗변도 거기서 시작해야
+          한다 — 전에는 57에서 시작해 2만큼 덧그어져 있었다. */}
       <g transform="rotate(7 72 36)">
         <path
-          d="M57 12h28a3 3 0 0 1 3 3v39l-4 3-4-3-4 3-4-3-4 3-4-3-4 3-4-3V15a3 3 0 0 1 3-3Z"
+          d="M72 12h13a3 3 0 0 1 3 3v39l-4 3-4-3-4 3-4-3-4 3-4-3-4 3-4-3V15a3 3 0 0 1 3-3h13Z"
           fill="#FFFFFF"
           stroke={INK}
           strokeWidth="2.6"

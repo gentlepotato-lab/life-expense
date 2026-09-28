@@ -25,6 +25,12 @@ PREF_KEYS = {
     # 화면 전체의 빛깔. 화면이 아는 여섯 벌 가운데 하나다.
     # (frontend/src/utils/palettes.ts).
     "palette": "jjok",
+    # 화면의 밝기. 밝은 쪽을 쓸지, 어두운 쪽을 쓸지, 운영체제를 따라갈지.
+    # 밝은 쪽과 어두운 쪽의 칸은 따로 담는다 — 시스템을 골라도 애써 고른
+    # 칸이 살아 있어야 한다.(frontend/src/utils/theme.ts).
+    "theme_mode": "light",
+    "theme_light": "now",
+    "theme_dark": "moon",
 }
 
 

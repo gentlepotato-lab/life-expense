@@ -14850,3 +14850,309 @@ textarea.memo-input.memo-area {
 .pal-pop__shot.sliding {
   transition: transform 220ms var(--ease);
 }
+/* ═══════════════════════════════════════════════════════════════
+   147. 밝기 여섯 칸(2026-09)
+   ─────────────────────────────────────────────────────────────
+   빛깔이 강조색의 축이라면 이것은 바탕과 글씨의 축이다. 칸이 바꾸는 것은
+   중성 여섯뿐이고, 그 여섯은 이미 화면 곳곳에서 변수로 쓰이고 있어 값만
+   갈아 끼우면 화면이 따라온다. 값은 utils/theme.ts가 내려 준다.
+
+   아래는 어두운 칸에서만 뒤집히는 자리들이다. `<html>`에 붙는 data-dark를
+   보고 덮는다. 밝은 쪽 값은 한 줄도 건드리지 않는다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 어두운 쪽에서 뒤집히는 자리 ───────────────────────────── */
+
+/* 옅은 알약 바탕은 밝은 쪽에서 흰빛에 가깝다. 그대로 두면 어두운 바탕에
+   흰 덩어리가 앉는다. 바탕에 강조색을 섞어 같은 자리를 만든다. */
+:root[data-dark="1"] {
+  --color-primary-light: color-mix(in srgb, var(--color-primary) 30%, var(--color-surface));
+  --color-success-tint: color-mix(in srgb, var(--color-success) 26%, var(--color-surface));
+  --color-success-ink: color-mix(in srgb, var(--color-success) 70%, #FFFFFF);
+}
+
+/* 바탕이 어두우면 검은 그늘은 보이지 않는다. 카드는 그늘이 아니라 바탕보다
+   한 단 밝은 제 낯빛으로 떠오른다. 테두리를 아주 옅게 얹어 거든다. */
+:root[data-dark="1"] .card,
+:root[data-dark="1"] .chart-card,
+:root[data-dark="1"] .popup-panel {
+  border-color: color-mix(in srgb, #FFFFFF 8%, transparent);
+}
+
+/* 카드 위에 한 겹 더 올라앉는 자리들. 밝은 쪽에서는 흰빛에 가깝게 두었다. */
+:root[data-dark="1"] .memo-pad {
+  --memo-pad-bg: color-mix(in srgb, #FFFFFF 7%, var(--color-surface));
+}
+
+/* 메모가 더 있다고 알리는 자락. 종이빛을 값으로 풀어 써 두어 어두운 쪽에서는
+   흰 자국으로 남는다. 종이빛 변수에서 다시 만든다. */
+:root[data-dark="1"] .memo-fade {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--memo-pad-bg) 0%, transparent) 0%,
+    color-mix(in srgb, var(--memo-pad-bg) 30%, transparent) 30%,
+    color-mix(in srgb, var(--memo-pad-bg) 70%, transparent) 58%,
+    color-mix(in srgb, var(--memo-pad-bg) 93%, transparent) 78%,
+    var(--memo-pad-bg) 92%
+  );
+}
+
+:root[data-dark="1"] .card.editing {
+  background: color-mix(in srgb, #FFFFFF 5%, var(--color-surface));
+}
+
+:root[data-dark="1"] .cat2-header-row {
+  background: color-mix(in srgb, #FFFFFF 6%, var(--color-bg));
+}
+
+/* 위 손잡이 넷은 흰빛을 깔아 두었다. 어두운 바탕에서는 밝은 조각으로 뜬다. */
+:root[data-dark="1"] .calculator-trigger-button {
+  background: color-mix(in srgb, #FFFFFF 10%, var(--color-surface));
+  border-color: color-mix(in srgb, #FFFFFF 16%, transparent);
+}
+
+:root[data-dark="1"] .calculator-trigger-button:hover {
+  background: color-mix(in srgb, #FFFFFF 16%, var(--color-surface));
+}
+
+/* Exclude 알약은 일부러 무채색으로 둔 자리다. 어두운 쪽에도 무채색이되
+   바탕보다는 밝아야 꺼진 것이 아니라 켜진 것으로 읽힌다. */
+:root[data-dark="1"] .cal-source--exclude,
+:root[data-dark="1"] .cal-source--exclude.on {
+  background: color-mix(in srgb, #FFFFFF 12%, var(--color-surface));
+  border-color: color-mix(in srgb, #FFFFFF 18%, var(--color-surface));
+  color: var(--color-text-secondary);
+}
+
+/* 계산기의 숫자 단추와 못 푼 자리 */
+:root[data-dark="1"] .calculator-popup-content .calculator-button--number {
+  background: var(--color-surface);
+}
+
+:root[data-dark="1"] .calculator-util.is-failed {
+  background: color-mix(in srgb, var(--color-danger) 24%, var(--color-surface));
+}
+
+/* 켬과 끔 알약도 흰빛을 깔고 있다. */
+:root[data-dark="1"] .set-hide-btn {
+  background: color-mix(in srgb, #FFFFFF 12%, var(--color-surface));
+  color: var(--color-text-secondary);
+}
+
+/* 마스킹 테이프는 종이다. 어두운 바탕에서도 종이여야 하니 번쩍임만 눅인다. */
+:root[data-dark="1"] .amount-text.masked::after,
+:root[data-dark="1"] .amount-split.masked::after,
+:root[data-dark="1"] .date-group__sum.masked::after,
+:root[data-dark="1"] .cal__net.masked::after,
+:root[data-dark="1"] .cal-sum__in.masked::after,
+:root[data-dark="1"] .cal-sum__out.masked::after,
+:root[data-dark="1"] .chart-tile__value.masked::after,
+:root[data-dark="1"] .card-perf__value.masked::after,
+:root[data-dark="1"] .wh-row__val.masked::after,
+:root[data-dark="1"] .wh-sum__won.masked::after,
+:root[data-dark="1"] .nudge__tape,
+:root[data-dark="1"] .nudge-detail__amount.is-taped::after,
+:root[data-dark="1"] .me-tape__btn {
+  filter: brightness(0.9);
+}
+
+/* ─── 돈쓴이의 밝기 줄 ───────────────────────────────────────
+   빛깔 줄과 같은 손놀림이다. 조각 하나에 카드빛과 바탕빛을 위아래로 나눠
+   담았다 — 칸의 성격은 이 둘이면 드러난다. 맨 끝 단추는 운영체제를 따라가는
+   자리라 조각이 아니라 그림으로 둔다. 고를 색이 없는 선택지이기 때문이다. */
+
+.me-pref--step {
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.me-pref--step > .me-pref__name {
+  flex: 0 0 auto;
+}
+
+.me-step {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.me-step__btn {
+  flex: 0 1 30px;
+  width: 30px;
+  min-width: 0;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  /* 밝은 쪽 세 칸은 거의 흰빛이라 테두리가 없으면 서로 구별되지 않는다. */
+  border: 1px solid color-mix(in srgb, var(--color-text-tertiary) 45%, transparent);
+  border-radius: 3px;
+  cursor: pointer;
+  transform: rotate(-2deg);
+  box-shadow: 0 1px 1px rgba(16, 24, 40, 0.1);
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease),
+    opacity 160ms var(--ease);
+}
+
+.me-step__btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.me-step__btn.on {
+  transform: none;
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3.5px var(--color-primary);
+}
+
+.me-step__btn.on:disabled {
+  opacity: 1;
+}
+
+.me-step__btn:not(:disabled):hover {
+  transform: rotate(-2deg) translateY(-1px);
+}
+
+.me-step__btn.on:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.me-step__btn:not(:disabled):active {
+  transform: scale(0.94);
+}
+
+.me-step__auto {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  margin-left: 3px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color 160ms var(--ease), border-color 160ms var(--ease),
+    background 160ms var(--ease);
+}
+
+.me-step__auto > svg {
+  display: block;
+}
+
+.me-step__auto.on {
+  border-color: transparent;
+  background: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.me-step__auto:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.me-step__auto.on:disabled {
+  opacity: 1;
+}
+
+.me-step__auto:not(:disabled):not(.on):hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.me-step__auto:not(:disabled):active {
+  transform: scale(0.94);
+}
+/* ═══════════════════════════════════════════════════════════════
+   148. 못 고를 때 왜 못 고르는지 알려 준다(2026-09)
+   ─────────────────────────────────────────────────────────────
+   돈쓴이에서 고칠 수 있는 자리는 [편집] 중에만 고를 수 있다. 조각이 한 단
+   옅어지는 것으로 표시해 두었는데, 그것만으로는 "지금은 못 고른다"가 읽히지
+   않는다. 눌러 보고 아무 일도 일어나지 않으면 고장으로 오해한다.
+
+   조각과 단추는 disabled라 눌러도 사건이 나지 않고 부모로도 올라오지 않는다.
+   위에 투명한 한 겹을 깔아 그 누름을 받는다.
+
+   안내는 줄에 매달지 않는다. 줄에 매달면 줄이 길수록 엉뚱한 자리에 떠서
+   무엇을 눌렀는지가 흐려진다. 누른 그 자리에 띄우고, 화면 밖으로 나가지
+   않게 화면 코드가 밀어 넣는다.
+   ════════════════════════════════════════════════════════════ */
+
+/* 줄 안의 고르개(.ms-wrap)는 제 기준을 갖고 있고 그 팝업은 fixed라, 줄에
+   기준을 줘도 딸려 있는 것들이 흔들리지 않는다. */
+.me-pref,
+.me-head {
+  position: relative;
+}
+
+/* 전역 button 규칙이 키와 바탕을 들고 있다. 그 가운데 button:hover는 이
+   규칙보다 셈이 높아, 손가락이 닿은 뒤 회색 바탕이 그대로 드러났다.
+   겹치는 자리를 모두 눌러 둔다. */
+.me-lock,
+.me-lock:hover,
+.me-lock:active,
+.me-lock:focus {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 누른 자리에 뜬다. 자리는 화면 코드가 재어 넣는다. */
+.me-lock__tip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10001;
+  display: block;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-primary);
+  color: var(--color-surface);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.22);
+  animation: me-lock-tip 2200ms var(--ease) forwards;
+}
+
+/* 자리는 화면 코드가 잡으므로 여기서는 뜨고 지는 것만 맡는다. */
+@keyframes me-lock-tip {
+  0% {
+    opacity: 0;
+  }
+  10%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .me-lock__tip {
+    animation: none;
+    opacity: 1;
+  }
+}

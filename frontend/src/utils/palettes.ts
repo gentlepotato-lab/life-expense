@@ -52,6 +52,21 @@ export type Palette = {
   cats: { label: string; solid: string }[];
   /** 첫 화면 그림에 쓰는 세 가지 */
   art: { ink: string; aqua: string; tint: string };
+  /**
+   * 어두운 칸에서만 갈아 끼울 값.
+   *
+   * 짙은 벌은 어두운 바탕에서 제 색을 잃는다. 숯빛의 단추(#2F3033)는 달빛
+   * 칸의 카드 바탕(#404755)보다 어두워, 펜도 사람도 아래 이동 막대 글씨도
+   * 묻혀 버린다. 그런 자리만 골라 한 단 띄운다.
+   */
+  dark?: {
+    primary?: string;
+    primaryDark?: string;
+    artInk?: string;
+    /** 자리와 색. 도넛 조각 하나가 바탕에 묻힐 때만 쓴다. */
+    chart?: { at: number; color: string }[];
+    cats?: { at: number; color: string }[];
+  };
 };
 
 export const PALETTES: Palette[] = [
@@ -77,6 +92,8 @@ export const PALETTES: Palette[] = [
       { label: "물빛", solid: "#22B8CF" }, { label: "회색", solid: "#98A2B3" },
     ],
     art: { ink: "#5B5FEF", aqua: "#00C7BE", tint: "#C9CDF6" },
+    /* 남보라는 어두운 바탕에서도 서지만 한 단만 띄워 또렷하게 한다. */
+    dark: { primary: "#7B7FF5", primaryDark: "#6A6EF2", artInk: "#8A8DF7" },
   },
 
   /* 황토 — 찬 빛을 한 점도 쓰지 않는다. 구운 흙과 마른 이끼와 겨자. */
@@ -101,6 +118,7 @@ export const PALETTES: Palette[] = [
       { label: "잿빛", solid: "#8A7F6B" }, { label: "돌", solid: "#A6A096" },
     ],
     art: { ink: "#8C5E3C", aqua: "#6F9055", tint: "#E0D2BE" },
+    dark: { primary: "#C08A5E", primaryDark: "#AE7A4F", artInk: "#C89A70" },
   },
 
   /* 먹빛 — 단추를 가라앉히고 빛깔은 숫자에만 준다. 장부는 조용하고 셈만 선다. */
@@ -125,6 +143,9 @@ export const PALETTES: Palette[] = [
       { label: "옥", solid: "#4F9E9E" }, { label: "재", solid: "#8D95A3" },
     ],
     art: { ink: "#3F4E63", aqua: "#3E9E82", tint: "#CFD6E0" },
+    /* 먹빛은 바탕과 같은 무리라 가장 많이 띄워야 한다. */
+    dark: { primary: "#8DA3C0", primaryDark: "#7C93B2", artInk: "#9DB2CC",
+            chart: [{ at: 3, color: "#8DA3C0" }], cats: [{ at: 0, color: "#8DA3C0" }] },
   },
 
   /* 숯빛 — 단추를 거의 무채색까지 떨어뜨리고 숫자만 채도를 끝까지 올린다. */
@@ -149,6 +170,9 @@ export const PALETTES: Palette[] = [
       { label: "침엽", solid: "#0E8F6E" }, { label: "재", solid: "#9BA0A6" },
     ],
     art: { ink: "#2F3033", aqua: "#5FAE2E", tint: "#CFD2D5" },
+    /* 숯빛은 뒤집는다. 밝은 쪽에서 숯이던 자리가 어두운 쪽에서는 재가 된다. */
+    dark: { primary: "#C6CBD2", primaryDark: "#B2B8C1", artInk: "#D2D7DD",
+            chart: [{ at: 3, color: "#C6CBD2" }], cats: [{ at: 0, color: "#C6CBD2" }] },
   },
 
   /* 포도 — 붉은 기 도는 보라라 쪽빛의 남보라와는 결이 다르다. */
@@ -173,6 +197,8 @@ export const PALETTES: Palette[] = [
       { label: "밤", solid: "#8A5B3F" }, { label: "재", solid: "#A79BA3" },
     ],
     art: { ink: "#6B3F5E", aqua: "#8CA83F", tint: "#DCC9D6" },
+    dark: { primary: "#B57FA4", primaryDark: "#A26E92", artInk: "#C28FB2",
+            chart: [{ at: 3, color: "#B57FA4" }], cats: [{ at: 0, color: "#B57FA4" }] },
   },
 
   /* 크레용 — 섞지 않은 원색만 쓴다. 채도를 낮추지 않아 화면이 쨍하다. */
@@ -197,6 +223,7 @@ export const PALETTES: Palette[] = [
       { label: "갈색", solid: "#6B4E1E" }, { label: "회색", solid: "#8E939B" },
     ],
     art: { ink: "#1E5FD8", aqua: "#00A84F", tint: "#BDD0F2" },
+    dark: { primary: "#5B90F0", primaryDark: "#4A7EDC", artInk: "#6D9CF3" },
   },
 ];
 
@@ -205,15 +232,52 @@ export const DEFAULT_PALETTE = "jjok";
 
 const BY_KEY = new Map(PALETTES.map((p) => [p.key, p]));
 
+/**
+ * 조각과 알약에 찍을 대표색.
+ *
+ * 벌을 고르는 자리는 아직 그 벌로 서 있지 않다. 어두운 칸에 서 있다면 고르면
+ * 나올 색, 곧 어두운 쪽 값을 보여 주어야 한다. 밝은 쪽 값을 그대로 찍으면
+ * 짙은 벌은 점이 바탕에 묻혀 무엇을 고르는지 알 수 없다.
+ */
+export const swatchOf = (p: Palette, dark: boolean): Tone =>
+  dark && p.dark
+    ? {
+        ...p.tone,
+        primary: p.dark.primary ?? p.tone.primary,
+        primaryDark: p.dark.primaryDark ?? p.tone.primaryDark,
+      }
+    : p.tone;
+
 export function paletteOf(key: string | null | undefined): Palette {
   return (key && BY_KEY.get(key)) || PALETTES[0];
 }
 
-/* 지금 쓰는 벌. 갈아 끼우는 일은 앱이 뜰 때 한 번뿐이라(테이프와 같은 약속)
+/* 지금 쓰는 벌. 어두운 칸이면 dark를 덮어쓴 모습이 여기 담긴다.
    화면들은 이 값을 불러 쓰기만 하면 된다. */
 let 쓰는것: Palette = PALETTES[0];
 
 export const currentPalette = (): Palette => 쓰는것;
+
+/** 어두운 칸에서 쓸 모습을 만든다. dark에 적힌 자리만 갈아 끼운다. */
+function 어둡게(p: Palette): Palette {
+  const d = p.dark;
+  if (!d) return p;
+  const chart = [...p.chart] as Palette["chart"];
+  for (const c of d.chart ?? []) chart[c.at] = c.color;
+  const cats = p.cats.map((c) => ({ ...c }));
+  for (const c of d.cats ?? []) cats[c.at] = { ...cats[c.at], solid: c.color };
+  return {
+    ...p,
+    tone: {
+      ...p.tone,
+      primary: d.primary ?? p.tone.primary,
+      primaryDark: d.primaryDark ?? p.tone.primaryDark,
+    },
+    chart,
+    cats,
+    art: { ...p.art, ink: d.artInk ?? p.art.ink },
+  };
+}
 
 /**
  * 화면 전체에 벌을 끼운다.
@@ -221,8 +285,8 @@ export const currentPalette = (): Palette => 쓰는것;
  * 값은 CSS 변수로 내보낸다. 그래야 스타일시트도, 그림 속성도, 화면 코드도
  * 같은 한 곳을 보게 된다.
  */
-export function applyPalette(key: string): void {
-  const p = paletteOf(key);
+export function applyPalette(key: string, dark = false): void {
+  const p = dark ? 어둡게(paletteOf(key)) : paletteOf(key);
   쓰는것 = p;
   /* 어느 벌이 끼워졌는지 겉에 적어 둔다. 예시 그림을 찍는 스크립트가 이것을
      보고 제 벌로 떴는지 확인한다. 조용히 옛 색으로 찍히는 것이 제일 나쁘다. */

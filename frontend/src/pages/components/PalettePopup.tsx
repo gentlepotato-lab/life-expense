@@ -12,7 +12,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import useBackClose from "../../hooks/useBackClose";
-import { PALETTES, paletteOf } from "../../utils/palettes";
+import { PALETTES, paletteOf, swatchOf } from "../../utils/palettes";
+import { currentStep } from "../../utils/theme";
 
 /** 예시로 보여 주는 네 화면. 파일 이름과 차례가 이 줄에서 정해진다. */
 const SHOTS = [
@@ -41,6 +42,11 @@ export default function PalettePopup({
 
   /* 들여다보는 벌은 고른 벌과 따로 논다. 넘겨 보다가 마음에 들면 그때
      [이 빛깔로]를 눌러 줄에 담는다. */
+  /* 어두운 칸에서 밝은 쪽 사진을 보여 주면 벌이 아니라 밝기를 견주게 된다.
+     밝기는 누르면 그 자리에서 바뀌므로 따로 미리 볼 것이 없지만, 벌을 견주는
+     그림만은 지금 서 있는 쪽과 같아야 한다. */
+  const 꼬리 = currentStep().dark ? "_dark" : "";
+
   const [shown, setShown] = useState(value);
   const [at, setAt] = useState(0);
   const p = paletteOf(shown);
@@ -62,7 +68,7 @@ export default function PalettePopup({
     받았나.current = true;
     const 차례: string[] = [];
     const 담기 = (k: string, f: string) => {
-      const src = `/palette/${k}_${f}.webp`;
+      const src = `/palette/${k}_${f}${꼬리}.webp`;
       if (!차례.includes(src)) 차례.push(src);
     };
     SHOTS.forEach((x) => 담기(shown, x.file));
@@ -74,7 +80,7 @@ export default function PalettePopup({
       img.src = src;
       return img;
     });
-  }, [shown, at]);
+  }, [shown, at, 꼬리]);
 
   /* 손가락을 따라 그림이 밀리는 거리. 놓으면 0으로 돌아온다. */
   const [민거리, set민거리] = useState(0);
@@ -165,7 +171,7 @@ export default function PalettePopup({
               aria-pressed={x.key === shown}
               onClick={() => setShown(x.key)}
             >
-              <i style={{ background: x.tone.primary }} />
+              <i style={{ background: swatchOf(x, currentStep().dark).primary }} />
               {x.label}
             </button>
           ))}
@@ -197,7 +203,7 @@ export default function PalettePopup({
             <img
               className={`pal-pop__shot${미끄러짐 ? " sliding" : ""}`}
               style={{ transform: `translateX(${민거리}px)` }}
-              src={`/palette/${p.key}_${SHOTS[at].file}.webp`}
+              src={`/palette/${p.key}_${SHOTS[at].file}${꼬리}.webp`}
               alt={`${p.label} 빛깔의 ${SHOTS[at].label} 화면`}
               draggable={false}
             />

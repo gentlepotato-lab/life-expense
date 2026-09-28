@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import axios from "../api/client";
 import { apiErrorMessage } from "../utils/apiError";
 import QuickActions from "./components/QuickActions";
@@ -8,7 +8,11 @@ import SingleSelect from "./components/SingleSelect";
 import { formatDateLabel } from "../utils/dateGroup";
 import { PAGE_TITLE, HOME_TABS, ENTRY_TABS, SETTING_TABS } from "../utils/pageTitles";
 import { applyTape, DEFAULT_TAPE, TAPES } from "../utils/tapes";
-import { applyPalette, DEFAULT_PALETTE, PALETTES } from "../utils/palettes";
+import { applyPalette, DEFAULT_PALETTE, PALETTES, swatchOf } from "../utils/palettes";
+import {
+  applyTheme, currentStep, STEPS, DEFAULT_MODE, DEFAULT_LIGHT, DEFAULT_DARK,
+} from "../utils/theme";
+import type { Step } from "../utils/theme";
 import PalettePopup from "./components/PalettePopup";
 import { putPrefs } from "../utils/prefs";
 
@@ -135,6 +139,73 @@ export default function Me() {
   /* 빛깔 예시 팝업을 열어 두었는지 */
   const [palOpen, setPalOpen] = useState(false);
 
+  /* 편집이 아닐 때 고칠 수 있는 자리를 누르면 왜 안 되는지 알려 준다. 조각이
+     옅어진 것만으로는 "지금은 못 고른다"가 읽히지 않아, 눌러 보고 아무 일도
+     일어나지 않으면 고장으로 오해한다.
+
+     안내는 줄에 매달지 않고 누른 그 자리에 띄운다. 줄에 매달면 줄이 길수록
+     엉뚱한 곳에 떠서 무엇을 눌렀는지가 흐려진다. */
+  const [lockAt, setLockAt] = useState<{ x: number; y: number; n: number } | null>(null);
+  const lockTimer = useRef<number | null>(null);
+  const lockSeq = useRef(0);
+  const tipRef = useRef<HTMLSpanElement>(null);
+
+  const showLock = (e: React.MouseEvent<HTMLButtonElement>) => {
+    /* 키보드로 눌렀을 때는 좌표가 0으로 오므로 단추 한가운데를 쓴다. */
+    const r = e.currentTarget.getBoundingClientRect();
+    /* 누를 때마다 번호를 올려 key로 쓴다. 같은 요소를 다시 쓰면 뜨고 지는
+       움직임이 처음부터 돌지 않아, 한 번 다 돈 뒤로는 투명한 채로 남는다.
+       그 사이에 또 누르면 사라지는 시계마저 미뤄져 영영 안 보이게 된다. */
+    lockSeq.current += 1;
+    setLockAt({
+      x: e.clientX || r.left + r.width / 2,
+      y: e.clientY || r.top + r.height / 2,
+      n: lockSeq.current,
+    });
+    if (lockTimer.current) window.clearTimeout(lockTimer.current);
+    lockTimer.current = window.setTimeout(() => setLockAt(null), 2200);
+  };
+
+  useEffect(
+    () => () => {
+      if (lockTimer.current) window.clearTimeout(lockTimer.current);
+    },
+    []
+  );
+
+  /* 화면 밖으로 나가지 않게 민다. 그리기 전에 재야 해서 layout 쪽에 건다. */
+  useLayoutEffect(() => {
+    const el = tipRef.current;
+    if (!el || !lockAt) return;
+    const 여백 = 8;
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const left = Math.min(
+      Math.max(lockAt.x, 여백 + w / 2),
+      window.innerWidth - 여백 - w / 2
+    );
+    /* 누른 자리 바로 위. 위가 좁으면 아래로 돌리고, 그래도 넘치면 민다.
+       top은 안내의 아랫변이다(transform이 -100%라서). */
+    const 위 = lockAt.y - 12;
+    const 돌림 = 위 - h < 여백 ? lockAt.y + 12 + h : 위;
+    const top = Math.min(Math.max(돌림, 여백 + h), window.innerHeight - 여백);
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+  }, [lockAt]);
+
+  /* 조각과 단추는 disabled라 눌러도 사건이 나지 않는다. 위에 한 겹 깔아
+     그 누름을 받는다. 읽어 주는 기계에게는 잠긴 것으로 남아야 해서
+     disabled를 풀지는 않는다. */
+  const lockCover = () =>
+    !editMode ? (
+      <button
+        type="button"
+        className="me-lock"
+        aria-label="편집 버튼을 누른 후 선택하세요."
+        onClick={showLock}
+      />
+    ) : null;
+
   const load = () => {
     Promise.all([
       axios.get("/profile").then((r) => r.data).catch(() => EMPTY),
@@ -156,6 +227,15 @@ export default function Me() {
   const setPref = (key: string, value: string) =>
     setPrefs((prev) => ({ ...prev, [key]: value }));
 
+  /* 칸을 고르면 그 칸이 선 쪽에 담고, 보는 쪽도 그쪽으로 옮긴다. 밝은 칸과
+     어두운 칸을 따로 기억해 두어야 시스템으로 옮겨도 살아남는다. */
+  const pickStep = (s: Step) =>
+    setPrefs((prev) => ({
+      ...prev,
+      theme_mode: s.dark ? "dark" : "light",
+      [s.dark ? "theme_dark" : "theme_light"]: s.key,
+    }));
+
   const stamp = () => JSON.stringify([profile, prefs]);
 
   const toggleEdit = async () => {
@@ -175,7 +255,14 @@ export default function Me() {
       /* 담긴 뒤에 붙인다. 고르는 동안 미리 바뀌면 담지 않고 나가도 그대로
          남아, 담은 것과 보이는 것이 어긋난다. */
       applyTape(prefs.tape_style ?? DEFAULT_TAPE);
-      applyPalette(prefs.palette ?? DEFAULT_PALETTE);
+      /* 밝기가 먼저다. 어두운 칸이면 벌도 어두운 쪽 모습으로 끼워야 해서,
+         빛깔은 어느 칸인지를 알고 나서야 정해진다. */
+      applyTheme(
+        prefs.theme_mode ?? DEFAULT_MODE,
+        prefs.theme_light ?? DEFAULT_LIGHT,
+        prefs.theme_dark ?? DEFAULT_DARK
+      );
+      applyPalette(prefs.palette ?? DEFAULT_PALETTE, currentStep().dark);
       alert("저장 완료-!! ;-)");
       setEditMode(false);
       load();
@@ -208,6 +295,7 @@ export default function Me() {
           {/* ─── 누구인가 ─────────────────────────────────────── */}
           <section className="chart-card chart-card--wide">
             <div className="me-head">
+              {!fromOutside && lockCover()}
               {/* 편집 중에는 얼굴 자체가 고르는 단추다 — 따로 칸을 두면 이모지가
                   아닌 글자가 들어갈 여지가 생기고, 무엇을 누를지도 헷갈린다. */}
               {editMode && !fromOutside && !profile.avatar_url ? (
@@ -385,6 +473,7 @@ export default function Me() {
             </header>
 
             <div className="me-pref">
+              {lockCover()}
               <span className="me-pref__name">첫 화면</span>
               <div className="me-pref__control">
                 {editMode ? (
@@ -403,6 +492,7 @@ export default function Me() {
             </div>
 
             <div className="me-pref">
+              {lockCover()}
               <span className="me-pref__name">Blur 처음부터 켜기</span>
               <div className="me-pref__control">
                 <button
@@ -417,6 +507,7 @@ export default function Me() {
             </div>
 
             <div className="me-pref">
+              {lockCover()}
               <span className="me-pref__name">Exclude 처음부터 켜기</span>
               <div className="me-pref__control">
                 <button
@@ -433,6 +524,7 @@ export default function Me() {
             </div>
 
             <div className="me-pref">
+              {lockCover()}
               <span className="me-pref__name">내역에 메모 보이기</span>
               <div className="me-pref__control">
                 <button
@@ -447,6 +539,7 @@ export default function Me() {
             </div>
 
             <div className="me-pref">
+              {lockCover()}
               <span className="me-pref__name">잔소리 받기</span>
               <div className="me-pref__control">
                 <button
@@ -463,6 +556,7 @@ export default function Me() {
             {/* 마스킹 테이프 — 고르는 것은 위 넷과 같다. [저장]을 눌러야 담기고,
                 담기는 그때 화면 곳곳의 테이프가 바뀐다. */}
             <div className="me-pref me-pref--tape">
+              {lockCover()}
               <span className="me-pref__name">마스킹 테이프</span>
               <div className="me-tape">
                 {TAPES.map((t) => {
@@ -489,6 +583,7 @@ export default function Me() {
                 눈 단추는 담기 전에 미리 보라고 둔 것이다. 여섯 벌을 머릿속에
                 그려 놓고 고르기는 어렵다. */}
             <div className="me-pref me-pref--palette">
+              {lockCover()}
               <span className="me-pref__name">빛깔</span>
               <div className="me-pal">
                 {PALETTES.map((p) => {
@@ -499,7 +594,10 @@ export default function Me() {
                       type="button"
                       className={`me-pal__btn${on ? " on" : ""}`}
                       style={{
-                        background: `linear-gradient(90deg, ${p.tone.primary} 0 33.34%, ${p.tone.success} 33.34% 66.67%, ${p.tone.danger} 66.67% 100%)`,
+                        background: (() => {
+                          const t = swatchOf(p, currentStep().dark);
+                          return `linear-gradient(90deg, ${t.primary} 0 33.34%, ${t.success} 33.34% 66.67%, ${t.danger} 66.67% 100%)`;
+                        })(),
                       }}
                       disabled={!editMode}
                       aria-pressed={on}
@@ -535,6 +633,68 @@ export default function Me() {
               </div>
             </div>
 
+            {/* 밝기 — 여섯 칸과, 운영체제를 따라가는 자리 하나.
+                밝은 칸을 고르면 밝은 쪽 값으로, 어두운 칸을 고르면 어두운 쪽
+                값으로 담는다. 그래야 시스템으로 옮겨도 애써 고른 칸이 그대로
+                살아난다. */}
+            <div className="me-pref me-pref--step">
+              {lockCover()}
+              <span className="me-pref__name">배경 밝기</span>
+              <div className="me-step">
+                {STEPS.map((s) => {
+                  const 자동 = (prefs.theme_mode ?? DEFAULT_MODE) === "system";
+                  const 쓰는것 = s.dark
+                    ? (prefs.theme_dark ?? DEFAULT_DARK)
+                    : (prefs.theme_light ?? DEFAULT_LIGHT);
+                  const 같은쪽 = s.dark
+                    ? (prefs.theme_mode ?? DEFAULT_MODE) === "dark"
+                    : (prefs.theme_mode ?? DEFAULT_MODE) === "light";
+                  const on = !자동 && 같은쪽 && 쓰는것 === s.key;
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      className={`me-step__btn${on ? " on" : ""}`}
+                      style={{
+                        background: `linear-gradient(180deg, ${s.surface} 0 52%, ${s.bg} 52% 100%)`,
+                      }}
+                      disabled={!editMode}
+                      aria-pressed={on}
+                      aria-label={s.label}
+                      title={s.label}
+                      onClick={() => pickStep(s)}
+                    />
+                  );
+                })}
+                <button
+                  type="button"
+                  className={`me-step__auto${
+                    (prefs.theme_mode ?? DEFAULT_MODE) === "system" ? " on" : ""
+                  }`}
+                  disabled={!editMode}
+                  aria-pressed={(prefs.theme_mode ?? DEFAULT_MODE) === "system"}
+                  aria-label="시스템 설정 따라가기"
+                  title="시스템 설정 따라가기"
+                  onClick={() => setPref("theme_mode", "system")}
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="2.8" y="4.4" width="18.4" height="12.2" rx="2" />
+                    <path d="M8.5 20.4h7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
             <p className="me-note">앱 Refresh 후 적용됩니다.</p>
           </section>
 
@@ -559,6 +719,12 @@ export default function Me() {
             </div>
           </section>
         </div>
+      )}
+
+      {lockAt && (
+        <span key={lockAt.n} className="me-lock__tip" role="status" ref={tipRef}>
+          편집 버튼을 누른 후 선택하세요.
+        </span>
       )}
 
       {palOpen && (
