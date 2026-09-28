@@ -40,6 +40,7 @@ import {
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { prefOn } from "../utils/prefs";
+import { currentPalette } from "../utils/palettes";
 import { manwon } from "../utils/amount";
 import {
   EMPTY_FILTER,
@@ -73,19 +74,20 @@ const SOURCES: { key: Src; label: string }[] = [
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-/* 갈래 색 — 맑고 쨍한 파스텔. 위 알약(지출 남보라 · 대기 주황 · 정기 청록)과
-   헷갈리지 않도록 그 셋을 피해 분홍 · 하늘 · 민트 · 라벤더 · 살구로 돈다.
-   눈으로 고르지 않고 검사기에 걸었다 — 밝기 범위 · 채도 바닥 · 색각 이상에서의
-   이웃 구분(11.6) · 정상 시야 구분(18.9)을 넉넉히 통과한다.
-   분홍과 민트를 붙이면 적록색각에서 붙어 버려 그 사이에 하늘을 넣었다.
-   회색은 갈래 색이 아니라 "기타" 전용이다 — 눈에 덜 띄어야 하는 자리다. */
-const PALETTE = ["#FF7FA8", "#4FB0F5", "#22C97E", "#B47CFF", "#FF8A5C"];
-const ETC_COLOR = "#94A3B8";
+/* 갈래 색 다섯. 값은 고른 빛깔 벌에서 온다(utils/palettes.ts).
+   쪽빛 벌의 다섯은 눈으로 고르지 않고 검사기에 걸어 밝기 범위, 채도 바닥,
+   색각 이상에서의 이웃 구분(11.6), 정상 시야 구분(18.9)을 넉넉히 통과한 것이다.
+   벌을 새로 들일 때도 같은 잣대를 지킨다.
+   회색은 갈래 색이 아니라 "기타" 전용이다. 눈에 덜 띄어야 하는 자리다.
+   부를 때 읽는 함수인 까닭은 빛깔이 모듈을 읽는 차례보다 늦게 끼워질 수
+   있어서다. 값으로 굳혀 두면 그 자리만 옛 색으로 남는다. */
+const PALETTE = () => currentPalette().chart;
+const ETC_COLOR = () => currentPalette().chartEtc;
 
-/* 한 갈래짜리 그림도 같은 톤으로 — 나간 돈은 분홍, 쌓인 돈은 라벤더 */
-const SPEND = "#FF7FA8";
-const ACC = "#B47CFF";
-const WEEKDAY = "#E3D3FF";
+/* 한 갈래짜리 그림도 같은 톤으로. 나간 돈은 첫째 색, 쌓인 돈은 넷째 색이다. */
+const SPEND = () => currentPalette().chart[0];
+const ACC = () => currentPalette().chart[3];
+const WEEKDAY = () => currentPalette().chartWeek;
 
 /* 축 눈금. 10은 그림 옆에 두면 유난히 작아 보여 한 단 올렸다 —
    본문 가장 작은 글씨(--font-size-xs)와 같은 크기다. */
@@ -220,7 +222,7 @@ function PopDot({
   if (cx == null || cy == null) return null;
   return (
     <Pop on={hit === `trend:${index}`} at={[cx, cy]}>
-      <circle cx={cx} cy={cy} r={4} fill={ETC_COLOR} stroke="#FFFFFF" strokeWidth={2} />
+      <circle cx={cx} cy={cy} r={4} fill={ETC_COLOR()} stroke="#FFFFFF" strokeWidth={2} />
       <circle
         cx={cx}
         cy={cy}
@@ -268,7 +270,7 @@ function topN(map: Map<string, number>, n: number): Slice[] {
 }
 
 const colorOf = (name: string, i: number) =>
-  name === "기타" ? ETC_COLOR : PALETTE[i % PALETTE.length];
+  name === "기타" ? ETC_COLOR() : PALETTE()[i % PALETTE().length];
 
 /** 넓은 화면인지 — 값 이름표를 붙일지 말지를 여기서 정한다. */
 function useWide(query = "(min-width: 640px)") {
@@ -323,7 +325,7 @@ function Tip({
               고르면 조각이 하나뿐인 그림에서 늘 첫 빛깔만 나온다. */}
           <span
             className="chart-tip__dot"
-            style={{ background: p.payload?.color ?? p.color ?? ETC_COLOR }}
+            style={{ background: p.payload?.color ?? p.color ?? ETC_COLOR() }}
           />
           <span className="chart-tip__value">{won(Number(p.value ?? 0))}</span>
         </div>
@@ -1113,7 +1115,7 @@ export default function Charts() {
     return WEEKDAYS.map((w, i) => ({
       요일: w,
       지출: Math.round(sums[i]),
-      color: i === 0 ? SPEND : i === 6 ? ACC : WEEKDAY,
+      color: i === 0 ? SPEND() : i === 6 ? ACC() : WEEKDAY(),
     }));
   }, [byDay]);
 
@@ -1282,7 +1284,7 @@ export default function Charts() {
                     <Tooltip {...TIP_PROPS} content={<Tip suffix="일" />} />
                     <Bar
                       dataKey="지출"
-                      fill={SPEND}
+                      fill={SPEND()}
                       radius={[4, 4, 0, 0]}
                       maxBarSize={18}
                       shape={ShapeDaily}
@@ -1307,17 +1309,17 @@ export default function Charts() {
                   <AreaChart data={byDay} margin={{ top: 8, right: 6, bottom: 0, left: -6 }}>
                     <defs>
                       <linearGradient id="acc-fill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={ACC} stopOpacity={0.28} />
-                        <stop offset="100%" stopColor={ACC} stopOpacity={0.03} />
+                        <stop offset="0%" stopColor={ACC()} stopOpacity={0.28} />
+                        <stop offset="100%" stopColor={ACC()} stopOpacity={0.03} />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="day" tick={AXIS} tickLine={false} axisLine={false} interval={4} />
                     <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
-                    <Tooltip {...TIP_PROPS} cursor={{ stroke: WEEKDAY, strokeWidth: 2 }} content={<Tip suffix="일까지" />} />
+                    <Tooltip {...TIP_PROPS} cursor={{ stroke: WEEKDAY(), strokeWidth: 2 }} content={<Tip suffix="일까지" />} />
                     <Area
                       type="monotone"
                       dataKey="누적"
-                      stroke={ACC}
+                      stroke={ACC()}
                       strokeWidth={3}
                       strokeLinecap="round"
                       fill="url(#acc-fill)"
@@ -1371,7 +1373,7 @@ export default function Charts() {
                       dataKey="지출"
                       /* 열두 달을 훑는 그림이라 이 달을 말하는 그림들과 톤을 갈라 둔다.
                          팔레트의 회색은 갈래 색이 아니라 눈에 덜 띄어야 하는 자리의 것이다. */
-                      stroke={ETC_COLOR}
+                      stroke={ETC_COLOR()}
                       strokeWidth={3}
                       strokeLinejoin="miter"
                       dot={<PopDot r={4} strokeWidth={2} />}
@@ -1439,7 +1441,7 @@ export default function Charts() {
                           setPickedCat((prev) =>
                             prev?.name === slice.name
                               ? null
-                              : { name: slice.name as string, color: slice.color ?? ETC_COLOR }
+                              : { name: slice.name as string, color: slice.color ?? ETC_COLOR() }
                           );
                         }}
                       >

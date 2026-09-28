@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { COLOR_TOKENS, colorOf } from "../../utils/colorPalette";
+import { colorTokens, colorOf } from "../../utils/colorPalette";
 
 /**
  * 구분의 색을 고른다.
@@ -84,7 +84,7 @@ export default function ColorPicker({
 
       {open && (
         <div className="color-pick__pop" style={style}>
-          {COLOR_TOKENS.map((t) => (
+          {colorTokens().map((t) => (
             <button
               type="button"
               key={t.key}

@@ -4,11 +4,15 @@
  * 아직 속이 비어 있는 화면들이라, 무엇이 들어올 자리인지 그림으로 미리 보여 준다.
  * 바깥에서 불러오는 것 없이 전부 여기에 그린다 — 로고만 브랜드 파일을 그대로 쓴다.
  *
- * 색은 로고와 같은 두 가지다. 남색 #5B5FEF, 청록 #00C7BE.
+ * 색은 로고와 같은 두 가지다. 값은 고른 빛깔 벌이 CSS 변수로 내려 준다
+ * (utils/palettes.ts). 그림 속성에 var()를 그대로 쓸 수 있어 여기서는
+ * 변수만 가리키고, 벌이 바뀌면 다시 그릴 것 없이 따라 바뀐다.
+ * 로고 파일(/logo-h.svg)만은 그림 파일이라 CSS가 닿지 않아 그대로 둔다.
  */
 
-const INK = "#5B5FEF";
-const AQUA = "#00C7BE";
+const INK = "var(--art-ink)";
+const AQUA = "var(--art-aqua)";
+const TINT = "var(--art-tint)";
 
 /** 쓰기 — 서비스 로고(펜에서 동전으로 흐르는 가로형) */
 export function ArtWrite() {
@@ -59,7 +63,7 @@ export function ArtChart() {
       <path d="M13.7 58h86.3" stroke="#E4E7EC" strokeWidth="1.6" strokeLinecap="round" />
 
       {/* 막대 */}
-      <g fill="#C9CDF6">
+      <g fill={TINT}>
         {BARS.map(([x, top]) => (
           <rect key={x} x={x} y={top} width="9" height={58 - top} rx="2" />
         ))}
@@ -112,7 +116,7 @@ export function ArtNudge() {
         />
         <path
           d="M60.5 22h21M60.5 30h21M60.5 38h11"
-          stroke="#C9CDF6"
+          stroke={TINT}
           strokeWidth="2.6"
           strokeLinecap="round"
         />
@@ -184,7 +188,7 @@ export function ArtPlaces() {
       <path
         d="M36 44c8-2 10-12 19-13s12 7 20 5 13-11 21-12"
         fill="none"
-        stroke="#C9CDF6"
+        stroke={TINT}
         strokeWidth="2.8"
         strokeLinecap="round"
       />

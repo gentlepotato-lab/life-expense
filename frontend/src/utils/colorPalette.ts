@@ -6,7 +6,14 @@
  *
  * 순서는 backend/app/routers/counterparts.py의 PALETTE와 같아야 한다.
  * 구분을 새로 만들 때 서버가 이 순서대로 아직 안 쓰인 색을 골라 준다.
+ *
+ * 이름이 가리키는 색과 화면에 보이는 이름은 고른 빛깔 벌을 따른다. 값은
+ * utils/palettes.ts 한 곳에만 적는다. 여기서는 부를 때마다 그쪽을 다시
+ * 읽는다 — 모듈이 읽히는 차례에 기대면 벌이 늦게 끼워졌을 때 옛 색이
+ * 굳은 채로 남는다.
  */
+import { CAT_KEYS, currentPalette } from "./palettes";
+
 export type ColorToken = {
   key: string;
   label: string;
@@ -14,21 +21,15 @@ export type ColorToken = {
   solid: string;
 };
 
-export const COLOR_TOKENS: ColorToken[] = [
-  { key: "indigo", label: "남보라", solid: "#5B5FEF" },
-  { key: "teal", label: "청록", solid: "#00C7BE" },
-  { key: "amber", label: "주황", solid: "#FF9500" },
-  { key: "rose", label: "분홍", solid: "#F2547D" },
-  { key: "violet", label: "보라", solid: "#9B5DE5" },
-  { key: "sky", label: "하늘", solid: "#3BA3F5" },
-  { key: "lime", label: "연두", solid: "#5FBF56" },
-  { key: "orange", label: "귤", solid: "#F2711C" },
-  { key: "cyan", label: "물빛", solid: "#22B8CF" },
-  { key: "slate", label: "회색", solid: "#98A2B3" },
-];
-
-const BY_KEY = new Map(COLOR_TOKENS.map((t) => [t.key, t]));
+/** 고르개에 늘어놓을 열 가지 */
+export const colorTokens = (): ColorToken[] => {
+  const cats = currentPalette().cats;
+  return CAT_KEYS.map((key, i) => ({ key, label: cats[i].label, solid: cats[i].solid }));
+};
 
 /** 토큰 이름 → 색. 모르는 이름이면 회색으로 떨어진다. */
-export const colorOf = (key: string | null | undefined): string =>
-  (key && BY_KEY.get(key)?.solid) || "#98A2B3";
+export const colorOf = (key: string | null | undefined): string => {
+  const cats = currentPalette().cats;
+  const i = key ? CAT_KEYS.indexOf(key as (typeof CAT_KEYS)[number]) : -1;
+  return i >= 0 ? cats[i].solid : cats[9].solid;
+};

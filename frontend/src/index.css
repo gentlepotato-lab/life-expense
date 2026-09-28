@@ -2211,7 +2211,7 @@ html.modal-open .calculator-trigger-button {
   --dur: 180ms;
 
   /* 포커스 링 */
-  --ring: 0 0 0 3px rgba(91, 95, 239, 0.18);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
 /* ─── 숫자 정렬 ─────────────────────────────────────────────── */
@@ -2448,14 +2448,14 @@ html.modal-open .calculator-trigger-button {
 
 .inout-chip.in {
   color: var(--color-success-dark);
-  border-color: rgba(0, 199, 190, 0.35);
-  background: rgba(0, 199, 190, 0.08);
+  border-color: color-mix(in srgb, var(--color-success) 35%, transparent);
+  background: color-mix(in srgb, var(--color-success) 8%, transparent);
 }
 
 .inout-chip.out {
   color: var(--color-danger-dark);
-  border-color: rgba(255, 92, 87, 0.35);
-  background: rgba(255, 92, 87, 0.08);
+  border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
 }
 
 /* 장소 행 */
@@ -3928,11 +3928,11 @@ button {
 }
 
 .split-icon-btn.primary:hover {
-  background: rgba(91, 95, 239, 0.08);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 .split-icon-btn.danger:hover {
-  background: rgba(255, 92, 87, 0.08);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
   border-color: var(--color-danger);
   color: var(--color-danger);
 }
@@ -4190,7 +4190,7 @@ button {
 }
 
 .cp-remove:hover {
-  background: rgba(255, 92, 87, 0.08);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
   border-color: var(--color-danger);
   color: var(--color-danger);
 }
@@ -4237,7 +4237,7 @@ button {
 /* 아직 저장 전인 행 — 저장을 눌러야 반영된다는 걸 보여 준다. */
 .cp-card.is-new {
   border-color: var(--color-primary-light);
-  background: rgba(91, 95, 239, 0.03);
+  background: color-mix(in srgb, var(--color-primary) 3%, transparent);
 }
 
 .cp-card.is-new .cp-avatar {
@@ -4438,7 +4438,7 @@ button {
 }
 
 .set-remove:hover {
-  background: rgba(255, 92, 87, 0.08);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
   border-color: var(--color-danger);
   color: var(--color-danger);
 }
@@ -4787,7 +4787,7 @@ div:has(> .cat2-header-row) .drag-handle,
 
 .emoji-pick__btn:hover:not(.readonly) {
   border-color: var(--color-primary);
-  background: rgba(91, 95, 239, 0.06);
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
 }
 
 /* 표시 모드에서는 고른 이모지만 보여 준다. */
@@ -4836,7 +4836,7 @@ div:has(> .cat2-header-row) .drag-handle,
 
 .emoji-pick__cell.on {
   border-color: var(--color-primary);
-  background: rgba(91, 95, 239, 0.1);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 .emoji-pick__clear {
@@ -4897,7 +4897,7 @@ div:has(> .cat2-header-row) .drag-handle,
 
 .set-add-btn:hover,
 .set-add-btn.on {
-  background: rgba(91, 95, 239, 0.06);
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
@@ -5198,7 +5198,7 @@ div:has(> .cat2-header-row) .drag-handle,
 }
 
 .set-bulk__btn:hover {
-  background: rgba(91, 95, 239, 0.06);
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   color: var(--color-primary);
 }
 
@@ -5255,7 +5255,7 @@ div:has(> .cat2-header-row) .drag-handle,
 }
 
 .set-toggle:hover {
-  background: rgba(91, 95, 239, 0.08);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
   color: var(--color-primary);
 }
 
@@ -5416,7 +5416,7 @@ div:has(> .pm-item) .drag-handle {
   padding: 8px;
   border: 1px dashed var(--color-primary);
   border-radius: var(--radius);
-  background: rgba(91, 95, 239, 0.04);
+  background: color-mix(in srgb, var(--color-primary) 4%, transparent);
 }
 
 .set-draft__head,
@@ -5443,7 +5443,7 @@ div:has(> .pm-item) .drag-handle {
   height: 17px;
   padding: 0 5px;
   border-radius: 999px;
-  background: rgba(91, 95, 239, 0.14);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
   font-size: 10px;
   font-weight: 700;
   color: var(--color-primary);
@@ -5482,7 +5482,7 @@ div:has(> .pm-item) .drag-handle {
 .set-add-form.set-draft {
   border-style: dashed;
   border-color: var(--color-primary);
-  background: rgba(91, 95, 239, 0.04);
+  background: color-mix(in srgb, var(--color-primary) 4%, transparent);
   padding: 8px;
 }
 
@@ -5577,7 +5577,7 @@ div:has(> .pm-item) .drag-handle {
 .set-group.dragging > .set-group__head,
 .cp-group.dragging > .cp-group__head {
   border-radius: var(--radius-sm);
-  background: rgba(91, 95, 239, 0.06);
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
 }
 
 /* ─── 추가 폼의 구분 선택 ─────────────────────────────────────
@@ -7410,9 +7410,9 @@ html {
 }
 
 /* 자료별 색 — 카드의 IN/OUT 색과 섞이지 않게 따로 고른다. */
-.cal-source--expense.on .cal-source__dot { background: #5B5FEF; }
-.cal-source--pending.on .cal-source__dot { background: #F5A524; }
-.cal-source--scheduled.on .cal-source__dot { background: #00C7BE; }
+.cal-source--expense.on .cal-source__dot { background: var(--color-primary); }
+.cal-source--pending.on .cal-source__dot { background: var(--color-amber); }
+.cal-source--scheduled.on .cal-source__dot { background: var(--color-success); }
 
 .cal-sum {
   margin-left: auto;
@@ -7536,9 +7536,9 @@ html {
   border-radius: 999px;
 }
 
-.cal__dot--expense { background: #5B5FEF; }
-.cal__dot--pending { background: #F5A524; }
-.cal__dot--scheduled { background: #00C7BE; }
+.cal__dot--expense { background: var(--color-primary); }
+.cal__dot--pending { background: var(--color-amber); }
+.cal__dot--scheduled { background: var(--color-success); }
 
 /* 뭔가 있는 날은 아주 옅게 깔아 준다. */
 .cal__cell.has-items {
@@ -8486,8 +8486,8 @@ div:has(> .pm-item) {
   line-height: 1;
 }
 
-.cat2-inout.in { color: #00C7BE; }
-.cat2-inout.out { color: #FF5C57; }
+.cat2-inout.in { color: var(--color-success); }
+.cat2-inout.out { color: var(--color-danger); }
 
 /* 보기 모드 — 점은 예전 그대로 7px */
 span.cat2-inout::before {
@@ -10697,7 +10697,7 @@ html {
 }
 
 .goal-row--watch .goal-bar__fill {
-  background: #F5A524;
+  background: var(--color-amber);
 }
 
 .goal-row--over .goal-bar__fill {
@@ -10727,7 +10727,7 @@ html {
 }
 
 .goal-row--watch .goal-row__left {
-  color: #F5A524;
+  color: var(--color-amber);
 }
 
 .goal-row--over .goal-row__left {
@@ -11073,7 +11073,7 @@ input.goal-row__memo {
 
    · 잘 지키는 중 → 청록. 남보라는 이 앱의 바탕색이라 "좋다"는 뜻이 없었다.
    · 넘겼다      → 빨강. 그대로다.
-   · 넘길 낌새   → 주황(#F5A524)을 그대로 둔다. 아직 넘긴 것은 아니라
+   · 넘길 낌새   → 주황(--color-amber)을 그대로 둔다. 아직 넘긴 것은 아니라
                    빨강으로 앞당겨 겁을 주면 진짜 넘겼을 때와 구분이 안 된다.
    ═════════════════════════════════════════════════════════════ */
 
@@ -12249,7 +12249,7 @@ html.modal-open .scroll-top {
 /* 지금 걸려 있는 쪽. 다른 화면의 펼치기·접기는 켜짐이 없으므로
    이 화면 안에서만 준다. */
 .wh-sort .set-bulk__btn.on {
-  background: rgba(91, 95, 239, 0.1);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
   color: var(--color-primary);
   font-weight: 700;
 }
@@ -12804,19 +12804,19 @@ html.modal-open .scroll-top {
 /* 접힌 안쪽(빗변 쪽)이 빛을 덜 받아 짙고, 끝으로 갈수록 옅어진다. */
 .card--entry > .in-bar {
   background: linear-gradient(315deg,
-    rgba(0, 199, 190, 0.38) 0%, rgba(0, 199, 190, 0.20) 55%, rgba(0, 199, 190, 0.09) 100%);
+    color-mix(in srgb, var(--color-success) 38%, transparent) 0%, color-mix(in srgb, var(--color-success) 20%, transparent) 55%, color-mix(in srgb, var(--color-success) 9%, transparent) 100%);
 }
 
 .card--entry > .out-bar {
   background: linear-gradient(315deg,
-    rgba(255, 92, 87, 0.34) 0%, rgba(255, 92, 87, 0.18) 55%, rgba(255, 92, 87, 0.08) 100%);
+    color-mix(in srgb, var(--color-danger) 34%, transparent) 0%, color-mix(in srgb, var(--color-danger) 18%, transparent) 55%, color-mix(in srgb, var(--color-danger) 8%, transparent) 100%);
 }
 
 .card--entry:has(.amount-text.zero) > .inout-bar,
 .card--entry:has(.amount-text.zero) > .in-bar,
 .card--entry:has(.amount-text.zero) > .out-bar {
   background: linear-gradient(315deg,
-    rgba(198, 164, 223, 0.46) 0%, rgba(198, 164, 223, 0.26) 55%, rgba(198, 164, 223, 0.11) 100%);
+    color-mix(in srgb, var(--color-zero) 46%, transparent) 0%, color-mix(in srgb, var(--color-zero) 26%, transparent) 55%, color-mix(in srgb, var(--color-zero) 11%, transparent) 100%);
 }
 
 /* ─── 카드 경계 ────────────────────────────────────────────────
@@ -13095,17 +13095,17 @@ html.modal-open .scroll-top {
    그대로 두고 빛깔만 한 단 옅게 돌린다. */
 .nudge--bad > .nudge__bar {
   background: linear-gradient(180deg,
-    rgba(255, 92, 87, 0.34) 0%, rgba(230, 72, 66, 0.20) 100%);
+    color-mix(in srgb, var(--color-danger) 34%, transparent) 0%, color-mix(in srgb, var(--color-danger-dark) 20%, transparent) 100%);
 }
 
 .nudge--watch > .nudge__bar {
   background: linear-gradient(180deg,
-    rgba(198, 164, 223, 0.46) 0%, rgba(158, 125, 182, 0.28) 100%);
+    color-mix(in srgb, var(--color-zero) 46%, transparent) 0%, color-mix(in srgb, var(--color-zero-dark) 28%, transparent) 100%);
 }
 
 .nudge--good > .nudge__bar {
   background: linear-gradient(180deg,
-    rgba(0, 199, 190, 0.38) 0%, rgba(0, 168, 159, 0.22) 100%);
+    color-mix(in srgb, var(--color-success) 38%, transparent) 0%, color-mix(in srgb, var(--color-success-dark) 22%, transparent) 100%);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -13190,15 +13190,15 @@ html.modal-open .scroll-top {
 }
 
 .card--entry:has(> .out-bar) {
-  --peel-tint: rgba(255, 92, 87, 0.16);
+  --peel-tint: color-mix(in srgb, var(--color-danger) 16%, transparent);
 }
 
 .card--entry:has(> .in-bar) {
-  --peel-tint: rgba(0, 199, 190, 0.18);
+  --peel-tint: color-mix(in srgb, var(--color-success) 18%, transparent);
 }
 
 .card--entry:has(.amount-text.zero) {
-  --peel-tint: rgba(198, 164, 223, 0.24);
+  --peel-tint: color-mix(in srgb, var(--color-zero) 24%, transparent);
 }
 
 /* 끄는 동안 카드 자체는 그대로 둔다. 마우스로 누르면 .card:active의
@@ -13281,7 +13281,7 @@ html.modal-open .scroll-top {
   inset: 3px -1px;
   z-index: -1;
   border-radius: 999px;
-  background: rgba(91, 95, 239, 0.1);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
   pointer-events: none;
 }
 
@@ -13730,7 +13730,7 @@ html.modal-open .scroll-top {
 }
 
 .goal-row--watch .goal-bar__fill {
-  --goal-tone: #F5A524;
+  --goal-tone: var(--color-amber);
 }
 
 .goal-row--over .goal-bar__fill {
@@ -14481,4 +14481,50 @@ textarea.memo-input.memo-area {
 .nudge-detail__go-icon {
   width: 18px;
   height: 18px;
+}
+/* ═══════════════════════════════════════════════════════════════
+   144. 흩어진 색을 한자리로(2026-09)
+   ─────────────────────────────────────────────────────────────
+   색이 네 군데에 흩어져 있어 벌째로 갈아 끼울 수가 없었다. 토큰은 여기
+   :root에, 씀씀이 다섯 조각은 Charts.tsx에, 구분 열 가지는 colorPalette.ts에,
+   첫 화면 그림은 HomeArt.tsx에 각각 박혀 있었다. 넷을 모두 변수로 꺼낸다.
+
+   값은 utils/palettes.ts가 앱이 뜰 때 한 번 내려 준다. 아래 적어 둔 것은
+   쪽빛 벌의 값이고, 지금까지 쓰던 것과 한 톨도 다르지 않다 — 스크립트가
+   돌지 않아도 화면이 제 색으로 뜨게 하려는 것이다.
+
+   앞으로 색을 새로 쓸 일이 생기면 값을 규칙에 박지 말고 utils/palettes.ts에
+   칸을 늘린 뒤 여기 변수로 꺼내 쓴다. 한 자리라도 박아 두면 그 자리만 안
+   바뀌어 벌이 깨진다.
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  /* 좋지도 나쁘지도 않은 가운데 자리 — 대기, 넘길 낌새 */
+  --color-amber: #F5A524;
+
+  /* 씀씀이의 막대와 도넛과 꺾은선 */
+  --chart-1: #FF7FA8;
+  --chart-2: #4FB0F5;
+  --chart-3: #22C97E;
+  --chart-4: #B47CFF;
+  --chart-5: #FF8A5C;
+  --chart-etc: #94A3B8;
+  --chart-week: #E3D3FF;
+
+  /* 구분 열 가지. 차례는 utils/palettes.ts의 CAT_KEYS와 같다. */
+  --cat-1: #5B5FEF;
+  --cat-2: #00C7BE;
+  --cat-3: #FF9500;
+  --cat-4: #F2547D;
+  --cat-5: #9B5DE5;
+  --cat-6: #3BA3F5;
+  --cat-7: #5FBF56;
+  --cat-8: #F2711C;
+  --cat-9: #22B8CF;
+  --cat-10: #98A2B3;
+
+  /* 첫 화면 그림 */
+  --art-ink: #5B5FEF;
+  --art-aqua: #00C7BE;
+  --art-tint: #C9CDF6;
 }
