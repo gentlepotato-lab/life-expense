@@ -22,6 +22,9 @@ PREF_KEYS = {
     # 금액을 가리는 마스킹 테이프. 화면이 아는 일곱 가지 가운데 하나다.
     # (frontend/src/utils/tapes.ts).
     "tape_style": "flower",
+    # 화면 전체의 빛깔. 화면이 아는 여섯 벌 가운데 하나다.
+    # (frontend/src/utils/palettes.ts).
+    "palette": "jjok",
 }
 
 

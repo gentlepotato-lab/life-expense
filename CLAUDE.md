@@ -209,58 +209,6 @@ TO-BE 구조(네임스페이스 분리 · 네이티브 실행 · `gp-lab`/`life_
   (`tools/palette-logos.mjs`) 화면은 그 가운데 하나를 고른다. 원본
   `public/logo-h.svg`는 첫 띄움 화면이 쓰므로 건드리지 않는다.
 
-### 의존성
-
-- `pyproject.toml`에 새 의존성을 **승인 없이 추가하지 않는다.**
-
----
-
-## 프론트엔드(React 19 + TS + Vite)
-
-### 타입
-
-- `any` 금지. 예외는 외부 SDK 인터페이스(Kakao Maps 등)뿐.
-- props · hook 반환값 · API 페이로드에 명시적 타입을 준다.
-- 제어값은 유니온 타입으로 — `type HolidayHandling = 'before' | 'on' | 'after'`
-- `useState<Type>(...)`로 상태 타입을 명시한다.
-
-> 현재 `no-explicit-any` 위반이 75건 남아 있다(기존 부채). 새 코드에서 늘리지 않는다.
-
-### 상태
-
-- **React hooks만** 사용한다. Redux · Zustand 등 상태 라이브러리를 도입하지 않는다.
-- 상태는 쓰이는 곳에 가장 가깝게 둔다.
-
-### API 호출
-
-- 반드시 공유 Axios 인스턴스(`src/api/client.ts`)를 쓴다. `fetch`나 새 Axios 인스턴스 금지.
-- 예외 — 서드파티 SDK 스크립트 로딩(Kakao Maps 등).
-- `try/catch`로 감싸고 `err.response?.data?.detail || err.message`로 메시지를 뽑는다.
-
-### 스타일
-
-- `src/index.css`의 기존 유틸리티 클래스를 **재사용**한다. 새 전역 셀렉터를 만들기 전에
-  스코프 블록(`.entries-grid`, `.scheduled-card` 등)을 확장하는 쪽을 택한다.
-- 클래스명은 기존 BEM 유사 패턴을 따른다(`schedule-card__row`).
-- **Tailwind는 쓰지 않는다.** 유틸리티처럼 보이는 클래스명은 프로젝트 자체 CSS다.
-- 레이아웃, 버튼 순서, 여백은 명시적 요청 없이 바꾸지 않는다.
-
-### 색
-
-- **색값을 코드에 박지 않는다.** 화면 전체의 빛깔을 벌째로 갈아 끼우기 때문에,
-  한 자리라도 박아 두면 그 자리만 안 바뀌어 벌이 깨진다.
-- 색은 `src/utils/palettes.ts` 한 곳에만 적는다. 쓰는 쪽은 CSS 변수로 꺼내 쓴다.
-  `--color-primary`, `--color-success`, `--color-danger`, `--color-amber`,
-  `--chart-1`~`--chart-5`, `--chart-etc`, `--chart-week`, `--cat-1`~`--cat-10`,
-  `--art-ink`, `--art-aqua`, `--art-tint`
-- 그림(SVG) 속성에도 `stroke="var(--art-ink)"`처럼 변수를 그대로 쓴다.
-- 화면 코드에서 색이 값으로 필요하면 `currentPalette()`를 **부를 때** 읽는다.
-  모듈 꼭대기에서 상수로 굳히면 벌이 늦게 끼워졌을 때 옛 색이 남는다.
-- 구분 열 가지의 열쇠(`indigo` 등)는 DB에 담기는 이름이라 바꾸지 않는다.
-- 로고는 `<img>`라 CSS가 닿지 않는다. 벌마다 한 장씩 미리 물들여 두고
-  (`tools/palette-logos.mjs`) 화면은 그 가운데 하나를 고른다. 원본
-  `public/logo-h.svg`는 첫 띄움 화면이 쓰므로 건드리지 않는다.
-
 ### 빛깔 예시 그림
 
 - 돈쓴이의 빛깔 예시 팝업이 쓰는 그림은 `frontend/public/palette`에 있다.

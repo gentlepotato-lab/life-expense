@@ -8,6 +8,8 @@ import SingleSelect from "./components/SingleSelect";
 import { formatDateLabel } from "../utils/dateGroup";
 import { PAGE_TITLE, HOME_TABS, ENTRY_TABS, SETTING_TABS } from "../utils/pageTitles";
 import { applyTape, DEFAULT_TAPE, TAPES } from "../utils/tapes";
+import { applyPalette, DEFAULT_PALETTE, PALETTES } from "../utils/palettes";
+import PalettePopup from "./components/PalettePopup";
 import { putPrefs } from "../utils/prefs";
 
 /**
@@ -130,6 +132,9 @@ export default function Me() {
   /* [편집]을 누른 순간의 모습 — 바뀐 것이 없으면 그렇게 알린다. */
   const [before, setBefore] = useState("");
 
+  /* 빛깔 예시 팝업을 열어 두었는지 */
+  const [palOpen, setPalOpen] = useState(false);
+
   const load = () => {
     Promise.all([
       axios.get("/profile").then((r) => r.data).catch(() => EMPTY),
@@ -170,6 +175,7 @@ export default function Me() {
       /* 담긴 뒤에 붙인다. 고르는 동안 미리 바뀌면 담지 않고 나가도 그대로
          남아, 담은 것과 보이는 것이 어긋난다. */
       applyTape(prefs.tape_style ?? DEFAULT_TAPE);
+      applyPalette(prefs.palette ?? DEFAULT_PALETTE);
       alert("저장 완료-!! ;-)");
       setEditMode(false);
       load();
@@ -478,6 +484,57 @@ export default function Me() {
               </div>
             </div>
 
+            {/* 빛깔 — 고르는 손놀림은 위 테이프 줄과 같다. [저장]을 눌러야
+                담기고, 담기는 그때 화면 곳곳의 색이 바뀐다.
+                눈 단추는 담기 전에 미리 보라고 둔 것이다. 여섯 벌을 머릿속에
+                그려 놓고 고르기는 어렵다. */}
+            <div className="me-pref me-pref--palette">
+              <span className="me-pref__name">빛깔</span>
+              <div className="me-pal">
+                {PALETTES.map((p) => {
+                  const on = (prefs.palette ?? DEFAULT_PALETTE) === p.key;
+                  return (
+                    <button
+                      key={p.key}
+                      type="button"
+                      className={`me-pal__btn${on ? " on" : ""}`}
+                      style={{
+                        background: `linear-gradient(90deg, ${p.tone.primary} 0 33.34%, ${p.tone.success} 33.34% 66.67%, ${p.tone.danger} 66.67% 100%)`,
+                      }}
+                      disabled={!editMode}
+                      aria-pressed={on}
+                      aria-label={p.label}
+                      title={p.label}
+                      onClick={() => setPref("palette", p.key)}
+                    />
+                  );
+                })}
+                <button
+                  type="button"
+                  className="me-pal__eye"
+                  disabled={!editMode}
+                  aria-label="빛깔 예시 보기"
+                  title="빛깔 예시 보기"
+                  onClick={() => setPalOpen(true)}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
             <p className="me-note">앱 Refresh 후 적용됩니다.</p>
           </section>
 
@@ -502,6 +559,14 @@ export default function Me() {
             </div>
           </section>
         </div>
+      )}
+
+      {palOpen && (
+        <PalettePopup
+          value={prefs.palette ?? DEFAULT_PALETTE}
+          onPick={(key) => setPref("palette", key)}
+          onClose={() => setPalOpen(false)}
+        />
       )}
 
       <QuickActions onSaved={load} />

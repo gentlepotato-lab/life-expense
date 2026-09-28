@@ -20,6 +20,7 @@ const FALLBACK: Prefs = {
   nudge_on: "1",
   memo_show: "1",
   tape_style: "flower",
+  palette: "jjok",
 };
 
 const STORE_KEY = "life-expense:prefs";

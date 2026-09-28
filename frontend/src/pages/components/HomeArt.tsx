@@ -7,8 +7,11 @@
  * 색은 로고와 같은 두 가지다. 값은 고른 빛깔 벌이 CSS 변수로 내려 준다
  * (utils/palettes.ts). 그림 속성에 var()를 그대로 쓸 수 있어 여기서는
  * 변수만 가리키고, 벌이 바뀌면 다시 그릴 것 없이 따라 바뀐다.
- * 로고 파일(/logo-h.svg)만은 그림 파일이라 CSS가 닿지 않아 그대로 둔다.
+ * 로고도 벌을 따른다. `<img>`로 붙는 그림 파일이라 CSS가 닿지 않으므로
+ * 벌마다 한 장씩 미리 물들여 둔다(tools/palette-logos.mjs).
  */
+
+import { currentPalette } from "../../utils/palettes";
 
 const INK = "var(--art-ink)";
 const AQUA = "var(--art-aqua)";
@@ -17,7 +20,12 @@ const TINT = "var(--art-tint)";
 /** 쓰기 — 서비스 로고(펜에서 동전으로 흐르는 가로형) */
 export function ArtWrite() {
   return (
-    <img className="home-art home-art--logo" src="/logo-h.svg" alt="" aria-hidden="true" />
+    <img
+      className="home-art home-art--logo"
+      src={`/palette/logo-${currentPalette().key}.svg`}
+      alt=""
+      aria-hidden="true"
+    />
   );
 }
 

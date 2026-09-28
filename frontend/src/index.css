@@ -14528,3 +14528,325 @@ textarea.memo-input.memo-area {
   --art-aqua: #00C7BE;
   --art-tint: #C9CDF6;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   145. 돈쓴이에서 빛깔을 고른다(2026-09)
+   ─────────────────────────────────────────────────────────────
+   고르는 줄은 마스킹 테이프 줄과 같은 손놀림이다. 조각을 늘어놓고 고른 것만
+   반듯이 선다. 옆의 눈 단추는 담기 전에 미리 보라고 둔 것이다 — 여섯 벌을
+   머릿속에 그려 놓고 고르기는 어렵다.
+
+   예시 팝업은 한 번에 한 화면만 크게 보여 준다. 여러 장을 늘어놓으면 한 장이
+   손톱만 해져 정작 색을 못 본다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 돈쓴이의 빛깔 줄 ───────────────────────────────────────
+   마스킹 테이프 줄과 같은 손놀림이다. 이름은 글자만큼만 쓰고 조각이 자리를
+   먼저 가진다. 조각은 종이처럼 살짝 눕고 고른 것만 반듯이 선다.
+   테이프 줄의 규칙을 늘려 쓰지 않고 따로 적는 까닭은, 고르는 것이 무늬가
+   아니라 색이어서 앞으로 둘이 다르게 자랄 수 있어서다. */
+.me-pref--palette {
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.me-pref--palette > .me-pref__name {
+  flex: 0 0 auto;
+}
+
+.me-pal {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+/* 한 조각에 세 빛깔을 세로로 나눠 담는다 — 단추, 들어온 돈, 나간 돈.
+   벌의 성격은 이 셋이면 거의 다 드러난다. */
+.me-pal__btn {
+  flex: 0 1 30px;
+  width: 30px;
+  min-width: 0;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+  transform: rotate(-2deg);
+  box-shadow: 0 1px 1px rgba(16, 24, 40, 0.1);
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease),
+    opacity 160ms var(--ease);
+}
+
+.me-pal__btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.me-pal__btn.on {
+  transform: none;
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3.5px var(--color-primary);
+}
+
+.me-pal__btn.on:disabled {
+  opacity: 1;
+}
+
+.me-pal__btn:not(:disabled):hover {
+  transform: rotate(-2deg) translateY(-1px);
+}
+
+.me-pal__btn.on:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.me-pal__btn:not(:disabled):active {
+  transform: scale(0.94);
+}
+
+/* 예시를 여는 단추. 조각과 같은 키라 줄이 높아지지 않는다. */
+.me-pal__eye {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  margin-left: 3px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color 160ms var(--ease), border-color 160ms var(--ease);
+}
+
+.me-pal__eye > svg {
+  display: block;
+}
+
+.me-pal__eye:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.me-pal__eye:active {
+  transform: scale(0.94);
+}
+
+/* ─── 빛깔 예시 팝업 ─────────────────────────────────────────
+   한 번에 한 화면만 크게 보여 준다. 여러 장을 늘어놓으면 한 장이 작아져
+   정작 색을 못 본다. 화면은 좌우로 넘기고 벌은 위 알약으로 바꾼다. */
+.pal-pop__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  margin: 0 0 var(--space-3);
+}
+
+.pal-pop__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 160ms var(--ease), color 160ms var(--ease),
+    border-color 160ms var(--ease);
+}
+
+.pal-pop__tab > i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-full);
+}
+
+.pal-pop__tab.on {
+  border-color: transparent;
+  background: var(--color-primary);
+  color: #FFFFFF;
+}
+
+/* 그림과 화살표. 화살표는 그림 위에 얹지 않고 옆에 세운다 — 좁은 화면에서
+   그림을 가리면 정작 볼 것을 못 본다. */
+.pal-pop__stage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pal-pop__arrow {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.pal-pop__arrow:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* 테두리와 그늘은 그림이 아니라 그림을 담은 창이 진다(146절). */
+.pal-pop__shot {
+  display: block;
+  width: 100%;
+}
+
+.pal-pop__dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.pal-pop__dots > i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+}
+
+.pal-pop__dots > i.on {
+  background: var(--color-primary);
+}
+
+.pal-pop__foot {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.pal-pop__foot > button {
+  flex: 1;
+  height: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pal-pop__foot > button.go {
+  border-color: transparent;
+  background: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.pal-pop__foot > button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* ─── 벌 알약은 셋씩 두 줄로 ─────────────────────────────────
+   여섯을 한 줄에 늘어놓으면 손전화 폭에서 다섯과 하나로 끊겨 아랫줄이
+   휑하다. 세 칸 바둑판이면 셋과 셋으로 앉고, 칸 너비가 같아져 이름
+   글자 수가 달라도 줄이 가지런하다. */
+
+.pal-pop__tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.pal-pop__tab {
+  justify-content: center;
+  min-width: 0;
+  padding: 0 6px;
+}
+
+/* ─── 화면 이름은 그림 위에 딱지로 ───────────────────────────
+   이름과 순서 점을 한 줄에 두면 넘길 때마다 이름 길이가 달라져 점이
+   좌우로 흔들린다. 이름은 위로 올리고 아래에는 점만 남긴다. */
+
+.pal-pop__now {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 var(--space-2);
+}
+
+.pal-pop__tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.pal-pop__dots {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin: var(--space-3) 0 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   146. 빛깔 예시를 손가락으로 넘긴다(2026-09)
+   ─────────────────────────────────────────────────────────────
+   화살표만으로 넘기게 해 두었더니, 그림이 넉 장뿐인데도 옆에 세운 단추를
+   겨누어야 했다. 손전화에서 그림을 좌우로 미는 것은 넘긴다는 뜻이다.
+
+   그림을 창에 담아 넘치는 쪽을 잘라 낸다. 손가락을 따라 밀리다가, 폭의
+   다섯 가운데 하나를 넘기면 새 그림이 반대쪽에서 미끄러져 들어온다.
+   화살표도 같은 길을 쓴다 — 넘기는 방법이 둘이라도 넘어가는 모습은 하나다.
+
+   테두리와 그늘은 그림에서 창으로 옮겼다. 잘라 내는 자리가 창이라 그림에
+   두면 미끄러지는 동안 테두리가 같이 밀려 들어온다.
+   ════════════════════════════════════════════════════════════ */
+
+.pal-pop__frame {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+  /* 세로는 팝업이 굴러야 하므로 브라우저에 넘기고, 가로만 우리가 잡는다. */
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: grab;
+}
+
+.pal-pop__frame:active {
+  cursor: grabbing;
+}
+
+/* 끄는 동안에는 전환이 없다. 붙어 따라와야 손가락을 따라오는 것으로 읽힌다.
+   놓았을 때만 .sliding이 붙어 미끄러진다. */
+.pal-pop__shot {
+  will-change: transform;
+}
+
+.pal-pop__shot.sliding {
+  transition: transform 220ms var(--ease);
+}
