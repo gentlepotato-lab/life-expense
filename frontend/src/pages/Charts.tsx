@@ -1696,9 +1696,10 @@ export default function Charts() {
     }));
   }, [shown, payList]);
 
-  /* 카드 실적은 접어 둔다. 요약 판과 그림 사이에 늘 펼쳐져 있으면
-     지출 흐름을 읽다가 다른 얘기에 걸려 넘어진다. 볼 때만 편다. */
-  const [cardOpen, setCardOpen] = useState(() => kept?.cardOpen ?? false);
+  /* 카드 실적은 펼친 채로 연다. 구간을 채웠는지는 달이 가는 내내 궁금한
+     것이라, 볼 때마다 접힌 것을 한 번씩 펴게 할 일이 아니다. 접어 두면
+     그대로 남는 것이 아니라 들어올 때마다 다시 접히기 때문이다. */
+  const [cardOpen, setCardOpen] = useState(() => kept?.cardOpen ?? true);
 
   /* 지금 보고 있는 카드 — 옆으로 넘겨 하나씩 본다. */
   const [cardAt, setCardAt] = useState(0);

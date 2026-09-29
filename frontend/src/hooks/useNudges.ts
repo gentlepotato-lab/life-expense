@@ -135,6 +135,8 @@ async function load(): Promise<Loaded> {
         pay_method: x.pay_method as number,
         memo: x.memo as string,
         place_name: x.place_name as string,
+        /* 카드 실적에서 뺀 건인지 — 잔소리의 카드 실적만 본다. */
+        perf_exclude: (x.perf_exclude as number) ?? 0,
         /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
         fixed_flag: (x.fixed_flag as number | null) ?? null,
         counterpart_ids: (x.counterpart_ids as number[]) ?? [],

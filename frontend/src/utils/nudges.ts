@@ -354,11 +354,18 @@ export function buildNudges(src: NudgeSource): Nudge[] {
 
   /* ⑦ 카드 실적을 채웠다.
      쓴 돈이 아니라 카드에 그은 돈(N빵 전 결제액)을 센다 — 씀씀이의 카드 실적과
-     같은 잣대다. 채운 구간이 여럿이면 가장 높은 하나만 말한다. 낮은 구간의
-     혜택은 높은 구간에도 딸려 오므로 줄줄이 늘어놓을 이유가 없다. */
+     같은 잣대다. 실적에서 뺀 건(상품권 · 세금 등)도 그쪽과 같이 뺀다. 두 화면이
+     다른 수를 말하면 어느 쪽을 믿어야 할지 알 수 없다.
+     채운 구간이 여럿이면 가장 높은 하나만 말한다. 낮은 구간의 혜택은 높은
+     구간에도 딸려 오므로 줄줄이 늘어놓을 이유가 없다. */
   src.cards.forEach((card) => {
     const spent = rows
-      .filter((r) => r.date.startsWith(thisYm) && String(r.pay_method) === card.code)
+      .filter(
+        (r) =>
+          r.date.startsWith(thisYm) &&
+          String(r.pay_method) === card.code &&
+          !r.perf_exclude
+      )
       .reduce((sum, r) => sum + r.amount, 0);
     if (spent <= 0) return;
 
