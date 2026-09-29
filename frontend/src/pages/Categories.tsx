@@ -20,6 +20,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import QuickActions from "./components/QuickActions";
 import { PinIcon, WaveIcon } from "./components/FixedIcons";
+import useEditLock from "../hooks/useEditLock";
+import { EditLockTip } from "./components/EditLock";
 
 /**
  * 고정 · 변동 고르개가 입을 빛깔 — 그 갈래가 나가는 돈인지 들어오는 돈인지를
@@ -128,6 +130,10 @@ export default function Categories() {
     setEditMode(false);
   });
   useBackClose(addOpen, () => setAddOpen(false));
+
+  /* 편집이 아닐 때 고정 · 변동과 Blur를 누르면 왜 안 되는지 알린다.
+     조각이 옅어진 것만으로는 "지금은 못 고친다"가 읽히지 않는다. */
+  const { lockAt, showLock, tipRef } = useEditLock(editMode);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -774,9 +780,12 @@ export default function Categories() {
                     <button
                       type="button"
                       className={`set-blur-btn ${c1.blur ? "on" : ""}`}
-                      disabled={!editMode}
+                      aria-disabled={!editMode || undefined}
                       title={c1.blur ? "금액을 테이프로 덮는다." : undefined}
-                      onClick={() => toggleBlur1(c1.cat1_id)}
+                      onClick={(e) => {
+                        if (!editMode) return showLock(e);
+                        toggleBlur1(c1.cat1_id);
+                      }}
                     >
                       Blur
                     </button>
@@ -898,20 +907,26 @@ export default function Categories() {
                                 <button
                                   type="button"
                                   className={c2.fixed ? "on" : ""}
-                                  disabled={!editMode}
+                                  aria-disabled={!editMode || undefined}
                                   title="고정 — 달마다 같은 자리에 온다."
                                   aria-pressed={!!c2.fixed}
-                                  onClick={() => setFixed2(c2.cat2_id, 1)}
+                                  onClick={(e) => {
+                                    if (!editMode) return showLock(e);
+                                    setFixed2(c2.cat2_id, 1);
+                                  }}
                                 >
                                   <PinIcon />
                                 </button>
                                 <button
                                   type="button"
                                   className={c2.fixed ? "" : "on"}
-                                  disabled={!editMode}
+                                  aria-disabled={!editMode || undefined}
                                   title="변동 — 그때그때 달라진다."
                                   aria-pressed={!c2.fixed}
-                                  onClick={() => setFixed2(c2.cat2_id, 0)}
+                                  onClick={(e) => {
+                                    if (!editMode) return showLock(e);
+                                    setFixed2(c2.cat2_id, 0);
+                                  }}
                                 >
                                   <WaveIcon />
                                 </button>
@@ -921,9 +936,13 @@ export default function Categories() {
                               <button
                                 type="button"
                                 className={`set-blur-btn ${c1.blur || c2.blur ? "on" : ""}`}
-                                disabled={!editMode || !!c1.blur}
+                                disabled={editMode && !!c1.blur}
+                                aria-disabled={!editMode || !!c1.blur || undefined}
                                 title={c1.blur ? "중분류에서 걸려 있다." : undefined}
-                                onClick={() => toggleBlur2(c2.cat2_id)}
+                                onClick={(e) => {
+                                  if (!editMode) return showLock(e);
+                                  toggleBlur2(c2.cat2_id);
+                                }}
                               >
                                 Blur
                               </button>
@@ -1039,20 +1058,28 @@ export default function Categories() {
                                           <button
                                             type="button"
                                             className={c2.fixed || c3.fixed ? "on" : ""}
-                                            disabled={!editMode || !!c2.fixed}
+                                            disabled={editMode && !!c2.fixed}
+                                            aria-disabled={!editMode || !!c2.fixed || undefined}
                                             title="고정 — 달마다 같은 자리에 온다."
                                             aria-pressed={!!(c2.fixed || c3.fixed)}
-                                            onClick={() => setFixed3(c3.cat3_id, 1)}
+                                            onClick={(e) => {
+                                              if (!editMode) return showLock(e);
+                                              setFixed3(c3.cat3_id, 1);
+                                            }}
                                           >
                                             <PinIcon />
                                           </button>
                                           <button
                                             type="button"
                                             className={c2.fixed || c3.fixed ? "" : "on"}
-                                            disabled={!editMode || !!c2.fixed}
+                                            disabled={editMode && !!c2.fixed}
+                                            aria-disabled={!editMode || !!c2.fixed || undefined}
                                             title="변동 — 그때그때 달라진다."
                                             aria-pressed={!(c2.fixed || c3.fixed)}
-                                            onClick={() => setFixed3(c3.cat3_id, 0)}
+                                            onClick={(e) => {
+                                              if (!editMode) return showLock(e);
+                                              setFixed3(c3.cat3_id, 0);
+                                            }}
                                           >
                                             <WaveIcon />
                                           </button>
@@ -1061,9 +1088,13 @@ export default function Categories() {
                                         <button
                                           type="button"
                                           className={`set-blur-btn ${c1.blur || c2.blur || c3.blur ? "on" : ""}`}
-                                          disabled={!editMode || !!c1.blur || !!c2.blur}
+                                          disabled={editMode && (!!c1.blur || !!c2.blur)}
+                                          aria-disabled={!editMode || !!c1.blur || !!c2.blur || undefined}
                                           title={c1.blur || c2.blur ? "위 분류에서 걸려 있다." : undefined}
-                                          onClick={() => toggleBlur3(c3.cat3_id)}
+                                          onClick={(e) => {
+                                            if (!editMode) return showLock(e);
+                                            toggleBlur3(c3.cat3_id);
+                                          }}
                                         >
                                           Blur
                                         </button>
@@ -1107,6 +1138,8 @@ export default function Categories() {
           </SortableContext>
         </DndContext>
       </div>
+
+      <EditLockTip lockAt={lockAt} tipRef={tipRef} />
 
       <QuickActions />
     </div>

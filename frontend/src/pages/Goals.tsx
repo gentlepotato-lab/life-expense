@@ -4,6 +4,8 @@ import axios from "../api/client";
 import { apiErrorMessage } from "../utils/apiError";
 import SingleSelect from "./components/SingleSelect";
 import QuickActions from "./components/QuickActions";
+import useEditLock from "../hooks/useEditLock";
+import { EditLockTip } from "./components/EditLock";
 import NudgeDetailPopup from "./components/NudgeDetailPopup";
 import useLongPress from "../hooks/useLongPress";
 import type { Nudge } from "../utils/nudges";
@@ -78,6 +80,7 @@ function GoalRowView({
   onMemoDraft,
   onRemove,
   onPick,
+  onLocked,
 }: {
   st: GoalStand;
   editMode: boolean;
@@ -87,6 +90,8 @@ function GoalRowView({
   onMemoDraft: (v: string) => void;
   onRemove: () => void;
   onPick: () => void;
+  /* 편집이 아닐 때 메모 칸을 누르면 왜 안 되는지 알린다. */
+  onLocked: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
   const { pressing, handlers } = useLongPress(onPick, {
     disabled: editMode || st.rows.length === 0,
@@ -136,8 +141,10 @@ function GoalRowView({
           className="memo-input goal-row__memo"
           placeholder="(메모)"
           readOnly={!editMode}
+          aria-disabled={!editMode || undefined}
           value={memoDraft}
           onChange={(e) => onMemoDraft(e.target.value)}
+          onClick={!editMode ? onLocked : undefined}
         />
       )}
 
@@ -188,6 +195,10 @@ export default function Goals() {
   };
 
   const [editMode, setEditMode] = useState(false);
+
+  /* 편집이 아닐 때 잠긴 조각을 누르면 왜 안 되는지 알린다 — 다른 설정 화면과
+     같은 갈고리다. */
+  const { lockAt, showLock, tipRef } = useEditLock(editMode);
   const [addOpen, setAddOpen] = useState(false);
 
   /* 새로 걸 목표 */
@@ -424,6 +435,7 @@ export default function Goals() {
             key={st.goal.goal_id}
             st={st}
             editMode={editMode}
+            onLocked={showLock}
             draft={draft[st.goal.goal_id] ?? ""}
             memoDraft={memoDraft[st.goal.goal_id] ?? ""}
             onDraft={(v) => setDraft((d) => ({ ...d, [st.goal.goal_id]: v }))}
@@ -441,6 +453,8 @@ export default function Goals() {
           onGo={goAfterClose}
         />
       )}
+
+      <EditLockTip lockAt={lockAt} tipRef={tipRef} />
 
       <QuickActions onSaved={again} />
     </div>

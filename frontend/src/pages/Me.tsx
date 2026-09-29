@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "../api/client";
 import { apiErrorMessage } from "../utils/apiError";
 import QuickActions from "./components/QuickActions";
@@ -15,6 +15,8 @@ import {
 import type { Step } from "../utils/theme";
 import PalettePopup from "./components/PalettePopup";
 import { putPrefs } from "../utils/prefs";
+import useEditLock from "../hooks/useEditLock";
+import { EditLockCover, EditLockTip } from "./components/EditLock";
 
 /**
  * 돈쓴이 — 쓰는 사람과 앱 자신.
@@ -139,72 +141,11 @@ export default function Me() {
   /* 빛깔 예시 팝업을 열어 두었는지 */
   const [palOpen, setPalOpen] = useState(false);
 
-  /* 편집이 아닐 때 고칠 수 있는 자리를 누르면 왜 안 되는지 알려 준다. 조각이
-     옅어진 것만으로는 "지금은 못 고른다"가 읽히지 않아, 눌러 보고 아무 일도
-     일어나지 않으면 고장으로 오해한다.
+  /* 편집이 아닐 때 고칠 자리를 누르면 왜 안 되는지 알려 준다.
+     편집 모드를 둔 다른 화면들과 같은 갈고리를 쓴다. */
+  const { lockAt, showLock, tipRef } = useEditLock(editMode);
 
-     안내는 줄에 매달지 않고 누른 그 자리에 띄운다. 줄에 매달면 줄이 길수록
-     엉뚱한 곳에 떠서 무엇을 눌렀는지가 흐려진다. */
-  const [lockAt, setLockAt] = useState<{ x: number; y: number; n: number } | null>(null);
-  const lockTimer = useRef<number | null>(null);
-  const lockSeq = useRef(0);
-  const tipRef = useRef<HTMLSpanElement>(null);
-
-  const showLock = (e: React.MouseEvent<HTMLButtonElement>) => {
-    /* 키보드로 눌렀을 때는 좌표가 0으로 오므로 단추 한가운데를 쓴다. */
-    const r = e.currentTarget.getBoundingClientRect();
-    /* 누를 때마다 번호를 올려 key로 쓴다. 같은 요소를 다시 쓰면 뜨고 지는
-       움직임이 처음부터 돌지 않아, 한 번 다 돈 뒤로는 투명한 채로 남는다.
-       그 사이에 또 누르면 사라지는 시계마저 미뤄져 영영 안 보이게 된다. */
-    lockSeq.current += 1;
-    setLockAt({
-      x: e.clientX || r.left + r.width / 2,
-      y: e.clientY || r.top + r.height / 2,
-      n: lockSeq.current,
-    });
-    if (lockTimer.current) window.clearTimeout(lockTimer.current);
-    lockTimer.current = window.setTimeout(() => setLockAt(null), 2200);
-  };
-
-  useEffect(
-    () => () => {
-      if (lockTimer.current) window.clearTimeout(lockTimer.current);
-    },
-    []
-  );
-
-  /* 화면 밖으로 나가지 않게 민다. 그리기 전에 재야 해서 layout 쪽에 건다. */
-  useLayoutEffect(() => {
-    const el = tipRef.current;
-    if (!el || !lockAt) return;
-    const 여백 = 8;
-    const w = el.offsetWidth;
-    const h = el.offsetHeight;
-    const left = Math.min(
-      Math.max(lockAt.x, 여백 + w / 2),
-      window.innerWidth - 여백 - w / 2
-    );
-    /* 누른 자리 바로 위. 위가 좁으면 아래로 돌리고, 그래도 넘치면 민다.
-       top은 안내의 아랫변이다(transform이 -100%라서). */
-    const 위 = lockAt.y - 12;
-    const 돌림 = 위 - h < 여백 ? lockAt.y + 12 + h : 위;
-    const top = Math.min(Math.max(돌림, 여백 + h), window.innerHeight - 여백);
-    el.style.left = `${left}px`;
-    el.style.top = `${top}px`;
-  }, [lockAt]);
-
-  /* 조각과 단추는 disabled라 눌러도 사건이 나지 않는다. 위에 한 겹 깔아
-     그 누름을 받는다. 읽어 주는 기계에게는 잠긴 것으로 남아야 해서
-     disabled를 풀지는 않는다. */
-  const lockCover = () =>
-    !editMode ? (
-      <button
-        type="button"
-        className="me-lock"
-        aria-label="편집 버튼을 누른 후 선택하세요."
-        onClick={showLock}
-      />
-    ) : null;
+  const lockCover = () => <EditLockCover editMode={editMode} onLock={showLock} />;
 
   const load = () => {
     Promise.all([
@@ -704,11 +645,7 @@ export default function Me() {
         </div>
       )}
 
-      {lockAt && (
-        <span key={lockAt.n} className="me-lock__tip" role="status" ref={tipRef}>
-          편집 버튼을 누른 후 선택하세요.
-        </span>
-      )}
+      <EditLockTip lockAt={lockAt} tipRef={tipRef} />
 
       {palOpen && (
         <PalettePopup

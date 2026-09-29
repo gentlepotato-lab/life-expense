@@ -13,11 +13,16 @@ export default function ColorPicker({
   value,
   onChange,
   disabled = false,
+  /* 잠겼을 때 누름을 받을 곳. 받을 데가 있으면 진짜 disabled 대신
+     aria-disabled를 단다 — disabled는 누름 자체가 나지 않아 "왜 안 되는지"를
+     알릴 길이 없다. 읽어 주는 기계에게는 여전히 잠긴 것으로 들린다. */
+  onLocked,
   title = "색 선택",
 }: {
   value: string | null;
   onChange: (color: string) => void;
   disabled?: boolean;
+  onLocked?: (e: React.MouseEvent<HTMLElement>) => void;
   title?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -78,8 +83,15 @@ export default function ColorPicker({
         style={{ background: colorOf(value) }}
         title={disabled ? undefined : title}
         aria-label={title}
-        disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
+        disabled={disabled && !onLocked}
+        aria-disabled={disabled || undefined}
+        onClick={(e) => {
+          if (disabled) {
+            onLocked?.(e);
+            return;
+          }
+          setOpen((v) => !v);
+        }}
       />
 
       {open && (

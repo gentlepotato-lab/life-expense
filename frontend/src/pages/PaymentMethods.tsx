@@ -22,6 +22,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import QuickActions from "./components/QuickActions";
+import useEditLock from "../hooks/useEditLock";
+import { EditLockTip } from "./components/EditLock";
 import CardTierModal, { type BenefitHint, type TierDraft } from "./components/CardTierModal";
 import CardPerkPopup, { type PerkTier } from "./components/CardPerkPopup";
 import useLongPress from "../hooks/useLongPress";
@@ -96,6 +98,10 @@ const groupLabel = (c: Category | null) => c?.name ?? "구분 없음";
 
 export default function PaymentMethods() {
   const [editMode, setEditMode] = useState(false);
+
+  /* 편집이 아닐 때 잠긴 조각을 누르면 왜 안 되는지 알린다 — 다른 설정 화면과
+     같은 갈고리다. */
+  const { lockAt, showLock, tipRef } = useEditLock(editMode);
   /* 펼쳐 둔 카드와 그 카드의 실적 구간 */
   const [openCards, setOpenCards] = useState<Set<number>>(new Set());
   const [tiers, setTiers] = useState<Record<number, TierDraft[]>>({});
@@ -629,6 +635,7 @@ export default function PaymentMethods() {
               <EmojiPicker
                 value={g.cat.emoji ?? null}
                 disabled={!editMode}
+                onLocked={showLock}
                 title={`${g.cat.name} 이모지`}
                 onChange={(v) =>
                   setCategories((prev) =>
@@ -899,6 +906,8 @@ export default function PaymentMethods() {
           onSave={saveTier}
         />
       )}
+
+      <EditLockTip lockAt={lockAt} tipRef={tipRef} />
 
       <QuickActions />
     </div>

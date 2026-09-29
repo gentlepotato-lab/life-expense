@@ -23,6 +23,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import QuickActions from "./components/QuickActions";
+import useEditLock from "../hooks/useEditLock";
+import { EditLockTip } from "./components/EditLock";
 
 type Counterpart = {
   counterpart_id: number;
@@ -111,6 +113,10 @@ const fingerprint = (list: Counterpart[]) =>
 export default function Counterparts() {
   const [list, setList] = useState<Counterpart[]>([]);
   const [editMode, setEditMode] = useState(false);
+
+  /* 편집이 아닐 때 잠긴 조각을 누르면 왜 안 되는지 알린다 — 다른 설정 화면과
+     같은 갈고리다. */
+  const { lockAt, showLock, tipRef } = useEditLock(editMode);
   const [showInactive, setShowInactive] = useState(false);
   // 편집 진입 시점의 상태 — 변경 여부 판단에만 쓴다.
   const [beforeEdit, setBeforeEdit] = useState("");
@@ -613,6 +619,7 @@ export default function Counterparts() {
                   <ColorPicker
                     value={g.cat.color}
                     disabled={!editMode}
+                    onLocked={showLock}
                     title={`${g.cat.name} 색`}
                     onChange={(v) =>
                       setCategories((prev) =>
@@ -631,6 +638,7 @@ export default function Counterparts() {
                   <EmojiPicker
                     value={g.cat.emoji ?? null}
                     disabled={!editMode}
+                    onLocked={showLock}
                     title={`${g.cat.name} 이모지`}
                     onChange={(v) =>
                       setCategories((prev) =>
@@ -695,6 +703,8 @@ export default function Counterparts() {
 
         </div>
       </div>
+
+      <EditLockTip lockAt={lockAt} tipRef={tipRef} />
 
       <QuickActions />
     </div>

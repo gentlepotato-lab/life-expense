@@ -5653,14 +5653,17 @@ div:has(> .pm-item) .drag-handle {
   min-width: 42px;
 }
 
-.set-blur-btn:hover:not(:disabled),
-.set-hide-btn:hover:not(:disabled) {
+.set-blur-btn:hover:not(:disabled):not([aria-disabled="true"]),
+.set-hide-btn:hover:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--color-text-tertiary);
   color: var(--color-text-secondary);
 }
 
-/* 보기 모드의 Blur 알약 — 걸린 것이 보이도록 빛깔은 그대로 두고 손만 막는다. */
-.set-blur-btn:disabled {
+/* 보기 모드의 Blur 알약 — 걸린 것이 보이도록 빛깔은 그대로 두고 손만 막는다.
+   진짜 disabled가 아니라 aria-disabled인 것은 누름을 받아 "편집을 눌러라"를
+   알리기 위해서다. 손 모양은 둘 다 그대로다. */
+.set-blur-btn:disabled,
+.set-blur-btn[aria-disabled="true"] {
   cursor: default;
 }
 
@@ -5672,7 +5675,7 @@ div:has(> .pm-item) .drag-handle {
   letter-spacing: 0.02em;
 }
 
-.set-blur-btn.on:hover:not(:disabled) {
+.set-blur-btn.on:hover:not(:disabled):not([aria-disabled="true"]) {
   background: #DCDEFB;
 }
 
@@ -10459,7 +10462,7 @@ html {
 /* 작은 단추 — 살짝 오그라든다. */
 .set-bulk__btn:active,
 .set-add-btn:active,
-.set-blur-btn:active:not(:disabled),
+.set-blur-btn:active:not(:disabled):not([aria-disabled="true"]),
 .set-hide-btn:active:not(:disabled),
 .set-remove:active,
 .emoji-pick__btn:active:not(.readonly),
@@ -14963,13 +14966,20 @@ textarea.memo-input.memo-area {
   position: relative;
 }
 
+/* 덮개는 자리를 잡아 줄 부모가 있어야 한다. 덮을 줄이 그것을 이미 들고 있지
+   않으면 이 이름을 함께 달아 준다 — 분류 · 결제 수단 · 함께한 상대 · 안쓴이
+   도전의 줄들이 그렇다. */
+.lock-host {
+  position: relative;
+}
+
 /* 전역 button 규칙이 키와 바탕을 들고 있다. 그 가운데 button:hover는 이
    규칙보다 셈이 높아, 손가락이 닿은 뒤 회색 바탕이 그대로 드러났다.
    겹치는 자리를 모두 눌러 둔다. */
-.me-lock,
-.me-lock:hover,
-.me-lock:active,
-.me-lock:focus {
+.edit-lock,
+.edit-lock:hover,
+.edit-lock:active,
+.edit-lock:focus {
   position: absolute;
   inset: 0;
   z-index: 2;
@@ -14988,7 +14998,7 @@ textarea.memo-input.memo-area {
 }
 
 /* 누른 자리에 뜬다. 자리는 화면 코드가 재어 넣는다. */
-.me-lock__tip {
+.edit-lock__tip {
   position: fixed;
   left: 0;
   top: 0;
@@ -15006,11 +15016,11 @@ textarea.memo-input.memo-area {
   pointer-events: none;
   transform: translate(-50%, -100%);
   box-shadow: 0 4px 12px rgba(16, 24, 40, 0.22);
-  animation: me-lock-tip 2200ms var(--ease) forwards;
+  animation: edit-lock-tip 2200ms var(--ease) forwards;
 }
 
 /* 자리는 화면 코드가 잡으므로 여기서는 뜨고 지는 것만 맡는다. */
-@keyframes me-lock-tip {
+@keyframes edit-lock-tip {
   0% {
     opacity: 0;
   }
@@ -15024,7 +15034,7 @@ textarea.memo-input.memo-area {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .me-lock__tip {
+  .edit-lock__tip {
     animation: none;
     opacity: 1;
   }
@@ -15940,7 +15950,8 @@ textarea.memo-input.memo-area {
 
 /* 보기 모드에서도 고른 것이 그대로 보인다 — 누르는 것만 막으므로 흐려지지
    않는다. 무엇이 걸려 있는지 알려고 편집을 켰다 끄게 하지 않으려는 것이다. */
-.set-fixed > button:disabled {
+.set-fixed > button:disabled,
+.set-fixed > button[aria-disabled="true"] {
   cursor: default;
 }
 
