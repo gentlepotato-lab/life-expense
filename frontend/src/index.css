@@ -13939,8 +13939,10 @@ input.target__area {
 
 .memo-pad {
   position: relative;
-  /* 흰 카드 위의 보라 3.5%를 그대로 칠한 값 */
-  --memo-pad-bg: #FAF9FE;
+  /* 카드빛 위에 그 화면의 빛깔을 3.5%만 얹은 것. 값으로 굳혀 두었더니
+     보라 시절의 연보라가 어떤 빛깔을 골라도 그대로 남아, 파란 화면에서도
+     메모 판만 연보라였다. 빛깔 변수에서 다시 만든다. */
+  --memo-pad-bg: color-mix(in srgb, var(--color-primary) 3.5%, var(--color-surface));
   /* 두 줄 — 화면 파일(MemoPad.tsx)의 TWO_LINES와 같아야 한다. */
   --memo-two: 40px;
   margin: 6px 2px 0;
@@ -13986,12 +13988,14 @@ input.target__area {
   justify-content: flex-end;
   width: 168px;
   height: 20px;
+  /* 자락도 판의 바탕빛에서 만든다 — 값을 따로 적어 두면 빛깔을 바꿀 때
+     자락만 옛 빛으로 남는다(어두운 쪽이 이미 이 방식이다). */
   background: linear-gradient(
     90deg,
-    rgba(250, 249, 254, 0) 0%,
-    rgba(250, 249, 254, 0.3) 30%,
-    rgba(250, 249, 254, 0.7) 58%,
-    rgba(250, 249, 254, 0.93) 78%,
+    color-mix(in srgb, var(--memo-pad-bg) 0%, transparent) 0%,
+    color-mix(in srgb, var(--memo-pad-bg) 30%, transparent) 30%,
+    color-mix(in srgb, var(--memo-pad-bg) 70%, transparent) 58%,
+    color-mix(in srgb, var(--memo-pad-bg) 93%, transparent) 78%,
     var(--memo-pad-bg) 92%
   );
   color: var(--color-text-tertiary);
@@ -14782,19 +14786,6 @@ textarea.memo-input.memo-area {
 /* 카드 위에 한 겹 더 올라앉는 자리들. 밝은 쪽에서는 흰빛에 가깝게 두었다. */
 :root[data-dark="1"] .memo-pad {
   --memo-pad-bg: color-mix(in srgb, #FFFFFF 7%, var(--color-surface));
-}
-
-/* 메모가 더 있다고 알리는 자락. 종이빛을 값으로 풀어 써 두어 어두운 쪽에서는
-   흰 자국으로 남는다. 종이빛 변수에서 다시 만든다. */
-:root[data-dark="1"] .memo-fade {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--memo-pad-bg) 0%, transparent) 0%,
-    color-mix(in srgb, var(--memo-pad-bg) 30%, transparent) 30%,
-    color-mix(in srgb, var(--memo-pad-bg) 70%, transparent) 58%,
-    color-mix(in srgb, var(--memo-pad-bg) 93%, transparent) 78%,
-    var(--memo-pad-bg) 92%
-  );
 }
 
 :root[data-dark="1"] .card.editing {
