@@ -1101,6 +1101,21 @@ export default function Charts() {
     [rows, keep]
   );
 
+  /*
+   * 카드 키를 잡는 데 쓰는 줄 — 걸러 내기(지출 · 대기 · 정기, 걸린 조건,
+   * 고정 · 변동)를 모두 빼고 이 달에 든 나간 돈 전부다.
+   *
+   * 도넛과 가로 막대는 줄 수만큼 키가 늘고 주는데, 걸러 내기를 건드릴 때마다
+   * 줄이 오갔다. 카드가 들썩이면 아래 카드까지 통째로 밀려 눈이 자리를 놓친다.
+   * 그래서 자리는 걸러 내기가 아니라 이 달 자료가 잡는다 — 걸러 내면 그림만
+   * 비고 카드는 그대로 선다. 달을 옮길 때만 달라진다.
+   */
+  const 자리줄 = useMemo(
+    () => rows.filter((r) => r.inout !== 1 && !inSet.has(Number(r.cat2_id))),
+    [rows, inSet]
+  );
+
+
   const monthLabel = useMemo(() => {
     const [y, m] = yearMonth.split("-").map(Number);
     return `${y}년 ${m}월`;
@@ -1161,6 +1176,16 @@ export default function Charts() {
   /* ─── 중분류별 ────────────────────────────────────────────── */
   const cat1Name = useMemo(() => new Map(cat1List.map((c) => [c.id, c.name])), [cat1List]);
   const payName = useMemo(() => new Map(payList.map((p) => [p.code, p.name])), [payList]);
+
+  const 이름표자리 = useMemo(
+    () => topN(모으기(자리줄, (r) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음"), 5).length,
+    [자리줄, cat1Name]
+  );
+
+  const 수단자리 = useMemo(
+    () => topN(모으기(자리줄, (r) => payName.get(String(r.pay_method)) ?? "수단 없음"), 5).length,
+    [자리줄, payName]
+  );
 
   const byCat = useMemo(() => {
     const 합 = 모으기(shown, (r) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음");
@@ -2049,7 +2074,10 @@ export default function Charts() {
                   </ResponsiveContainer>
                 </div>
 
-                <ul className="chart-legend">
+                <ul
+                  className="chart-legend"
+                  style={{ "--legend-rows": 이름표자리 } as React.CSSProperties}
+                >
                   {byCat.map((c) => (
                     <li key={c.name} className="chart-legend__row">
                       <span className="chart-legend__key" style={{ background: c.color }} />
@@ -2090,7 +2118,9 @@ export default function Charts() {
               </header>
               <div
                 className="chart-card__body chart-card__body--rows"
-                style={{ "--rows": payRows.length } as React.CSSProperties}
+                /* 자리는 이 달 자료가 잡는다. 전월 대비를 켜서 지난달에만 쓰던
+                   수단이 더 서면 그때만 늘어난다. */
+                style={{ "--rows": Math.max(payRows.length, 수단자리) } as React.CSSProperties}
                 onPointerDownCapture={() => 붙이기("pay")}
               >
                 <ResponsiveContainer width="100%" height="100%">

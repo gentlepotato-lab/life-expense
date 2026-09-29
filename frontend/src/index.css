@@ -8260,20 +8260,34 @@ div:has(> .pm-item) {
   height: 128px;
 }
 
+/* 이름표가 설 자리는 이 달 자료가 잡는다(--legend-rows). 걸러 내기로 줄이
+   줄어도 그 자리는 그대로라 카드가 오므라들지 않는다.
+   줄 키를 못 박아야 자리 셈이 딱 떨어진다 — 글줄에 맡기면 0.2px씩 어긋나
+   그만큼 카드가 들썩인다. */
 .chart-legend {
+  --legend-row-h: 18px;
+  --legend-gap: 5px;
   flex: 1 1 auto;
   min-width: 0;
+  min-height: calc(
+    var(--legend-rows, 6) * var(--legend-row-h) +
+    (var(--legend-rows, 6) - 1) * var(--legend-gap)
+  );
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  /* 비워 둔 자리 안에서 줄을 가운데 세운다 — 위로 몰리면 줄이 적을 때
+     고리만 가운데 있고 이름표는 떠 있는 것처럼 보인다. */
+  justify-content: center;
+  gap: var(--legend-gap);
 }
 
 .chart-legend__row {
   display: flex;
   align-items: center;
+  height: var(--legend-row-h);
   gap: 6px;
   min-width: 0;
 }
@@ -8391,7 +8405,8 @@ div:has(> .pm-item) {
   }
 
   .chart-legend {
-    gap: 8px;
+    --legend-row-h: 22px;
+    --legend-gap: 8px;
   }
 
   .chart-legend__name,
