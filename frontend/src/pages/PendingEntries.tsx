@@ -14,15 +14,19 @@ import { CollapseAllButtons } from "./components/CollapseToggle";
 import QuickActions from "./components/QuickActions";
 import MemoPad from "./components/MemoPad";
 import PerfExcludeButton from "./components/PerfExcludeButton";
+import FixedMark from "./components/FixedMark";
 import GrowArea from "./components/GrowArea";
 import SplitRows from "./components/SplitRows";
 import useLongPress from "../hooks/useLongPress";
 import usePeel from "../hooks/usePeel";
-import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
+import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
 
 /* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
    카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
 type PerfRow = { entry_id: number; perf_exclude?: number | null };
+
+/** 고정 · 변동을 뒤집을 때 필요한 것만 */
+type FixedRow = { entry_id: number; fixed_flag?: number | null };
 
 const EMPTY_FILTER = {
   dateFrom: "",
@@ -159,6 +163,26 @@ export default function PendingEntries() {
       console.error(err);
       stamp(before);
       alert("실적 제외를 담지 못했습니다.");
+    }
+  };
+
+  /* 고정인지 변동인지 — 카드 실적 제외와 같은 방식이다. 여기서 누르면 그 건에
+     손으로 정한 것이 되어, 뒤에 분류 설정을 바꿔도 이 건은 그대로다. */
+  const toggleFixed = async (row: FixedRow, next: boolean) => {
+    const id = row.entry_id;
+    const after = next ? 1 : 0;
+    const before = row.fixed_flag ?? null;
+    const stamp = (v: number | null) => {
+      setRows((prev) => prev.map((r) => (r.entry_id === id ? { ...r, fixed_flag: v } : r)));
+      setAllRows((prev) => prev.map((r) => (r.entry_id === id ? { ...r, fixed_flag: v } : r)));
+    };
+    stamp(after);
+    try {
+      await api.put(`/pending-entries/${id}/fixed`, null, { params: { value: String(after) } });
+    } catch (err) {
+      console.error(err);
+      stamp(before);
+      alert("고정 · 변동을 담지 못했습니다.");
     }
   };
 
@@ -722,8 +746,12 @@ export default function PendingEntries() {
     [cat1List, cat2List, cat3List]
   );
 
+  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정해 둔 것이 있으면 그것이 먼저다. */
+  const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
+
   const dateGroups = useMemo(
-    () => groupByDate(rows, (r: any) => isBlurred(r, blurSets)),
+    /* 날짜 단 합계는 집계라 테이프를 붙이지 않는다. 덮는 것은 카드뿐이다. */
+    () => groupByDate(rows),
     [rows, blurSets]
   );
 
@@ -887,6 +915,8 @@ export default function PendingEntries() {
                 onStartReveal={startReveal}
                 onSend={sendOne}
                 blurred={isBlurred(row, blurSets)}
+                fixed={isFixed(row, fixSets)}
+                onToggleFixed={toggleFixed}
                 onTogglePerfExclude={togglePerfExclude}
               />
             ))}
@@ -1280,6 +1310,8 @@ export function PendingCard({
   blurred,
   readOnly = false,
   onTogglePerfExclude,
+  fixed,
+  onToggleFixed,
 }: {
   row: any;
   cat1List: { id: number; name: string }[];
@@ -1291,6 +1323,10 @@ export function PendingCard({
   onSend?: (row: any) => void;
   /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onTogglePerfExclude?: (row: PerfRow, next: boolean) => void;
+  /* 이 건이 고정인지 — 건에 정해 둔 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
+  fixed?: boolean;
+  /* 고정 · 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
+  onToggleFixed?: (row: FixedRow, next: boolean) => void;
   /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
      넘기지 않으면 예전처럼 소분류만 본다. */
   blurred?: boolean;
@@ -1374,6 +1410,12 @@ export function PendingCard({
           말줄임된다. 메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
       <div className="entry-ln entry-ln--send">
         {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
+        {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
+        <FixedMark
+          on={fixed ?? false}
+          readOnly={readOnly || !onToggleFixed}
+          onToggle={(next) => onToggleFixed?.(row, next)}
+        />
         {/* 카드로 그은 건에만 실적 제외 기호가 선다. */}
         {pay?.category === "카드" && (
           <PerfExcludeButton

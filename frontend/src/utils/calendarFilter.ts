@@ -6,6 +6,7 @@
  * 화면 파일에서 컴포넌트 말고 다른 것을 내보내면 Fast Refresh가 깨지므로
  * 두 화면이 함께 쓰는 것은 여기 둔다.
  */
+import { prefOn } from "./prefs";
 
 export type Src = "expense" | "pending" | "scheduled";
 
@@ -26,6 +27,8 @@ export type Row = {
   counterpart_ids?: number[] | null;
   /** 1이면 카드 실적에서 뺀다. 씀씀이의 카드 실적만 본다. */
   perf_exclude?: number | null;
+  /** 건마다 손으로 정한 고정 · 변동. 비면 분류를 따른다. */
+  fixed_flag?: number | null;
 };
 
 export const EMPTY_FILTER = {
@@ -75,57 +78,127 @@ export function pass(r: Row, f: Filter): boolean {
 }
 
 /**
- * 집계에서 뺄 갈래 모음.
+ * Blur를 걸어 둔 갈래 모음.
  *
- * 중 · 소 · 세 중 하나라도 Exclude가 걸려 있으면 그 줄은 셈에서 빠진다.
- * 내역 카드에는 그대로 보이고, 달력 · 씀씀이 · 기간 상세에서만 빠진다.
+ * 중 · 소 · 세 가운데 하나라도 걸려 있으면 그 줄의 금액에 테이프를 붙인다.
+ * 붙는 곳은 개별 내역 카드뿐이다 — 집계는 모은 숫자라 덮지 않는다.
  */
-export type ExcludeSets = {
+export type BlurSets = {
   cat1: Set<number>;
   cat2: Set<number>;
   cat3: Set<number>;
 };
 
-export const EMPTY_Exclude: ExcludeSets = {
-  cat1: new Set(),
-  cat2: new Set(),
-  cat3: new Set(),
-};
-
-/** 목록 셋에서 Blur가 걸린 것만 추린다 — Exclude와 같은 방식이다. */
+/**
+ * 목록 셋에서 Blur가 걸린 것만 추린다.
+ *
+ * 돈쓴이에서 테이프를 붙이지 않기로 해 두었으면 걸린 갈래가 없는 셈으로 돌려
+ * 준다 — 그러면 카드마다 따로 살피지 않아도 화면 곳곳의 테이프가 함께 걷힌다.
+ */
 export function blurSetsFrom(
   cat1List: { id: number; blur?: number }[],
   cat2List: { id: number; blur?: number }[],
   cat3List: { id: number; blur?: number }[]
-): ExcludeSets {
+): BlurSets {
   const pick = (list: { id: number; blur?: number }[]) =>
-    new Set(list.filter((c) => c.blur === 1).map((c) => c.id));
+    prefOn("blur_default")
+      ? new Set(list.filter((c) => c.blur === 1).map((c) => c.id))
+      : new Set<number>();
   return { cat1: pick(cat1List), cat2: pick(cat2List), cat3: pick(cat3List) };
 }
 
-/** 중 · 소 · 세 중 하나라도 Blur가 걸려 있으면 금액을 덮는다. */
-export const isBlurred = isExcludedLike;
-
-/** 목록 셋에서 Exclude가 걸린 것만 추린다. */
-export function excludeSetsFrom(
-  cat1List: { id: number; exclude?: number }[],
-  cat2List: { id: number; exclude?: number }[],
-  cat3List: { id: number; exclude?: number }[]
-): ExcludeSets {
-  const pick = (list: { id: number; exclude?: number }[]) =>
-    new Set(list.filter((c) => c.exclude === 1).map((c) => c.id));
-  return { cat1: pick(cat1List), cat2: pick(cat2List), cat3: pick(cat3List) };
-}
-
-function isExcludedLike(
+/** 중 · 소 · 세 가운데 하나라도 Blur가 걸려 있으면 금액을 덮는다. */
+export function isBlurred(
   r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null },
-  e: ExcludeSets
+  b: BlurSets
 ): boolean {
   return (
-    e.cat1.has(Number(r.cat1_id)) ||
-    e.cat2.has(Number(r.cat2_id)) ||
-    e.cat3.has(Number(r.cat3_id))
+    b.cat1.has(Number(r.cat1_id)) ||
+    b.cat2.has(Number(r.cat2_id)) ||
+    b.cat3.has(Number(r.cat3_id))
   );
 }
 
-export const isExcluded = isExcludedLike;
+/**
+ * 고정 · 변동.
+ *
+ * 건에 손으로 정해 둔 것이 가장 앞이고, 없으면 분류를 따른다. 소 · 세 어느
+ * 쪽에 걸려 있어도 고정이다(Blur와 같은 셈법). 어디에도 정해진 것이 없으면
+ * 변동이다 — 달마다 같은 자리에 오는 돈은 드물고, 드문 쪽을 손으로 켜는 편이
+ * 적게 든다.
+ *
+ * 중분류에는 두지 않았다. 한 중분류 안에서도 소분류마다 갈리기 때문이다
+ * (현재/미래 > 저축은 고정, 투자는 변동).
+ */
+export type FixedSets = { cat2: Set<number>; cat3: Set<number> };
+
+export const EMPTY_FIXED: FixedSets = { cat2: new Set(), cat3: new Set() };
+
+export function fixedSetsFrom(
+  cat2List: { id: number; fixed?: number }[],
+  cat3List: { id: number; fixed?: number }[]
+): FixedSets {
+  const pick = (list: { id: number; fixed?: number }[]) =>
+    new Set(list.filter((c) => c.fixed === 1).map((c) => c.id));
+  return { cat2: pick(cat2List), cat3: pick(cat3List) };
+}
+
+export function isFixed(
+  r: { cat2_id?: number | null; cat3_id?: number | null; fixed_flag?: number | null },
+  f: FixedSets
+): boolean {
+  if (r.fixed_flag != null) return r.fixed_flag === 1;
+  /* 소 · 세 어느 쪽에 걸려 있어도 고정이다 — Blur와 같은 셈법이다. 소분류를
+     고정으로 두면 딸린 세분류를 하나씩 켜지 않아도 함께 따라온다. */
+  return f.cat2.has(Number(r.cat2_id)) || f.cat3.has(Number(r.cat3_id));
+}
+
+/**
+ * 어떤 갈래를 볼지 — 고정 · 변동 곱하기 지출 · 수입 넷.
+ *
+ * 들어올 때는 넷 다 켜져 있고, 껐다 켠 것은 담아 두지 않는다. 화면을 옮기면
+ * 다시 넷이다. 여기서 빠진 줄은 셈에서도 아예 빠진다(예전 Blur 알약이 하던 일).
+ */
+export type FixedPick = {
+  fixOut: boolean;
+  varOut: boolean;
+  fixIn: boolean;
+  varIn: boolean;
+};
+
+export const ALL_FIXED_PICK: FixedPick = {
+  fixOut: true,
+  varOut: true,
+  fixIn: true,
+  varIn: true,
+};
+
+/** 고른 갈래에 드는 줄인지. 수입인지는 줄의 IN/OUT으로 가른다. */
+export function passFixed(
+  r: { inout?: number | null; cat2_id?: number | null; cat3_id?: number | null; fixed_flag?: number | null },
+  pick: FixedPick,
+  f: FixedSets
+): boolean {
+  const 고정 = isFixed(r, f);
+  const 수입 = r.inout === 1;
+  if (수입) return 고정 ? pick.fixIn : pick.varIn;
+  return 고정 ? pick.fixOut : pick.varOut;
+}
+
+/** 고른 것을 주소에 실어 보내는 꼬리표. 고정 지출 · 변동 지출 · 고정 수입 · 변동 수입 차례. */
+export function fxTag(pick: FixedPick): string {
+  return [pick.fixOut, pick.varOut, pick.fixIn, pick.varIn].map((v) => (v ? "1" : "0")).join("");
+}
+
+/** 꼬리표를 되읽는다. 네 자가 아니면 넷 다 켠 것으로 본다. */
+export function fxPickFrom(tag: string | null): FixedPick {
+  if (!tag || tag.length !== 4) return ALL_FIXED_PICK;
+  return {
+    fixOut: tag[0] === "1",
+    varOut: tag[1] === "1",
+    fixIn: tag[2] === "1",
+    varIn: tag[3] === "1",
+  };
+}
+
+

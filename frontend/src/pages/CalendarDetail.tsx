@@ -7,9 +7,11 @@ import { groupByDate } from "../utils/dateGroup";
 import {
   EMPTY_FILTER,
   blurSetsFrom,
-  excludeSetsFrom,
+  fixedSetsFrom,
+  isFixed,
   isBlurred,
-  isExcluded,
+  passFixed,
+  fxPickFrom,
   pass,
   type Filter,
   type Row as CalRow,
@@ -91,11 +93,9 @@ export default function CalendarDetail() {
     return new Set<Src>(raw.length ? raw : SRC_ORDER);
   }, [params]);
 
-  /* 달력에서 Blur를 켠 채 넘어왔는지. 끄고 왔다면 가려 둔 갈래는 뺀다. */
-  const blurOn = params.get("blur") === "1";
-
-  /* 달력에서 Exclude를 켠 채 넘어왔는지. 주소에 없으면 켠 것으로 본다. */
-  const excludeOn = params.get("exclude") !== "0";
+  /* 달력 · 씀씀이가 고른 갈래를 그대로 물려받는다. 꼬리표가 없는 주소로
+     들어오면 넷 다 켠 것으로 본다 — 앞 화면에 보이던 것과 어긋나지 않게. */
+  const fixPick = useMemo(() => fxPickFrom(params.get("fx")), [params]);
 
   /* 달력에 걸려 있던 조건. 주소만으로 들어왔다면 조건 없이 본다. */
   const filter = useMemo<Filter>(
@@ -117,7 +117,7 @@ export default function CalendarDetail() {
   /* 고르는 목록 — 카드가 이름을 찾는 데 쓴다.
      결제 수단은 화면마다 코드를 숫자로도 문자로도 쓰고 있어 두 벌을 만든다.
      카드 안의 비교 방식을 건드리지 않으려면 이쪽에서 맞춰 주는 편이 낫다. */
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; exclude?: number; blur?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number }[]>([]);
   const [cat2List, setCat2List] = useState<CategoryL2Meta[]>([]);
   const [cat3List, setCat3List] = useState<CategoryL3Meta[]>([]);
   /* 구분(`카드`인지)도 함께 든다 — 카드로 그은 줄에만 실적 제외 기호가
@@ -205,16 +205,15 @@ export default function CalendarDetail() {
     };
   }, [days]);
 
-  const excSets = useMemo(
-    () => excludeSetsFrom(cat1List, cat2List, cat3List),
-    [cat1List, cat2List, cat3List]
-  );
-
   /* Blur는 중 · 소 · 세 어디에 걸려도 함께 덮인다. */
   const blurSets = useMemo(
     () => blurSetsFrom(cat1List, cat2List, cat3List),
     [cat1List, cat2List, cat3List]
   );
+
+  /* 고정 · 변동도 카드에 그대로 보인다. 여기서는 보기만 한다 — 손대는 자리는
+     지출 · 대기 · 정기 세 화면이다. */
+  const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
 
   /* 달력이 쓰던 판정을 그대로 쓴다 — 달력 칸과 여기 카드가 어긋나지 않게 */
   const passes = useCallback(
@@ -232,6 +231,8 @@ export default function CalendarDetail() {
         pay_method: x.pay_method as number,
         memo: x.memo as string,
         place_name: x.place_name as string,
+        /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
+        fixed_flag: (x.fixed_flag as number | null) ?? null,
         counterpart_ids: (x.counterpart_ids as number[]) ?? [],
       };
       return pass(probe, filter);
@@ -247,8 +248,7 @@ export default function CalendarDetail() {
       list.forEach((x) => {
         const date = dateOnly(x[dateField]);
         /* 달력과 같은 셈이어야 한다 — 달력에서 뺀 것은 여기서도 뺀다. */
-        if (!blurOn && isBlurred(x as { cat1_id?: number }, blurSets)) return;
-        if (excludeOn && isExcluded(x as { cat1_id?: number }, excSets)) return;
+        if (!passFixed(x as { inout?: number }, fixPick, fixSets)) return;
         if (!passes(src, x, date)) return;
         out.push({
           src,
@@ -274,11 +274,11 @@ export default function CalendarDetail() {
           ? 1
           : -1
     );
-  }, [exRows, peRows, scRows, srcOn, passes, blurOn, blurSets, excludeOn, excSets]);
+  }, [exRows, peRows, scRows, srcOn, passes, fixPick, fixSets]);
 
   const dateGroups = useMemo(
-    () => groupByDate(items, (r) => isBlurred(r.raw as { cat1_id?: number }, blurSets)),
-    [items, blurSets]
+    () => groupByDate(items),
+    [items]
   );
 
   /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다 — 내역 세 화면과 같다. */
@@ -393,6 +393,7 @@ export default function CalendarDetail() {
                       onOpenEditor={noop}
                       onStartReveal={(id, e) => reveal(setExRows, id, e)}
                       blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
+                      fixed={isFixed(row, fixSets)}
                       readOnly
                     />
                   );
@@ -409,6 +410,7 @@ export default function CalendarDetail() {
                       onOpenEditor={noop}
                       onStartReveal={(id, e) => reveal(setPeRows, id, e)}
                       blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
+                      fixed={isFixed(row, fixSets)}
                       readOnly
                     />
                   );
@@ -423,6 +425,7 @@ export default function CalendarDetail() {
                     payList={payStr}
                     toTimeString={toTimeString}
                     blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
+                    fixed={isFixed(row, fixSets)}
                     readOnly
                   />
                 );

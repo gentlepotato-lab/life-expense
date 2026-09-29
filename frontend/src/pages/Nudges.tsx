@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import QuickActions from "./components/QuickActions";
 import NudgeGroup from "./components/NudgeGroup";
 import NudgeDetailPopup from "./components/NudgeDetailPopup";
+import FixedFilter from "./components/FixedFilter";
+import { ALL_FIXED_PICK, type FixedPick } from "../utils/calendarFilter";
 import useNudges from "../hooks/useNudges";
 import type { Nudge } from "../utils/nudges";
-import { prefOn } from "../utils/prefs";
 
 /**
  * 잔소리.
@@ -20,12 +21,10 @@ import { prefOn } from "../utils/prefs";
 export default function Nudges() {
   const navigate = useNavigate();
 
-  /* 씀씀이 · 달력과 같은 두 단추. 여기서는 Blur를 처음부터 켜 둔다 —
-     가려 둔 갈래도 잔소리에는 들어가야 하고, 화면에서만 테이프로 덮는다. */
-  const [blurOn, setBlurOn] = useState(() => prefOn("blur_default"));
-  const [excludeOn, setExcludeOn] = useState(() => prefOn("exclude_default"));
+  /* 씀씀이 · 달력과 같은 고르개. 들어올 때는 넷 다 켜져 있다. */
+  const [fixPick, setFixPick] = useState<FixedPick>(ALL_FIXED_PICK);
 
-  const { nudges, ready } = useNudges({ blurOn, excludeOn });
+  const { nudges, ready } = useNudges({ fixPick });
   const [picked, setPicked] = useState<Nudge | null>(null);
 
   /* 팝업은 뒤로 가기용 자리를 하나 밀어 두고 있다. 그냥 옮기면 그 자리를
@@ -49,23 +48,7 @@ export default function Nudges() {
     <div className="page-wrap">
       {/* 무엇을 셈에 넣을지 — 씀씀이 · 달력과 같은 자리, 같은 모양 */}
       <div className="cal-sources">
-        <button
-          type="button"
-          className={`cal-source cal-source--blur${blurOn ? " on" : ""}`}
-          aria-pressed={blurOn}
-          onClick={() => setBlurOn((v) => !v)}
-        >
-          Blur
-        </button>
-
-        <button
-          type="button"
-          className={`cal-source cal-source--exclude${excludeOn ? " on" : ""}`}
-          aria-pressed={excludeOn}
-          onClick={() => setExcludeOn((v) => !v)}
-        >
-          Exclude
-        </button>
+        <FixedFilter value={fixPick} onChange={setFixPick} />
       </div>
 
       <div className="chart-grid">

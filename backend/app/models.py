@@ -13,7 +13,6 @@ class CategoryL1(Base):
     sort_order = Column(Integer, default=0, nullable=True)
     is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 고르는 목록에서 뺀다.
     blur_flag = Column(SmallInteger, nullable=False, default=0)     # 1이면 금액을 덮는다.
-    exclude_flag = Column(SmallInteger, nullable=False, default=0)  # 1이면 집계에서 뺀다.
 
 class CategoryL2(Base):
     __tablename__ = "categories_lvl2"
@@ -25,7 +24,7 @@ class CategoryL2(Base):
     blur_flag = Column(SmallInteger, default=0, nullable=False)
     inout = Column(SmallInteger, nullable=True)
     is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 고르는 목록에서 뺀다.
-    exclude_flag = Column(SmallInteger, nullable=False, default=0)  # 1이면 집계에서 뺀다.
+    fixed_flag = Column(SmallInteger, nullable=False, default=0)    # 1이면 고정, 0이면 변동.
 
 class CategoryL3(Base):
     __tablename__ = "categories_lvl3"
@@ -35,7 +34,7 @@ class CategoryL3(Base):
     sort_order = Column(Integer, default=0, nullable=True)
     is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 고르는 목록에서 뺀다.
     blur_flag = Column(SmallInteger, nullable=False, default=0)     # 1이면 금액을 덮는다.
-    exclude_flag = Column(SmallInteger, nullable=False, default=0)  # 1이면 집계에서 뺀다.
+    fixed_flag = Column(SmallInteger, nullable=False, default=0)    # 1이면 고정, 0이면 변동.
 
 class PaymentMethod(Base):
     __tablename__ = "payment_methods"
@@ -67,6 +66,8 @@ class Entry(Base):
     # 1이면 카드 실적에서 뺀다. 상품권 · 세금처럼 카드로 긋고도 실적으로
     # 쳐 주지 않는 건이 있다. 갈래가 아니라 건마다 정한다.
     perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
+    # 비면 분류를 따른다. 손으로 바꾸면 그 건에만 남는다.
+    fixed_flag = Column(SmallInteger, nullable=True)
     place = relationship("Place", back_populates="entries")
 
     def to_dict(self):
@@ -132,6 +133,8 @@ class PendingEntry(Base):
     sended = Column(Integer, default=0, nullable=False)
     # 1이면 카드 실적에서 뺀다. 전송하면 지출 내역으로 그대로 따라간다.
     perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
+    # 비면 분류를 따른다. 손으로 바꾸면 그 건에만 남는다.
+    fixed_flag = Column(SmallInteger, nullable=True)
 
     def to_dict(self):
         return {
@@ -205,6 +208,8 @@ class ScheduledEntry(Base):
     place_id = Column(Integer, ForeignKey("places.place_id"), nullable=True)
     # 1이면 카드 실적에서 뺀다. 대기 내역으로 나갈 때 그대로 따라간다.
     perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
+    # 비면 분류를 따른다. 손으로 바꾸면 그 건에만 남는다.
+    fixed_flag = Column(SmallInteger, nullable=True)
 
     # 활성화 여부
     is_active = Column(SmallInteger, default=1, nullable=False)    # 1: 활성, 0: 비활성

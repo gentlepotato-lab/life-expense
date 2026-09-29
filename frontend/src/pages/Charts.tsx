@@ -21,12 +21,12 @@ import type { PieSectorShapeProps, RectangleProps } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { stash, takeStash } from "../utils/pageState";
 import axios from "../api/client";
-import useRevealDrag from "../hooks/useRevealDrag";
 import useLongPress, { LONG_PRESS_DELAY } from "../hooks/useLongPress";
 import useBackClose from "../hooks/useBackClose";
 import QuickActions from "./components/QuickActions";
 import EntryFilterPopup from "./components/EntryFilterPopup";
 import CardPerkPopup, { type PerkTier } from "./components/CardPerkPopup";
+import FixedFilter from "./components/FixedFilter";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { apiErrorMessage } from "../utils/apiError";
 import {
@@ -39,16 +39,16 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { prefOn } from "../utils/prefs";
 import { currentPalette } from "../utils/palettes";
 import { manwon } from "../utils/amount";
 import {
   EMPTY_FILTER,
-  blurSetsFrom,
-  excludeSetsFrom,
+  fixedSetsFrom,
+  passFixed,
+  ALL_FIXED_PICK,
+  fxTag,
+  type FixedPick,
   hasCondition,
-  isBlurred,
-  isExcluded,
   pass,
   type Filter,
   type Row,
@@ -329,49 +329,11 @@ function topN(map: Map<string, number>, n: number): Slice[] {
 const colorOf = (name: string, i: number) =>
   name === "기타" ? ETC_COLOR() : PALETTE()[i % PALETTE().length];
 
-/**
- * 이름별로 모으면서 가려야 할 줄이 섞였는지도 함께 적어 둔다.
- *
- * 그림의 말풍선과 견줌 보기 팝업에도 내역 카드와 같은 규칙으로 테이프를
- * 붙이기 위해서다. 합에 가릴 줄이 한 줄이라도 섞였으면 그 합도 가린다 —
- * 달력의 한 달 합계가 따르는 규칙 그대로다.
- */
-function 모으기(
-  list: Row[],
-  key: (r: Row) => string,
-  가림: (r: Row) => boolean
-): { 합: Map<string, number>; 덮개: Map<string, boolean> } {
+/** 이름별로 모은다. */
+function 모으기(list: Row[], key: (r: Row) => string): Map<string, number> {
   const 합 = new Map<string, number>();
-  const 덮개 = new Map<string, boolean>();
-  list.forEach((r) => {
-    const k = key(r);
-    합.set(k, (합.get(k) ?? 0) + r.net);
-    if (가림(r)) 덮개.set(k, true);
-  });
-  return { 합, 덮개 };
-}
-
-/**
- * topN이 내준 조각에 가림 딱지를 붙인다.
- *
- * "기타"는 남은 것을 묶은 조각이므로 묶인 것 가운데 하나라도 가려야 하면
- * 기타도 가린다. 이름이 그대로 "기타"인 진짜 갈래가 따로 있을 수도 있어
- * 제 딱지와 묶은 것의 딱지를 함께 본다.
- */
-function 딱지(
-  slices: Slice[],
-  합: Map<string, number>,
-  덮개: Map<string, boolean>
-): (Slice & { 가림: boolean })[] {
-  const 선 = new Set(slices.map((s) => s.name));
-  let 나머지 = false;
-  합.forEach((_, k) => {
-    if (!선.has(k) && 덮개.get(k)) 나머지 = true;
-  });
-  return slices.map((s) => ({
-    ...s,
-    가림: (덮개.get(s.name) ?? false) || (s.name === "기타" && 나머지),
-  }));
+  list.forEach((r) => 합.set(key(r), (합.get(key(r)) ?? 0) + r.net));
+  return 합;
 }
 
 /** 견줌 보기 팝업의 한 줄 */
@@ -379,8 +341,6 @@ type CmpRow = {
   name: string;
   cur: number;
   prev: number;
-  curBlur: boolean;
-  prevBlur: boolean;
 };
 
 /** 견줌 보기 팝업이 한 번에 들고 있는 것 */
@@ -389,7 +349,6 @@ type PrevCmp = {
   칸: string;
   총이달: number;
   총지난달: number;
-  총가림: boolean;
   rows: CmpRow[];
 };
 
@@ -413,16 +372,6 @@ function useWide(query = "(min-width: 640px)") {
 const ymTag = (ym: string) => `${ym.slice(2, 4)}' ${ym.slice(5, 7)}`;
 const prevTag = (ym: string) => `전월(${ymTag(ym)})`;
 const curTag = (ym: string) => `당월(${ymTag(ym)})`;
-
-/* 그림의 값 열쇠마다 그 값이 가려야 하는지를 적어 둔 열쇠. 말풍선은 어느
-   그림인지 모르고 dataKey만 받으므로, 여기서 되묻는다. */
-const 가림열쇠: Record<string, string> = {
-  지출: "가림",
-  value: "가림",
-  누적: "누적가림",
-  전월: "전월가림",
-  전월누적: "전월누적가림",
-};
 
 /** 그림 위에 뜨는 말풍선 — 화면 톤에 맞춰 우리가 그린다. */
 type TipItem = {
@@ -532,9 +481,6 @@ function Tip({
         /* 지난달 줄은 한 단 흐리게 두고 딱지를 붙인다 — 같은 빛깔의 두 줄이
            이름 없이 나란히 서면 어느 쪽이 이 달인지 알 수 없다. */
         const prev = p.name === "전월" || p.payload?.prev === true;
-        /* 가려야 할 갈래가 섞인 값은 숫자 대신 테이프를 붙인다. 말풍선은
-           손이 닿지 않는 자리라(pointer-events: none) 끌어서 보는 길은 없다. */
-        const 가림 = !!p.payload?.[가림열쇠[String(p.dataKey ?? "")] ?? "가림"];
         return (
           <div key={i} className={`chart-tip__row${prev ? " chart-tip__row--prev" : ""}`}>
             {/* 빛깔은 그 조각이 들고 있는 것을 그대로 쓴다 — 말풍선 차례로
@@ -546,11 +492,7 @@ function Tip({
             {견줌 && (
               <span className="chart-tip__when">{prev ? prevLabel : curLabel}</span>
             )}
-            <MaskedAmount
-              className="chart-tip__value"
-              hide={가림}
-              value={won(Number(p.value ?? 0))}
-            />
+            <span className="chart-tip__value">{won(Number(p.value ?? 0))}</span>
           </div>
         );
       })}
@@ -561,11 +503,7 @@ function Tip({
             style={{ background: (slice?.color as string) ?? ETC_COLOR() }}
           />
           <span className="chart-tip__when">{prevLabel}</span>
-          <MaskedAmount
-            className="chart-tip__value"
-            hide={slice?.전월가림 === true}
-            value={won(도넛지난달)}
-          />
+          <span className="chart-tip__value">{won(도넛지난달)}</span>
         </div>
       )}
     </div>
@@ -655,16 +593,12 @@ function PrevBtn({
 /**
  * 가려 둔 갈래가 섞인 금액.
  *
- * 덮개는 숫자마다 따로 걷힌다 — 하나를 끌었다고 다른 것까지 드러나면
- * 가린 뜻이 없다. 그래서 드러난 상태를 이 부품이 저마다 들고 있다.
- */
 /** 카드 실적 한 장 — 꾹 누르면 그 카드로 그은 내역을 상세로 펼친다. */
 /** 상세로 갔다 되돌아왔을 때 되살릴 것 */
 type ChartKeep = {
   yearMonth: string;
   on: Record<Src, boolean>;
-  blurOn: boolean;
-  excludeOn: boolean;
+  fixPick: FixedPick;
   filter: Filter;
   appliedFilter: Filter;
   cardOpen: boolean;
@@ -685,7 +619,6 @@ function CardPerfItem({
     count: number;
     /** 실적에서 뺀 건들의 합. 0이면 딱지를 띄우지 않는다. */
     excluded: number;
-    hasBlur: boolean;
   };
   /** 그 카드의 실적 구간과 혜택. 문턱이 낮은 것부터. 없으면 빈 배열 */
   tiers: PerkTier[];
@@ -718,15 +651,12 @@ function CardPerfItem({
     >
       <div className="card-perf__line">
         <span className="card-perf__name">{card.name}</span>
-        <MaskedAmount
-          className="card-perf__value"
-          hide={card.hasBlur}
-          value={Math.round(card.charged).toLocaleString("ko-KR")}
-        />
+        <span className="card-perf__value">
+          {Math.round(card.charged).toLocaleString("ko-KR")}
+        </span>
       </div>
 
-      {/* 넓은 줄을 숫자 하나로 비워 두지 않고, 이 판이 말하려는 바로 그것을 담는다.
-          비율만 보이고 금액은 드러나지 않으므로 덮개가 덮여 있어도 그린다. */}
+      {/* 넓은 줄을 숫자 하나로 비워 두지 않고, 이 판이 말하려는 바로 그것을 담는다. */}
       {/* 채움은 띠 전체에 깔린 그라데이션을 왼쪽부터 드러내는 것이다. 폭을
           줄이면 그라데이션까지 눌려 같은 자리의 빛깔이 달마다 달라진다. */}
       <div className="card-perf__ruler" aria-hidden="true">
@@ -824,31 +754,6 @@ function CardPerfItem({
         </span>
       </div>
     </article>
-  );
-}
-
-function MaskedAmount({
-  value,
-  className,
-  hide,
-}: {
-  value: string;
-  className: string;
-  /** 가려야 할 줄이 섞여 있는지 */
-  hide: boolean;
-}) {
-  const [revealed, setRevealed] = useState(false);
-  const startReveal = useRevealDrag(setRevealed);
-  const covered = hide && !revealed;
-  return (
-    <span
-      className={`${className}${hide ? (covered ? " masked" : " revealed") : ""}`}
-      title={hide ? "끌면 잠깐 보인다." : undefined}
-      onMouseDown={hide ? startReveal : undefined}
-      onTouchStart={hide ? startReveal : undefined}
-    >
-      {value}
-    </span>
   );
 }
 
@@ -985,11 +890,9 @@ export default function Charts() {
 
   const [rows, setRows] = useState<Row[]>([]);
 
-  /* Blur를 걸어 둔 갈래를 셈에 넣을지. 처음에는 빼 둔다. */
-  const [blurOn, setBlurOn] = useState(() => kept?.blurOn ?? prefOn("blur_default"));
-
-  /* Exclude를 걸어 둔 갈래를 뺄지. 처음에는 뺀다(켜짐) */
-  const [excludeOn, setExcludeOn] = useState(() => kept?.excludeOn ?? prefOn("exclude_default"));
+  /* 어떤 갈래를 셈에 넣을지 — 고정 지출 · 변동 지출. 들어올 때는 둘 다 켜 둔다.
+     이 화면은 나간 돈만 세므로 수입 두 칸은 목록에 없다. */
+  const [fixPick, setFixPick] = useState<FixedPick>(ALL_FIXED_PICK);
 
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -1007,9 +910,9 @@ export default function Charts() {
   const wide = useWide();
 
   /* 고르는 목록들 — 그림에 이름을 붙이는 데도 쓴다. */
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; exclude?: number; is_active?: number }[]>([]);
-  const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout?: number | null; exclude?: number; is_active?: number }[]>([]);
-  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; exclude?: number; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
+  const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout?: number | null; fixed?: number; is_active?: number }[]>([]);
+  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; fixed?: number; is_active?: number }[]>([]);
   const [payList, setPayList] = useState<{ code: string; name: string; category?: string; is_active?: number }[]>([]);
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
 
@@ -1078,8 +981,7 @@ export default function Charts() {
       stash("charts", {
         yearMonth,
         on,
-        blurOn,
-        excludeOn,
+        fixPick,
         filter,
         appliedFilter,
         cardOpen: true,
@@ -1087,11 +989,11 @@ export default function Charts() {
       });
       navigate(
         `/charts/detail?from=${yearMonth}-01&to=${yearMonth}-${pad(last)}` +
-          `&src=${src}&blur=${blurOn ? 1 : 0}&exclude=${excludeOn ? 1 : 0}`,
+          `&src=${src}&fx=${fxTag(fixPick)}`,
         { state: { filter: { ...appliedFilter, pay: [code] }, back: "씀씀이" } }
       );
     },
-    [yearMonth, on, blurOn, excludeOn, filter, appliedFilter, navigate]
+    [yearMonth, on, fixPick, filter, appliedFilter, navigate]
   );
 
   useEffect(() => {
@@ -1154,6 +1056,8 @@ export default function Charts() {
             place_name: x.place_name as string,
             /* 씀씀이의 카드 실적만 본다. 다른 그림은 이 표를 보지 않는다. */
             perf_exclude: (x.perf_exclude as number) ?? 0,
+            /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
+            fixed_flag: (x.fixed_flag as number | null) ?? null,
             counterpart_ids: (x.counterpart_ids as number[]) ?? [],
           });
         });
@@ -1170,10 +1074,6 @@ export default function Charts() {
     };
   }, [yearMonth]);
 
-  const blurSets = useMemo(
-    () => blurSetsFrom(cat1List, cat2List, cat3List),
-    [cat1List, cat2List, cat3List]
-  );
 
   /* 들어오는 갈래(수입 · 캐쉬백 …). 씀씀이는 나가는 돈만 다루므로
      줄의 IN/OUT뿐 아니라 갈래 자체가 IN이면 아예 뺀다. */
@@ -1182,10 +1082,7 @@ export default function Charts() {
     [cat2List]
   );
 
-  const excSets = useMemo(
-    () => excludeSetsFrom(cat1List, cat2List, cat3List),
-    [cat1List, cat2List, cat3List]
-  );
+  const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
 
   /* 셈에 넣을 줄인지 가리는 잣대.이 달 그림과 12개월 추이가 같은 것을 봐야
      끝점이 위 요약 판과 어긋나지 않는다. */
@@ -1194,10 +1091,9 @@ export default function Charts() {
       on[r.src] &&
       r.inout !== 1 &&
       !inSet.has(Number(r.cat2_id)) &&
-      (blurOn || !isBlurred(r, blurSets)) &&
-      !(excludeOn && isExcluded(r, excSets)) &&
+      passFixed(r, fixPick, fixSets) &&
       pass(r, appliedFilter),
-    [on, inSet, blurOn, blurSets, excludeOn, excSets, appliedFilter]
+    [on, inSet, fixPick, fixSets, appliedFilter]
   );
 
   const shown = useMemo(
@@ -1230,22 +1126,17 @@ export default function Charts() {
      달력의 한 달 합계와 같은 규칙이다. */
   const sum = useMemo(() => {
     let out = 0;
-    let hasBlur = false;
     shown.forEach((r) => {
       out += r.net;
-      if (isBlurred(r, blurSets)) hasBlur = true;
     });
-    return { out, count: shown.length, hasBlur };
-  }, [shown, blurSets]);
+    return { out, count: shown.length };
+  }, [shown]);
 
   /* ─── 날짜별 · 누적 ───────────────────────────────────────── */
   const byDay = useMemo(() => {
     const spend = new Array<number>(daysInMonth + 1).fill(0);
-    const 덮개 = new Array<boolean>(daysInMonth + 1).fill(false);
     shown.forEach((r) => {
-      if (r.day > daysInMonth) return;
-      spend[r.day] += r.net;
-      if (isBlurred(r, blurSets)) 덮개[r.day] = true;
+      if (r.day <= daysInMonth) spend[r.day] += r.net;
     });
 
     /* 돈이 있는 마지막 날까지만 그린다. 이번 달을 보면 남은 날이
@@ -1255,44 +1146,32 @@ export default function Charts() {
     if (last === 0) last = daysInMonth;
 
     let acc = 0;
-    let acc가림 = false;
     return Array.from({ length: last }, (_, i) => {
       const day = i + 1;
       acc += spend[day];
-      if (덮개[day]) acc가림 = true;
       return {
         day,
         지출: Math.round(spend[day]),
         누적: Math.round(acc),
         dow: (firstDow + i) % 7,
-        가림: 덮개[day],
-        누적가림: acc가림,
       };
     });
-  }, [shown, daysInMonth, firstDow, blurSets]);
+  }, [shown, daysInMonth, firstDow]);
 
   /* ─── 중분류별 ────────────────────────────────────────────── */
   const cat1Name = useMemo(() => new Map(cat1List.map((c) => [c.id, c.name])), [cat1List]);
   const payName = useMemo(() => new Map(payList.map((p) => [p.code, p.name])), [payList]);
 
   const byCat = useMemo(() => {
-    const { 합, 덮개 } = 모으기(
-      shown,
-      (r) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음",
-      (r) => isBlurred(r, blurSets)
-    );
-    return 딱지(topN(합, 5), 합, 덮개).map((s, i) => ({ ...s, color: colorOf(s.name, i) }));
-  }, [shown, cat1Name, blurSets]);
+    const 합 = 모으기(shown, (r) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음");
+    return topN(합, 5).map((s, i) => ({ ...s, color: colorOf(s.name, i) }));
+  }, [shown, cat1Name]);
 
   /* ─── 결제 수단별 ─────────────────────────────────────────── */
   const byPay = useMemo(() => {
-    const { 합, 덮개 } = 모으기(
-      shown,
-      (r) => payName.get(String(r.pay_method)) ?? "수단 없음",
-      (r) => isBlurred(r, blurSets)
-    );
-    return 딱지(topN(합, 5), 합, 덮개).map((s, i) => ({ ...s, color: colorOf(s.name, i) }));
-  }, [shown, payName, blurSets]);
+    const 합 = 모으기(shown, (r) => payName.get(String(r.pay_method)) ?? "수단 없음");
+    return topN(합, 5).map((s, i) => ({ ...s, color: colorOf(s.name, i) }));
+  }, [shown, payName]);
 
   /* ─── 12개월 추이 ─────────────────────────────────────────────
      고른 달을 끝으로 열두 달. 달마다 따로 물어 와서 이 화면이 쓰는 잣대(keep)로
@@ -1355,6 +1234,8 @@ export default function Charts() {
             place_name: x.place_name as string,
             /* 씀씀이의 카드 실적만 본다. 다른 그림은 이 표를 보지 않는다. */
             perf_exclude: (x.perf_exclude as number) ?? 0,
+            /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
+            fixed_flag: (x.fixed_flag as number | null) ?? null,
             counterpart_ids: (x.counterpart_ids as number[]) ?? [],
           });
         });
@@ -1375,21 +1256,17 @@ export default function Charts() {
 
   const byMonth = useMemo(() => {
     const sums = new Map<string, number>();
-    const 덮개 = new Map<string, boolean>();
     months.forEach((ym) => sums.set(ym, 0));
     trendRows.forEach((r) => {
-      if (!keep(r)) return;
-      sums.set(r.ym, (sums.get(r.ym) ?? 0) + r.net);
-      if (isBlurred(r, blurSets)) 덮개.set(r.ym, true);
+      if (keep(r)) sums.set(r.ym, (sums.get(r.ym) ?? 0) + r.net);
     });
     /* 열쇠는 연-월 그대로 둔다. "8월"로 두면 열두 달을 넘길 때
        작년 8월과 올해 8월이 같은 칸으로 뭉쳐 값이 더해진다. */
     return months.map((ym) => ({
       ym,
       지출: Math.round(sums.get(ym) ?? 0),
-      가림: 덮개.get(ym) ?? false,
     }));
-  }, [months, trendRows, keep, blurSets]);
+  }, [months, trendRows, keep]);
 
   /* ─── 중분류 하나를 골랐을 때 ─────────────────────────────────
      누르자마자 팝업이 덮으면 도넛을 더 들여다볼 수가 없다.
@@ -1455,17 +1332,14 @@ export default function Charts() {
   /* ─── 요일별 ──────────────────────────────────────────────── */
   const byDow = useMemo(() => {
     const sums = new Array<number>(7).fill(0);
-    const 덮개 = new Array<boolean>(7).fill(false);
     byDay.forEach((d) => {
       sums[d.dow] += d.지출;
-      if (d.가림) 덮개[d.dow] = true;
     });
     /* 주말만 색을 달리해 한 주의 마디가 보이게 한다.
        빛깔을 자료에 실어 두면 막대 · 말풍선이 한 값을 본다. */
     return WEEKDAYS.map((w, i) => ({
       요일: w,
       지출: Math.round(sums[i]),
-      가림: 덮개[i],
       color: i === 0 ? SPEND() : i === 6 ? ACC() : WEEKDAY(),
     }));
   }, [byDay]);
@@ -1503,27 +1377,20 @@ export default function Charts() {
   /* 지난달 하루치 — 자리는 이 달 일자에 맞춰 둔다. */
   const prevByDay = useMemo(() => {
     const spend = new Array<number>(daysInMonth + 1).fill(0);
-    const 덮개 = new Array<boolean>(daysInMonth + 1).fill(false);
     prevRows.forEach((r) => {
-      const d = Math.min(r.day, daysInMonth);
-      spend[d] += r.net;
-      if (isBlurred(r, blurSets)) 덮개[d] = true;
+      spend[Math.min(r.day, daysInMonth)] += r.net;
     });
-    return { spend, 덮개 };
-  }, [prevRows, daysInMonth, blurSets]);
+    return spend;
+  }, [prevRows, daysInMonth]);
 
   const dayRows = useMemo(() => {
     let acc = 0;
-    let acc가림 = false;
     return byDay.map((d) => {
-      acc += prevByDay.spend[d.day] ?? 0;
-      if (prevByDay.덮개[d.day]) acc가림 = true;
+      acc += prevByDay[d.day] ?? 0;
       return {
         ...d,
-        전월: Math.round(prevByDay.spend[d.day] ?? 0),
+        전월: Math.round(prevByDay[d.day] ?? 0),
         전월누적: Math.round(acc),
-        전월가림: prevByDay.덮개[d.day] ?? false,
-        전월누적가림: acc가림,
       };
     });
   }, [byDay, prevByDay]);
@@ -1537,22 +1404,18 @@ export default function Charts() {
     const first = new Date(y, m - 1, 1).getDay();
     const lastDay = byDay.length;
     const sums = new Array<number>(7).fill(0);
-    const 덮개 = new Array<boolean>(7).fill(false);
     prevRows.forEach((r) => {
       if (Math.min(r.day, daysInMonth) > lastDay) return;
-      const i = (first + r.day - 1) % 7;
-      sums[i] += r.net;
-      if (isBlurred(r, blurSets)) 덮개[i] = true;
+      sums[(first + r.day - 1) % 7] += r.net;
     });
-    return { sums, 덮개 };
-  }, [prevRows, prevYm, byDay, daysInMonth, blurSets]);
+    return sums;
+  }, [prevRows, prevYm, byDay, daysInMonth]);
 
   const dowRows = useMemo(
     () =>
       byDow.map((d, i) => ({
         ...d,
-        전월: Math.round(prevByDow.sums[i]),
-        전월가림: prevByDow.덮개[i],
+        전월: Math.round(prevByDow[i]),
       })),
     [byDow, prevByDow]
   );
@@ -1562,18 +1425,14 @@ export default function Charts() {
      이름은 회색으로 둔다 — 갈래 색을 주면 그 색이 이번 달의 다른 갈래를
      가리켜 거짓말이 된다. */
   const byCatPrev = useMemo(() => {
-    const { 합, 덮개 } = 모으기(
-      prevRows,
-      (r) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음",
-      (r) => isBlurred(r, blurSets)
-    );
+    const 합 = 모으기(prevRows, (r) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음");
     const cur = new Map(byCat.map((c) => [c.name, c.color]));
-    return 딱지(topN(합, 5), 합, 덮개).map((s) => ({
+    return topN(합, 5).map((s) => ({
       ...s,
       color: cur.get(s.name) ?? ETC_COLOR(),
       prev: true,
     }));
-  }, [prevRows, cat1Name, byCat, blurSets]);
+  }, [prevRows, cat1Name, byCat]);
 
   const catPrevTotal = useMemo(
     () => byCatPrev.reduce((s, c) => s + c.value, 0),
@@ -1596,50 +1455,36 @@ export default function Charts() {
   const catRows = useMemo(() => {
     if (!prevOn.cat1) return byCat.map((c) => ({ ...c }));
     const 키 = (r: Row) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음";
-    const 가림 = (r: Row) => isBlurred(r, blurSets);
-    const 이달 = 모으기(shown, 키, 가림).합;
-    const { 합: 지난달, 덮개: 지난달덮개 } = 모으기(prevRows, 키, 가림);
+    const 이달 = 모으기(shown, 키);
+    const 지난달 = 모으기(prevRows, 키);
     const 줄이름 = new Set(byCat.map((r) => r.name));
     let 나머지 = 0;
-    let 나머지가림 = false;
     지난달.forEach((v, k) => {
       if (줄이름.has(k) || !이달.has(k)) return;
       나머지 += v;
-      if (지난달덮개.get(k)) 나머지가림 = true;
     });
-    return byCat.map((c) => {
-      const 묶음 = c.name === "기타";
-      return {
-        ...c,
-        전월: Math.round((지난달.get(c.name) ?? 0) + (묶음 ? 나머지 : 0)),
-        전월가림: (지난달덮개.get(c.name) ?? false) || (묶음 && 나머지가림),
-      };
-    });
-  }, [prevOn.cat1, byCat, cat1Name, shown, prevRows, blurSets]);
+    return byCat.map((c) => ({
+      ...c,
+      전월: Math.round((지난달.get(c.name) ?? 0) + (c.name === "기타" ? 나머지 : 0)),
+    }));
+  }, [prevOn.cat1, byCat, cat1Name, shown, prevRows]);
 
   const payRows = useMemo(() => {
-    const rows = byPay.map((p) => ({ ...p, 전월: 0, 전월가림: false }));
+    const rows = byPay.map((p) => ({ ...p, 전월: 0 }));
     if (!prevOn.pay) return rows;
     const 키 = (r: Row) => payName.get(String(r.pay_method)) ?? "수단 없음";
-    const 가림 = (r: Row) => isBlurred(r, blurSets);
-    const 이달 = 모으기(shown, 키, 가림).합;
-    const 지난달묶음 = 모으기(prevRows, 키, 가림);
-    const 지난달 = 지난달묶음.합;
-    const 지난달덮개 = 지난달묶음.덮개;
+    const 이달 = 모으기(shown, 키);
+    const 지난달 = 모으기(prevRows, 키);
     const 줄이름 = new Set(rows.map((r) => r.name));
     /* 이 달에 제 줄을 못 얻고 "기타"로 묶인 수단은 지난달 몫도 그 줄이
        받는다. 이름으로만 찾으면 기타 줄의 지난달이 턴에 비게 된다. */
     let 나머지 = 0;
-    let 나머지가림 = false;
     지난달.forEach((v, k) => {
       if (줄이름.has(k) || !이달.has(k)) return;
       나머지 += v;
-      if (지난달덮개.get(k)) 나머지가림 = true;
     });
     rows.forEach((r) => {
-      const 묶음 = r.name === "기타";
-      r.전월 = Math.round((지난달.get(r.name) ?? 0) + (묶음 ? 나머지 : 0));
-      r.전월가림 = (지난달덮개.get(r.name) ?? false) || (묶음 && 나머지가림);
+      r.전월 = Math.round((지난달.get(r.name) ?? 0) + (r.name === "기타" ? 나머지 : 0));
     });
     /* 이 달에 아예 쓰지 않은 수단만 줄을 새로 얻는다. 빼 두면 이번 달에
        안 쓴 것인지 애초에 없던 것인지 가릴 수가 없다. */
@@ -1652,13 +1497,11 @@ export default function Charts() {
           name: k,
           value: 0,
           color: ETC_COLOR(),
-          가림: false,
           전월: Math.round(v),
-          전월가림: 지난달덮개.get(k) ?? false,
         });
       });
     return rows;
-  }, [prevOn.pay, byPay, payName, prevRows, shown, blurSets]);
+  }, [prevOn.pay, byPay, payName, prevRows, shown]);
 
   /* 말풍선이 붙어 있는 그림. 그림 바깥을 누르면 내려놓는다 — 금액의 테이프를
      끌어서 보려면 말풍선이 그동안 서 있어야 한다. */
@@ -1713,21 +1556,18 @@ export default function Charts() {
 
   const 견줌 = useCallback(
     (key: (r: Row) => string): CmpRow[] => {
-      const 가림 = (r: Row) => isBlurred(r, blurSets);
-      const a = 모으기(shown, key, 가림);
-      const b = 모으기(prevRows, key, 가림);
-      return [...new Set([...a.합.keys(), ...b.합.keys()])]
+      const a = 모으기(shown, key);
+      const b = 모으기(prevRows, key);
+      return [...new Set([...a.keys(), ...b.keys()])]
         .map((n) => ({
           name: n,
-          cur: Math.round(a.합.get(n) ?? 0),
-          prev: Math.round(b.합.get(n) ?? 0),
-          curBlur: a.덮개.get(n) ?? false,
-          prevBlur: b.덮개.get(n) ?? false,
+          cur: Math.round(a.get(n) ?? 0),
+          prev: Math.round(b.get(n) ?? 0),
         }))
         .filter((r) => r.cur > 0 || r.prev > 0)
         .sort((x, y) => y.cur + y.prev - (x.cur + x.prev));
     },
-    [shown, prevRows, blurSets]
+    [shown, prevRows]
   );
 
   const prevCmp = useMemo((): PrevCmp | null => {
@@ -1739,7 +1579,6 @@ export default function Charts() {
         칸: "일자",
         총이달: dayRows.reduce((a, d) => a + d.지출, 0),
         총지난달: dayRows.reduce((a, d) => a + d.전월, 0),
-        총가림: dayRows.some((d) => d.가림 || d.전월가림),
         /* 두 달 다 0인 날은 세울 것이 없다. 그 밖에는 있는 그대로 다 적는다. */
         rows: dayRows
           .filter((d) => d.지출 > 0 || d.전월 > 0)
@@ -1747,8 +1586,6 @@ export default function Charts() {
             name: `${d.day}일`,
             cur: d.지출,
             prev: d.전월,
-            curBlur: d.가림,
-            prevBlur: d.전월가림,
           })),
       };
     }
@@ -1760,13 +1597,10 @@ export default function Charts() {
         칸: "~까지",
         총이달: 끝?.누적 ?? 0,
         총지난달: 끝?.전월누적 ?? 0,
-        총가림: !!끝 && (끝.누적가림 || 끝.전월누적가림),
         rows: dayRows.map((d) => ({
           name: `${d.day}일`,
           cur: d.누적,
           prev: d.전월누적,
-          curBlur: d.누적가림,
-          prevBlur: d.전월누적가림,
         })),
       };
     }
@@ -1777,13 +1611,10 @@ export default function Charts() {
         칸: "요일",
         총이달: dowRows.reduce((a, d) => a + d.지출, 0),
         총지난달: dowRows.reduce((a, d) => a + d.전월, 0),
-        총가림: dowRows.some((d) => d.가림 || d.전월가림),
         rows: dowRows.map((d) => ({
           name: d.요일,
           cur: d.지출,
           prev: d.전월,
-          curBlur: d.가림,
-          prevBlur: d.전월가림,
         })),
       };
     }
@@ -1799,7 +1630,6 @@ export default function Charts() {
       칸: 분류 ? "중분류" : "결제 수단",
       총이달: rows.reduce((a, r) => a + r.cur, 0),
       총지난달: rows.reduce((a, r) => a + r.prev, 0),
-      총가림: rows.some((r) => r.curBlur || r.prevBlur),
       rows,
     };
   }, [cmpKey, dayRows, dowRows, 견줌, cat1Name, payName]);
@@ -1810,12 +1640,12 @@ export default function Charts() {
      그래서 여기서만 r.amount(원래 결제액)를 쓴다 — 다른 그림은 모두
      r.net(쪼갠 뒤 내 몫)을 본다.
 
-     결제 수단 구분이 `카드` 인 것만 센다. 걸러 낸 조건 · Exclude · Blur는
+     결제 수단 구분이 `카드` 인 것만 센다. 걸러 낸 조건과 고정 · 변동은
      다른 그림과 똑같이 받는다(shown을 그대로 쓴다). */
   const byCard = useMemo(() => {
     const cards = payList.filter((p) => p.category === "카드");
     if (!cards.length) return [];
-    const empty = () => ({ charged: 0, mine: 0, count: 0, excluded: 0, hasBlur: false });
+    const empty = () => ({ charged: 0, mine: 0, count: 0, excluded: 0 });
     const seen = new Map<string, ReturnType<typeof empty>>();
     shown.forEach((r) => {
       const code = String(r.pay_method);
@@ -1832,7 +1662,6 @@ export default function Charts() {
       cur.charged += r.amount;
       cur.mine += r.net;
       cur.count += 1;
-      if (isBlurred(r, blurSets)) cur.hasBlur = true;
       seen.set(code, cur);
     });
     return cards.map((c) => ({
@@ -1840,7 +1669,7 @@ export default function Charts() {
       name: c.name,
       ...(seen.get(c.code) ?? empty()),
     }));
-  }, [shown, payList, blurSets]);
+  }, [shown, payList]);
 
   /* 카드 실적은 접어 둔다. 요약 판과 그림 사이에 늘 펼쳐져 있으면
      지출 흐름을 읽다가 다른 얘기에 걸려 넘어진다. 볼 때만 편다. */
@@ -1926,8 +1755,7 @@ export default function Charts() {
     stash("charts", {
       yearMonth,
       on,
-      blurOn,
-      excludeOn,
+      fixPick,
       filter,
       appliedFilter,
       cardOpen,
@@ -1935,10 +1763,10 @@ export default function Charts() {
     });
     navigate(
       `/charts/detail?from=${yearMonth}-01&to=${yearMonth}-${pad(last)}` +
-        `&src=${src}&blur=${blurOn ? 1 : 0}&exclude=${excludeOn ? 1 : 0}`,
+        `&src=${src}&fx=${fxTag(fixPick)}`,
       { state: { filter: appliedFilter, back: "씀씀이" } }
     );
-  }, [yearMonth, on, blurOn, excludeOn, filter, appliedFilter, cardOpen, navigate]);
+  }, [yearMonth, on, fixPick, filter, appliedFilter, cardOpen, navigate]);
 
   /** 한 달 중 가장 많이 쓴 하루 */
   const peak = useMemo(
@@ -2572,23 +2400,7 @@ export default function Charts() {
           </label>
         ))}
 
-        <button
-          type="button"
-          className={`cal-source cal-source--blur${blurOn ? " on" : ""}`}
-          aria-pressed={blurOn}
-          onClick={() => setBlurOn((v) => !v)}
-        >
-          Blur
-        </button>
-
-        <button
-          type="button"
-          className={`cal-source cal-source--exclude${excludeOn ? " on" : ""}`}
-          aria-pressed={excludeOn}
-          onClick={() => setExcludeOn((v) => !v)}
-        >
-          Exclude
-        </button>
+        <FixedFilter value={fixPick} onChange={setFixPick} withIncome={false} />
       </div>
 
       {/* ─── 카드 실적 — 한 장씩 옆으로 넘겨 본다 ───────────────── */}
@@ -2663,29 +2475,23 @@ export default function Charts() {
       <div className="chart-tiles">
         <div className="chart-tile">
           <span className="chart-tile__label">지출</span>
-          <MaskedAmount
-            className="chart-tile__value"
-            hide={sum.hasBlur}
-            value={Math.round(sum.out).toLocaleString("ko-KR")}
-          />
+          <span className="chart-tile__value">
+            {Math.round(sum.out).toLocaleString("ko-KR")}
+          </span>
           <span className="chart-tile__sub">{sum.count}건</span>
         </div>
         <div className="chart-tile">
           <span className="chart-tile__label">일 평균</span>
-          <MaskedAmount
-            className="chart-tile__value"
-            hide={sum.hasBlur}
-            value={Math.round(sum.out / daysInMonth).toLocaleString("ko-KR")}
-          />
+          <span className="chart-tile__value">
+            {Math.round(sum.out / daysInMonth).toLocaleString("ko-KR")}
+          </span>
           <span className="chart-tile__sub">/{daysInMonth}</span>
         </div>
         <div className="chart-tile">
           <span className="chart-tile__label">일 최고</span>
-          <MaskedAmount
-            className="chart-tile__value"
-            hide={sum.hasBlur}
-            value={Math.round(peak.지출).toLocaleString("ko-KR")}
-          />
+          <span className="chart-tile__value">
+            {Math.round(peak.지출).toLocaleString("ko-KR")}
+          </span>
           <span className="chart-tile__sub">{peak.day ? `${peak.day}일` : " "}</span>
         </div>
       </div>
@@ -2766,31 +2572,30 @@ export default function Charts() {
   );
 }
 
-/** 견줌 보기 팝업의 금액 한 칸. 가려야 할 갈래가 섞였으면 테이프를 붙인다. */
+/** 견줌 보기 팝업의 금액 한 칸 */
 function CmpAmt({
   v,
-  blur,
   sign = false,
   short = false,
 }: {
   v: number;
-  blur: boolean;
   /** 차이 칸 — 부호를 앞에 붙인다 */
   sign?: boolean;
   /** 표 안에서는 짧게 적는다(34만) */
   short?: boolean;
 }) {
   const 숫자 = short ? shortWon(v) : won(v);
-  const 글 = sign ? `${v > 0 ? "+" : v < 0 ? "-" : ""}${숫자}` : 숫자;
-  return <MaskedAmount className="prev-cmp__val" hide={blur} value={글} />;
+  return (
+    <span className="prev-cmp__val">
+      {sign ? `${v > 0 ? "+" : v < 0 ? "-" : ""}${숫자}` : 숫자}
+    </span>
+  );
 }
 
 /**
  * 전월 대비 단추를 꾹 누르면 뜨는 팝업이다. 그림이 보이는 만큼을 숫자로 다시 적는다.
  *
  * 껍데기는 필터 팝업과 같은 틀(popup-overlay, popup-panel--framed)을 쓴다.
- * 가려야 할 갈래가 섞인 칸은 내역 카드와 같이 테이프를 붙인다 — 숫자를 모아
- * 놓았다고 가린 것이 드러나면 가린 뜻이 없다.
  */
 function PrevCmpPopup({
   cmp,
@@ -2830,11 +2635,11 @@ function PrevCmpPopup({
           <div className="prev-cmp__sum">
             <div className="prev-cmp__cell">
               <span className="prev-cmp__lab">{curLabel}</span>
-              <CmpAmt v={cmp.총이달} blur={cmp.총가림} />
+              <CmpAmt v={cmp.총이달} />
             </div>
             <div className="prev-cmp__cell">
               <span className="prev-cmp__lab">{prevLabel}</span>
-              <CmpAmt v={cmp.총지난달} blur={cmp.총가림} />
+              <CmpAmt v={cmp.총지난달} />
             </div>
             <div
               className={`prev-cmp__cell prev-cmp__cell--diff${
@@ -2842,7 +2647,7 @@ function PrevCmpPopup({
               }`}
             >
               <span className="prev-cmp__lab">차이</span>
-              <CmpAmt v={차이} blur={cmp.총가림} sign />
+              <CmpAmt v={차이} sign />
             </div>
           </div>
 
@@ -2862,13 +2667,13 @@ function PrevCmpPopup({
                   <tr key={r.name}>
                     <th scope="row">{r.name}</th>
                     <td>
-                      <CmpAmt v={r.cur} blur={r.curBlur} short />
+                      <CmpAmt v={r.cur} short />
                     </td>
                     <td>
-                      <CmpAmt v={r.prev} blur={r.prevBlur} short />
+                      <CmpAmt v={r.prev} short />
                     </td>
                     <td className={d > 0 ? "up" : d < 0 ? "down" : ""}>
-                      <CmpAmt v={d} blur={r.curBlur || r.prevBlur} sign short />
+                      <CmpAmt v={d} sign short />
                     </td>
                   </tr>
                 );

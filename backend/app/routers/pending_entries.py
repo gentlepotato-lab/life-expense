@@ -146,6 +146,18 @@ def set_perf_exclude(entry_id: int, value: int = Query(...), db: SessionDep = De
     db.commit()
     return {"status": "ok", "updated": result.rowcount}
 
+@router.put("/{entry_id}/fixed")
+def set_fixed(entry_id: int, value: str = Query(...), db: SessionDep = Depends()):
+    """이 건이 고정인지 변동인지를 손으로 정한다. 지출 내역과 같은 자리다."""
+    v = None if value == "" else (1 if value in ("1", "true", "fixed") else 0)
+    result = db.execute(text("""
+        UPDATE life_expense.pending_entries
+           SET fixed_flag = :v
+         WHERE entry_id = :id
+    """), {"v": v, "id": entry_id})
+    db.commit()
+    return {"status": "ok", "updated": result.rowcount}
+
 @router.get("")
 def list_pending_entries(db: SessionDep = Depends()):
     sql = text("""
@@ -214,6 +226,7 @@ def send_pending(entry_id: int, db: SessionDep = Depends()):
         memo=p.memo,
         place_id=p.place_id,  # ← ← ← 중요: 기존 장소 그대로 전달
         perf_exclude=p.perf_exclude,
+        fixed_flag=p.fixed_flag,
     )
 
     db.add(new_entry)
@@ -249,6 +262,7 @@ def send_all_pending(db: SessionDep = Depends()):
             memo=p.memo,
             place_id=p.place_id,
             perf_exclude=p.perf_exclude,
+        fixed_flag=p.fixed_flag,
         )
         
         db.add(new_entry)
@@ -295,6 +309,7 @@ def send_filtered_pending(payload: SendFilteredRequest, db: SessionDep = Depends
             memo=p.memo,
             place_id=p.place_id,
             perf_exclude=p.perf_exclude,
+        fixed_flag=p.fixed_flag,
         )
         
         db.add(new_entry)

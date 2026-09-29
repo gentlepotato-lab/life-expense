@@ -5653,10 +5653,15 @@ div:has(> .pm-item) .drag-handle {
   min-width: 42px;
 }
 
-.set-blur-btn:hover,
-.set-hide-btn:hover {
+.set-blur-btn:hover:not(:disabled),
+.set-hide-btn:hover:not(:disabled) {
   border-color: var(--color-text-tertiary);
   color: var(--color-text-secondary);
+}
+
+/* 보기 모드의 Blur 알약 — 걸린 것이 보이도록 빛깔은 그대로 두고 손만 막는다. */
+.set-blur-btn:disabled {
+  cursor: default;
 }
 
 /* 켜짐 — Blur는 가린다는 뜻이라 흐릿한 보라, 감추기는 진회색 */
@@ -5667,7 +5672,7 @@ div:has(> .pm-item) .drag-handle {
   letter-spacing: 0.02em;
 }
 
-.set-blur-btn.on:hover {
+.set-blur-btn.on:hover:not(:disabled) {
   background: #DCDEFB;
 }
 
@@ -7820,23 +7825,9 @@ html {
   margin-left: -2px;
 }
 
-/* ─── ⑤ 달력의 Blur 알약과 한 달 합계 ────────────────────────
-   가려 둔 갈래를 셈에 넣을지 고르는 단추. 지출·대기·정기 알약과
-   한 줄에 서지만 점이 없어 성격이 다름을 알 수 있다. */
-.cal-source--blur {
-  border-style: dashed;
-  font-family: inherit;
-  letter-spacing: 0.02em;
-}
-
-.cal-source--blur.on {
-  border-style: solid;
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-  color: var(--color-primary-dark);
-}
-
-/* 한 달 합계도 카드·날짜 합계와 같은 테이프로 덮는다. */
+/* ─── ⑤ 달력의 한 달 합계 ────────────────────────────────────
+   금액에 테이프를 붙이는 곳은 개별 내역 카드뿐이라 한 달 합계는 이제 덮지
+   않는다. 아래 규칙은 다른 화면이 같은 이름을 쓸 때를 위해 남겨 둔다. */
 .cal-sum__in.masked,
 .cal-sum__out.masked {
   position: relative;
@@ -8427,44 +8418,6 @@ div:has(> .pm-item) {
      · Exclude — 셈에서 뺀다. 내역 카드에는 그대로 보인다.
    ════════════════════════════════════════════════════════════ */
 
-/* 생김새는 Blur 단추와 같게. 자리만 IN/OUT 선택기가 쓰던 70px를 물려받아
-   뒤따르는 Blur · 감추기 · × 가 1px도 안 움직이게 못 박는다. */
-.set-exclude-btn {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 70px;
-  height: 22px;
-  min-height: 22px;
-  max-height: 22px;
-  padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-surface);
-  color: var(--color-text-tertiary);
-  font-family: inherit;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
-}
-
-.set-exclude-btn:active {
-  transform: scale(0.94);
-  transition-duration: 80ms;
-}
-
-.set-exclude-btn.on {
-  border-color: var(--color-text-secondary);
-  background: var(--color-text-secondary);
-  color: #fff;
-}
-
 /* ─── 소분류 이름 앞의 IN/OUT ─────────────────────────────────
    보기 모드는 예전 크기(7px) 그대로의 점, 편집 모드는 그 자리에 선
    [＋] · [−] 부호. 자리 폭이 12px로 같아 모드를 오가도 이름이 안 움직인다. */
@@ -8536,33 +8489,10 @@ button.cat2-inout:active {
   padding-right: 2px;
 }
 
-.cat1-head > .set-exclude-btn {
-  margin-left: auto;
-}
-
-/* 편집 모드에서는 Exclude가 자리를 먹으므로 건수의 auto는 걷는다. */
-.cat1-head:has(.set-exclude-btn) > .set-group__count {
-  margin-left: 0;
-}
-
 /* 세분류 줄은 사이가 8px이라 단추들이 3px씩 왼쪽으로 밀렸다.
    소분류 줄과 같은 5px로 맞춘다 — 그러면 네 단추가 같은 자리에 선다. */
 .cat3-row {
   gap: 5px;
-}
-
-/* 집계 알약 — Blur 옆에 선다. 켜져 있으면 빼 둔 갈래가 빠진 상태다. */
-.cal-source--exclude {
-  font-family: inherit;
-  letter-spacing: 0.02em;
-  border-style: dashed;
-}
-
-.cal-source--exclude.on {
-  border-style: solid;
-  border-color: var(--color-text-secondary);
-  background: var(--color-text-secondary);
-  color: #fff;
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -8613,33 +8543,6 @@ button.cat2-inout:active {
   min-width: 0;
   max-width: 92px;
   height: 20px;
-}
-
-/* 위 분류에서 걸려 이어받은 Exclude는 누를 수 없다 — 위에서 풀어야 풀린다. */
-.set-exclude-btn:disabled {
-  cursor: default;
-  opacity: 0.55;
-}
-
-.set-exclude-btn:disabled:active {
-  transform: none;
-}
-
-/* ─── Exclude 단추를 Blur와 같은 글꼴로 ──────────────────────
-   Exclude만 10px · 자간 0.2px이라 Blur(11px · 자간 없음)와 달라 보였다.
-   폭도 70px로 잡아 글자에 비해 헐렁했다. Blur와 같은 규격에 맞춘다. */
-.set-exclude-btn {
-  width: 62px;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  letter-spacing: normal;
-}
-
-/* 알약도 조금 좁힌다 — Exclude가 길어 보이던 것을 여백에서 덜어 낸다. */
-.cal-source--blur,
-.cal-source--exclude {
-  padding: 0 7px;
-  letter-spacing: normal;
 }
 
 /* 건수가 한 자리냐 두 자리냐에 따라 앞의 단추들이 2px씩 밀렸다.
@@ -8720,8 +8623,8 @@ button.cat2-inout:active {
    입력란이 뜨면 뒤따르던 Exclude · Blur · 감추기 · × 가 통째로 3px 왼쪽으로
    끌려갔다. 남는 자리를 여백이 먹게 해 무리를 제자리(209 · 377)에 붙든다.
    중분류 머리가 이미 같은 방식이다. */
-.cat2-header-row > .set-exclude-btn,
-.cat3-row > .set-exclude-btn {
+.cat2-header-row > .set-fixed,
+.cat3-row > .set-fixed {
   margin-left: auto;
 }
 
@@ -8734,27 +8637,6 @@ button.cat2-inout:active {
    빛깔은 Blur와 겹치지 않게 보라 대신 청회색을 쓴다.
    분류 단추와 달력 · 씀씀이 알약이 같은 빛깔을 쓴다.
    ═════════════════════════════════════════════════════════════ */
-
-/* 분류 — Blur 단추와 같은 짜임(테두리 없음 · 옅은 바탕 · 진한 글자) */
-.set-exclude-btn.on {
-  border-color: transparent;
-  background: #E3E8EF;
-  color: #44505F;
-}
-
-/* 달력 · 씀씀이 알약 — Blur 알약처럼 켜지면 테두리를 실선으로 남긴다. */
-.cal-source--exclude.on {
-  border-style: solid;
-  border-color: #B7C2D0;
-  background: #E3E8EF;
-  color: #44505F;
-}
-
-/* 위 분류에서 이어받아 잠긴 것 — 바탕이 옅어져 0.55로는 거의 지워졌다.
-   조금만 흐리게 해 켜진 상태가 그대로 읽히게 한다. */
-.set-exclude-btn.on:disabled {
-  opacity: 0.8;
-}
 
 /* ══════════════════════════════════════════════════════════════
    59. 이모지를 이름 앞으로(2026-08-19)
@@ -14915,15 +14797,6 @@ textarea.memo-input.memo-area {
   background: color-mix(in srgb, #FFFFFF 16%, var(--color-surface));
 }
 
-/* Exclude 알약은 일부러 무채색으로 둔 자리다. 어두운 쪽에도 무채색이되
-   바탕보다는 밝아야 꺼진 것이 아니라 켜진 것으로 읽힌다. */
-:root[data-dark="1"] .cal-source--exclude,
-:root[data-dark="1"] .cal-source--exclude.on {
-  background: color-mix(in srgb, #FFFFFF 12%, var(--color-surface));
-  border-color: color-mix(in srgb, #FFFFFF 18%, var(--color-surface));
-  color: var(--color-text-secondary);
-}
-
 /* 계산기의 숫자 단추와 못 푼 자리 */
 :root[data-dark="1"] .calculator-popup-content .calculator-button--number {
   background: var(--color-surface);
@@ -15731,4 +15604,353 @@ textarea.memo-input.memo-area {
    남는 자리가 없어 보이는 것이 달라지지 않는다. */
 .popup-panel--pal .pal-pop__stage {
   justify-content: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   158. 고정과 변동(2026-09)
+   ─────────────────────────────────────────────────────────────
+   달마다 같은 자리에 오는 돈과 그때그때 달라지는 돈을 가른다. 압정은 박아 둔
+   것, 물결은 출렁이는 것이다. 글자를 쓰지 않는 까닭은 이 기호가 내역 카드마다
+   하나씩 서기 때문이다 — 네 글자가 줄마다 붙으면 카드가 빽빽해진다.
+
+   고르개는 알약 하나로 접어 둔다. 넷을 늘어놓으면 손전화 가로를 넘는다.
+   펼친 판은 IN/OUT으로 묶고, 묶음 머리말에는 앱이 이미 쓰는 딱지를 그대로
+   쓴다 — 어느 쪽 돈인지 글을 읽지 않아도 알게 하려는 것이다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 내역 카드의 기호 — 카드 실적 제외 단추와 같은 결 ──────
+   자리도 크기도 그 단추를 그대로 따른다. 줄의 글줄이 18px인데 기호가 20px라
+   그냥 두면 카드마다 키가 2px 늘어난다 — 위아래로 1px씩 당겨 줄에는 18px로
+   서게 한다(카드 안쪽 여백이 7px이라 삐져나온 1px은 잘리지 않는다).
+
+   기호 둘은 붙어서 줄 오른쪽으로 간다. 남는 자리를 먹는 쪽은 앞에 서는
+   이 기호이고, 뒤따르는 실적 제외 단추의 auto는 걷는다 — 둘 다 먹으면
+   기호 사이가 벌어져 결제 수단이 따로 떨어져 보인다. */
+.fixed-mark {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: auto;
+  margin-block: -1px;
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: color 140ms ease, transform 140ms ease;
+}
+
+/* 실적 제외 단추가 동그라미 안에 카드를 담듯, 여기도 동그라미 안에 기호를
+   담는다. 그쪽은 SVG로 원을 그리지만 이 기호는 그림 둘을 갈아 끼우므로
+   동그라미는 바깥 껍데기가 맡는다 — 압정과 물결을 각각 고칠 일이 없다.
+
+   테두리 · 옅은 바탕 · 짙은 기호, 셋의 짜임은 IN/OUT 딱지(.inout-chip)와
+   같은 것을 쓴다. 한 화면에서 같은 말을 하는 것들이 같은 옷을 입어야 한다. */
+.fixed-mark__disc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-text-tertiary);
+}
+
+/* 빛깔은 그 줄이 나간 돈이냐 들어온 돈이냐를 따른다 — 카드 왼쪽 막대 · 금액이
+   이미 그렇게 물들어 있으므로, 그 옆의 이 동그라미만 딴 빛깔이면 카드 안에서
+   말이 갈린다. 줄이 이미 달고 있는 표(.in-bar · .out-bar)를 그대로 읽으면
+   되므로 부품에 무엇을 더 넘기지 않는다. */
+.card:has(.in-bar) .fixed-mark__disc {
+  border-color: color-mix(in srgb, var(--color-success) 35%, transparent);
+  background: color-mix(in srgb, var(--color-success) 8%, transparent);
+  color: var(--color-success-dark);
+}
+
+.card:has(.out-bar) .fixed-mark__disc {
+  border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  color: var(--color-danger-dark);
+}
+
+/* 0원이면 어느 쪽도 아니다. 금액 · 막대가 보라로 돌아서는 것과 같이 돌린다.
+   IN/OUT 규칙보다 뒤에 두어 이긴다. */
+.card:has(.amount-text.zero) .fixed-mark__disc {
+  border-color: color-mix(in srgb, var(--color-zero) 45%, transparent);
+  background: color-mix(in srgb, var(--color-zero) 12%, transparent);
+  color: var(--color-zero-dark);
+}
+
+.fixed-mark__disc > svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 줄의 기본 사이가 10px이라 기호 둘이 헐렁하게 떨어져 보인다. 실적 제외 ·
+   결제 수단이 서로 6px로 붙는 것과 같이 4px를 당긴다. */
+.card--entry .entry-ln > .fixed-mark + .perf-x {
+  margin-left: -4px;
+}
+
+/* 기호가 하나뿐인 줄(현금 · 계좌이체)에서는 결제 수단이 기호 바로 뒤에 선다. */
+.card--entry .entry-ln > .fixed-mark + .pay-method-text {
+  flex: 0 1 auto;
+  margin-left: -4px;
+  text-align: right;
+}
+
+/* 고정과 변동은 나란한 두 갈래라 동그라미를 똑같이 채운다. 고정에만 색을
+   주면 변동이 "아직 안 정한 것"처럼 보인다 — 빛깔은 IN/OUT/0을 말하는
+   자리이고, 고정인지 변동인지는 그 안의 기호가 말한다. */
+
+.fixed-mark:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.fixed-mark:disabled {
+  cursor: default;
+}
+
+/* ─── 고르개 알약 ──────────────────────────────────────────── */
+.fx-filter {
+  position: relative;
+  display: inline-flex;
+}
+
+/* 지출·대기·정기 알약과 한 줄에 서지만 점이 없다. 성격이 다르다는 뜻이다 —
+   Blur 알약이 있던 자리와 꾸밈을 그대로 물려받는다. 점선에 빈 알약은 하나도
+   안 켠 것이고, 하나라도 켜면 실선으로 차오른다. 옆의 지출·대기·정기 알약이
+   켜고 끄는 방식과 같아, 한 줄에 선 넷이 같은 말로 읽힌다. */
+.cal-source--fixed {
+  gap: 4px;
+  padding: 0 7px;
+  border-style: dashed;
+  font-family: inherit;
+  letter-spacing: normal;
+}
+
+.cal-source--fixed.on {
+  border-style: solid;
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.fx-filter__caret {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+/* 몇이 켜졌는지는 늘 적는다 — 다 켜졌으면 `all`이다. 딱지가 있다 없다 하면
+   그 자리가 무엇을 말하는 자리인지 알 수 없어 오히려 빠진 것처럼 보인다.
+   하나도 안 켠 빈 알약에서는 딱지도 함께 가라앉는다. */
+.fx-filter__n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cal-source--fixed:not(.on) > .fx-filter__n {
+  background: var(--color-border);
+  color: var(--color-text-tertiary);
+}
+
+/* ─── 펼친 판 ──────────────────────────────────────────────── */
+.fx-pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  z-index: 40;
+  min-width: 150px;
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lift);
+  animation: panel-in 140ms var(--ease);
+}
+
+.fx-pop__group + .fx-pop__group {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* 딱지는 제 글자만큼만 쓰고, 뒤따르는 말은 줄을 바꾸지 않는다 — 그냥 두면
+   딱지가 줄을 다 먹어 `지출`이 두 글자로 쪼개진다. */
+.fx-pop__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px 4px;
+}
+
+/* 딱지는 쓰기 판에서 쓰던 38px짜리다. 그대로 두면 판 머리가 입력 칸만 해져
+   아래 줄을 눌러 버린다 — 빛깔만 물려받고 크기는 알약 만하게 줄인다. */
+.fx-pop__head > .inout-chip {
+  flex: 0 0 auto;
+  width: auto;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.fx-pop__kind {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--color-text-tertiary);
+}
+
+.fx-pop__row {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fx-pop__row + .fx-pop__row {
+  margin-top: 2px;
+}
+
+.fx-pop__row:hover {
+  background: var(--color-bg);
+}
+
+.fx-pop__box {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1.5px solid var(--color-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.fx-pop__row.on .fx-pop__box {
+  border-color: transparent;
+  background: var(--color-primary);
+}
+
+.fx-pop__ico {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-tertiary);
+}
+
+.fx-pop__row.on .fx-pop__ico {
+  color: var(--color-text-secondary);
+}
+
+/* ─── 분류 관리의 고르개 — 압정과 물결 가운데 하나 ──────────
+   키는 옆에 선 Blur · 감추기 알약과 같은 22px로 못 박는다(테두리 1px + 안쪽
+   여백 1px + 단추 18px). 하나라도 더 높으면 그 줄만 키가 늘어, 편집을 켤 때
+   목록 전체가 두 줄씩 밀려 내려간다. */
+.set-fixed {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  box-sizing: border-box;
+  padding: 1px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+}
+
+.set-fixed > button {
+  width: 26px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.set-fixed > button.on {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+/* 고른 쪽은 그 갈래가 나가는 돈이냐 들어오는 돈이냐를 따라 물든다 — 이름 앞의
+   +/− 점(.cat2-inout)이 쓰는 빛깔 그대로다. 내역 카드의 동그라미도 같은 잣대라,
+   분류에서 정한 것과 카드에 보이는 것이 한 빛깔로 이어진다.
+   테두리도 옅게 물들여 고르개 하나가 통째로 그 편임을 알게 한다. */
+.set-fixed--out {
+  border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
+}
+
+.set-fixed--out > button.on {
+  background: var(--color-danger);
+}
+
+.set-fixed--in {
+  border-color: color-mix(in srgb, var(--color-success) 35%, transparent);
+}
+
+.set-fixed--in > button.on {
+  background: var(--color-success);
+}
+
+/* 보기 모드에서도 고른 것이 그대로 보인다 — 누르는 것만 막으므로 흐려지지
+   않는다. 무엇이 걸려 있는지 알려고 편집을 켰다 끄게 하지 않으려는 것이다. */
+.set-fixed > button:disabled {
+  cursor: default;
+}
+
+/* 위 분류에서 걸려 이어받은 것만 흐리다 — 여기서는 못 풀고 위에서 풀어야
+   한다는 뜻이다. Blur 알약이 잠길 때와 같은 결이다. */
+.set-fixed--lock > button {
+  opacity: 0.55;
+}
+
+.set-fixed svg {
+  width: 13px;
+  height: 13px;
 }

@@ -493,7 +493,7 @@ export default function Me() {
 
             <div className="me-pref">
               {lockCover()}
-              <span className="me-pref__name">Blur 처음부터 켜기</span>
+              <span className="me-pref__name">마스킹 테이프 붙이기</span>
               <div className="me-pref__control">
                 <button
                   type="button"
@@ -502,23 +502,6 @@ export default function Me() {
                   onClick={() => setPref("blur_default", prefs.blur_default === "1" ? "0" : "1")}
                 >
                   {prefs.blur_default === "1" ? "켬" : "끔"}
-                </button>
-              </div>
-            </div>
-
-            <div className="me-pref">
-              {lockCover()}
-              <span className="me-pref__name">Exclude 처음부터 켜기</span>
-              <div className="me-pref__control">
-                <button
-                  type="button"
-                  className={`set-hide-btn${prefs.exclude_default === "1" ? " on" : ""}`}
-                  disabled={!editMode}
-                  onClick={() =>
-                    setPref("exclude_default", prefs.exclude_default === "1" ? "0" : "1")
-                  }
-                >
-                  {prefs.exclude_default === "1" ? "켬" : "끔"}
                 </button>
               </div>
             </div>
@@ -553,11 +536,11 @@ export default function Me() {
               </div>
             </div>
 
-            {/* 마스킹 테이프 — 고르는 것은 위 넷과 같다. [저장]을 눌러야 담기고,
+            {/* 테이프 무늬 — 고르는 것은 위 넷과 같다. [저장]을 눌러야 담기고,
                 담기는 그때 화면 곳곳의 테이프가 바뀐다. */}
             <div className="me-pref me-pref--tape">
               {lockCover()}
-              <span className="me-pref__name">마스킹 테이프</span>
+              <span className="me-pref__name">테이프 무늬</span>
               <div className="me-tape">
                 {TAPES.map((t) => {
                   const on = (prefs.tape_style ?? DEFAULT_TAPE) === t.key;

@@ -19,6 +19,15 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import QuickActions from "./components/QuickActions";
+import { PinIcon, WaveIcon } from "./components/FixedIcons";
+
+/**
+ * 고정 · 변동 고르개가 입을 빛깔 — 그 갈래가 나가는 돈인지 들어오는 돈인지를
+ * 따른다. 이름 앞의 +/− 점(.cat2-inout)이 이미 그 빛깔이라, 한 줄 안에서
+ * 두 가지가 다른 말을 하지 않게 한다. 세분류는 딸린 소분류를 따른다.
+ */
+const inoutTone = (inout?: number | null) =>
+  inout === 1 ? " set-fixed--in" : inout === -1 ? " set-fixed--out" : "";
 
 type SortableItemProps = {
   id: string | number;
@@ -136,7 +145,6 @@ export default function Categories() {
         cat1_name: c.name,
         emoji: c.emoji ?? null,
         is_active: c.is_active ?? 1,
-        exclude: c.exclude ?? 0,
         blur: c.blur ?? 0,
         editing: false
       })))
@@ -150,7 +158,7 @@ export default function Categories() {
         blur: c.blur ?? 0, // blur 값 받기
         inout: c.inout ?? null, // inout 값 받기
         is_active: c.is_active ?? 1,
-        exclude: c.exclude ?? 0,
+        fixed: c.fixed ?? 0,
         editing: false
       })))
     );
@@ -161,20 +169,20 @@ export default function Categories() {
         cat3_name: c.name,
         cat2_id: c.cat2_id,
         is_active: c.is_active ?? 1,
-        exclude: c.exclude ?? 0,
+        fixed: c.fixed ?? 0,
         blur: c.blur ?? 0,
         editing: false
       })))
     );
   }, []);
 
-  /* Exclude — 집계에서 뺀다. 저장을 눌러야 반영되는 것은 감추기와 같다. */
-  const toggleExclude1 = (id: number) =>
-    setCat1(cat1.map((x) => (x.cat1_id === id ? { ...x, exclude: x.exclude ? 0 : 1 } : x)));
-  const toggleExclude2 = (id: number) =>
-    setCat2(cat2.map((x) => (x.cat2_id === id ? { ...x, exclude: x.exclude ? 0 : 1 } : x)));
-  const toggleExclude3 = (id: number) =>
-    setCat3(cat3.map((x) => (x.cat3_id === id ? { ...x, exclude: x.exclude ? 0 : 1 } : x)));
+  /* 고정 · 변동 — 달마다 같은 자리에 오는 돈인지. 중분류에는 두지 않는다.
+     한 중분류 안에서도 소분류마다 갈리기 때문이다(저축은 고정, 투자는 변동).
+     Blur와 같이 저장을 눌러야 반영된다. */
+  const setFixed2 = (id: number, v: number) =>
+    setCat2(cat2.map((x) => (x.cat2_id === id ? { ...x, fixed: v } : x)));
+  const setFixed3 = (id: number, v: number) =>
+    setCat3(cat3.map((x) => (x.cat3_id === id ? { ...x, fixed: v } : x)));
 
   /* Blur — Exclude와 같이 저장을 눌러야 반영된다.
      예전에는 소분류만 있었고 누르는 즉시 저장됐다. 되돌리기(뒤로 가기)가
@@ -249,15 +257,15 @@ export default function Categories() {
     }
 
     // 변경 체크 & 저장 로직 기존 그대로
-    /* Exclude도 함께 본다 — 이것만 건드리고 저장하면
+    /* 고정 · 변동도 함께 본다 — 이것만 건드리고 저장하면
        "변경된 내용이 없습니다"로 되돌아가 버린다. */
     const changed =
-      JSON.stringify(beforeEditCat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.exclude ?? 0, c.blur ?? 0])) !==
-        JSON.stringify(cat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.exclude ?? 0, c.blur ?? 0])) ||
-      JSON.stringify(beforeEditCat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active, c.exclude ?? 0])) !==
-        JSON.stringify(cat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active, c.exclude ?? 0])) ||
-      JSON.stringify(beforeEditCat3.map(c => [c.cat3_id, c.cat3_name, c.is_active, c.exclude ?? 0, c.blur ?? 0])) !==
-        JSON.stringify(cat3.map(c => [c.cat3_id, c.cat3_name, c.is_active, c.exclude ?? 0, c.blur ?? 0]));
+      JSON.stringify(beforeEditCat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.blur ?? 0])) !==
+        JSON.stringify(cat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.blur ?? 0])) ||
+      JSON.stringify(beforeEditCat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active, c.fixed ?? 0])) !==
+        JSON.stringify(cat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active, c.fixed ?? 0])) ||
+      JSON.stringify(beforeEditCat3.map(c => [c.cat3_id, c.cat3_name, c.is_active, c.fixed ?? 0, c.blur ?? 0])) !==
+        JSON.stringify(cat3.map(c => [c.cat3_id, c.cat3_name, c.is_active, c.fixed ?? 0, c.blur ?? 0]));
 
     if (!changed) {
       alert("변경된 내용이 없습니다만...?");
@@ -271,7 +279,6 @@ export default function Categories() {
         cat1_name: c.cat1_name,
         emoji: c.emoji ?? "",
         is_active: c.is_active ?? 1,
-        exclude: c.exclude ?? 0,
         blur: c.blur ?? 0,
         sort_order: idx + 1,
       })),
@@ -283,7 +290,7 @@ export default function Categories() {
             cat1_id: c1.cat1_id,
             cat2_name: c.cat2_name,
             is_active: c.is_active ?? 1,
-            exclude: c.exclude ?? 0,
+            fixed: c.fixed ?? 0,
             blur: c.blur ?? 0,
             sort_order: idx + 1,
             inout: c.inout,
@@ -297,7 +304,7 @@ export default function Categories() {
             cat2_id: c2.cat2_id,
             cat3_name: c.cat3_name,
             is_active: c.is_active ?? 1,
-            exclude: c.exclude ?? 0,
+            fixed: c.fixed ?? 0,
             blur: c.blur ?? 0,
             sort_order: idx + 1,
           }))
@@ -762,25 +769,17 @@ export default function Categories() {
 
                     </div>
 
-                    {editMode && (
-                      <button
-                        type="button"
-                        className={`set-exclude-btn ${c1.exclude ? "on" : ""}`}
-                        onClick={() => toggleExclude1(c1.cat1_id)}
-                      >
-                        Exclude
-                      </button>
-                    )}
-
-                    {editMode && (
-                      <button
-                        type="button"
-                        className={`set-blur-btn ${c1.blur ? "on" : ""}`}
-                        onClick={() => toggleBlur1(c1.cat1_id)}
-                      >
-                        Blur
-                      </button>
-                    )}
+                    {/* 걸어 둔 Blur는 보기 모드에서도 보인다 — 무엇이 걸려 있는지
+                        알려고 편집을 켰다 끄게 하지 않는다. 누르는 것만 막는다. */}
+                    <button
+                      type="button"
+                      className={`set-blur-btn ${c1.blur ? "on" : ""}`}
+                      disabled={!editMode}
+                      title={c1.blur ? "금액을 테이프로 덮는다." : undefined}
+                      onClick={() => toggleBlur1(c1.cat1_id)}
+                    >
+                      Blur
+                    </button>
 
                     {editMode && (
                       <button
@@ -889,28 +888,45 @@ export default function Categories() {
                                 </span>
                               )}
 
-                              {editMode && (
+                              {/* 고정이면 압정, 변동이면 물결. 둘 가운데 하나다.
+                                  보기 모드에서도 그대로 서고 누르는 것만 막힌다. */}
+                              <span
+                                className={`set-fixed${inoutTone(c2.inout)}`}
+                                role="group"
+                                aria-label="고정 · 변동"
+                              >
                                 <button
                                   type="button"
-                                  className={`set-exclude-btn ${c1.exclude || c2.exclude ? "on" : ""}`}
-                                  disabled={!!c1.exclude}
-                                  onClick={() => toggleExclude2(c2.cat2_id)}
+                                  className={c2.fixed ? "on" : ""}
+                                  disabled={!editMode}
+                                  title="고정 — 달마다 같은 자리에 온다."
+                                  aria-pressed={!!c2.fixed}
+                                  onClick={() => setFixed2(c2.cat2_id, 1)}
                                 >
-                                  Exclude
+                                  <PinIcon />
                                 </button>
-                              )}
+                                <button
+                                  type="button"
+                                  className={c2.fixed ? "" : "on"}
+                                  disabled={!editMode}
+                                  title="변동 — 그때그때 달라진다."
+                                  aria-pressed={!c2.fixed}
+                                  onClick={() => setFixed2(c2.cat2_id, 0)}
+                                >
+                                  <WaveIcon />
+                                </button>
+                              </span>
 
-                              {editMode && (
-                                /* Blur는 금액을 테이프로 덮는 것. 감추기와는 다르다. */
-                                <button
-                                  type="button"
-                                  className={`set-blur-btn ${c1.blur || c2.blur ? "on" : ""}`}
-                                  disabled={!!c1.blur}
-                                  onClick={() => toggleBlur2(c2.cat2_id)}
-                                >
-                                  Blur
-                                </button>
-                              )}
+                              {/* Blur는 금액을 테이프로 덮는 것. 감추기와는 다르다. */}
+                              <button
+                                type="button"
+                                className={`set-blur-btn ${c1.blur || c2.blur ? "on" : ""}`}
+                                disabled={!editMode || !!c1.blur}
+                                title={c1.blur ? "중분류에서 걸려 있다." : undefined}
+                                onClick={() => toggleBlur2(c2.cat2_id)}
+                              >
+                                Blur
+                              </button>
 
                               {editMode && (
                                 <button
@@ -1011,27 +1027,46 @@ export default function Categories() {
                                           </span>
                                         )}
 
-                                        {editMode && (
+                                        {/* 소분류가 고정이면 딸린 세분류도 고정이다
+                                            — Blur와 같은 셈법이라 그때는 잠긴다. */}
+                                        <span
+                                          className={`set-fixed${inoutTone(c2.inout)}${
+                                            c2.fixed ? " set-fixed--lock" : ""
+                                          }`}
+                                          role="group"
+                                          aria-label="고정 · 변동"
+                                        >
                                           <button
                                             type="button"
-                                            className={`set-exclude-btn ${c1.exclude || c2.exclude || c3.exclude ? "on" : ""}`}
-                                            disabled={!!c1.exclude || !!c2.exclude}
-                                            onClick={() => toggleExclude3(c3.cat3_id)}
+                                            className={c2.fixed || c3.fixed ? "on" : ""}
+                                            disabled={!editMode || !!c2.fixed}
+                                            title="고정 — 달마다 같은 자리에 온다."
+                                            aria-pressed={!!(c2.fixed || c3.fixed)}
+                                            onClick={() => setFixed3(c3.cat3_id, 1)}
                                           >
-                                            Exclude
+                                            <PinIcon />
                                           </button>
-                                        )}
+                                          <button
+                                            type="button"
+                                            className={c2.fixed || c3.fixed ? "" : "on"}
+                                            disabled={!editMode || !!c2.fixed}
+                                            title="변동 — 그때그때 달라진다."
+                                            aria-pressed={!(c2.fixed || c3.fixed)}
+                                            onClick={() => setFixed3(c3.cat3_id, 0)}
+                                          >
+                                            <WaveIcon />
+                                          </button>
+                                        </span>
 
-                                        {editMode && (
-                                          <button
-                                            type="button"
-                                            className={`set-blur-btn ${c1.blur || c2.blur || c3.blur ? "on" : ""}`}
-                                            disabled={!!c1.blur || !!c2.blur}
-                                            onClick={() => toggleBlur3(c3.cat3_id)}
-                                          >
-                                            Blur
-                                          </button>
-                                        )}
+                                        <button
+                                          type="button"
+                                          className={`set-blur-btn ${c1.blur || c2.blur || c3.blur ? "on" : ""}`}
+                                          disabled={!editMode || !!c1.blur || !!c2.blur}
+                                          title={c1.blur || c2.blur ? "위 분류에서 걸려 있다." : undefined}
+                                          onClick={() => toggleBlur3(c3.cat3_id)}
+                                        >
+                                          Blur
+                                        </button>
 
                                         {editMode && (
                                           <button

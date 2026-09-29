@@ -50,6 +50,24 @@ def set_perf_exclude(entry_id: int, value: int = Query(...), db: SessionDep = De
     db.commit()
     return {"status": "ok", "updated": result.rowcount}
 
+@router.put("/{entry_id}/fixed")
+def set_fixed(entry_id: int, value: str = Query(...), db: SessionDep = Depends()):
+    """이 건이 고정인지 변동인지를 손으로 정한다.
+
+    비워 두면 분류(소 · 세)에 정해 둔 것을 따른다. 손으로 정하면 그 건에만
+    남아, 뒤에 분류 설정을 바꿔도 이 건은 그대로다. 카드 실적 제외와 같이
+    한 칸만 손대는 자리다.
+    """
+    v = None if value == "" else (1 if value in ("1", "true", "fixed") else 0)
+    sql = text("""
+        UPDATE life_expense.entries
+           SET fixed_flag = :v
+         WHERE entry_id = :id
+    """)
+    result = db.execute(sql, {"v": v, "id": entry_id})
+    db.commit()
+    return {"status": "ok", "updated": result.rowcount}
+
 @router.put("/bulk")
 def update_entries_bulk(rows: list[dict], db: SessionDep = Depends()):
     updated = 0

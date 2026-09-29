@@ -75,6 +75,7 @@ def list_scheduled_entries(db: SessionDep = Depends()):
             "place_id": r.place_id,
             "place_name": place_names.get(r.place_id),
             "perf_exclude": r.perf_exclude,
+            "fixed_flag": r.fixed_flag,
             "is_active": r.is_active,
             "created_at": str(r.created_at),
             "updated_at": str(r.updated_at) if r.updated_at else None,
@@ -137,6 +138,18 @@ def set_perf_exclude(schedule_id: int, value: int = Query(...), db: SessionDep =
            SET perf_exclude = :v
          WHERE schedule_id = :id
     """), {"v": 1 if value else 0, "id": schedule_id})
+    db.commit()
+    return {"status": "ok", "updated": result.rowcount}
+
+@router.put("/{schedule_id}/fixed")
+def set_fixed(schedule_id: int, value: str = Query(...), db: SessionDep = Depends()):
+    """이 건이 고정인지 변동인지를 손으로 정한다. 지출 내역과 같은 자리다."""
+    v = None if value == "" else (1 if value in ("1", "true", "fixed") else 0)
+    result = db.execute(text("""
+        UPDATE life_expense.scheduled_entries
+           SET fixed_flag = :v
+         WHERE schedule_id = :id
+    """), {"v": v, "id": schedule_id})
     db.commit()
     return {"status": "ok", "updated": result.rowcount}
 
@@ -370,6 +383,7 @@ def process_scheduled_entries(db: Session):
             memo=schedule.memo,
             place_id=schedule.place_id,
             perf_exclude=schedule.perf_exclude,
+            fixed_flag=schedule.fixed_flag,
             sended=0,
         )
         db.add(new_pending)

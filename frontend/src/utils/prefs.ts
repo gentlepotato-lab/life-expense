@@ -14,8 +14,7 @@ export type Prefs = Record<string, string>;
 
 /** 담아 둔 것이 없을 때의 값 — 서버의 PREF_KEYS와 같아야 한다. */
 const FALLBACK: Prefs = {
-  blur_default: "0",
-  exclude_default: "1",
+  blur_default: "1",
   home_path: "/",
   nudge_on: "1",
   memo_show: "1",

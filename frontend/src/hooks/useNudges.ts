@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "../api/client";
 import {
   blurSetsFrom,
-  excludeSetsFrom,
+  ALL_FIXED_PICK,
+  type FixedPick,
+  fixedSetsFrom,
   isBlurred,
-  isExcluded,
-  type ExcludeSets,
+  passFixed,
 } from "../utils/calendarFilter";
 import type { Src } from "../utils/calendarFilter";
 import { buildNudges, type Nudge, type NRow } from "../utils/nudges";
@@ -30,7 +31,7 @@ const MONTHS = 3;
 const AHEAD_DAYS = 7;
 
 type Raw = Record<string, unknown>;
-type Cat = { id: number; name: string; blur?: number; exclude?: number };
+type Cat = { id: number; name: string; blur?: number };
 
 const ymd = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -134,6 +135,8 @@ async function load(): Promise<Loaded> {
         pay_method: x.pay_method as number,
         memo: x.memo as string,
         place_name: x.place_name as string,
+        /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
+        fixed_flag: (x.fixed_flag as number | null) ?? null,
         counterpart_ids: (x.counterpart_ids as number[]) ?? [],
       });
     });
@@ -159,6 +162,7 @@ async function load(): Promise<Loaded> {
       cat1_id: x.cat1_id as number,
       cat2_id: x.cat2_id as number,
       cat3_id: x.cat3_id as number,
+      fixed_flag: (x.fixed_flag as number | null) ?? null,
     }))
     .filter((p) => p.date);
 
@@ -176,6 +180,7 @@ async function load(): Promise<Loaded> {
       cat1_id: x.cat1_id as number,
       cat2_id: x.cat2_id as number,
       cat3_id: x.cat3_id as number,
+      fixed_flag: (x.fixed_flag as number | null) ?? null,
     }))
     .filter((s) => s.date >= today && s.date <= ymd(limit));
 
@@ -221,13 +226,13 @@ export function invalidateNudges() {
  * 잔소리와 안쓴이 도전이 같은 줄을 봐야 하므로 한 곳에만 둔다 —
  * 두 곳에서 따로 거르면 같은 달인데 숫자가 다른 일이 반드시 생긴다.
  */
-function refine(data: Loaded, blurOn: boolean, excludeOn: boolean) {
+function refine(data: Loaded, fixPick: FixedPick) {
   const { cat1List, cat2List, cat3List } = data;
-  const excSets: ExcludeSets = excludeSetsFrom(cat1List, cat2List, cat3List);
+  const fixSets = fixedSetsFrom(cat2List, cat3List);
   const blurSets = blurSetsFrom(cat1List, cat2List, cat3List);
 
-  const keep = (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) =>
-    !(excludeOn && isExcluded(r as NRow, excSets)) && (blurOn || !isBlurred(r as NRow, blurSets));
+  const keep = (r: { inout?: number | null; cat2_id?: number | null; cat3_id?: number | null }) =>
+    passFixed(r, fixPick, fixSets);
 
   /* 수입은 두 가지로 가른다 — 줄에 붙은 표시와, 그 소분류가 수입인지.
      씀씀이가 쓰는 잣대 그대로다. */
@@ -242,12 +247,14 @@ function refine(data: Loaded, blurOn: boolean, excludeOn: boolean) {
   return {
     rows,
     pending,
-    /* 예고도 화면의 단추를 따른다 — Exclude를 켜 두고 저축이 "빠져나갑니다"
-       라고 뜨면 같은 화면이 두 가지 잣대로 말하는 새이 된다. */
+    /* 예고도 화면에서 고른 갈래를 따른다 — 변동만 보기로 해 두고 고정 지출이
+       "빠져나갑니다"라고 뜨면 같은 화면이 두 가지 잣대로 말하게 된다. */
     upcoming: data.upcoming.filter(
       (s) => s.inout !== 1 && !income.has(Number(s.cat2_id)) && keep(s)
     ),
-    masked: new Set(rows.filter((r) => isBlurred(r, blurSets)).map((r) => r.key)),
+    /* 잔소리에 적히는 금액은 여러 건을 모은 집계라 테이프를 붙이지 않는다.
+       덮는 것은 개별 내역 카드뿐이다. */
+    masked: new Set<string>(),
     name1: new Map(cat1List.map((c) => [c.id, c.name])),
     name2: new Map(cat2List.map((c) => [c.id, c.name])),
     name3: new Map(cat3List.map((c) => [c.id, c.name])),
@@ -256,15 +263,14 @@ function refine(data: Loaded, blurOn: boolean, excludeOn: boolean) {
 
 export type NudgeOptions = {
   /** 가려 둔 갈래를 셈에 넣을지. 넣되 화면에서는 테이프로 덮는다. */
-  blurOn?: boolean;
+  fixPick?: FixedPick;
   /** 집계에서 빼 둔 갈래를 뺄지 */
-  excludeOn?: boolean;
   /** 값을 바꾸면 다시 받는다(비운 뒤에 쓴다) */
   reloadKey?: number;
 };
 
 export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]; ready: boolean } {
-  const { blurOn = true, excludeOn = true, reloadKey = 0 } = options;
+  const { fixPick = ALL_FIXED_PICK, reloadKey = 0 } = options;
   const [data, setData] = useState<Loaded | null>(cached);
 
   useEffect(() => {
@@ -280,7 +286,7 @@ export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]
   const nudges = useMemo(() => {
     if (!data) return [];
     const { rows, pending, upcoming, masked, name1, name2, name3 } =
-      refine(data, blurOn, excludeOn);
+      refine(data, fixPick);
 
     return buildNudges({
       today: data.today,
@@ -296,7 +302,7 @@ export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]
       goals: data.goals,
       upcoming,
     });
-  }, [data, blurOn, excludeOn]);
+  }, [data, fixPick]);
 
   return { nudges, ready: data !== null };
 }
@@ -316,7 +322,7 @@ export function useGoalBoard(options: NudgeOptions = {}): {
   catPath: (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) => string;
   ready: boolean;
 } {
-  const { blurOn = true, excludeOn = true, reloadKey = 0 } = options;
+  const { fixPick = ALL_FIXED_PICK, reloadKey = 0 } = options;
   const [data, setData] = useState<Loaded | null>(cached);
 
   useEffect(() => {
@@ -340,7 +346,7 @@ export function useGoalBoard(options: NudgeOptions = {}): {
         ready: false,
       };
     }
-    const { rows, masked, name1, name2, name3 } = refine(data, blurOn, excludeOn);
+    const { rows, masked, name1, name2, name3 } = refine(data, fixPick);
     return {
       goals: data.goals,
       rows,
@@ -352,5 +358,5 @@ export function useGoalBoard(options: NudgeOptions = {}): {
           .join(" > "),
       ready: true,
     };
-  }, [data, blurOn, excludeOn]);
+  }, [data, fixPick]);
 }

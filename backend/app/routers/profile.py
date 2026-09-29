@@ -13,7 +13,6 @@ router = APIRouter()
 # 화면이 잘못 보내도 표가 지저분해지지 않게 한다.
 PREF_KEYS = {
     "blur_default": "0",
-    "exclude_default": "1",
     "home_path": "/",
     "nudge_on": "1",
     # 내역 세 화면에서 카드 아래 메모 판을 보일지. 끄면 메모는 꾹 눌러 뜨는

@@ -12,17 +12,21 @@ import usePeel from "../hooks/usePeel";
 import useRevealDrag from "../hooks/useRevealDrag";
 import DateGroupHeader from "./components/DateGroupHeader";
 import SplitRows from "./components/SplitRows";
-import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
+import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import QuickActions from "./components/QuickActions";
 import MemoPad from "./components/MemoPad";
 import PerfExcludeButton from "./components/PerfExcludeButton";
+import FixedMark from "./components/FixedMark";
 import GrowArea from "./components/GrowArea";
 import { groupByDate } from "../utils/dateGroup";
 
 /* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
    카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
 type PerfRow = { schedule_id: number; perf_exclude?: number | null };
+
+/** 고정 · 변동을 뒤집을 때 필요한 것만 */
+type FixedRow = { schedule_id: number; fixed_flag?: number | null };
 
 export type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?: number; inout?: number | null; is_active?: number };
 export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?: number; is_active?: number };
@@ -342,6 +346,28 @@ export default function ScheduledEntries() {
     }
   };
 
+  /* 고정인지 변동인지 — 카드 실적 제외와 같은 방식이다. 여기서 켜 두면 이
+     스케줄이 대기 내역으로 나갈 때마다 표가 따라간다. */
+  const toggleFixed = async (row: FixedRow, next: boolean) => {
+    const id = row.schedule_id;
+    const after = next ? 1 : 0;
+    const before = row.fixed_flag ?? null;
+    const stamp = (v: number | null) =>
+      setSchedules((prev) =>
+        prev.map((x) => (x.schedule_id === id ? { ...x, fixed_flag: v } : x))
+      );
+    stamp(after);
+    try {
+      await axios.put(`/scheduled-entries/${id}/fixed`, null, {
+        params: { value: String(after) },
+      });
+    } catch (err) {
+      console.error(err);
+      stamp(before);
+      alert("고정 · 변동을 담지 못했습니다.");
+    }
+  };
+
   // 스케줄 목록 로드
   const loadSchedules = async () => {
     try {
@@ -452,18 +478,19 @@ export default function ScheduledEntries() {
     [cat1List, cat2All, cat3All]
   );
 
+  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정해 둔 것이 있으면 그것이 먼저다. */
+  const fixSets = useMemo(() => fixedSetsFrom(cat2All, cat3All), [cat2All, cat3All]);
+
   const dateGroups = useMemo(
     () =>
+      /* 날짜 단 합계는 집계라 테이프를 붙이지 않는다. 덮는 것은 카드뿐이다. */
       groupByDate(
         sortedSchedules.map((s) => ({
           ...s,
           tx_date: (s.next_run_at || "").substring(0, 10),
-        })),
-        /* Blur 걸린 갈래가 섞인 날은 합계도 함께 가린다. */
-        (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) =>
-          isBlurred(r, blurSets)
+        }))
       ),
-    [sortedSchedules, blurSets]
+    [sortedSchedules]
   );
 
   const buildSchedulePayload = (schedule: any) => {
@@ -840,6 +867,8 @@ export default function ScheduledEntries() {
               toTimeString={toTimeString}
               onOpenEditor={openEditor}
               blurred={isBlurred(s, blurSets)}
+              fixed={isFixed(s, fixSets)}
+              onToggleFixed={toggleFixed}
               onTogglePerfExclude={togglePerfExclude}
             />
             ))}
@@ -1054,6 +1083,8 @@ export function ScheduleCard({
   blurred,
   readOnly = false,
   onTogglePerfExclude,
+  fixed,
+  onToggleFixed,
 }: {
   s: any;
   cat1List: { id: number; name: string }[];
@@ -1064,6 +1095,10 @@ export function ScheduleCard({
   onOpenEditor?: (schedule: any) => void;
   /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onTogglePerfExclude?: (schedule: PerfRow, next: boolean) => void;
+  /* 이 건이 고정인지 — 건에 정해 둔 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
+  fixed?: boolean;
+  /* 고정 · 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
+  onToggleFixed?: (schedule: FixedRow, next: boolean) => void;
   /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
      넘기지 않으면 예전처럼 소분류만 본다. */
   blurred?: boolean;
@@ -1162,6 +1197,12 @@ export function ScheduleCard({
             <span className="schedule-card__when-time">{timeDisplay}</span>
           </span>
           <span className="schedule-card__holiday">{holidayLabel}</span>
+          {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
+          <FixedMark
+            on={fixed ?? false}
+            readOnly={readOnly || !onToggleFixed}
+            onToggle={(next) => onToggleFixed?.(s, next)}
+          />
           {/* 카드로 긋는 건에만 실적 제외 기호가 선다. */}
           {pay?.category === "카드" && (
             <PerfExcludeButton
