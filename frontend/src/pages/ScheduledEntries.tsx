@@ -329,6 +329,10 @@ export default function ScheduledEntries() {
      스케줄이 대기 내역으로 나갈 때마다 표가 따라간다. 목록을 다시 읽지 않고
      그 줄만 갈아 끼우고, 담기지 않으면 되돌린다. */
   const togglePerfExclude = async (row: PerfRow, next: boolean) => {
+    /* 고정 · 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
+       그쪽과 같이 한 번 묻는다. */
+    if (!window.confirm(next ? "실적에서 제외하시겠습니까?" : "실적에 포함하시겠습니까?"))
+      return;
     const id = row.schedule_id;
     const after = next ? 1 : 0;
     const before = row.perf_exclude ?? 0;
@@ -349,6 +353,10 @@ export default function ScheduledEntries() {
   /* 고정인지 변동인지 — 카드 실적 제외와 같은 방식이다. 여기서 켜 두면 이
      스케줄이 대기 내역으로 나갈 때마다 표가 따라간다. */
   const toggleFixed = async (row: FixedRow, next: boolean) => {
+    /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
+       곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
+    if (!window.confirm(`${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 변경하시겠습니까?`))
+      return;
     const id = row.schedule_id;
     const after = next ? 1 : 0;
     const before = row.fixed_flag ?? null;

@@ -15788,8 +15788,9 @@ textarea.memo-input.memo-area {
   left: 0;
   top: calc(100% + 4px);
   z-index: 40;
-  min-width: 150px;
-  padding: 6px;
+  /* 넓이는 글이 정한다. 최소 폭을 박아 두면 짧은 두 글자 옆에 빈자리만 남는다. */
+  width: max-content;
+  padding: 4px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
@@ -15798,8 +15799,8 @@ textarea.memo-input.memo-area {
 }
 
 .fx-pop__group + .fx-pop__group {
-  margin-top: 4px;
-  padding-top: 8px;
+  margin-top: 3px;
+  padding-top: 5px;
   border-top: 1px solid var(--color-border);
 }
 
@@ -15808,8 +15809,8 @@ textarea.memo-input.memo-area {
 .fx-pop__head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 6px 4px;
+  gap: 5px;
+  padding: 1px 6px 3px;
 }
 
 /* 딱지는 쓰기 판에서 쓰던 38px짜리다. 그대로 두면 판 머리가 입력 칸만 해져
@@ -15833,13 +15834,18 @@ textarea.memo-input.memo-area {
   color: var(--color-text-tertiary);
 }
 
+/* 전역 button 규칙이 가운데 정렬을 들고 있어, 네모가 줄 한가운데로 밀려
+   딱지보다 27px 안쪽에서 시작했다. 왼쪽으로 붙여 딱지와 한 줄에 세운다. */
 .fx-pop__row {
   width: 100%;
-  min-height: 32px;
-  padding: 6px 8px;
+  /* 전역 button이 height를 32px로 못 박아 min-height로는 줄지 않는다. */
+  height: auto;
+  min-height: 28px;
+  padding: 4px 6px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 6px;
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -15847,6 +15853,8 @@ textarea.memo-input.memo-area {
   font-family: inherit;
   font-size: var(--font-size-sm);
   font-weight: 600;
+  /* 글줄이 24px이라 줄이 그만큼 부풀었다. 줄 키는 min-height가 잡게 둔다. */
+  line-height: 1;
   white-space: nowrap;
   cursor: pointer;
 }

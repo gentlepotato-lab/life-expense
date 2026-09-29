@@ -305,6 +305,10 @@ export default function Entries() {
      한 달치를 다시 받아 오면 훑던 자리가 흔들린다. 담기지 않으면
      되돌려 손이 헛놀지 않게 한다. */
   const togglePerfExclude = async (row: PerfRow, next: boolean) => {
+    /* 고정 · 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
+       그쪽과 같이 한 번 묻는다. */
+    if (!window.confirm(next ? "실적에서 제외하시겠습니까?" : "실적에 포함하시겠습니까?"))
+      return;
     const id = row.entry_id;
     const before = row.perf_exclude ?? 0;
     const after = next ? 1 : 0;
@@ -326,6 +330,10 @@ export default function Entries() {
      여기서 누르면 그 건에 손으로 정한 것이 되어, 뒤에 분류 설정을 바꿔도
      이 건은 그대로다. */
   const toggleFixed = async (row: FixedRow, next: boolean) => {
+    /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
+       곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
+    if (!window.confirm(`${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 변경하시겠습니까?`))
+      return;
     const id = row.entry_id;
     const before = row.fixed_flag ?? null;
     const after = next ? 1 : 0;
