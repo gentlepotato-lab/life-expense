@@ -892,7 +892,8 @@ export default function Charts() {
 
   /* 어떤 갈래를 셈에 넣을지 — 고정 지출 · 변동 지출. 들어올 때는 둘 다 켜 둔다.
      이 화면은 나간 돈만 세므로 수입 두 칸은 목록에 없다. */
-  const [fixPick, setFixPick] = useState<FixedPick>(ALL_FIXED_PICK);
+  /* 상세로 갔다 되돌아오면 고른 갈래도 그대로다 — 맡겨 둔 것을 되살린다. */
+  const [fixPick, setFixPick] = useState<FixedPick>(() => kept?.fixPick ?? ALL_FIXED_PICK);
 
   const [filterOpen, setFilterOpen] = useState(false);
 

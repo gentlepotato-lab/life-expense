@@ -81,7 +81,9 @@ export default function Calendar() {
 
   /* 어떤 갈래를 볼지 — 고정 · 변동 곱하기 지출 · 수입 넷.
      들어올 때는 넷 다 켜져 있고 담아 두지 않는다. */
-  const [fixPick, setFixPick] = useState<FixedPick>(ALL_FIXED_PICK);
+  /* 상세로 갔다 되돌아오면 고른 갈래도 그대로다 — 맡겨 둔 것을 되살린다.
+     달과 고른 날과 걸린 조건이 그대로인데 이것만 풀리면 보던 자리가 달라진다. */
+  const [fixPick, setFixPick] = useState<FixedPick>(() => kept?.fixPick ?? ALL_FIXED_PICK);
 
   /* 눌러서 고른 기간.
      한 번 누르면 시작일만 잡히고(end === null), 한 번 더 누르면 끝일까지 잡힌다.
