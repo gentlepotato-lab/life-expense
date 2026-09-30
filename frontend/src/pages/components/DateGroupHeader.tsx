@@ -6,12 +6,20 @@ export default function DateGroupHeader({
   summary,
   open,
   onToggle,
+  hideSum = false,
 }: {
   label: string;
   summary: GroupSummary;
   /** 그날의 카드가 펼쳐져 있는지. 넘기지 않으면 접기 기능 없이 그린다. */
   open?: boolean;
   onToggle?: () => void;
+  /**
+   * 합계를 접는다.
+   *
+   * 정기 내역의 `감춘 항목` 단이 쓴다. 안 나갈 돈이라 더하는 것이 뜻이
+   * 없고, 숫자가 서 있으면 곧 빠져나갈 돈처럼 읽힌다.
+   */
+  hideSum?: boolean;
 }) {
   const { count, net } = summary;
 
@@ -42,10 +50,12 @@ export default function DateGroupHeader({
 
       <span className="date-group__meta">
         {/* 집계에는 테이프를 붙이지 않는다. 덮는 것은 개별 내역뿐이다. */}
-        <span className={`date-group__sum ${sign}`}>
-          {prefix}
-          {Math.abs(net).toLocaleString("ko-KR")}
-        </span>
+        {!hideSum && (
+          <span className={`date-group__sum ${sign}`}>
+            {prefix}
+            {Math.abs(net).toLocaleString("ko-KR")}
+          </span>
+        )}
       </span>
     </div>
   );

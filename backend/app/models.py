@@ -193,10 +193,21 @@ class ScheduledEntry(Base):
     
     # 휴일 처리 옵션: 'before', 'on', 'after'
     holiday_handling = Column(String, nullable=False, default='on')
-    
-    # 다음 실행 일시
+
+    # 몇 달마다 오는가. 1=매월, 2=격월, 3=분기, 6=반년, 12=매년
+    interval_months = Column(SmallInteger, nullable=False, server_default="1", default=1)
+    # 주기의 첫 달 'YYYYMM'. 격월이 홀수 달인지 짝수 달인지를 이것이 정한다.
+    anchor_ym = Column(String(6), nullable=True)
+    # 이 달까지만 온다 'YYYYMM'. 비면 끝이 없다.
+    end_ym = Column(String(6), nullable=True)
+    # 남은 횟수. 한 번 나갈 때마다 줄고 0이면 멈춘다. end_ym과 함께 쓰지 않는다.
+    remaining = Column(SmallInteger, nullable=True)
+    # 이번 한 번만 건너뛸 달 'YYYYMM'. 쓰고 나면 지워진다.
+    skip_ym = Column(String(6), nullable=True)
+
+    # 다음 실행 일시. 비어 있으면 더 오지 않는다 — 끝났거나 꺼 둔 것이다.
     next_run_at = Column(DateTime, nullable=True)
-    
+
     # 지출 내역 정보
     cat1_id = Column(Integer, ForeignKey("categories_lvl1.cat1_id"), nullable=True)
     cat2_id = Column(Integer, ForeignKey("categories_lvl2.cat2_id"), nullable=True)

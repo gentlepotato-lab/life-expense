@@ -18,8 +18,18 @@ import QuickActions from "./components/QuickActions";
 import MemoPad from "./components/MemoPad";
 import PerfExcludeButton from "./components/PerfExcludeButton";
 import FixedMark from "./components/FixedMark";
+import { BulbOnIcon, BulbOffIcon } from "./components/SkipIcons";
+import MonthPicker from "./components/MonthPicker";
 import GrowArea from "./components/GrowArea";
 import { groupByDate } from "../utils/dateGroup";
+import { apiErrorMessage } from "../utils/apiError";
+import {
+  INTERVAL_OPTIONS,
+  HOLIDAY_OPTIONS,
+  intervalLabel,
+  ymLong,
+  ymNow,
+} from "../utils/schedule";
 
 /* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
    카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
@@ -27,6 +37,7 @@ type PerfRow = { schedule_id: number; perf_exclude?: number | null };
 
 /** 고정 · 변동을 뒤집을 때 필요한 것만 */
 type FixedRow = { schedule_id: number; fixed_flag?: number | null };
+
 
 export type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?: number; inout?: number | null; is_active?: number };
 export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?: number; is_active?: number };
@@ -72,6 +83,38 @@ function dayLabel(day: number | string | null | undefined): string {
   return Number(day) === LAST_DAY ? "말일" : `${day}일`;
 }
 
+/**
+ * 카드와 팝업 머리말에 적는 "언제 오는가" 한 마디.
+ *
+ * 매월이면 지금까지처럼 "매월 15일"이다. 해에 한 번 오는 것은 몇 월인지가
+ * 곧 그 스케줄의 얼굴이라 달까지 적는다 — "매년 6월 25일". 그 사이(격월 ·
+ * 분기 · 반년)는 달이 번갈아 바뀌므로 한 달을 집어 적을 수 없다.
+ */
+function whenLabel(
+  interval: number | string | null | undefined,
+  anchorYm: string | null | undefined,
+  day: number | string | null | undefined
+): string {
+  const n = Number(interval ?? 1);
+  if (n === 12 && anchorYm) {
+    return `매년 ${Number(anchorYm.slice(4))}월 ${dayLabel(day)}`;
+  }
+  return `${intervalLabel(n)} ${dayLabel(day)}`;
+}
+
+/**
+ * 건너뛰기를 켤 때 건너뛸 달.
+ *
+ * "이번 한 번"은 다가오는 회차를 뜻하므로 next_run_at이 든 달이다. 다 끝나
+ * 비어 있는 스케줄이면 건너뛸 회차도 없으니 이 달로 떨어뜨린다 — 그 경우
+ * 켜도 셈에 걸리는 것이 없어 해가 없다.
+ */
+function skipTarget(s: { next_run_at?: string | null }): string {
+  const d = parseLocal(s.next_run_at);
+  const at = d ?? new Date();
+  return `${at.getFullYear()}${String(at.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function parseLocal(v: string | null | undefined): Date | null {
   if (!v) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(v);
@@ -79,14 +122,15 @@ function parseLocal(v: string | null | undefined): Date | null {
   return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
 }
 
-export default function ScheduledEntries() {
-  const [schedules, setSchedules] = useState<any[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showForm, setShowForm] = useState(false);  // 폼 표시 여부
-  const [form, setForm] = useState({
+/** 새 정기 지출 폼의 빈 자리. 열 때와 닫을 때 같은 것을 써야 한다. */
+function emptyForm() {
+  return {
     day_of_month: "",
     time: "",
     holiday_handling: "on",
+    interval_months: "1",
+    anchor_ym: "",
+    end_ym: "",
     cat1_id: "",
     cat2_id: "",
     cat3_id: "",
@@ -95,7 +139,17 @@ export default function ScheduledEntries() {
     pay_method: "",
     memo: "",
     place_id: "",
-  });
+  };
+}
+
+export default function ScheduledEntries() {
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);  // 폼 표시 여부
+  /* 감춘 항목까지 볼지. 분류 · 결제 수단과 같은 자리 · 같은 말이다.
+     화면에만 두고 담아 두지 않는다 — 그 화면들과 같은 짜임이다. */
+  const [showHidden, setShowHidden] = useState(false);
+  const [form, setForm] = useState(() => emptyForm());
 
   const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; inout: number | null; is_active?: number }[]>([]);
@@ -111,6 +165,9 @@ export default function ScheduledEntries() {
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다.
   const [draft, setDraft] = useState<any | null>(null);
   const [splits, setSplits] = useState<SplitDraft[]>([]);
+  /* 아직 없는 스케줄의 몫. 만들고 나서 schedule_id를 받아야 붙일 수 있어
+     그때까지 화면이 들고 있는다. */
+  const [formSplits, setFormSplits] = useState<SplitDraft[]>([]);
 
   // 장소 선택 — 편집 팝업(draft)과 신규 등록 폼(form) 중 어디에 반영할지
   const [placePickerFor, setPlacePickerFor] = useState<"draft" | "form" | null>(null);
@@ -122,19 +179,8 @@ export default function ScheduledEntries() {
   const closeForm = useCallback(() => {
     setShowForm(false);
     // 폼 닫을 때 초기화
-    setForm({
-      day_of_month: "",
-      time: "",
-      holiday_handling: "on",
-      cat1_id: "",
-      cat2_id: "",
-      cat3_id: "",
-      inout: "-1",
-      amount: "",
-      pay_method: "",
-      memo: "",
-      place_id: "",
-    });
+    setForm(emptyForm());
+    setFormSplits([]);
     setCat2List([]);
   }, []);
   useBackClose(placePickerFor !== null, () => setPlacePickerFor(null));
@@ -377,20 +423,27 @@ export default function ScheduledEntries() {
   };
 
   // 스케줄 목록 로드
-  const loadSchedules = async () => {
+  const loadSchedules = useCallback(async (withHidden = showHidden) => {
     try {
-      const res = await axios.get("/scheduled-entries");
+      const res = await axios.get("/scheduled-entries", {
+        params: withHidden ? { include_hidden: 1 } : undefined,
+      });
       const data = Array.isArray(res.data) ? res.data : [];
       setSchedules(data.map(decorateSchedule));
     } catch (err) {
       console.error("스케줄 로드 실패...\n:", err);
       setSchedules([]);
     }
-  };
+    /* decorateSchedule은 이 컴포넌트가 다시 그려질 때마다 새로 만들어지지만
+       하는 일이 값에만 달려 있어 묶어 둘 것이 없다. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showHidden]);
 
+  /* 감춘 항목을 볼지 말지가 바뀌면 서버에서 다시 받아 온다 — 감춘 것은
+     서버가 걸러 주므로 화면에서 걸러 낼 수가 없다. */
   useEffect(() => {
     loadSchedules();
-  }, []);
+  }, [loadSchedules]);
 
   // ------------------------------------
   // 편집 팝업
@@ -461,6 +514,8 @@ export default function ScheduledEntries() {
 
   // Next 날짜 기준으로 정렬된 schedules
   /** 다음 예정일시가 이른 것부터. 값이 없으면 맨 뒤로 민다. */
+  /* 예정일 빠른 차례. 감춘 것은 예정일이 없으므로 Infinity로 떨어져
+     맨 아래 한 단에 모인다 — 앞으로 올 것들을 위에서 먼저 보게 한다. */
   const sortedSchedules = useMemo(() => {
     return [...schedules].sort((a, b) => {
       const ta = parseLocal(a.next_run_at)?.getTime() ?? Infinity;
@@ -509,6 +564,14 @@ export default function ScheduledEntries() {
       hour,
       minute,
       holiday_handling: schedule.holiday_handling,
+      interval_months: Number(schedule.interval_months ?? 1),
+      /* 매월은 박자를 정할 것이 없어 첫 달을 비운다. 셋 중 끝은 하나만
+         사므로 나머지는 반드시 null이어야 서버가 막지 않는다. */
+      anchor_ym: Number(schedule.interval_months ?? 1) === 1 ? null : schedule.anchor_ym || null,
+      end_ym: schedule.end_ym || null,
+      skip_ym: schedule.skip_ym || null,
+      /* 감췄는지도 함께 담는다. 팝업에서 뒤집어 둔 것이 [저장]으로 먹는다. */
+      is_active: schedule.is_active === 0 ? 0 : 1,
       cat1_id: Number(schedule.cat1_id),
       cat2_id: Number(schedule.cat2_id),
       cat3_id: schedule.cat3_id ? Number(schedule.cat3_id) : null,
@@ -582,9 +645,7 @@ export default function ScheduledEntries() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (
       !form.day_of_month ||
       !form.time ||
@@ -596,6 +657,23 @@ export default function ScheduledEntries() {
       alert("필수 항목을 모두 입력하세요.");
       return;
     }
+    if (form.interval_months !== "1" && !form.anchor_ym) {
+      alert("매월이 아니면 시작하는 달을 고르세요.");
+      return;
+    }
+
+    // 몫은 빈 줄을 버리고, 합계가 결제 금액을 넘으면 막는다 — 편집과 같은 잣대다.
+    const cleanSplits = formSplits.filter(
+      (x) => x.amount !== "" && Number(x.amount) > 0
+    );
+    if (formSplits.some((x) => x.amount === "" || Number(x.amount) <= 0)) {
+      alert("분할 금액은 0보다 커야 합니다.");
+      return;
+    }
+    if (cleanSplits.reduce((a, r) => a + Number(r.amount), 0) > Number(form.amount)) {
+      alert("분할 합계가 결제 금액을 초과합니다.");
+      return;
+    }
 
     // time 문자열을 시/분으로 분리(HH:MM → hour, minute)
     const [hour, minute] = form.time.split(":").map(Number);
@@ -603,11 +681,14 @@ export default function ScheduledEntries() {
     try {
       const placeId = await ensurePlaceId(formPlace, form.place_id);
 
-      await axios.post("/scheduled-entries", {
+      const res = await axios.post("/scheduled-entries", {
         day_of_month: Number(form.day_of_month),
         hour: hour,
         minute: minute,
         holiday_handling: form.holiday_handling,
+        interval_months: Number(form.interval_months),
+        anchor_ym: form.interval_months === "1" ? null : form.anchor_ym,
+        end_ym: form.end_ym || null,
         cat1_id: Number(form.cat1_id),
         cat2_id: Number(form.cat2_id),
         cat3_id: form.cat3_id ? Number(form.cat3_id) : null,
@@ -619,25 +700,20 @@ export default function ScheduledEntries() {
         is_active: 1,
       });
 
+      // 몫은 스케줄이 생긴 뒤에야 붙일 수 있다. 빈 채로는 부르지 않는다.
+      const newId = res.data?.schedule_id;
+      if (newId && cleanSplits.length > 0) {
+        await axios.put(`/scheduled-entries/${newId}/splits`, cleanSplits);
+      }
+
       alert("스케줄이 등록되었습니다.");
       loadSchedules();
       setFormPlace(null);
       setFormPlaceName("");
 
       // 폼 초기화 및 숨기기
-      setForm({
-        day_of_month: "",
-        time: "",
-        holiday_handling: "on",
-        cat1_id: "",
-        cat2_id: "",
-        cat3_id: "",
-        inout: "-1",
-        amount: "",
-        pay_method: "",
-        memo: "",
-        place_id: "",
-      });
+      setForm(emptyForm());
+      setFormSplits([]);
       setCat2List([]);
       setShowForm(false);
     } catch (err: any) {
@@ -647,18 +723,31 @@ export default function ScheduledEntries() {
   };
 
   const handleDelete = async (scheduleId: number) => {
-    if (!confirm("이 스케줄을 삭제하시겠습니까?")) return;
+    if (!window.confirm("이 정기 지출을 제거할까요?")) return;
 
     try {
       await axios.delete(`/scheduled-entries/${scheduleId}`);
       closeEditor();
-      alert("삭제되었습니다.");
+      alert("제거 완료-!! ;-)");
       await loadSchedules();
     } catch (err) {
       console.error(err);
-      alert("삭제 중 오류가 발생했습니다.");
+      alert(apiErrorMessage(err));
     }
   };
+
+  /**
+   * 감출지 말지를 뒤집는다.
+   *
+   * 팝업 안의 다른 칸과 같이 여기서는 초안만 바꾸고, [저장]을 눌러야
+   * 반영된다 — 주기도 금액도 그렇게 움직이는데 이것만 즉시 먹으면
+   * 한 팝업 안에서 잣대가 둘이 된다. 그래서 묻지도, 알리지도 않는다.
+   *
+   * 다음 예정일은 서버가 저장할 때 함께 손봐 준다. 감추면 비우고, 풀면
+   * 다시 셈한다.
+   */
+  const toggleHidden = () =>
+    setField("is_active", draft?.is_active === 0 ? 1 : 0);
 
   /* 일 선택 옵션 생성(1-31, 그리고 말일).
      말일을 맨 뒤에 두는 것은 1일부터 세어 온 차례의 끝이기 때문이다. */
@@ -672,6 +761,18 @@ export default function ScheduledEntries() {
           화면을 옮겨 다녀도 첫 줄이 같은 높이에서 시작해야 한다. */}
       <div className="toolbar-wrap">
         <div className="toolbar">
+          {/* 분류 · 결제 수단과 같은 자리 · 같은 말 — 줄 왼쪽 끝이다.
+              .toolbar-btns 안에 넣으면 그 묶음이 오른쪽에 붙어 있어
+              가운데로 밀린다. */}
+          <label className="cp-toggle">
+            <input
+              type="checkbox"
+              checked={showHidden}
+              onChange={(e) => setShowHidden(e.target.checked)}
+            />
+            감춘 항목 보기
+          </label>
+
           <div className="toolbar-btns">
             <CollapseAllButtons
               onExpandAll={() => setCollapsedDays(new Set())}
@@ -689,56 +790,70 @@ export default function ScheduledEntries() {
 
       {/* 등록 폼 팝업 */}
       {showForm && (
-        <div className="popup-overlay" onClick={closeForm}>
-          <div className="popup-panel popup-panel--framed" onClick={(e) => e.stopPropagation()}>
-            {/* 머리·본문·바닥을 편집 팝업과 같은 짜임으로 */}
-            <header className="popup-head">
-              <h3 className="popup-head__title">새 정기 지출</h3>
-            </header>
+        <CardEditModal
+          title="새 정기 지출"
+          onClose={closeForm}
+          onSave={handleSubmit}
+          saveLabel="등록"
+          headerFields={
+            <>
+              {/* 첫 줄은 주기와 시작이 나눠 쓴다. 매월은 시작을 묻지 않으므로
+                  주기가 그 줄을 혼자 쓰고, 날과 시각은 늘 둘째 줄에 나란히 선다 —
+                  "몇 달마다"와 "며칠 몇 시"는 다른 결의 물음이다. */}
+              <EditField label="주기" span={form.interval_months === "1" ? 12 : 6} required>
+                <SingleSelect
+                  noun="주기"
+                  options={INTERVAL_OPTIONS.map((o) => ({ ...o }))}
+                  selected={form.interval_months}
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      interval_months: value,
+                      // 매월로 되돌리면 첫 달은 볼 것이 없어 비운다.
+                      anchor_ym: value === "1" ? "" : form.anchor_ym || ymNow(),
+                    })
+                  }
+                />
+              </EditField>
 
-            <form onSubmit={handleSubmit}>
-              {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다. */}
-              <div className="popup-body edit-grid">
-                <EditField label="매월" span={4}>
-                  <SingleSelect
-                    noun="날짜"
-                    options={dayOptions.map((d) => ({ value: String(d), label: dayLabel(d) }))}
-                    selected={form.day_of_month}
-                    onChange={(value) => setForm({ ...form, day_of_month: value })}
-                    placeholder="(일)"
+              {/* 격월 이상일 때만 첫 달을 묻는다. 매월은 박자를 정할 것이 없다. */}
+              {form.interval_months !== "1" && (
+                <EditField label="시작" span={6} required>
+                  <MonthPicker
+                    value={form.anchor_ym}
+                    onChange={(ym) => setForm({ ...form, anchor_ym: ym })}
+                    suffix="부터"
+                    placeholder="(시작)"
                   />
                 </EditField>
+              )}
 
-                <EditField label="시간" span={4}>
-                  <input
-                    type="time"
-                    name="time"
-                    value={form.time}
-                    onChange={handleChange}
-                    className="ui-input"
-                    step="300"
-                    required
-                  />
-                </EditField>
+              <EditField label={intervalLabel(form.interval_months)} span={6} required>
+                <SingleSelect
+                  noun="날짜"
+                  options={dayOptions.map((d) => ({ value: String(d), label: dayLabel(d) }))}
+                  selected={form.day_of_month}
+                  onChange={(value) => setForm({ ...form, day_of_month: value })}
+                  placeholder="(일)"
+                />
+              </EditField>
 
-                <EditField label="휴일 처리" span={4}>
-                  <SingleSelect
-                    options={[
-                      { value: "before", label: "휴일 전" },
-                      { value: "on", label: "당일" },
-                      { value: "after", label: "휴일 후" },
-                    ]}
-                    selected={form.holiday_handling}
-                    onChange={(value) =>
-                      setForm({ ...form, holiday_handling: value as "before" | "on" | "after" })
-                    }
-                    placeholder="(휴일 처리)"
-                  />
-                </EditField>
-
-                <EditDivider />
-
-                <EditField label="중분류" span={4}>
+              <EditField label="시간" span={6} required>
+                <input
+                  type="time"
+                  name="time"
+                  value={form.time}
+                  onChange={handleChange}
+                  className="ui-input"
+                  step="300"
+                />
+              </EditField>
+            </>
+          }
+        >
+          {/* 편집 팝업과 같은 12칸 격자 */}
+          <div className="edit-grid">
+                <EditField label="중분류" span={4} required>
                   <SingleSelect
                     noun="중분류"
                     options={visible(cat1List, (c) => String(c.id) === form.cat1_id)
@@ -749,7 +864,7 @@ export default function ScheduledEntries() {
                   />
                 </EditField>
 
-                <EditField label="소분류" span={4}>
+                <EditField label="소분류" span={4} required>
                   <SingleSelect
                     noun="소분류"
                     options={visible(cat2List, (c) => String(c.id) === form.cat2_id)
@@ -771,9 +886,7 @@ export default function ScheduledEntries() {
                   />
                 </EditField>
 
-                <EditDivider />
-
-                <EditField label="IN/OUT" span={4}>
+                <EditField label="IN/OUT" span={4} required>
                   <span
                     className={`inout-chip ${
                       form.inout === "1" ? "in" : form.inout === "-1" ? "out" : ""
@@ -794,19 +907,42 @@ export default function ScheduledEntries() {
                   />
                 </EditField>
 
-                <EditField label="금액" span={4}>
+                <EditField label="금액" span={4} required>
                   <input
                     type="number"
                     name="amount"
                     value={form.amount}
                     onChange={handleChange}
                     className="amount-input"
-                    required
                     placeholder="(금액)"
                   />
                 </EditField>
 
-                <EditDivider />
+                {/* 휴일 처리 · 끝 — 편집 팝업과 같은 칸에 둔다. 거기서는 이 줄
+                    셋째 자리에 [한 번 건너뛰기]가 서는데, 새로 만드는 스케줄에는
+                    건너뛸 회차가 없어 그 자리를 비워 둔다. 자리를 당겨 채우면
+                    두 팝업에서 같은 칸이 다른 x에 서게 된다. */}
+                <EditField label="휴일 처리" span={4} required>
+                  <SingleSelect
+                    noun="휴일 처리"
+                    options={HOLIDAY_OPTIONS.map((o) => ({ ...o }))}
+                    selected={form.holiday_handling}
+                    onChange={(value) => setForm({ ...form, holiday_handling: value })}
+                  />
+                </EditField>
+
+                {/* 끝은 연월 하나다. 비워 두면 끝이 없다. */}
+                <EditField label="끝" span={4}>
+                  <MonthPicker
+                    value={form.end_ym}
+                    onChange={(ym) => setForm({ ...form, end_ym: ym })}
+                    /* 끝은 시작보다 앞일 수 없다. 매월이면 시작이 없으니 이 달부터다. */
+                    min={form.interval_months === "1" ? ymNow() : form.anchor_ym || ymNow()}
+                    suffix="까지"
+                    placeholder="(없음)"
+                    clearable
+                  />
+                </EditField>
 
                 <EditField label="장소/가게" span={12}>
                   <div className="edit-place">
@@ -831,20 +967,20 @@ export default function ScheduledEntries() {
                     onChange={(_v, e) => handleChange(e)}
                   />
                 </EditField>
-              </div>
-
-              <div className="btn-row popup-foot">
-                {/* 다른 팝업과 같은 차례로 — 닫기 · 하려던 것 */}
-                <button type="button" className="ui-btn" onClick={closeForm}>
-                  닫기
-                </button>
-                <button type="submit" className="ui-btn primary">
-                  등록
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
+
+          {/* 나가는 돈만 쪼갤 수 있다. 편집 팝업과 같은 자리·같은 모양이다. */}
+          {form.inout === "-1" && (
+            <>
+              <EditDivider />
+              <SplitEditor
+                grossAmount={Number(form.amount) || 0}
+                value={formSplits}
+                onChange={setFormSplits}
+              />
+            </>
+          )}
+        </CardEditModal>
       )}
 
       {/* 등록된 스케줄 목록 */}
@@ -857,9 +993,20 @@ export default function ScheduledEntries() {
         <div className="scheduled-card-list">
           {dateGroups.map((group) => (
           <section key={group.date || "no-date"} className="date-group">
+            {/* 예정일이 없는 단은 날짜 대신 무엇을 모아 둔 단인지 적는다.
+                대개 감춘 것만 모이지만, 끝난 것을 다시 보이게 하면 감춤이
+                아니면서 예정일도 없는 줄이 섞인다 — 그때는 이름을 바꿔
+                단다. 어느 쪽이든 안 나갈 돈이라 합계는 접는다. */}
             <DateGroupHeader
-              label={group.label}
+              label={
+                group.date
+                  ? group.label
+                  : group.items.every((x: { is_active?: number }) => x.is_active === 0)
+                  ? "감춘 항목"
+                  : "예정 없음"
+              }
               summary={group.summary}
+              hideSum={!group.date}
               open={!collapsedDays.has(group.date)}
               onToggle={() => toggleDay(group.date)}
             />
@@ -889,17 +1036,65 @@ export default function ScheduledEntries() {
       {draft && (
         <CardEditModal
           title="스케줄 편집"
-          subtitle={`매월 ${dayLabel(draft.day_of_month)} ${hour12(
-            draft.time || toTimeString(draft.hour, draft.minute)
-          )}`}
           onClose={closeEditor}
           onSave={saveDraft}
           onDelete={() => handleDelete(draft.schedule_id)}
+          deleteLabel="제거"
+          /* 제거 바로 옆에 감추기를 둔다. 둘은 성격이 다르다 —
+             제거는 되돌릴 수 없고, 감추기는 언제든 풀 수 있다. */
+          footerAfterDelete={
+            <button
+              type="button"
+              className={`set-hide-btn${draft.is_active === 0 ? " on" : ""}`}
+              title={
+                draft.is_active === 0
+                  ? "다시 보이게 한다 — 다음 예정일을 새로 셈한다."
+                  : "감춘다 — 목록에서 빠지고 더 오지 않는다."
+              }
+              onClick={toggleHidden}
+            >
+              {draft.is_active === 0 ? "감춤" : "감추기"}
+            </button>
+          }
           saveDisabled={isSaving}
           saveLabel={isSaving ? "저장 중..." : "저장"}
           headerFields={
             <>
-              <EditField label="매월" span={6}>
+              {/* 등록 팝업과 같은 짜임 — 주기와 시작이 첫 줄, 날과 시각이 둘째 줄이다. */}
+              <EditField
+                label="주기"
+                span={String(draft.interval_months ?? 1) === "1" ? 12 : 6}
+                required
+              >
+                <SingleSelect
+                  noun="주기"
+                  options={INTERVAL_OPTIONS.map((o) => ({ ...o }))}
+                  selected={String(draft.interval_months ?? 1)}
+                  onChange={(value) => {
+                    setField("interval_months", Number(value));
+                    // 매월로 되돌리면 첫 달은 볼 것이 없다. 격월 이상으로
+                    // 올리면 박자를 정할 달이 있어야 하므로 이 달로 깐다.
+                    setField("anchor_ym", value === "1" ? null : draft.anchor_ym || ymNow());
+                  }}
+                />
+              </EditField>
+
+              {String(draft.interval_months ?? 1) !== "1" && (
+                <EditField label="시작" span={6} required>
+                  <MonthPicker
+                    value={draft.anchor_ym}
+                    onChange={(ym) => setField("anchor_ym", ym)}
+                    suffix="부터"
+                    placeholder="(시작)"
+                  />
+                </EditField>
+              )}
+
+              <EditField
+                label={intervalLabel(draft.interval_months)}
+                span={6}
+                required
+              >
                 <SingleSelect
                   noun="날짜"
                   options={dayOptions.map((d) => ({ value: String(d), label: dayLabel(d) }))}
@@ -909,7 +1104,7 @@ export default function ScheduledEntries() {
                 />
               </EditField>
 
-              <EditField label="시간" span={6}>
+              <EditField label="시간" span={6} required>
                 <input
                   type="time"
                   value={draft.time || toTimeString(draft.hour, draft.minute)}
@@ -922,7 +1117,7 @@ export default function ScheduledEntries() {
         >
           <div className="edit-grid">
             {/* 1행 — 분류 3단 */}
-            <EditField label="중분류" span={4}>
+            <EditField label="중분류" span={4} required>
               <SingleSelect
                 noun="중분류"
                 options={visible(cat1List, (c) => c.id === draft.cat1_id)
@@ -933,7 +1128,7 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            <EditField label="소분류" span={4}>
+            <EditField label="소분류" span={4} required>
               <SingleSelect
                 noun="소분류"
                 options={visible(cat2All, (c) => c.id === draft.cat2_id)
@@ -961,7 +1156,7 @@ export default function ScheduledEntries() {
             </EditField>
 
             {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
-            <EditField label="IN/OUT" span={4}>
+            <EditField label="IN/OUT" span={4} required>
               <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
                 {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
               </span>
@@ -982,7 +1177,7 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            <EditField label="금액" span={4}>
+            <EditField label="금액" span={4} required>
               <input
                 type="number"
                 value={draft.amount ?? ""}
@@ -992,18 +1187,67 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            {/* 3행 — 휴일 처리 + 장소 */}
-            <EditField label="휴일 처리" span={4}>
+            {/* 3행 — 휴일 처리 · 끝 · 한 번 건너뛰기.
+                셋 다 "언제 오고 언제까지 오는가"를 말하므로 한 줄에 둔다.
+                건너뛰기는 이미 있는 스케줄에만 뜻이 있어 등록 팝업에는 없다 —
+                정기 결제는 대개 승인 며칠 전에 알림이 오므로, 그걸 보고
+                다가오는 한 번만 넘기고 싶을 때 쓴다. */}
+            <EditField label="휴일 처리" span={4} required>
               <SingleSelect
-                options={[
-                  { value: "before", label: "휴일 전" },
-                  { value: "on", label: "당일" },
-                  { value: "after", label: "휴일 후" },
-                ]}
+                noun="휴일 처리"
+                options={HOLIDAY_OPTIONS.map((o) => ({ ...o }))}
                 selected={draft.holiday_handling}
                 onChange={(value) => setField("holiday_handling", value)}
-                placeholder="(휴일 처리)"
               />
+            </EditField>
+
+            <EditField label="끝" span={4}>
+              <MonthPicker
+                value={draft.end_ym}
+                onChange={(ym) => setField("end_ym", ym || null)}
+                min={
+                  Number(draft.interval_months ?? 1) === 1
+                    ? ymNow()
+                    : draft.anchor_ym || ymNow()
+                }
+                suffix="까지"
+                placeholder="(없음)"
+                clearable
+              />
+            </EditField>
+
+            <EditField label="한 번 건너뛰기" span={4}>
+              {/* 분류 화면의 고정 · 변동과 같은 스위치다. 켜진 전구가 건너뜀,
+                  꺼진 전구가 그대로다. 켜면 온통 물들어, 카드에 서는 딱지와
+                  같은 빛깔로 같은 것을 말한다. */}
+              <span
+                className={`set-fixed set-skip${draft.skip_ym ? " set-skip--on" : ""}`}
+                role="group"
+                aria-label="한 번 건너뛰기"
+              >
+                <button
+                  type="button"
+                  className={draft.skip_ym ? "on" : ""}
+                  aria-pressed={!!draft.skip_ym}
+                  title={
+                    draft.skip_ym
+                      ? `${ymLong(draft.skip_ym)}은 건너뛴다.`
+                      : "다가오는 한 번만 건너뛴다."
+                  }
+                  onClick={() => setField("skip_ym", skipTarget(draft))}
+                >
+                  <BulbOnIcon />
+                </button>
+                <button
+                  type="button"
+                  className={draft.skip_ym ? "" : "on"}
+                  aria-pressed={!draft.skip_ym}
+                  title="건너뛰지 않고 그대로 온다."
+                  onClick={() => setField("skip_ym", null)}
+                >
+                  <BulbOffIcon />
+                </button>
+              </span>
             </EditField>
 
             <EditField label="장소/가게" span={12}>
@@ -1143,6 +1387,21 @@ export function ScheduleCard({
       : "-";
   const timeDisplay = hour12(s.time || toTimeString(s.hour, s.minute));
 
+  /* 카드 셋째 줄에 설 딱지들.
+     주기의 첫 달은 격월 이상일 때만 뜻이 있고, 매년은 몇 월인지를 이미
+     둘째 줄의 "매년 6월 25일"이 말하고 있어 또 적지 않는다. */
+  const spanChips: { key: string; text: string }[] = [];
+  if (Number(s.interval_months ?? 1) > 1 && Number(s.interval_months) !== 12 && s.anchor_ym) {
+    spanChips.push({ key: "from", text: `${ymLong(s.anchor_ym)}부터` });
+  }
+  if (s.end_ym) spanChips.push({ key: "till", text: `${ymLong(s.end_ym)}까지` });
+  if (s.skip_ym) {
+    spanChips.push({ key: "skip", text: `${ymLong(s.skip_ym)} 건너뜀` });
+  }
+  /* 감춘 것은 딱지 줄 오른쪽 끝에 `감춤`이 선다. 딱지가 하나도 없어도
+     그 줄은 생겨야 하므로 여기서 따로 센다. */
+  const hidden = s.is_active === 0;
+
   return (
     <div
       className={`card card--entry schedule-card card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
@@ -1200,7 +1459,9 @@ export function ScheduleCard({
             메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
         <div className="entry-ln">
           <span className="schedule-card__when">
-            <span className="schedule-card__when-day">매월 {dayLabel(s.day_of_month)}</span>
+            <span className="schedule-card__when-day">
+              {whenLabel(s.interval_months, s.anchor_ym, s.day_of_month)}
+            </span>
             <span className="schedule-card__when-cut" aria-hidden="true" />
             <span className="schedule-card__when-time">{timeDisplay}</span>
           </span>
@@ -1221,6 +1482,20 @@ export function ScheduleCard({
           )}
           <span className="pay-method-text">{pay?.name || "-"}</span>
         </div>
+
+        {/* 3행: 주기가 매월이 아니거나 끝이 잡혀 있거나 감춘 카드에만 선다.
+            매월 · 끝없음 · 안 감춘 카드는 적을 것이 없으므로 줄 자체가
+            생기지 않는다 — 지금까지의 카드 높이가 그대로인 자리다. */}
+        {(spanChips.length > 0 || hidden) && (
+          <div className="entry-ln entry-ln--span">
+            {spanChips.map((c) => (
+              <span key={c.key} className={`schedule-card__span schedule-card__span--${c.key}`}>
+                {c.text}
+              </span>
+            ))}
+            {hidden && <span className="set-hide-mark">감춤</span>}
+          </div>
+        )}
 
         <MemoPad memo={s.memo} />
 
