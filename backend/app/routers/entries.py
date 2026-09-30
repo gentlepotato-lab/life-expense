@@ -422,6 +422,10 @@ def delete_entry(entry_id: int, db: SessionDep = Depends()):
 
 @router.post("")
 def add_entries(payload: list[EntryIn], db: SessionDep = Depends()):
+    # 만든 건을 담아 둔다. 쓰기 화면에서 N빵을 붙이려면 방금 생긴 건의
+    # entry_id가 있어야 하는데, 지금까지는 돌려주는 것이 없었다.
+    made: list[Entry] = []
+
     for item in payload:
 
         # 기본적으로 place_id 우선 사용
@@ -555,6 +559,7 @@ def add_entries(payload: list[EntryIn], db: SessionDep = Depends()):
             place_id=place_id,
         )
         db.add(new_entry)
+        made.append(new_entry)
 
     db.commit()
 
@@ -565,7 +570,8 @@ def add_entries(payload: list[EntryIn], db: SessionDep = Depends()):
                     AND NOT EXISTS (SELECT 1 FROM life_expense.pending_entries pe WHERE pe.place_id = p.place_id)
     """))
     db.commit()
-    return {"status": "ok"}
+    # 보낸 차례 그대로 돌려준다. 쓰기 화면은 첫 건에 몫을 붙인다.
+    return {"status": "ok", "entry_ids": [e.entry_id for e in made]}
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # >>> ADD: 배열 필터링 처리 기능

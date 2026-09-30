@@ -937,12 +937,11 @@ export default function PendingEntries() {
       {draft && (
         <CardEditModal
           title="미확정 내역 편집"
-          subtitle={draft.tx_date ? new Date(draft.tx_date).toLocaleDateString("ko-KR") : undefined}
           onClose={closeEditor}
           onSave={saveDraft}
           onDelete={() => deletePending(draft.entry_id)}
           headerFields={
-            <EditField label="날짜" span={12}>
+            <EditField label="날짜" span={12} required>
               <input
                 type="date"
                 value={draft.tx_date ? draft.tx_date.substring(0, 10) : ""}
@@ -953,7 +952,7 @@ export default function PendingEntries() {
         >
           <div className="edit-grid">
             {/* 1행 — 분류 3단 */}
-            <EditField label="중분류" span={4}>
+            <EditField label="중분류" span={4} required>
               <SingleSelect
                 noun="중분류"
                 options={visible(cat1List, (c) => c.id === draft.cat1_id)
@@ -964,7 +963,7 @@ export default function PendingEntries() {
               />
             </EditField>
 
-            <EditField label="소분류" span={4}>
+            <EditField label="소분류" span={4} required>
               <SingleSelect
                 noun="소분류"
                 options={visible(cat2List, (c) => c.id === draft.cat2_id)
@@ -989,7 +988,7 @@ export default function PendingEntries() {
             </EditField>
 
             {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
-            <EditField label="IN/OUT" span={4}>
+            <EditField label="IN/OUT" span={4} required>
               <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
                 {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
               </span>
@@ -1006,7 +1005,7 @@ export default function PendingEntries() {
               />
             </EditField>
 
-            <EditField label="금액" span={4}>
+            <EditField label="금액" span={4} required>
               <input
                 type="number"
                 value={draft.amount ?? ""}

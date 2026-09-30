@@ -4,7 +4,9 @@ import React, { forwardRef, useEffect, useState } from "react";
 import axios from "../../api/client";
 import useBackClose from "../../hooks/useBackClose";
 import SingleSelect from "./SingleSelect";
-import { EditField } from "./CardEditModal";
+import { EditField, EditDivider } from "./CardEditModal";
+import SplitEditor from "./SplitEditor";
+import type { SplitDraft } from "./SplitEditor";
 import PlacePicker from "./PlacePicker";
 import GoToButton from "./GoToButton";
 
@@ -48,6 +50,10 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
   const [cat2List, setCat2List] = useState<{ id: number; name: string; inout: number | null; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
   const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
+
+  /* 아직 없는 건의 몫. 건이 생겨 entry_id를 받아야 붙일 수 있어
+     그때까지 화면이 들고 있는다. */
+  const [splits, setSplits] = useState<SplitDraft[]>([]);
 
   const [showPlacePicker, setShowPlacePicker] = useState(false);
 
@@ -135,6 +141,20 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       return;
     }
 
+    /* 몫은 빈 줄을 버리고, 합계가 결제 금액을 넘으면 막는다 —
+       편집 팝업과 같은 잣대다. */
+    const cleanSplits = splits.filter(
+      (x) => x.amount !== "" && Number(x.amount) > 0
+    );
+    if (splits.some((x) => x.amount === "" || Number(x.amount) <= 0)) {
+      alert("분할 금액은 0보다 커야 합니다.");
+      return;
+    }
+    if (cleanSplits.reduce((a, r) => a + Number(r.amount), 0) > Number(form.amount)) {
+      alert("분할 합계가 결제 금액을 초과합니다.");
+      return;
+    }
+
     try {
       let place_id = form.place_id ? Number(form.place_id) : null;
 
@@ -185,7 +205,14 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
         },
       ];
 
-      await axios.post("/entries", payload);
+      const res = await axios.post("/entries", payload);
+
+      // 몫은 건이 생긴 뒤에야 붙일 수 있다. 빈 채로는 부르지 않는다.
+      const newId = res.data?.entry_ids?.[0];
+      if (newId && cleanSplits.length > 0) {
+        await axios.put(`/entries/${newId}/splits`, cleanSplits);
+      }
+
       alert("전송 완료-!! ;-)");
 
       // 초기화
@@ -202,6 +229,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       });
       setSelectedPlace(null);
       setSelectedPlaceName("");
+      setSplits([]);
       setCat2List([]);
       setIsDirty(false);
 
@@ -221,7 +249,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
     >
       {/* 날짜는 편집 팝업의 머리말과 같은 자리에 둔다. */}
       <div className="edit-modal__headfields entry-form__headfields">
-        <EditField label="날짜" span={12}>
+        <EditField label="날짜" span={12} required>
           <input
             type="date"
             name="tx_date"
@@ -234,7 +262,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       {/* 편집 팝업과 동일한 12칸 그리드 배치 */}
       <div className="edit-grid">
         {/* 1행 — 분류 3단 */}
-        <EditField label="중분류" span={4}>
+        <EditField label="중분류" span={4} required>
           <SingleSelect
             noun="중분류"
             options={visible(cat1List, (c) => String(c.id) === form.cat1_id)
@@ -248,7 +276,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           />
         </EditField>
 
-        <EditField label="소분류" span={4}>
+        <EditField label="소분류" span={4} required>
           <SingleSelect
             noun="소분류"
             options={visible(cat2List, (c) => String(c.id) === form.cat2_id)
@@ -277,7 +305,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
         </EditField>
 
         {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래 */}
-        <EditField label="IN/OUT" span={4}>
+        <EditField label="IN/OUT" span={4} required>
           <span className={`inout-chip ${form.inout === "1" ? "in" : form.inout === "-1" ? "out" : ""}`}>
             {form.inout === "1" ? "IN(+)" : form.inout === "-1" ? "OUT(−)" : "—"}
           </span>
@@ -297,7 +325,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           />
         </EditField>
 
-        <EditField label="금액" span={4}>
+        <EditField label="금액" span={4} required>
           <input
             type="number"
             name="amount"
@@ -336,6 +364,22 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           />
         </EditField>
       </div>
+
+      {/* 나가는 돈만 쪼갤 수 있다. 편집 팝업과 같은 자리 · 같은 모양이다 —
+          적을 때와 고칠 때 묻는 것이 달라서는 안 된다. */}
+      {form.inout === "-1" && (
+        <>
+          <EditDivider />
+          <SplitEditor
+            grossAmount={Number(form.amount) || 0}
+            value={splits}
+            onChange={(v) => {
+              setSplits(v);
+              setIsDirty(true);
+            }}
+          />
+        </>
+      )}
 
       {showPlacePicker && (
         <PlacePicker

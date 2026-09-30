@@ -243,7 +243,7 @@ export default function SplitEditor({
         </span>
         <span className="split-editor__op">=</span>
         <span className="split-editor__term split-editor__net">
-          실지출 <b>{won(net)}</b>
+          실지출 <b className={net === 0 ? "zero" : ""}>{won(net)}</b>
         </span>
       </div>
 
