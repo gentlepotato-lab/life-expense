@@ -21,6 +21,7 @@ import GrowArea from "./components/GrowArea";
 import useLongPress from "../hooks/useLongPress";
 import usePeel from "../hooks/usePeel";
 import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
+import DayPicker from "./components/DayPicker";
 
 /* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
    카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
@@ -877,10 +878,9 @@ export default function Entries() {
           onDelete={() => deleteEntry(draft.entry_id)}
           headerFields={
             <EditField label="날짜" span={12} required>
-              <input
-                type="date"
+              <DayPicker
                 value={draft.tx_date ? draft.tx_date.substring(0, 10) : ""}
-                onChange={(e) => setField("tx_date", e.target.value)}
+                onChange={(v) => setField("tx_date", v)}
               />
             </EditField>
           }
@@ -1000,19 +1000,23 @@ export default function Entries() {
 
             {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다. */}
             <div className="popup-body edit-grid">
+              {/* 거르는 자리는 지난 어느 때로도 갈 수 있어야 한다 —
+                  머리의 연월을 누르면 한 해가 펼쳐진다. */}
               <EditField label="시작일" span={6}>
-                <input
-                  type="date"
+                <DayPicker
+                  monthJump
+                  clearable
                   value={filter.dateFrom}
-                  onChange={(e) => setFilter({ ...filter, dateFrom: e.target.value })}
+                  onChange={(v) => setFilter({ ...filter, dateFrom: v })}
                 />
               </EditField>
 
               <EditField label="종료일" span={6}>
-                <input
-                  type="date"
+                <DayPicker
+                  monthJump
+                  clearable
                   value={filter.dateTo}
-                  onChange={(e) => setFilter({ ...filter, dateTo: e.target.value })}
+                  onChange={(v) => setFilter({ ...filter, dateTo: v })}
                 />
               </EditField>
 

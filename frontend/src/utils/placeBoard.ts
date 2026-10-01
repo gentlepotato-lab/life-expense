@@ -49,28 +49,9 @@ export function recentMonths(n: number = DEFAULT_MONTHS): Period {
   return { since: ym(back), until: ym(now) };
 }
 
-/**
- * 고를 수 있는 달을 최근 것부터 늘어놓는다.
- *
- * 적어 둔 것이 있는 만큼만 만든다 — 아무것도 없는 달을 골라 봐야 빈 목록만
- * 나온다. 앞뒤를 모르면(아직 아무것도 안 적었으면) 하나도 만들지 않는다.
- */
-export function monthOptions(from: string | null, to: string | null) {
-  if (!from || !to) return [];
-  const [fy, fm] = from.split("-").map(Number);
-  const [ty, tm] = to.split("-").map(Number);
-
-  const out: { value: string; label: string }[] = [];
-  for (let y = ty, m = tm; y > fy || (y === fy && m >= fm); ) {
-    out.push({ value: `${y}-${String(m).padStart(2, "0")}`, label: `${y}. ${m}.` });
-    m -= 1;
-    if (m === 0) {
-      m = 12;
-      y -= 1;
-    }
-  }
-  return out;
-}
+/* 고를 수 있는 달을 하나하나 늘어놓던 monthOptions는 걷어 냈다.
+   이제 기간 고르개가 연월 달력(MonthPicker)을 쓰므로, 앞뒤 끝만 넘겨 주면
+   그쪽이 가둔다. 서른 줄짜리 목록을 만들 까닭이 없어졌다. */
 
 /** 걸어 둔 기간을 단추에 적을 말로 */
 export function periodLabel(p: Period): string {

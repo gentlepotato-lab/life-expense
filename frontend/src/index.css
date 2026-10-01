@@ -3094,6 +3094,239 @@ button {
   color: #ffffff;
 }
 
+/* ─── 달력 한 달치 ─────────────────────────────────────────────
+   쓰기 슬라이드의 1단계와 날짜 고르개(DayPicker)가 함께 쓴다.
+   달을 넘기는 손잡이는 달력 · 씀씀이와 같은 모양(.month-nav__arrow)을 쓴다 —
+   넘긴다는 일이 같으면 단추도 같아야 한다. 주말 빛깔과 오늘 동그라미도
+   달력 화면의 잣대를 그대로 가져왔다. */
+
+/* 날짜 고르는 자리. 달을 넘기는 손잡이는 달력 · 씀씀이와 같은 모양
+   (.month-nav__arrow)을 쓴다 — 넘긴다는 일이 같으면 단추도 같아야 한다.
+   주말 빛깔과 오늘 동그라미도 달력 화면의 잣대를 그대로 가져왔다. */
+.daygrid {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  /* 달력 한 덩이를 테로 둘러 본문의 다른 것과 가른다. 여기만 서른한 칸이
+     들어가는 자리라, 테가 없으면 숫자가 본문에 흩어져 보인다. */
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+
+/* 달 이름을 옅은 판에 앉힌다. 맨 글자로 두었더니 위아래가 허전했다. */
+.daygrid__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+}
+
+.daygrid__label {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.daygrid__grid {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-template-columns: repeat(7, 1fr);
+  /* 첫 줄은 요일, 둘째 줄은 가름줄 — 둘 다 제 키만 쓰고, 날짜 줄만 남은
+     자리를 고루 나눈다. */
+  grid-template-rows: auto auto;
+  grid-auto-rows: 1fr;
+  gap: 3px;
+}
+
+/* 요일 머리는 날짜보다 낮게 깔아 둔다. */
+.daygrid__wd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+}
+
+/* 요일과 날짜를 가르는 한 줄. 줄을 통째로 써야 끊기지 않는다.
+   칸 높이를 먹지 않도록 격자의 자동 높이에서 빼 둔다. */
+.daygrid__rule {
+  grid-column: 1 / -1;
+  grid-row: auto / span 1;
+  height: 1px;
+  min-height: 1px;
+  margin: 3px 0 4px;
+  background: var(--color-border);
+}
+
+.daygrid__wd.sun { color: var(--color-danger); }
+.daygrid__wd.sat { color: var(--color-primary); }
+
+/* 앞 달의 빈 자리. 누를 것이 없으므로 단추로 두지 않는다. */
+.daygrid__pad {
+  display: block;
+}
+
+/* 칸마다 바탕을 깔면 숫자가 벽돌담처럼 빽빽해진다. 비워 두고 손이 닿을
+   때만 물들인다 — 고른 하루가 그만큼 또렷해진다. */
+.daygrid__day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.08s ease;
+}
+
+.daygrid__day.sun { color: var(--color-danger); }
+.daygrid__day.sat { color: var(--color-primary); }
+
+.daygrid__day:active {
+  transform: scale(0.94);
+}
+
+.daygrid__day:hover:not(.on) {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+/* 오늘 — 테만 두른다. 고른 날과 겹칠 수 있어 꽉 채우지 않는다. */
+.daygrid__day.today {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+/* 고른 하루. 주말 빛깔보다 이쪽이 앞선다 — 지금 고른 것이 가장 중요하다. */
+.daygrid__day.on,
+.daygrid__day.on.sun,
+.daygrid__day.on.sat {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+
+/* 떠 있는 판에 들어갈 때.
+   슬라이드에서는 본문 높이를 다 먹지만, 고르개에서는 한 줄짜리 칸 아래에
+   떠야 한다. 바깥 테는 판(.ms-dropdown)이 이미 두르고 있으므로 걷는다. */
+.daygrid--compact {
+  display: block;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.daygrid--compact .daygrid__head {
+  margin-bottom: 6px;
+}
+
+.daygrid--compact .daygrid__grid {
+  display: grid;
+  grid-auto-rows: 34px;
+}
+
+.daygrid--compact .daygrid__day {
+  height: 34px;
+  min-height: 34px;
+}
+
+/* 눌러서 한 해를 펼치는 머리.
+   글자 꼴은 .daygrid__label이 쥔 것을 그대로 두고 눌리는 결만 보탠다.
+   font 줄임꼴(font: inherit)을 쓰면 글꼴만이 아니라 굵기와 숫자 정렬
+   (tabular-nums)까지 함께 지워진다. 그러면 날을 고를 때와 달을 고를 때
+   같은 판의 머리가 서로 다른 글씨가 된다.
+   키를 화살표와 같은 24px로 못 박아 두 얼굴의 머리 높이도 맞춘다. */
+.daygrid__label--btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  min-height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.daygrid__label--btn:hover {
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.daygrid__label--btn:active {
+  transform: scale(0.96);
+}
+
+
+/* ─── 날짜 고르개 ───────────────────────────────────────────────
+   브라우저가 주는 날짜 칸은 기기마다 다른 달력을 띄운다. 그 자리를 앱의
+   달력으로 바꾼 것이다. 판은 다른 고르개와 같은 틀(.ms-dropdown)을 쓰고,
+   안에 달력과 아래 단추만 새로 둔다. */
+.dp-panel {
+  overflow-y: auto;
+  padding: 8px;
+}
+
+/* 줄을 긋고 아래에 따로 둔다 — 연월 고르개의 비우기와 같은 자리, 같은 꼴이다.
+   둘이 서면 자리를 고루 나눈다. */
+.dp-foot {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.dp-foot__btn {
+  flex: 1 1 0;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dp-foot__btn:hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  color: var(--color-primary);
+}
+
+/* 지금 비어 있으면 그것이 고른 상태다 — 연월 고르개와 같은 잣대로 알린다. */
+.dp-foot__btn.on {
+  color: var(--color-primary);
+}
+
+
 /* ─── 연월 고르개 ───────────────────────────────────────────────
    달은 열두 개뿐이라 한 해를 펼쳐 놓고 고르는 것이 목록보다 짧다.
    판은 다른 고르개와 같은 틀(.ms-dropdown)을 쓰고, 안에 해 넘기는 머리와
@@ -3103,56 +3336,39 @@ button {
   padding: 8px;
 }
 
+/* 해 이름을 옅은 판에 앉힌다 — 쓰기 슬라이드의 달력과 같은 머리다. */
 .mp-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 4px;
   margin-bottom: 8px;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
 }
 
 .mp-year {
   flex: 1 1 auto;
   text-align: center;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
-/* 해를 넘기는 단추 — 달력 · 씀씀이의 달 넘기기(.month-nav__arrow)와 같은
-   모양이다. 넘긴다는 일이 같으면 단추도 같아야 한다. */
-.mp-nav {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  min-height: 30px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.mp-nav:hover:not(:disabled) {
-  background: var(--color-bg);
-  color: var(--color-primary);
-}
-
-.mp-nav:active:not(:disabled) {
-  transform: scale(0.92);
-}
-
-.mp-nav:disabled {
+/* 해를 더 넘길 데가 없을 때.
+   달력 · 씀씀이의 달 넘기기에는 끝이 없어 이 꼴이 없었다. 여기만 min · max에
+   갇히므로 이 자리에서 보탠다. */
+.mp-head > .month-nav__arrow:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+.mp-head > .month-nav__arrow:disabled:hover {
+  background: transparent;
+  color: var(--color-text-secondary);
 }
 
 /* 넉 줄에 셋씩 — 한 해가 한눈에 들어오는 가장 네모난 꼴이다. */
@@ -3162,6 +3378,8 @@ button {
   gap: 5px;
 }
 
+/* 칸마다 바탕을 깔면 열두 달이 벽돌담처럼 빽빽해진다. 비워 두고 손이 닿을
+   때만 물들인다 — 고른 한 달이 그만큼 또렷해진다. */
 .mp-cell {
   display: inline-flex;
   align-items: center;
@@ -3169,26 +3387,37 @@ button {
   height: 34px;
   min-height: 34px;
   padding: 0;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: var(--color-bg);
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1;
   cursor: pointer;
   font-variant-numeric: tabular-nums;
+  transition: background 0.12s ease, transform 0.08s ease;
 }
 
 .mp-cell:hover:not(:disabled) {
-  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.mp-cell:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+/* 이번 달 — 테만 두른다. 고른 달과 겹칠 수 있어 꽉 채우지 않는다.
+   목록이던 때에는 지금이 어디인지 알 길이 없었다. */
+.mp-cell.now {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 
 .mp-cell.on {
   background: var(--color-primary);
-  border-color: var(--color-primary);
   color: #ffffff;
   font-weight: 700;
+  box-shadow: none;
 }
 
 /* 비우기 — 열두 달과 성격이 달라 줄을 긋고 아래에 따로 둔다. */

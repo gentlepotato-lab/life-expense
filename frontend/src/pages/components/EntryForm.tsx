@@ -9,6 +9,7 @@ import SplitEditor from "./SplitEditor";
 import type { SplitDraft } from "./SplitEditor";
 import PlacePicker from "./PlacePicker";
 import GoToButton from "./GoToButton";
+import DayPicker from "./DayPicker";
 
 /**
  * 지출 한 건을 적는 입력 칸 묶음.
@@ -250,11 +251,12 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       {/* 날짜는 편집 팝업의 머리말과 같은 자리에 둔다. */}
       <div className="edit-modal__headfields entry-form__headfields">
         <EditField label="날짜" span={12} required>
-          <input
-            type="date"
-            name="tx_date"
+          <DayPicker
             value={form.tx_date}
-            onChange={handleChange}
+            onChange={(v) => {
+              setForm({ ...form, tx_date: v });
+              setIsDirty(true);
+            }}
           />
         </EditField>
       </div>
