@@ -16510,3 +16510,419 @@ textarea.memo-input.memo-area {
   width: 13px;
   height: 13px;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   쓰기 슬라이드(beta) — 2026-10-01
+   ────────────────────────────────────────────────────────────
+   한 번에 하나씩 묻고, 고르면 곧바로 다음 장으로 넘어가는 쓰기다.
+   기존 쓰기와 나란히 두고 시험해 보려는 것이라 규칙을 한자리에 모았다.
+   접을 때는 이 묶음과 WriteSlideModal 한 벌만 걷으면 된다.
+
+   껍데기는 편집 팝업의 것(.popup-panel · .edit-modal__*)을 그대로 쓴다.
+   여기서는 그 안에 들어가는 것만 정한다 — 머리 · 바닥 · 여백은 편집
+   팝업이 정한 값을 그대로 물려받아야 화면끼리 어긋나지 않는다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 툴바 단추 ─────────────────────────────────────────────── */
+
+/* 만년필 아래에 걸음점을 겹쳐 둔다. 떼어 놓으면 펜이 작아져 옆에 선
+   쓰기 단추보다 초라해 보인다. */
+.slide-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.slide-icon__steps {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 16px;
+  height: 4px;
+}
+
+/* 시범 기능이라는 표. 잔소리의 개수 배지와 같은 자리 · 같은 짜임이고,
+   빛깔만 다르다 — 셀 것이 아니라 알릴 것이라 강조색을 쓴다. */
+.beta-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--color-surface);
+}
+
+/* ─── 이고 가는 딱지 줄 ─────────────────────────────────────── */
+
+/* 띠(.edit-modal__headfields)는 열두 칸 격자다. 날짜·시간 같은 입력 칸이
+   나눠 서라고 그렇게 짜여 있는데, 딱지 줄은 칸을 나눌 것이 없으므로 줄을
+   통째로 쓴다. 안 그러면 한 칸(23px) 안에 갇혀 딱지가 세로로 쌓인다. */
+.ws-tags {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 5px;
+  /* 두 줄 자리를 미리 잡아 둔다(22 + 5 + 22). 딱지가 늘어 둘째 줄로 접힐 때
+     띠가 커지면 팝업이 통째로 27px 뛴다 — 마지막 장에서만 한 번 흔들리는
+     셈이라 더 눈에 띈다. 비어 있는 동안 조금 넉넉한 편이 낫다. */
+  min-height: 49px;
+}
+
+.ws-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary-dark);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 날짜는 늘 서 있으므로 지금 고른 것처럼 진하게 둔다 — 첫 장에서
+   무엇이 이미 정해져 있는지가 한눈에 보여야 한다. */
+.ws-tag--now {
+  background: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.ws-tag--out {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger-dark);
+}
+
+/* 들어오는 돈. 카드 금액 · 달력 합계가 쓰는 그 빛깔이다. */
+.ws-tag--in {
+  background: color-mix(in srgb, var(--color-success) 14%, transparent);
+  color: var(--color-success-dark);
+}
+
+/* ─── 장의 속 ───────────────────────────────────────────────── */
+
+/* 장을 넘길 때마다 팝업이 커졌다 작아졌다 하면 눈이 따라다녀야 한다.
+   가장 큰 장(금액 — 숫자판이 넉 줄)의 키에 못 박아 두고, 굴러가는 자리가
+   남은 키를 채운다 — 중분류처럼 긴 목록은 그 안에서 굴러간다. */
+.write-slide .edit-modal__body {
+  display: flex;
+  flex-direction: column;
+  height: 376px;
+  overflow: hidden;
+}
+
+/* 무엇을 묻는 장인지 한 마디.
+   다른 칸 이름표(11px)와 같이 두었더니 장이 바뀐 것이 눈에 안 들어왔다.
+   한 장에 하나뿐인 제목이라 키우고, 앞에 강조색 막대를 세워 딱지 줄과
+   눈에 띄게 가른다. */
+.ws-lab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.ws-lab::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--color-primary);
+}
+
+/* 중분류처럼 많은 목록은 팝업을 늘리지 않고 안에서 굴린다.
+   키를 못 박지 않고 남은 자리를 채우게 두어야 장마다 바닥이 같은 선에 선다. */
+.ws-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin-right: -2px;
+  padding-right: 2px;
+}
+
+.ws-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+}
+
+/* 손가락으로 겨누는 자리라 넉넉히 둔다. 한 줄에 둘씩이면 긴 이름도
+   줄바꿈 없이 들어간다. */
+.ws-pick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  height: auto;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  cursor: pointer;
+}
+
+.ws-pick.on {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary-dark);
+}
+
+/* ─── 금액 ──────────────────────────────────────────────────── */
+
+/* input[type="number"](0,1,1)가 홑 클래스(0,1,0)를 이겨 키와 글자를
+   끌어내린다. 겉을 한 겹 더해 올라선다. */
+.write-slide .ws-amount {
+  width: 100%;
+  height: 64px;
+  min-height: 64px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-danger);
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* 들어오는 돈이면 금액도 그 빛깔로 적는다.
+   바로 위 규칙과 셈이 같아 앞에 두면 밀린다. 클래스를 겹쳐 한 겹 올린다. */
+.write-slide .ws-amount.ws-amount--in {
+  color: var(--color-success-dark);
+}
+
+.ws-quick {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ws-quick__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.ws-quick__btn.on {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary-dark);
+}
+
+/* ─── 장소/가게 ─────────────────────────────────────────────── */
+
+/* 홀로 선 장소 고르개는 좌우 14px 안여백을 제 몫으로 갖는다. 슬라이드
+   본문 안에서는 본문 여백과 겹쳐 이중이 되므로 좌우만 걷는다. */
+.ws-keyword {
+  width: 100%;
+  margin: 0;
+}
+
+.ws-tabs {
+  padding: 8px 0 0;
+}
+
+.ws-listhead {
+  padding: 10px 0 4px;
+}
+
+.ws-plist {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+/* ─── 메모 ──────────────────────────────────────────────────── */
+
+.write-slide .ws-memo {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  line-height: 1.5;
+  resize: none;
+}
+
+/* ─── 바닥의 걸음점 ─────────────────────────────────────────── */
+
+/* 큰 단계 다섯은 점으로, 지금 선 단계만 알약으로 펴져 속 장수를 보인다.
+   2단계는 분류 셋, 3단계는 결제 수단과 금액 둘이라 장수가 단계마다 다르다. */
+.ws-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+}
+
+.ws-dots i {
+  display: block;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+}
+
+.ws-dots i.done {
+  background: color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.ws-dots__grp {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 14px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.ws-dots__grp b {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.ws-dots__grp b.on {
+  width: 13px;
+  background: var(--color-primary);
+}
+
+/* ─── 금액의 숫자판 ─────────────────────────────────────────── */
+
+/* 셋씩 넉 줄. 계산기와 달리 셈은 없고 숫자만 친다 — 여기서 하려는 일은
+   금액 한 줄을 빠르게 채우는 것뿐이다.
+
+   칸마다 테두리를 두르면 열두 개의 낱개 상자로 흩어져 보인다. 옅은 판
+   하나로 묶고 그 안에 칸을 앉혀, 손가락이 머무는 한 덩어리로 읽히게 한다. */
+.ws-pad {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 5px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+}
+
+.ws-pad__key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: 23px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.08s ease;
+}
+
+.ws-pad__key:active {
+  transform: scale(0.96);
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface));
+  color: var(--color-primary-dark);
+}
+
+/* 지우는 칸. 열둘 가운데 이것만 뜻이 다르다 — 숫자를 치는 것이 아니라
+   되돌리는 일이라 빛깔로 갈라 둔다. `00`은 두 자리를 한 번에 치는 것일
+   뿐이라 다른 숫자 칸과 똑같이 둔다. */
+.ws-pad__key--back {
+  color: var(--color-danger);
+  font-size: 18px;
+}
+
+.ws-pad__key--back:active {
+  background: color-mix(in srgb, var(--color-danger) 14%, var(--color-surface));
+  color: var(--color-danger-dark);
+}
+
+/* ─── 장소/가게의 지도 ──────────────────────────────────────── */
+
+/* 고른 자리를 눈으로 확인하는 칸. 장소 고르개(.place-picker__map)와 같은
+   짜임이되, 슬라이드는 본문 키가 못 박혀 있어 남는 자리를 쓰지 않고
+   제 키만 쓴다 — 목록이 줄어들지 않게 하려는 것이다. */
+.ws-mapwrap {
+  position: relative;
+  flex: 0 0 auto;
+  height: 112px;
+  margin-top: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.ws-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* 고르기 전 안내. 지도 자리를 비워 두면 무엇이 빠진 칸인지 알 수 없다. */
+.ws-mapempty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}

@@ -6,7 +6,9 @@ import NudgePopup from "./NudgePopup";
 import PenIcon from "./PenIcon";
 import RefreshIcon from "./RefreshIcon";
 import ScrollTopButton from "./ScrollTopButton";
+import SlideIcon from "./SlideIcon";
 import WriteEntryModal from "./WriteEntryModal";
+import WriteSlideModal from "./WriteSlideModal";
 import useNudges, { invalidateNudges } from "../../hooks/useNudges";
 import { closeOverlays } from "../../hooks/useBackClose";
 import { prefOn } from "../../utils/prefs";
@@ -24,6 +26,8 @@ import { prefOn } from "../../utils/prefs";
  */
 export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
   const [writeOpen, setWriteOpen] = useState(false);
+  /* 쓰기 슬라이드(beta) — 시범으로 붙인 또 하나의 쓰기다. */
+  const [slideOpen, setSlideOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [nudgeOpen, setNudgeOpen] = useState(false);
 
@@ -45,13 +49,15 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
    *
    * 같은 단추를 다시 누르면 닫기만 한다. 계산기가 원래 그랬다.
    */
-  const only = (which: "write" | "calc" | "nudge") => {
+  const only = (which: "write" | "slide" | "calc" | "nudge") => {
     const already =
       (which === "write" && writeOpen) ||
+      (which === "slide" && slideOpen) ||
       (which === "calc" && calculatorOpen) ||
       (which === "nudge" && nudgeOpen);
     void closeOverlays().then(() => {
       setWriteOpen(!already && which === "write");
+      setSlideOpen(!already && which === "slide");
       setCalculatorOpen(!already && which === "calc");
       setNudgeOpen(!already && which === "nudge");
     });
@@ -61,10 +67,10 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
      열려 있을 때만 손을 대므로, 이 화면의 다른 팝업이 걸어 둔 것을
      지우고 나가는 일이 없다. */
   useEffect(() => {
-    if (!writeOpen && !calculatorOpen && !nudgeOpen) return;
+    if (!writeOpen && !slideOpen && !calculatorOpen && !nudgeOpen) return;
     document.documentElement.classList.add("modal-open");
     return () => document.documentElement.classList.remove("modal-open");
-  }, [writeOpen, calculatorOpen, nudgeOpen]);
+  }, [writeOpen, slideOpen, calculatorOpen, nudgeOpen]);
 
   return (
     <>
@@ -75,6 +81,16 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
           aria-label="새로 고침"
         >
           <RefreshIcon />
+        </button>
+        {/* 쓰기 슬라이드(beta) — 쓰기 바로 왼쪽이다. 같은 일을 다른 길로
+            하는 단추라 나란히 서야 그 관계가 보인다. */}
+        <button
+          className="calculator-trigger-button slide-trigger-button"
+          onClick={() => only("slide")}
+          aria-label="쓰기 슬라이드(beta)"
+        >
+          <SlideIcon />
+          <span className="beta-badge">beta</span>
         </button>
         <button
           className="calculator-trigger-button write-trigger-button"
@@ -107,6 +123,16 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
       {writeOpen && (
         <WriteEntryModal
           onClose={() => setWriteOpen(false)}
+          onSaved={() => {
+            invalidateNudges();
+            setNudgeKey((k) => k + 1);
+            onSaved?.();
+          }}
+        />
+      )}
+      {slideOpen && (
+        <WriteSlideModal
+          onClose={() => setSlideOpen(false)}
           onSaved={() => {
             invalidateNudges();
             setNudgeKey((k) => k + 1);

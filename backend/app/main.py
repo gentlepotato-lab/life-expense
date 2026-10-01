@@ -17,6 +17,7 @@ from app.routers import (
     profile,
     scheduled_entries,
     splits,
+    write_slide,
 )
 from app.scheduler.holiday_job import start_scheduler
 from app.scheduler.scheduled_entry_job import start_scheduled_entry_scheduler
@@ -96,6 +97,10 @@ app.include_router(holidays.router, prefix=f"{API}/holidays", tags=["holidays"])
 app.include_router(splits.router, prefix=f"{API}/entries", tags=["splits"])
 app.include_router(splits.pending_router, prefix=f"{API}/pending-entries", tags=["splits"])
 app.include_router(splits.scheduled_router, prefix=f"{API}/scheduled-entries", tags=["splits"])
+
+# 쓰기 슬라이드(beta) — 시범 기능이라 길을 한자리에 모아 두었다.
+# 접을 때는 이 한 줄만 걷으면 된다.
+app.include_router(write_slide.router, prefix=f"{API}/write-slide", tags=["write_slide"])
 
 # 앱 실행 시 스케줄러 시작
 start_scheduler()
