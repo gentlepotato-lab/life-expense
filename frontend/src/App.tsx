@@ -25,8 +25,16 @@ import TabBar from "./pages/components/TabBar";
 import { loadPrefs, pref, takeHome } from "./utils/prefs";
 import { applyTape } from "./utils/tapes";
 
-/** 앞머리 화면이 떠 있는 시간. 사라지는 데 걸리는 320ms는 여기에 포함하지 않는다. */
-const SPLASH_MS = 1500;
+/**
+ * 앞머리 화면이 떠 있는 시간. 사라지는 데 걸리는 320ms는 여기에 포함하지 않는다.
+ *
+ * 로고가 제 손으로 획을 긋는 데 2.06초, 이름이 올라오는 데 2.18초가 걸린다
+ * (logo-h-anim.svg와 index.html).
+ *
+ * 다 쓰자마자 걷으면 쫓기듯 보인다. 마지막 움직임이 멎고도 0.42초를 그대로
+ * 두었다가 걷는다 — 사라지는 320ms까지 더해 2.92초다.
+ */
+const SPLASH_MS = 2600;
 /** #splash의 opacity 전환 시간(index.html)과 맞춰 둘 것 */
 const SPLASH_FADE_MS = 320;
 

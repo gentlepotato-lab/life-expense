@@ -40,32 +40,37 @@
         opacity: 0;
         pointer-events: none;
       }
+      /* 로고는 제가 알아서 움직인다(logo-h-anim.svg).
+         여기서 또 띄워 올리면 펜이 획을 긋는 동안 그림 전체가 따라 올라가
+         두 움직임이 어긋나 보인다. 그래서 떠오르기는 걷었다. */
       #splash img {
         width: min(58vw, 260px);
         height: auto;
-        animation: splash-rise 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
       }
+      /* 이름은 펜이 다 쓰고 손을 뗀 뒤에 올라온다. */
       #splash .splash-name {
         font-family: "Pretendard Variable", Pretendard, -apple-system, sans-serif;
         font-size: 13px;
         font-weight: 600;
         letter-spacing: 0.22em;
         color: #98a2b3;
-        animation: splash-rise 480ms 90ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: splash-rise 420ms 1760ms cubic-bezier(0.22, 1, 0.36, 1) both;
       }
       @keyframes splash-rise {
         from { opacity: 0; transform: translateY(8px); }
         to   { opacity: 1; transform: none; }
       }
+      /* 움직임을 줄이도록 해 둔 기기에서는 이름이 바로 선다.
+         로고 쪽 배려는 logo-h-anim.svg 안에 따로 들어 있다 — <img>로 불린
+         그림은 제 안의 규칙만 보고, 이 바깥 규칙은 닿지 않는다. */
       @media (prefers-reduced-motion: reduce) {
-        #splash img,
         #splash .splash-name { animation: none; }
       }
     </style>
   </head>
   <body>
     <div id="splash">
-      <img src="/logo-h.svg" alt="돈을 쓰다" />
+      <img src="/logo-h-anim.svg" alt="돈을 쓰다" />
       <span class="splash-name">돈을 쓰다</span>
     </div>
 
