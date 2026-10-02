@@ -16654,6 +16654,12 @@ textarea.memo-input.memo-area {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* 굴림 막대 자리를 늘 비워 둔다.
+     막대가 자리를 먹는 기기(데스크톱)에서는 넘치는 장만 7px 좁아져, 중분류는
+     164px 칸인데 소분류 · 결제 수단은 171px 칸이 됐다. 자리를 미리 비워 두면
+     넘치든 아니든 칸이 같다. 막대가 내용 위에 떠서 자리를 안 먹는 기기
+     (안드로이드 · iOS)에서는 아무것도 달라지지 않는다. */
+  scrollbar-gutter: stable;
   margin-right: -2px;
   padding-right: 2px;
 }
