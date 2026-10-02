@@ -25,7 +25,7 @@ import { CSS } from "@dnd-kit/utilities";
 import QuickActions from "./components/QuickActions";
 import useEditLock from "../hooks/useEditLock";
 import { EditLockTip } from "./components/EditLock";
-
+import { say, ask, askText } from "../utils/notify";
 type Counterpart = {
   counterpart_id: number;
   name: string;
@@ -284,21 +284,21 @@ export default function Counterparts() {
       JSON.stringify(categories.map((c) => [c.category_id, c.emoji, c.color]));
 
     if (fingerprint(rows) === beforeEdit && !categoriesChanged) {
-      alert("변경된 내용이 없습니다만...?");
+      say.warn("변경된 내용이 없습니다만...?");
       setList(rows);
       setEditMode(false);
       return;
     }
 
     if (rows.some((c) => !c.name.trim())) {
-      alert("이름을 입력하세요.");
+      say.warn("이름을 입력하세요.");
       return;
     }
 
     const names = rows.map((c) => c.name.trim());
     const dup = names.find((n, i) => names.indexOf(n) !== i);
     if (dup) {
-      alert(`이름이 겹칩니다 — "${dup}"`);
+      say.warn(`이름이 겹칩니다 — "${dup}"`);
       return;
     }
 
@@ -331,12 +331,12 @@ export default function Counterparts() {
           sort_order: i + 1,
         }))
       );
-      alert("저장 완료-!! ;-)");
+      say.ok("저장 완료-!! ;-)");
       setEditMode(false);
       await refreshCategories();
       await refresh();
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 
@@ -346,22 +346,30 @@ export default function Counterparts() {
       setList((prev) => prev.filter((x) => x.counterpart_id !== id));
       return;
     }
-    if (!window.confirm("이 항목을 제거할까요?")) return;
+    if (
+      !(await ask({
+        title: "상대 제거",
+        body: "이 항목을 제거할까요?",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
     try {
       const r = await axios.delete(`/counterparts/${id}`);
       if (r.data?.status === "deactivated") {
-        alert(
+        say.warn(
           `이미 ${r.data.used_count}건에 쓰이고 있어 제거하지 않고 감췄습니다.\n` +
             `"감춘 항목 보기" 로 확인할 수 있습니다.`
         );
       } else {
-        alert("제거 완료-!! ;-)");
+        say.ok("제거 완료-!! ;-)");
       }
       // 목록이 바뀌었으니 변경 판정 기준도 새로 잡는다.
       const next = await refresh();
       setBeforeEdit(fingerprint(next));
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 
@@ -388,7 +396,9 @@ export default function Counterparts() {
    * 여기서는 이름만 물어본다.
    */
   const createCategory = async (assignTo: number) => {
-    const name = window.prompt("새 구분 이름을 입력하세요.")?.trim();
+    const name = (
+      await askText({ title: "새 구분", label: "새 구분 이름을 입력하세요.", go: "추가" })
+    )?.trim();
     if (!name) return;
     try {
       const r = await axios.post("/counterparts/categories", { name });
@@ -396,22 +406,30 @@ export default function Counterparts() {
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
       setCategoryOf(assignTo, r.data.category_id);
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 
   const deleteCategory = async (categoryId: number, name: string) => {
-    if (!window.confirm(`구분 "${name}" 을 제거합니다?`)) return;
+    if (
+      !(await ask({
+        title: "구분 제거",
+        body: `구분 "${name}" 을 제거합니다?`,
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
     try {
       const r = await axios.delete(`/counterparts/categories/${categoryId}`);
       if (r.data?.error === "IN_USE") {
-        alert(`${r.data.used_count}건이 쓰고 있어 제거할 수 없습니다.`);
+        say.warn(`${r.data.used_count}건이 쓰고 있어 제거할 수 없습니다.`);
         return;
       }
       const next = await refreshCategories();
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 

@@ -28,7 +28,7 @@ import CardTierModal, { type BenefitHint, type TierDraft } from "./components/Ca
 import CardPerkPopup, { type PerkTier } from "./components/CardPerkPopup";
 import useLongPress from "../hooks/useLongPress";
 import { manwon } from "../utils/amount";
-
+import { say, ask, askText } from "../utils/notify";
 /**
  * 카드 줄 — 꾹 누르면 그 카드의 혜택이 펼쳐진다.
  *
@@ -120,7 +120,7 @@ export default function PaymentMethods() {
         annual_fee: value.trim() === "" ? null : Number(value),
       });
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 
@@ -208,7 +208,15 @@ export default function PaymentMethods() {
 
   /** 구간 하나를 지운다. 다른 항목을 지우는 것과 같이 바로 묻고 바로 지운다. */
   const deleteTier = async (methodId: number, index: number) => {
-    if (!window.confirm("이 구간을 제거할까요?")) return;
+    if (
+      !(await ask({
+        title: "구간 제거",
+        body: "이 구간을 제거할까요?",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
     const list = (tiers[methodId] ?? []).filter((_, i) => i !== index);
     try {
       await axios.post(
@@ -217,7 +225,7 @@ export default function PaymentMethods() {
       );
       await loadTiers(methodId);
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 
@@ -242,7 +250,7 @@ export default function PaymentMethods() {
       setTierOf(null);
       await loadTiers(id);
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
   const [list, setList] = useState<any[]>([]);
@@ -383,7 +391,9 @@ export default function PaymentMethods() {
 
   /** 추가 폼에서 구분을 새로 만든다. 만든 즉시 그 폼의 선택값이 된다. */
   const createCategoryForAdd = async () => {
-    const name = window.prompt("새 구분 이름을 입력하세요.")?.trim();
+    const name = (
+      await askText({ title: "새 구분", label: "새 구분 이름을 입력하세요.", go: "추가" })
+    )?.trim();
     if (!name) return;
     try {
       const r = await axios.post("/payment-methods/categories", { name });
@@ -391,13 +401,15 @@ export default function PaymentMethods() {
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
       setAddCategoryId(r.data.category_id);
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 
   /** 구분을 새로 만들고 그 자리에서 해당 결제 수단에 배정한다. */
   const createCategory = async (assignTo: number) => {
-    const name = window.prompt("새 구분 이름을 입력하세요.")?.trim();
+    const name = (
+      await askText({ title: "새 구분", label: "새 구분 이름을 입력하세요.", go: "추가" })
+    )?.trim();
     if (!name) return;
     try {
       const r = await axios.post("/payment-methods/categories", { name });
@@ -405,31 +417,39 @@ export default function PaymentMethods() {
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
       setCategoryOf(assignTo, r.data.category_id);
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 
   const deleteCategory = async (categoryId: number, name: string) => {
-    if (!window.confirm(`구분 "${name}" 을 제거합니다?`)) return;
+    if (
+      !(await ask({
+        title: "구분 제거",
+        body: `구분 "${name}" 을 제거합니다?`,
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
     try {
       const r = await axios.delete(`/payment-methods/categories/${categoryId}`);
       if (r.data?.error === "IN_USE") {
-        alert(`${r.data.used_count}건이 쓰고 있어 제거할 수 없습니다.`);
+        say.warn(`${r.data.used_count}건이 쓰고 있어 제거할 수 없습니다.`);
         return;
       }
       const next = await refreshCategories();
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 
   // 신규 추가
   const handleAdd = async () => {
     const name = newName.trim();
-    if (!name) return alert("항목을 입력하세요.");
+    if (!name) return say.warn("항목을 입력하세요.");
     const exist = list.find((x) => x.method_name === name);
-    if (exist) return alert("이미 존재하는 항목입니다.");
+    if (exist) return say.warn("이미 존재하는 항목입니다.");
 
     await axios.post("/payment-methods/add", null, {
       params: { name, category_id: addCategoryId ?? undefined }
@@ -439,7 +459,7 @@ export default function PaymentMethods() {
     setAddCategoryId(null);
     setAddOpen(false);
     await refresh();
-    alert("추가 완료-!! ;-)");
+    say.ok("추가 완료-!! ;-)");
   };
 
   // 저장
@@ -455,7 +475,7 @@ export default function PaymentMethods() {
       JSON.stringify(orderedForSave.map((x) => x.sort_order));
 
     if (!changed) {
-      alert("변경된 내용이 없습니다만...?");
+      say.warn("변경된 내용이 없습니다만...?");
       setEditMode(false);
       return;
     }
@@ -479,7 +499,7 @@ export default function PaymentMethods() {
         sort_order: i + 1,
       }))
     );
-    alert("저장 완료-!! ;-)");
+    say.ok("저장 완료-!! ;-)");
     setEditMode(false);
     await refresh();
     await refreshCategories();
@@ -487,19 +507,27 @@ export default function PaymentMethods() {
 
   // 삭제
   const handleDelete = async (id: number) => {
-    if (!window.confirm("이 항목을 제거할까요?")) return;
+    if (
+      !(await ask({
+        title: "결제 수단 제거",
+        body: "이 항목을 제거할까요?",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
 
     const r = await axios.delete("/payment-methods/delete", {
       params: { method_id: id }
     });
 
     if (r.data?.error === "IN_USE") {
-      alert("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
+      say.warn("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
       return;
     }
 
     await refresh();
-    alert("제거 완료-!! ;-)");
+    say.ok("제거 완료-!! ;-)");
   };
 
   return (

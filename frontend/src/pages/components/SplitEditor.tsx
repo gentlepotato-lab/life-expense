@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import axios from "../../api/client";
 import { apiErrorMessage } from "../../utils/apiError";
 import SingleSelect from "./SingleSelect";
-
+import { say } from "../../utils/notify";
 /** 편집 중인 분할 한 줄. 저장 전이므로 split_id는 없을 수 있다. */
 export type SplitDraft = {
   amount: number | "";
@@ -95,7 +95,7 @@ export default function SplitEditor({
       setNewAt(null);
       setNewName("");
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 

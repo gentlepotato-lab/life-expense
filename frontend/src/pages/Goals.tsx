@@ -14,7 +14,7 @@ import { invalidateNudges } from "../hooks/useNudges";
 import { standsOf, type GoalStand } from "../utils/goalStand";
 import { manwon } from "../utils/amount";
 import { visible } from "../utils/visible";
-
+import { say, ask } from "../utils/notify";
 /**
  * 안쓴이 도전 — 분류에 목표 금액을 걸고 이번 달을 견준다.
  *
@@ -254,8 +254,9 @@ export default function Goals() {
       setMemo("");
       setAddOpen(false);
       again();
+      say.ok("추가 완료-!! ;-)");
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 
@@ -268,7 +269,7 @@ export default function Goals() {
       await axios.post(`/goals/${goalId}/amount`, { amount: value });
       again();
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
       setDraft((d) => ({ ...d, [goalId]: String(before.amount) }));
     }
   };
@@ -280,7 +281,7 @@ export default function Goals() {
       await axios.post(`/goals/${goalId}/memo`, { memo: value });
       again();
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
       setMemoDraft((d) => ({ ...d, [goalId]: before.memo ?? "" }));
     }
   };
@@ -299,24 +300,34 @@ export default function Goals() {
 
     /* 손댄 것이 없으면 다른 설정 화면과 같은 말로 알린다. */
     if (amountChanged.length === 0 && memoChanged.length === 0) {
-      alert("변경된 내용이 없습니다만...?");
+      say.warn("변경된 내용이 없습니다만...?");
       setEditMode(false);
       return;
     }
 
     for (const g of amountChanged) await saveAmount(g.goal_id, draft[g.goal_id]);
     for (const g of memoChanged) await saveMemo(g.goal_id, memoDraft[g.goal_id]);
-    alert("저장 완료-!! ;-)");
+    say.ok("저장 완료-!! ;-)");
     setEditMode(false);
   };
 
   const remove = async (goalId: number, path: string) => {
-    if (!window.confirm(`${path} 목표를 지울까요?`)) return;
+    if (
+      !(await ask({
+        title: "목표 제거",
+        body: `${path} 목표를 지울까요?`,
+        warn: "되돌릴 수 없습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
     try {
       await axios.delete(`/goals/${goalId}`);
       again();
+      say.ok("제거 완료-!! ;-)");
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 

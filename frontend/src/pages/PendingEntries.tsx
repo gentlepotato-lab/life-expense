@@ -21,7 +21,7 @@ import useLongPress from "../hooks/useLongPress";
 import usePeel from "../hooks/usePeel";
 import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
 import DayPicker from "./components/DayPicker";
-
+import { say, ask } from "../utils/notify";
 /* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
    카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
 type PerfRow = { entry_id: number; perf_exclude?: number | null };
@@ -150,7 +150,13 @@ export default function PendingEntries() {
   const togglePerfExclude = async (row: PerfRow, next: boolean) => {
     /* 고정 · 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
        그쪽과 같이 한 번 묻는다. */
-    if (!window.confirm(next ? "실적에서 제외하시겠습니까?" : "실적에 포함하시겠습니까?"))
+    if (
+      !(await ask({
+        title: next ? "실적에서 제외" : "실적에 포함",
+        body: next ? "실적에서 제외하시겠습니까?" : "실적에 포함하시겠습니까?",
+        go: next ? "제외" : "포함",
+      }))
+    )
       return;
     const id = row.entry_id;
     const after = next ? 1 : 0;
@@ -167,7 +173,7 @@ export default function PendingEntries() {
     } catch (err) {
       console.error(err);
       stamp(before);
-      alert("실적 제외를 담지 못했습니다.");
+      say.bad("실적 제외를 담지 못했습니다.");
     }
   };
 
@@ -176,7 +182,13 @@ export default function PendingEntries() {
   const toggleFixed = async (row: FixedRow, next: boolean) => {
     /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
        곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
-    if (!window.confirm(`${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 변경하시겠습니까?`))
+    if (
+      !(await ask({
+        title: "고정 · 변동 바꾸기",
+        body: `${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 변경하시겠습니까?`,
+        go: "변경",
+      }))
+    )
       return;
     const id = row.entry_id;
     const after = next ? 1 : 0;
@@ -191,7 +203,7 @@ export default function PendingEntries() {
     } catch (err) {
       console.error(err);
       stamp(before);
-      alert("고정 · 변동을 담지 못했습니다.");
+      say.bad("고정 · 변동을 담지 못했습니다.");
     }
   };
 
@@ -274,12 +286,12 @@ export default function PendingEntries() {
       (x) => x.amount !== "" && Number(x.amount) > 0
     );
     if (splits.some((x) => x.amount === "" || Number(x.amount) <= 0)) {
-      alert("분할 금액은 0보다 커야 합니다.");
+      say.warn("분할 금액은 0보다 커야 합니다.");
       return;
     }
     const splitSum = cleanSplits.reduce((a, r) => a + Number(r.amount), 0);
     if (splitSum > Number(draft.amount)) {
-      alert("분할 합계가 결제 금액을 초과합니다.");
+      say.warn("분할 합계가 결제 금액을 초과합니다.");
       return;
     }
 
@@ -314,7 +326,7 @@ export default function PendingEntries() {
       // 분할은 별도 엔드포인트다. 비어 있어도 보내야 기존 분할이 지워진다.
       await api.put(`/pending-entries/${draft.entry_id}/splits`, cleanSplits);
       closeEditor();
-      alert("저장 완료-!! ;-)");
+      say.ok("저장 완료-!! ;-)");
       await loadData();
 
       // 필터가 활성화되어 있으면 다시 적용
@@ -323,28 +335,37 @@ export default function PendingEntries() {
       }
     } catch (err) {
       console.error(err);
-      alert("저장 중 오류가 발생했습니다.");
+      say.bad("저장 중 오류가 발생했습니다.");
     }
   };
 
   const deletePending = async (id: number) => {
-    if (!window.confirm("정말 제거하시겠습니까?")) return;
+    if (
+      !(await ask({
+        title: "대기 내역 제거",
+        body: "정말 제거하시겠습니까?",
+        warn: "되돌릴 수 없습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
 
     try {
       await api.delete(`/pending-entries/${id}`);
       setRows(prev => prev.filter(r => r.entry_id !== id));
       closeEditor();
-      alert("제거 완료-!! ;-)");
+      say.ok("제거 완료-!! ;-)");
     } catch (err) {
       console.error(err);
-      alert("제거 중 오류가 발생했습니다.");
+      say.bad("제거 중 오류가 발생했습니다.");
     }
   };
 
   /* Excel 내보내기 — 뒤에 보완하기로 하고 자리만 만들어 둔다.
      조용히 아무 일도 없으면 눌린 건지 알 수 없으므로 한마디 남긴다. */
   const exportExcel = () => {
-    alert("Excel 내보내기는 아직 준비 중입니다.");
+    say.warn("Excel 내보내기는 아직 준비 중입니다.");
   };
 
   // Excel Import
@@ -360,7 +381,7 @@ export default function PendingEntries() {
         baseURL: "/api",
         headers: { "Content-Type": "multipart/form-data" },
       });
-      alert(`${res.data.inserted ?? 0}건이 적재되었습니다.`);
+      say.ok(`${res.data.inserted ?? 0}건이 적재되었습니다.`);
       await loadData();
       
       // 필터가 활성화되어 있으면 다시 적용
@@ -369,7 +390,7 @@ export default function PendingEntries() {
       }
     } catch (err) {
       console.error(err);
-      alert("Excel 임포트 중 오류가 발생했습니다.");
+      say.bad("Excel 임포트 중 오류가 발생했습니다.");
     } finally {
       e.target.value = ""; // 같은 파일 다시 올릴 수 있게 리셋
     }
@@ -379,11 +400,18 @@ export default function PendingEntries() {
   const sendOne = async (row: any) => {
     // 필수 입력값 검증
     if (!row.tx_date || !row.cat1_id || !row.cat2_id || row.amount == null || row.amount === '' || !row.pay_method) {
-      alert("Date, CategoryM/S, Amount, PaymentMethod는 필수입니다.");
+      say.warn("Date, CategoryM/S, Amount, PaymentMethod는 필수입니다.");
       return;
     }
 
-    if (!window.confirm("이 항목을 확정(Entries로 전송)하시겠습니까?")) return;
+    if (
+      !(await ask({
+        title: "지출 내역으로 보내기",
+        body: "이 항목을 확정(Entries로 전송)하시겠습니까?",
+        go: "보내기",
+      }))
+    )
+      return;
 
     try {
       // 1) pending_entries 내용 업데이트
@@ -417,23 +445,30 @@ export default function PendingEntries() {
       // 2) entries로 전송 + sended=TRUE
       await api.post(`/pending-entries/send/${row.entry_id}`);
 
-      alert("전송 완료-!! ;-)");
+      say.ok("전송 완료-!! ;-)");
       setRows((prev) => prev.filter((r) => r.entry_id !== row.entry_id));
       setAllRows((prev) => prev.filter((r) => r.entry_id !== row.entry_id));
     } catch (err) {
       console.error(err);
-      alert("전송 중 오류가 발생했습니다.");
+      say.bad("전송 중 오류가 발생했습니다.");
     }
   };
 
   // 모든 항목을 Entries로 전송(현재 필터링된 항목만)
   const sendAllEntries = async () => {
     if (rows.length === 0) {
-      alert("전송할 항목이 없습니다.");
+      say.warn("전송할 항목이 없습니다.");
       return;
     }
 
-    if (!window.confirm("모든 항목을 확정(Entries로 전송)하시겠습니까?")) return;
+    if (
+      !(await ask({
+        title: "모두 지출 내역으로 보내기",
+        body: "모든 항목을 확정(Entries로 전송)하시겠습니까?",
+        go: "모두 보내기",
+      }))
+    )
+      return;
 
     try {
       // 현재 화면에 표시된 항목들의 entry_id만 전송
@@ -444,9 +479,9 @@ export default function PendingEntries() {
       const sentCount = res.data.sent_count ?? 0;
       
       if (sentCount === 0) {
-        alert("전송할 항목이 없습니다.");
+        say.warn("전송할 항목이 없습니다.");
       } else {
-        alert(`${sentCount}건이 전송되었습니다.`);
+        say.ok(`${sentCount}건이 전송되었습니다.`);
       }
       
       // 데이터 다시 로드(sended = 0인 항목만 표시됨)
@@ -458,7 +493,7 @@ export default function PendingEntries() {
       }
     } catch (err) {
       console.error(err);
-      alert("전송 중 오류가 발생했습니다.");
+      say.bad("전송 중 오류가 발생했습니다.");
     }
   };
 

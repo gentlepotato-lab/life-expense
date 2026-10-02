@@ -7,7 +7,7 @@ import { loadKakaoMap } from "../../utils/kakaoMap";
 import DayGrid from "./DayGrid";
 import { todayStr, viewOf, type View } from "../../utils/day";
 import { formatDateLabel } from "../../utils/dateGroup";
-
+import { say } from "../../utils/notify";
 /**
  * 쓰기 슬라이드(beta).
  *
@@ -254,12 +254,12 @@ export default function WriteSlideModal({
         },
       ]);
       void res;
-      alert("전송 완료-!! ;-)");
+      say.ok("전송 완료-!! ;-)");
       onSaved?.();
       onClose();
     } catch (err) {
       console.error(err);
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     } finally {
       setSaving(false);
     }

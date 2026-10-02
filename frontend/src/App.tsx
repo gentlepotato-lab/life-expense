@@ -22,6 +22,7 @@ const Charts = lazy(() => import("./pages/Charts"));
 
 import PageHead from "./pages/components/PageHead";
 import TabBar from "./pages/components/TabBar";
+import NotifyHost from "./pages/components/NotifyHost";
 import { loadPrefs, pref, takeHome } from "./utils/prefs";
 import { applyTape } from "./utils/tapes";
 
@@ -91,6 +92,11 @@ function App() {
       {/* 머리말은 화면 바깥에서 한 번만 그린다.
           페이지마다 그리면 옮길 때 새로 만들어져 갈래 탭 알약이 튄다. */}
       <PageHead />
+
+      {/* 알림 · 되묻기 · 이름 받기가 서는 자리. 머리말과 같은 까닭으로
+          화면 바깥에 한 번만 둔다 — 화면을 옮겨도 떠 있던 알림이 살아 있어야
+          한다. 뜬 것이 없는 동안에는 아무것도 그리지 않는다. */}
+      <NotifyHost />
 
       <Routes>
         {/* 홈: / — 들어가는 문만 낸 첫 화면 */}

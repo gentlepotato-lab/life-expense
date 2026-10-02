@@ -23,6 +23,7 @@ import MonthPicker from "./components/MonthPicker";
 import GrowArea from "./components/GrowArea";
 import { groupByDate } from "../utils/dateGroup";
 import { apiErrorMessage } from "../utils/apiError";
+import { say, ask } from "../utils/notify";
 import {
   INTERVAL_OPTIONS,
   HOLIDAY_OPTIONS,
@@ -377,7 +378,13 @@ export default function ScheduledEntries() {
   const togglePerfExclude = async (row: PerfRow, next: boolean) => {
     /* 고정 · 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
        그쪽과 같이 한 번 묻는다. */
-    if (!window.confirm(next ? "실적에서 제외하시겠습니까?" : "실적에 포함하시겠습니까?"))
+    if (
+      !(await ask({
+        title: next ? "실적에서 제외" : "실적에 포함",
+        body: next ? "실적에서 제외하시겠습니까?" : "실적에 포함하시겠습니까?",
+        go: next ? "제외" : "포함",
+      }))
+    )
       return;
     const id = row.schedule_id;
     const after = next ? 1 : 0;
@@ -392,7 +399,7 @@ export default function ScheduledEntries() {
     } catch (err) {
       console.error(err);
       stamp(before);
-      alert("실적 제외를 담지 못했습니다.");
+      say.bad("실적 제외를 담지 못했습니다.");
     }
   };
 
@@ -401,7 +408,13 @@ export default function ScheduledEntries() {
   const toggleFixed = async (row: FixedRow, next: boolean) => {
     /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
        곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
-    if (!window.confirm(`${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 변경하시겠습니까?`))
+    if (
+      !(await ask({
+        title: "고정 · 변동 바꾸기",
+        body: `${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 변경하시겠습니까?`,
+        go: "변경",
+      }))
+    )
       return;
     const id = row.schedule_id;
     const after = next ? 1 : 0;
@@ -418,7 +431,7 @@ export default function ScheduledEntries() {
     } catch (err) {
       console.error(err);
       stamp(before);
-      alert("고정 · 변동을 담지 못했습니다.");
+      say.bad("고정 · 변동을 담지 못했습니다.");
     }
   };
 
@@ -599,7 +612,7 @@ export default function ScheduledEntries() {
     if (!draft) return;
 
     if (!validateSchedule(draft)) {
-      alert("모든 필수 항목(일자, 시간, 카테고리, 금액, 결제 수단)을 입력하세요.");
+      say.warn("모든 필수 항목(일자, 시간, 카테고리, 금액, 결제 수단)을 입력하세요.");
       return;
     }
 
@@ -608,12 +621,12 @@ export default function ScheduledEntries() {
       (x) => x.amount !== "" && Number(x.amount) > 0
     );
     if (splits.some((x) => x.amount === "" || Number(x.amount) <= 0)) {
-      alert("분할 금액은 0보다 커야 합니다.");
+      say.warn("분할 금액은 0보다 커야 합니다.");
       return;
     }
     const splitSum = cleanSplits.reduce((a, r) => a + Number(r.amount), 0);
     if (splitSum > Number(draft.amount)) {
-      alert("분할 합계가 결제 금액을 초과합니다.");
+      say.warn("분할 합계가 결제 금액을 초과합니다.");
       return;
     }
 
@@ -627,11 +640,11 @@ export default function ScheduledEntries() {
       // 분할은 별도 엔드포인트다. 비어 있어도 보내야 기존 분할이 지워진다.
       await axios.put(`/scheduled-entries/${draft.schedule_id}/splits`, cleanSplits);
       closeEditor();
-      alert("스케줄이 저장되었습니다.");
+      say.ok("스케줄이 저장되었습니다.");
       await loadSchedules();
     } catch (err: any) {
       console.error(err);
-      alert("저장 중 오류가 발생했습니다.\n" + (err.response?.data?.detail || err.message));
+      say.bad("저장 중 오류가 발생했습니다.\n" + (err.response?.data?.detail || err.message));
     } finally {
       setIsSaving(false);
     }
@@ -654,11 +667,11 @@ export default function ScheduledEntries() {
       form.amount == null || form.amount === '' ||
       !form.pay_method
     ) {
-      alert("필수 항목을 모두 입력하세요.");
+      say.warn("필수 항목을 모두 입력하세요.");
       return;
     }
     if (form.interval_months !== "1" && !form.anchor_ym) {
-      alert("매월이 아니면 시작하는 달을 고르세요.");
+      say.warn("매월이 아니면 시작하는 달을 고르세요.");
       return;
     }
 
@@ -667,11 +680,11 @@ export default function ScheduledEntries() {
       (x) => x.amount !== "" && Number(x.amount) > 0
     );
     if (formSplits.some((x) => x.amount === "" || Number(x.amount) <= 0)) {
-      alert("분할 금액은 0보다 커야 합니다.");
+      say.warn("분할 금액은 0보다 커야 합니다.");
       return;
     }
     if (cleanSplits.reduce((a, r) => a + Number(r.amount), 0) > Number(form.amount)) {
-      alert("분할 합계가 결제 금액을 초과합니다.");
+      say.warn("분할 합계가 결제 금액을 초과합니다.");
       return;
     }
 
@@ -706,7 +719,7 @@ export default function ScheduledEntries() {
         await axios.put(`/scheduled-entries/${newId}/splits`, cleanSplits);
       }
 
-      alert("스케줄이 등록되었습니다.");
+      say.ok("스케줄이 등록되었습니다.");
       loadSchedules();
       setFormPlace(null);
       setFormPlaceName("");
@@ -718,21 +731,30 @@ export default function ScheduledEntries() {
       setShowForm(false);
     } catch (err: any) {
       console.error(err);
-      alert("등록 중 오류가 발생했습니다.\n" + (err.response?.data?.detail || err.message));
+      say.bad("등록 중 오류가 발생했습니다.\n" + (err.response?.data?.detail || err.message));
     }
   };
 
   const handleDelete = async (scheduleId: number) => {
-    if (!window.confirm("이 정기 지출을 제거할까요?")) return;
+    if (
+      !(await ask({
+        title: "정기 지출 제거",
+        body: "이 정기 지출을 제거할까요?",
+        warn: "되돌릴 수 없습니다. 감추기만 하려면 편집에서 감출 수 있습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
 
     try {
       await axios.delete(`/scheduled-entries/${scheduleId}`);
       closeEditor();
-      alert("제거 완료-!! ;-)");
+      say.ok("제거 완료-!! ;-)");
       await loadSchedules();
     } catch (err) {
       console.error(err);
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 

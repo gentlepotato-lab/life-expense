@@ -22,7 +22,7 @@ import useLongPress from "../hooks/useLongPress";
 import usePeel from "../hooks/usePeel";
 import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
 import DayPicker from "./components/DayPicker";
-
+import { say, ask } from "../utils/notify";
 /* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
    카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
 type PerfRow = { entry_id: number; perf_exclude?: number | null };
@@ -229,7 +229,7 @@ export default function Entries() {
 
     // 필수 입력값 검증
     if (!draft.tx_date || !draft.cat1_id || !draft.cat2_id || draft.amount == null || draft.amount === '' || !draft.pay_method) {
-      alert("Date, IN/OUT, CategoryM/S, Amount, PaymentMethod는 필수 입력입니다.");
+      say.warn("Date, IN/OUT, CategoryM/S, Amount, PaymentMethod는 필수 입력입니다.");
       return;
     }
 
@@ -238,12 +238,12 @@ export default function Entries() {
       (s) => s.amount !== "" && Number(s.amount) > 0
     );
     if (cleanSplits.length !== splits.length && splits.some((s) => s.amount === "" || Number(s.amount) <= 0)) {
-      alert("분할 금액은 0보다 커야 합니다.");
+      say.warn("분할 금액은 0보다 커야 합니다.");
       return;
     }
     const splitSum = cleanSplits.reduce((s, r) => s + Number(r.amount), 0);
     if (splitSum > Number(draft.amount)) {
-      alert("분할 합계가 결제 금액을 초과합니다.");
+      say.warn("분할 합계가 결제 금액을 초과합니다.");
       return;
     }
 
@@ -279,25 +279,34 @@ export default function Entries() {
       // 분할은 별도 엔드포인트다. 비어 있어도 보내야 기존 분할이 지워진다.
       await axios.put(`/entries/${draft.entry_id}/splits`, cleanSplits);
       closeEditor();
-      alert("저장 완료-!! ;-)");
+      say.ok("저장 완료-!! ;-)");
       await reload();
     } catch (err) {
       console.error(err);
-      alert("저장 중 오류가 발생했습니다.");
+      say.bad("저장 중 오류가 발생했습니다.");
     }
   };
 
   // 제거 함수
   const deleteEntry = async (id: number) => {
-    if (!window.confirm("정말 제거하시겠습니까?")) return;
+    if (
+      !(await ask({
+        title: "내역 제거",
+        body: "정말 제거하시겠습니까?",
+        warn: "되돌릴 수 없습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
     try {
       await axios.delete(`/entries/${id}`);
       setRows(prev => prev.filter(r => r.entry_id !== id));
       closeEditor();
-      alert("제거 완료-!! ;-)");
+      say.ok("제거 완료-!! ;-)");
     } catch (err) {
       console.error(err);
-      alert("제거 중 오류가 발생했습니다.");
+      say.bad("제거 중 오류가 발생했습니다.");
     }
   };
 
@@ -308,7 +317,13 @@ export default function Entries() {
   const togglePerfExclude = async (row: PerfRow, next: boolean) => {
     /* 고정 · 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
        그쪽과 같이 한 번 묻는다. */
-    if (!window.confirm(next ? "실적에서 제외하시겠습니까?" : "실적에 포함하시겠습니까?"))
+    if (
+      !(await ask({
+        title: next ? "실적에서 제외" : "실적에 포함",
+        body: next ? "실적에서 제외하시겠습니까?" : "실적에 포함하시겠습니까?",
+        go: next ? "제외" : "포함",
+      }))
+    )
       return;
     const id = row.entry_id;
     const before = row.perf_exclude ?? 0;
@@ -321,7 +336,7 @@ export default function Entries() {
     } catch (err) {
       console.error(err);
       stamp(before);
-      alert("실적 제외를 담지 못했습니다.");
+      say.bad("실적 제외를 담지 못했습니다.");
     }
   };
 
@@ -333,7 +348,13 @@ export default function Entries() {
   const toggleFixed = async (row: FixedRow, next: boolean) => {
     /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
        곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
-    if (!window.confirm(`${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 변경하시겠습니까?`))
+    if (
+      !(await ask({
+        title: "고정 · 변동 바꾸기",
+        body: `${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 변경하시겠습니까?`,
+        go: "변경",
+      }))
+    )
       return;
     const id = row.entry_id;
     const before = row.fixed_flag ?? null;
@@ -346,7 +367,7 @@ export default function Entries() {
     } catch (err) {
       console.error(err);
       stamp(before);
-      alert("고정 · 변동을 담지 못했습니다.");
+      say.bad("고정 · 변동을 담지 못했습니다.");
     }
   };
 

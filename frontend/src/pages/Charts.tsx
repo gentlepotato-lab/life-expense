@@ -41,6 +41,7 @@ import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sort
 import { CSS } from "@dnd-kit/utilities";
 import { currentPalette } from "../utils/palettes";
 import { manwon } from "../utils/amount";
+import { say } from "../utils/notify";
 import {
   EMPTY_FILTER,
   fixedSetsFrom,
@@ -2344,7 +2345,7 @@ export default function Charts() {
       return;
     }
     if (stamp(cardOrder, hidden, wideSet) === beforeEdit) {
-      alert("변경된 내용이 없습니다만...?");
+      say.warn("변경된 내용이 없습니다만...?");
       setEditMode(false);
       return;
     }
@@ -2357,10 +2358,10 @@ export default function Charts() {
           span: wideSet.has(k) ? 2 : 1,
         }))
       );
-      alert("저장 완료-!! ;-)");
+      say.ok("저장 완료-!! ;-)");
       setEditMode(false);
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 

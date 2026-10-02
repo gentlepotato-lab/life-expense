@@ -22,7 +22,7 @@ import QuickActions from "./components/QuickActions";
 import { PinIcon, WaveIcon } from "./components/FixedIcons";
 import useEditLock from "../hooks/useEditLock";
 import { EditLockTip } from "./components/EditLock";
-
+import { say, ask } from "../utils/notify";
 /**
  * 고정 · 변동 고르개가 입을 빛깔 — 그 갈래가 나가는 돈인지 들어오는 돈인지를
  * 따른다. 이름 앞의 +/− 점(.cat2-inout)이 이미 그 빛깔이라, 한 줄 안에서
@@ -242,7 +242,7 @@ export default function Categories() {
     const cat1Names = cat1.map(c => c.cat1_name.trim());
     const duplicateCat1 = cat1Names.filter((v, i) => cat1Names.indexOf(v) !== i);
     if (duplicateCat1.length > 0) {
-      alert("이미 존재하는 항목입니다.");
+      say.warn("이미 존재하는 항목입니다.");
       return;
     }
 
@@ -257,7 +257,7 @@ export default function Categories() {
     for (const group of grouped) {
       const dup = group.cat2_names.filter((v, i) => group.cat2_names.indexOf(v) !== i);
       if (dup.length > 0) {
-        alert("이미 존재하는 항목입니다.");
+        say.warn("이미 존재하는 항목입니다.");
         return;
       }
     }
@@ -274,7 +274,7 @@ export default function Categories() {
         JSON.stringify(cat3.map(c => [c.cat3_id, c.cat3_name, c.is_active, c.fixed ?? 0, c.blur ?? 0]));
 
     if (!changed) {
-      alert("변경된 내용이 없습니다만...?");
+      say.warn("변경된 내용이 없습니다만...?");
       setEditMode(false);
       return;
     }
@@ -318,7 +318,7 @@ export default function Categories() {
     };
 
     axios.post("/categories/save", payload).then(() => {
-      alert("저장 완료-!! ;-)");
+      say.ok("저장 완료-!! ;-)");
       setEditMode(false);
     });
   };
@@ -342,7 +342,7 @@ export default function Categories() {
     // --- CASE 1: '+ 중분류 추가' ---
     if (addCat1Mode) {
       if (!cat1Name || !cat2Name) {
-        alert("항목을 입력하세요.");
+        say.warn("항목을 입력하세요.");
         return;
       }
 
@@ -382,11 +382,11 @@ export default function Categories() {
             params: { cat2_id, name: cat3Name }
           });
         } else {
-          alert("이미 존재하는 세분류입니다.");
+          say.warn("이미 존재하는 세분류입니다.");
         }
       }
 
-      alert("추가 완료-!! ;-)");
+      say.ok("추가 완료-!! ;-)");
       setAddOpen(false);
       setNewCat1Name("");
       setNewCat2Name("");
@@ -398,7 +398,7 @@ export default function Categories() {
     // --- CASE 2: 기존 중분류 아래 추가 ---
     if (selectedCat1ForAdd && !selectedCat2ForAdd) {
       if (!cat2Name) {
-        alert("소분류를 입력하세요.");
+        say.warn("소분류를 입력하세요.");
         return;
       }
 
@@ -420,19 +420,19 @@ export default function Categories() {
             await axios.post("/categories/add/lvl3", null, {
               params: { cat2_id, name: cat3Name }
             });
-            alert("추가 완료-!! ;-)");
+            say.ok("추가 완료-!! ;-)");
       setAddOpen(false);
             setNewCat3Name("");
             await refreshListsAll();
             return;
           } else {
-            alert("이미 존재하는 세분류입니다.");
+            say.warn("이미 존재하는 세분류입니다.");
             return;
           }
         }
 
         // 세분류도 없으면 추가할 게 없으므로 중복 경고
-        alert("이미 존재하는 소분류입니다.");
+        say.warn("이미 존재하는 소분류입니다.");
         return;
       }
 
@@ -449,7 +449,7 @@ export default function Categories() {
         });
       }
 
-      alert("추가 완료-!! ;-)");
+      say.ok("추가 완료-!! ;-)");
       setAddOpen(false);
       setNewCat2Name("");
       setNewCat3Name("");
@@ -460,7 +460,7 @@ export default function Categories() {
     // --- CASE 3: 기존 소분류 아래 세분류 추가 ---
     if (selectedCat2ForAdd) {
       if (!cat3Name) {
-        alert("세분류를 입력하세요.");
+        say.warn("세분류를 입력하세요.");
         return;
       }
 
@@ -471,10 +471,10 @@ export default function Categories() {
         await axios.post("/categories/add/lvl3", null, {
           params: { cat2_id: selectedCat2ForAdd, name: cat3Name }
         });
-        alert("추가 완료-!! ;-)");
+        say.ok("추가 완료-!! ;-)");
       setAddOpen(false);
       } else {
-        alert("이미 존재하는 세분류입니다.");
+        say.warn("이미 존재하는 세분류입니다.");
       }
 
       setNewCat3Name("");
@@ -482,7 +482,7 @@ export default function Categories() {
       return;
     }
 
-    alert("항목을 입력하세요.");
+    say.warn("항목을 입력하세요.");
   };
 
   const refreshListsAll = async () => {
@@ -520,50 +520,77 @@ export default function Categories() {
   };
 
   const deleteCat1 = async (cat1_id: number) => {
-    if (!window.confirm("이 중분류와 그 아래를 모두 제거할까요?")) return;
+    if (
+      !(await ask({
+        title: "중분류 제거",
+        body: "이 중분류와 그 아래를 모두 제거할까요?",
+        warn: "딸린 소분류와 세분류가 함께 사라집니다. 되돌릴 수 없습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
 
     try {
       await axios.delete("/categories/delete/lvl1", { params: { cat1_id } });
       refreshListsAll();
-      alert("제거 완료-!! ;-)");
+      say.ok("제거 완료-!! ;-)");
     } catch (err: any) {
       if (err.response?.status === 409) {
-        alert("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
+        say.warn("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
       } else {
-        alert("항목 제거 중 오류가 발생했습니다.");
+        say.bad("항목 제거 중 오류가 발생했습니다.");
       }
     }
   };
 
   const deleteCat2 = async (cat2_id: number) => {
-    if (!window.confirm("이 소분류와 그 아래 세분류를 모두 제거할까요?")) return;
+    if (
+      !(await ask({
+        title: "소분류 제거",
+        body: "이 소분류와 그 아래 세분류를 모두 제거할까요?",
+        warn: "딸린 세분류가 함께 사라집니다. 되돌릴 수 없습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
 
     try {
       await axios.delete("/categories/delete/lvl2", { params: { cat2_id } });
       refreshListsAll();
-      alert("제거 완료-!! ;-)");
+      say.ok("제거 완료-!! ;-)");
       setSelectedCat2ForAdd(null);
     } catch (err: any) {
       if (err.response?.status === 409) {
-        alert("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
+        say.warn("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
       } else {
-        alert("항목 제거 중 오류가 발생했습니다.");
+        say.bad("항목 제거 중 오류가 발생했습니다.");
       }
     }
   };
 
   const deleteCat3 = async (cat3_id: number) => {
-    if (!window.confirm("이 세분류만 제거할까요?")) return;
+    if (
+      !(await ask({
+        title: "세분류 제거",
+        body: "이 세분류만 제거할까요?",
+        warn: "되돌릴 수 없습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
 
     try {
       await axios.delete("/categories/delete/lvl3", { params: { cat3_id } });
       refreshListsAll();
-      alert("제거 완료-!! ;-)");
+      say.ok("제거 완료-!! ;-)");
     } catch (err: any) {
       if (err.response?.status === 409) {
-        alert("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
+        say.warn("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
       } else {
-        alert("항목 제거 중 오류가 발생했습니다.");
+        say.bad("항목 제거 중 오류가 발생했습니다.");
       }
     }
   };

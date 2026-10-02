@@ -17,7 +17,7 @@ import PalettePopup from "./components/PalettePopup";
 import { putPrefs } from "../utils/prefs";
 import useEditLock from "../hooks/useEditLock";
 import { EditLockCover, EditLockTip } from "./components/EditLock";
-
+import { say } from "../utils/notify";
 /**
  * 돈쓴이 — 쓰는 사람과 앱 자신.
  *
@@ -186,7 +186,7 @@ export default function Me() {
       return;
     }
     if (stamp() === before) {
-      alert("변경된 내용이 없습니다만...?");
+      say.warn("변경된 내용이 없습니다만...?");
       setEditMode(false);
       return;
     }
@@ -204,11 +204,11 @@ export default function Me() {
         prefs.theme_dark ?? DEFAULT_DARK
       );
       applyPalette(prefs.palette ?? DEFAULT_PALETTE, currentStep().dark);
-      alert("저장 완료-!! ;-)");
+      say.ok("저장 완료-!! ;-)");
       setEditMode(false);
       load();
     } catch (err) {
-      alert(apiErrorMessage(err));
+      say.bad(apiErrorMessage(err));
     }
   };
 
