@@ -6375,7 +6375,11 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 34px;
+  /* 머리말 높이를 여기서 못 박는다.
+     예전에는 제목(h1)의 기본 위여백이 글자 크기를 따라가(0.67em) 그 둘이
+     합쳐져 50px이 되었다. 제목 크기를 건드리면 머리말이 같이 흔들려 아래
+     내용이 밀리는 짜임이었다. 50px은 본디 높이(74 · 117px)를 지키는 값이다. */
+  min-height: 50px;
 }
 
 .page-head__right {
@@ -6385,11 +6389,40 @@ textarea::placeholder {
   gap: var(--space-2);
 }
 
-/* 가운데 정렬을 왼쪽으로 돌리고, 아래 여백은 .page-head가 가진다. */
+/* 가운데 정렬을 왼쪽으로 돌리고, 아래 여백은 .page-head가 가진다.
+   제목은 앞머리 화면의 이름과 같은 바탕체를 쓴다 — 그 화면에서 본 글씨가
+   그대로 이어진다. 굵은 쪽(700)을 따로 받아 두었다.
+   옅은 네모가 제목을 한 덩이로 묶고, 글자 밑동의 띠가 형광펜으로 그은
+   자리처럼 선다. 띠는 앱의 강조색을 그대로 쓰므로 빛깔을 바꾸면 따라간다.
+   크기를 19px로 낮춘 것은 머리말 높이(74 · 117px)를 지키기 위해서다 —
+   그 키가 바뀌면 아래 내용이 통째로 밀린다. */
 .page-head .page-title {
+  display: inline-block;
   text-align: left;
-  margin-bottom: 0;
-  font-size: var(--font-size-2xl);
+  /* h1의 기본 위여백은 글자 크기를 따라간다(0.67em). 그대로 두면 제목 크기를
+     건드릴 때마다 머리말 높이가 같이 흔들려 아래 내용이 밀린다. 여백을 걷고
+     높이는 줄(.page-head__row)이 쥐게 한다. */
+  margin: 0;
+  padding: 3px 11px;
+  border-radius: 10px;
+  background: rgba(16, 24, 40, 0.045);
+  font-family: "Gowun Batang", serif;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+}
+
+/* 글자만 기울이고 네모는 반듯하게 둔다. 바탕까지 기울면 평행사변형이 된다.
+   기울이는 일은 inline에 걸리지 않으므로 inline-block으로 둔다. */
+.page-head .page-title__in {
+  display: inline-block;
+  padding: 0 2px;
+  background: linear-gradient(
+    transparent 62%,
+    color-mix(in srgb, var(--color-primary) 18%, transparent) 62%
+  );
+  transform: skewX(-7deg);
 }
 
 /* ─── 갈래(SubTabs) ──────────────────────────────────────────

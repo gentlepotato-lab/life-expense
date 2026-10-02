@@ -18,6 +18,21 @@
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
     />
 
+    <!-- 고운바탕 — 앞머리 화면의 이름에만 쓰는 바탕체(OFL).
+         펜으로 쓴 로고와 결이 맞는다. 한글만 담긴 조각이라 가볍고,
+         Pretendard와 같은 곳에서 받아 와 기대는 데가 늘지 않는다.
+         이름은 1.78초에야 올라오므로 그때까지 닿을 여유가 넉넉하다. -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@fontsource/gowun-batang@5/korean-400.css"
+    />
+    <!-- 굵은 쪽은 화면 제목이 쓴다. 400만 받아 두고 700을 달라고 하면
+         브라우저가 억지로 굵혀, 바탕체의 획 굵기 차가 뭉개진다. -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@fontsource/gowun-batang@5/korean-700.css"
+    />
+
     <title>돈을 쓰다</title>
 
     <!-- 앱이 뜨기 전 잠깐 보이는 화면.
@@ -46,26 +61,34 @@
       #splash .splash-logo {
         width: min(58vw, 260px);
         height: auto;
-      }
-      /* 이름은 펜이 다 쓰고 손을 뗀 뒤에 올라온다. */
-      #splash .splash-name {
-        font-family: "Pretendard Variable", Pretendard, -apple-system, sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-        letter-spacing: 0.22em;
-        color: #98a2b3;
-        animation: splash-rise 420ms 1760ms cubic-bezier(0.22, 1, 0.36, 1) both;
-      }
-      @keyframes splash-rise {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: none; }
-      }
-
         /* 펜이 날아들 때와 획 끝에 닿을 때 그림틀 밖으로 나간다 —
            왼쪽 114, 위 100, 오른쪽 176(viewBox 자)만큼이다. SVG는 제 틀에서
            잘라 내는 것이 기본이라 그대로 두면 펜이 중간에 잘린다.
            넘쳐 그리게만 풀어 둔다. 자리도 크기도 달라지지 않는다. */
         overflow: visible;
+      }
+      /* 이름은 펜이 다 쓰고 손을 뗀 뒤에 올라온다.
+         한글 글꼴에는 진짜 이탤릭이 거의 없다 — 고운바탕도 400과 700뿐이다.
+         그래서 기울임은 글자를 비스듬히 미는 것으로 만든다. font-style:italic은
+         브라우저가 알아서 미는데 각도를 고를 수 없고 꽤 세다. 7도가 바탕체의
+         고요한 결을 잃지 않으면서 기울인 줄 알아볼 만한 자리다.
+         미는 일은 inline에는 걸리지 않으므로 inline-block으로 둔다. */
+      #splash .splash-name {
+        display: inline-block;
+        font-family: "Gowun Batang", serif;
+        font-size: 16px;
+        font-weight: 400;
+        letter-spacing: 0.32em;
+        color: #98a2b3;
+        animation: splash-rise 420ms 1760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      /* 기울임을 이 움직임 안에 넣어 둔 까닭:
+         떠오르기도 transform을 쓰므로, 기울임을 따로 적어 두면 서로 덮는다. */
+      @keyframes splash-rise {
+        from { opacity: 0; transform: translateY(8px) skewX(-7deg); }
+        to   { opacity: 1; transform: skewX(-7deg); }
+      }
+
       /* ── 앞머리 로고가 제 손으로 쓰는 움직임 ──────────────────
          로고의 세 조각(펜 · 획 · 동전)을 따로 움직인다. 획은 선이 아니라
          칠해진 외곽선이라 선 긋기 수법을 못 쓴다. 가리개를 키워 드러내고
@@ -335,10 +358,14 @@
       .sp-c1 { animation: sp-coin 440ms 672ms cubic-bezier(.34,1.56,.64,1) both; }
       .sp-c2 { animation: sp-coin 440ms 712ms cubic-bezier(.34,1.56,.64,1) both; }
       .sp-c3 { animation: sp-coin 440ms 1600ms cubic-bezier(.34,1.56,.64,1) both; }
-      /* 움직임을 줄이도록 해 둔 기기에서는 움직이지 않고 완성된 로고만 선다. */
+      /* 움직임을 줄이도록 해 둔 기기에서는 움직이지 않고 완성된 로고만 선다.
+         이름의 기울임은 떠오르는 움직임 안에 들어 있으므로, 그 움직임을 끄면
+         기울임까지 함께 사라진다. 여기서 따로 세워 둔다 — 기울임은 꾸밈이지
+         움직임이 아니다. */
       @media (prefers-reduced-motion: reduce) {
         #splash .splash-name,
         .sp-pen, .sp-rev, .sp-coin { animation: none; }
+        #splash .splash-name { transform: skewX(-7deg); }
         .sp-rev { width: 3288px; }
         .sp-coin { opacity: 1; }
       }

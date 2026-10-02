@@ -46,7 +46,11 @@ export default function PageHead() {
   return (
     <header className="page-head">
       <div className="page-head__row">
-        <h1 className="page-title">{title}</h1>
+        {/* 글자만 기울이고 네모 바탕은 반듯하게 두려면 한 겹이 더 있어야 한다.
+            바깥이 바탕, 안이 기울어진 글자와 형광펜 띠다. */}
+        <h1 className="page-title">
+          <span className="page-title__in">{title}</span>
+        </h1>
       </div>
 
       {subs && (
