@@ -23,10 +23,12 @@ import { formatDateLabel } from "../../utils/dateGroup";
  * 바닥 짜임만 달라(이전 · 걸음점 · 다음) CardEditModal을 쓰지 않고 직접 짰다.
  */
 
-type Cat1 = { id: number; name: string; is_active?: number };
+type Cat1 = { id: number; name: string; emoji?: string | null; is_active?: number };
 type Cat2 = { id: number; name: string; cat1_id?: number; inout?: number | null; is_active?: number };
 type Cat3 = { id: number; name: string; cat2_id?: number; is_active?: number };
-type Pay = { code: string; name: string; is_active?: number };
+/* 이모지는 결제 수단 제 것이 아니라 그것이 속한 묶음(카드 · 계좌 따위)의
+   것이다. 묶음이 없는 수단은 비어 있다. */
+type Pay = { code: string; name: string; emoji?: string | null; is_active?: number };
 
 /** 저장된 장소 한 줄. /places/search가 주는 것 중 쓰는 것만 */
 type DbPlace = { place_id: number; place_name: string; address?: string; lat?: number; lng?: number };
@@ -99,9 +101,17 @@ export default function WriteSlideModal({
       .get("/payment-methods")
       .then((r) =>
         setPayList(
-          (r.data as { method_id: number; method_name: string; is_active?: number }[]).map((m) => ({
+          (
+            r.data as {
+              method_id: number;
+              method_name: string;
+              category_emoji?: string | null;
+              is_active?: number;
+            }[]
+          ).map((m) => ({
             code: String(m.method_id),
             name: m.method_name,
+            emoji: m.category_emoji ?? null,
             is_active: m.is_active,
           }))
         )
@@ -354,6 +364,9 @@ export default function WriteSlideModal({
                         })
                       }
                     >
+                      {/* 이모지는 이름 앞에 — 분류 화면과 같은 차례다.
+                          소분류 · 세분류에는 이모지 칸이 없어 여기만 붙는다. */}
+                      {c.emoji && <span className="ws-pick__emoji">{c.emoji}</span>}
                       {c.name}
                     </button>
                   ))}
@@ -419,6 +432,7 @@ export default function WriteSlideModal({
                       className={`ws-pick${pay?.code === p.code ? " on" : ""}`}
                       onClick={() => pickAnd(() => setPay(p))}
                     >
+                      {p.emoji && <span className="ws-pick__emoji">{p.emoji}</span>}
                       {p.name}
                     </button>
                   ))}

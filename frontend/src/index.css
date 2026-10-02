@@ -16678,6 +16678,7 @@ textarea.memo-input.memo-area {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   min-height: 46px;
   height: auto;
   padding: 4px 10px;
@@ -16691,6 +16692,16 @@ textarea.memo-input.memo-area {
   line-height: 1.25;
   text-align: center;
   cursor: pointer;
+}
+
+/* 이름 앞의 이모지.
+   줄이 접힐 때 이모지까지 같이 쪼그라들지 않도록 제 몫을 지키게 둔다.
+   이모지가 없는 칸도 있으므로 자리를 비워 두지는 않는다 — 가운데 모임이라
+   비워 두면 이름이 한쪽으로 밀린다. */
+.ws-pick__emoji {
+  flex: 0 0 auto;
+  font-size: 15px;
+  line-height: 1;
 }
 
 .ws-pick.on {
