@@ -201,7 +201,6 @@ class ScheduledEntry(Base):
     # 이 달까지만 온다 'YYYYMM'. 비면 끝이 없다.
     end_ym = Column(String(6), nullable=True)
     # 남은 횟수. 한 번 나갈 때마다 줄고 0이면 멈춘다. end_ym과 함께 쓰지 않는다.
-    remaining = Column(SmallInteger, nullable=True)
     # 이번 한 번만 건너뛸 달 'YYYYMM'. 쓰고 나면 지워진다.
     skip_ym = Column(String(6), nullable=True)
 

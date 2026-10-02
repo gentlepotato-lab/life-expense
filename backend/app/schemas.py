@@ -111,7 +111,6 @@ class ScheduledEntryIn(BaseModel):
     interval_months: int = 1  # 1=매월, 2=격월, 3=분기, 6=반년, 12=매년
     anchor_ym: str | None = None  # 주기의 첫 달 'YYYYMM'
     end_ym: str | None = None  # 이 달까지만 'YYYYMM'
-    remaining: int | None = None  # 남은 횟수. end_ym과 함께 쓰지 않는다
     skip_ym: str | None = None  # 이번 한 번만 건너뛸 달 'YYYYMM'
     cat1_id: int | None = None
     cat2_id: int | None = None
@@ -137,7 +136,6 @@ class ScheduledEntryUpdate(BaseModel):
     interval_months: int | None = None
     anchor_ym: str | None = None
     end_ym: str | None = None
-    remaining: int | None = None
     skip_ym: str | None = None
     cat1_id: int | None = None
     cat2_id: int | None = None

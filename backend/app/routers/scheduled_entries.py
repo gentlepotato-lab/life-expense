@@ -78,7 +78,6 @@ def list_scheduled_entries(
             "interval_months": r.interval_months,
             "anchor_ym": r.anchor_ym,
             "end_ym": r.end_ym,
-            "remaining": r.remaining,
             "skip_ym": r.skip_ym,
             "next_run_at": str(r.next_run_at) if r.next_run_at else None,
             "cat1_id": r.cat1_id,
@@ -114,7 +113,7 @@ def create_scheduled_entry(payload: ScheduledEntryIn, db: SessionDep = Depends()
         raise HTTPException(status_code=400, detail="holiday_handling must be 'before', 'on', or 'after'")
     validate_span(
         payload.interval_months, payload.anchor_ym, payload.end_ym,
-        payload.remaining, payload.skip_ym,
+        payload.skip_ym,
     )
 
     # 격월 이상인데 첫 달을 안 적어 주면 이 달을 첫 달로 삼는다. 박자를
@@ -145,7 +144,6 @@ def create_scheduled_entry(payload: ScheduledEntryIn, db: SessionDep = Depends()
         interval_months=payload.interval_months,
         anchor_ym=anchor_ym,
         end_ym=payload.end_ym,
-        remaining=payload.remaining,
         skip_ym=payload.skip_ym,
         next_run_at=next_run_at,
         cat1_id=payload.cat1_id,
@@ -218,15 +216,14 @@ def update_scheduled_entry(schedule_id: int, payload: ScheduledEntryUpdate, db: 
         # 감춘다 — 언제 오는가는 볼 것이 없다. 다른 칸을 함께 고쳤어도 그렇다.
         validate_span(
             now_or_new('interval_months'), now_or_new('anchor_ym'),
-            now_or_new('end_ym'), now_or_new('remaining'), now_or_new('skip_ym'),
+            now_or_new('end_ym'), now_or_new('skip_ym'),
         )
         update_data['next_run_at'] = None
     elif unhiding or any(key in update_data for key in WHEN_KEYS):
         interval = now_or_new('interval_months')
         anchor = now_or_new('anchor_ym')
         validate_span(
-            interval, anchor, now_or_new('end_ym'),
-            now_or_new('remaining'), now_or_new('skip_ym'),
+            interval, anchor, now_or_new('end_ym'), now_or_new('skip_ym'),
         )
         # 격월 이상으로 바꾸면서 첫 달을 안 적어 주면 이 달로 잡는다.
         if interval and interval > 1 and not anchor:
@@ -245,23 +242,6 @@ def update_scheduled_entry(schedule_id: int, payload: ScheduledEntryUpdate, db: 
             end_ym=now_or_new('end_ym'),
             skip_ym=now_or_new('skip_ym'),
         )
-    elif 'remaining' in update_data:
-        # 횟수만 고친 경우다. 0으로 내리면 멈추고, 0에서 올리면 다시 걸어 준다.
-        validate_span(
-            schedule.interval_months, schedule.anchor_ym, schedule.end_ym,
-            update_data['remaining'], schedule.skip_ym,
-        )
-        if update_data['remaining'] == 0:
-            update_data['next_run_at'] = None
-        elif schedule.next_run_at is None:
-            update_data['next_run_at'] = calculate_next_run_span(
-                schedule.day_of_month, schedule.hour, schedule.minute,
-                schedule.holiday_handling, db,
-                interval_months=schedule.interval_months or 1,
-                anchor_ym=schedule.anchor_ym,
-                end_ym=schedule.end_ym,
-                skip_ym=schedule.skip_ym,
-            )
 
     for key, value in update_data.items():
         setattr(schedule, key, value)
@@ -459,7 +439,6 @@ def validate_span(
     interval_months: int | None,
     anchor_ym: str | None,
     end_ym: str | None,
-    remaining: int | None,
     skip_ym: str | None,
 ) -> None:
     """주기 · 끝 · 건너뛰기를 따져 본다. DB의 CHECK보다 앞서 걸러 낸다.
@@ -474,13 +453,6 @@ def validate_span(
     for name, v in (("anchor_ym", anchor_ym), ("end_ym", end_ym), ("skip_ym", skip_ym)):
         if v is not None and not _is_ym(v):
             raise HTTPException(status_code=400, detail=f"{name} must be 'YYYYMM'")
-    if remaining is not None and remaining < 0:
-        raise HTTPException(status_code=400, detail="remaining must be 0 or more")
-    if remaining is not None and end_ym is not None:
-        raise HTTPException(
-            status_code=400,
-            detail="remaining and end_ym cannot be used together",
-        )
 
 
 def _ym_step(year: int, month: int, n: int) -> tuple[int, int]:
@@ -563,11 +535,9 @@ def calculate_next_run_span(
 def _advance(schedule: ScheduledEntry, db: Session) -> datetime | None:
     """한 건이 나간 뒤(또는 건너뛴 뒤) 다음 자리를 셈한다.
 
-    남은 횟수가 다 되면 None이다. 줄은 그대로 두고 next_run_at만 비운다 —
-    끝난 할부가 소리 없이 사라지면 무엇이 끝났는지 알 길이 없다.
+    끝나는 달을 지나면 None이다. 줄은 그대로 두고 next_run_at만 비운다 —
+    끝난 스케줄이 소리 없이 사라지면 무엇이 끝났는지 알 길이 없다.
     """
-    if schedule.remaining is not None and schedule.remaining <= 0:
-        return None
     return calculate_next_run_span(
         schedule.day_of_month,
         schedule.hour,
@@ -638,11 +608,6 @@ def process_scheduled_entries(db: Session):
                     PendingEntrySplit, "pending_id", new_pending.entry_id)
         created_count += 1
 
-        # 남은 횟수는 실제로 한 건이 나간 이 자리에서만 준다. 중복 막이로
-        # 건너뛴 자리에서 깎으면 나가지도 않은 회차를 쓴 셈이 된다.
-        if schedule.remaining is not None and schedule.remaining > 0:
-            schedule.remaining -= 1
-
         # 건너뛰기 표는 한 번 쓰고 버린다. 건너뛴 다음 회차가 실제로 나간
         # 이 자리에서 스스로 꺼진다 — 달이 바뀌었다고 지우면 아직 오지도
         # 않은 회차를 두고 표를 먼저 떼는 셈이라, 매년처럼 사이가 먼
@@ -680,11 +645,7 @@ def migrate_next_run_at(db: SessionDep = Depends()):
     skipped = 0
     for schedule in schedules:
         # 비어 있는 next_run_at은 이제 두 가지를 뜻한다 — 아직 셈하지 않았거나,
-        # 다 끝났거나. 끝난 줄을 여기서 다시 채우면 남은 횟수가 0인 할부가
-        # 되살아난다. 끝난 표가 붙어 있으면 그대로 둔다.
-        if schedule.remaining is not None and schedule.remaining <= 0:
-            skipped += 1
-            continue
+        # 다 끝났거나. 끝난 줄을 여기서 다시 채우면 끝난 스케줄이 되살아난다.
         if schedule.end_ym and schedule.end_ym < _ym(datetime.now().year, datetime.now().month):
             skipped += 1
             continue
