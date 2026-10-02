@@ -224,6 +224,7 @@ export default function PaymentMethods() {
         list.map((t) => ({ threshold: Number(t.threshold), benefits: t.benefits }))
       );
       await loadTiers(methodId);
+      say.ok("제거 완료-!! ;-)");
     } catch (err) {
       say.bad(apiErrorMessage(err));
     }
@@ -249,6 +250,7 @@ export default function PaymentMethods() {
       );
       setTierOf(null);
       await loadTiers(id);
+      say.ok("저장 완료-!! ;-)");
     } catch (err) {
       say.bad(apiErrorMessage(err));
     }
@@ -400,6 +402,7 @@ export default function PaymentMethods() {
       const next = await refreshCategories();
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
       setAddCategoryId(r.data.category_id);
+      say.ok("추가 완료-!! ;-)");
     } catch (err) {
       say.bad(apiErrorMessage(err));
     }
@@ -416,6 +419,7 @@ export default function PaymentMethods() {
       const next = await refreshCategories();
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
       setCategoryOf(assignTo, r.data.category_id);
+      say.ok("추가 완료-!! ;-)");
     } catch (err) {
       say.bad(apiErrorMessage(err));
     }
@@ -439,6 +443,7 @@ export default function PaymentMethods() {
       }
       const next = await refreshCategories();
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
+      say.ok("제거 완료-!! ;-)");
     } catch (err) {
       say.bad(apiErrorMessage(err));
     }

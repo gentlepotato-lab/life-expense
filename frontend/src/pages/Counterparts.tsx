@@ -405,6 +405,7 @@ export default function Counterparts() {
       const next = await refreshCategories();
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
       setCategoryOf(assignTo, r.data.category_id);
+      say.ok("추가 완료-!! ;-)");
     } catch (err) {
       say.bad(apiErrorMessage(err));
     }
@@ -428,6 +429,7 @@ export default function Counterparts() {
       }
       const next = await refreshCategories();
       setBeforeCategories(JSON.parse(JSON.stringify(next)));
+      say.ok("제거 완료-!! ;-)");
     } catch (err) {
       say.bad(apiErrorMessage(err));
     }
