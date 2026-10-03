@@ -42,10 +42,10 @@ export default function PalettePopup({
 
   /* 들여다보는 벌은 고른 벌과 따로 논다. 넘겨 보다가 마음에 들면 그때
      [이 빛깔로]를 눌러 줄에 담는다. */
-  /* 어두운 칸에서 밝은 쪽 사진을 보여 주면 벌이 아니라 밝기를 견주게 된다.
-     밝기는 누르면 그 자리에서 바뀌므로 따로 미리 볼 것이 없지만, 벌을 견주는
-     그림만은 지금 서 있는 쪽과 같아야 한다. */
-  const 꼬리 = currentStep().dark ? "_dark" : "";
+  /* 그림은 지금 서 있는 밝기 칸으로 찍힌 것을 보여 준다. 밝기는 누르면 그
+     자리에서 바뀌므로 따로 미리 볼 것이 없지만, 벌을 견주는 그림만은 지금
+     화면과 같은 바탕이어야 한다 — 바탕이 다르면 벌이 아니라 밝기를 견주게 된다. */
+  const 꼬리 = `_${currentStep().key}`;
 
   const [shown, setShown] = useState(value);
   const [at, setAt] = useState(0);

@@ -33,22 +33,38 @@ const H = 700;
 /** 벌 여섯. src/utils/palettes.ts의 key와 같아야 한다. */
 const PALETTES = ["jjok", "hwangto", "meok", "sut", "podo", "crayon"];
 
-/** 밝기 둘. 어두운 칸에서 팝업을 열면 밝은 쪽 사진이 뜨는 것을 막는다.
-    칸은 여섯이지만 그림까지 여섯 벌로 찍지는 않는다 — 밝기는 누르면 그
-    자리에서 온 화면이 바뀌므로 그 자체가 예시다. 벌을 견주는 데 필요한 것은
-    밝은 쪽 한 벌과 어두운 쪽 한 벌이면 된다. */
+/** 밝기 여섯. src/utils/theme.ts의 STEPS와 같아야 한다.
+    예전에는 밝은 쪽 한 벌과 어두운 쪽 한 벌만 찍었다. 벌을 견주는 데에는
+    어긋남이 없었지만, `새벽빛`을 쓰는 사람이 `달빛` 사진을 보게 되어 팝업 속
+    그림과 그 뒤에 비치는 제 화면의 바탕이 달랐다. 여섯을 다 찍어 둔다. */
 const 밝기 = [
-  { key: "now", mode: "light", 꼬리: "" },
-  { key: "moon", mode: "dark", 꼬리: "_dark" },
+  { key: "paper", mode: "light" },
+  { key: "now", mode: "light" },
+  { key: "hanji", mode: "light" },
+  { key: "dawn", mode: "dark" },
+  { key: "moon", mode: "dark" },
+  { key: "dusk", mode: "dark" },
 ];
 
 /** 네 화면. 파일 이름은 components/PalettePopup.tsx의 SHOTS와 같아야 한다. */
-const SHOTS = [
+const 모든화면 = [
   { file: "home", url: "/" },
   { file: "entries", url: "/entries" },
   { file: "charts", url: "/charts" },
   { file: "calendar", url: "/calendar" },
 ];
+
+/* 한 화면만 다시 찍고 싶을 때 쓴다.
+     PAL_ONLY=charts node tools/palette-shots.mjs
+   가림 목록에 빠진 칸을 메웠을 때처럼 한 화면만 어긋난 경우를 위한 것이다.
+   쉼표로 여럿도 된다. 비워 두면 넷을 다 찍는다. 다시 찍히지 않은 화면은
+   있던 파일이 그대로 남으므로, 같은 브라우저와 같은 화면 상태에서 이어
+   찍어야 한 벌로 보인다. */
+const 고른화면 = (process.env.PAL_ONLY || "").split(",").map((s) => s.trim()).filter(Boolean);
+const SHOTS = 고른화면.length
+  ? 모든화면.filter((s) => 고른화면.includes(s.file))
+  : 모든화면;
+if (!SHOTS.length) throw new Error(`PAL_ONLY="${process.env.PAL_ONLY}"에 맞는 화면이 없다`);
 
 /* 얼마나 썼는지. 한 글자도 읽히면 안 되므로 더 세게 흐린다.
 
@@ -156,8 +172,8 @@ for (const key of PALETTES) {
         const p = JSON.parse(localStorage.getItem(k) || "{}");
         p.palette = ${JSON.stringify(key)};
         p.theme_mode = ${JSON.stringify(밝.mode)};
-        p.theme_light = "now";
-        p.theme_dark = ${JSON.stringify(밝.key)};
+        p.theme_light = ${JSON.stringify(밝.mode === "light" ? 밝.key : "now")};
+        p.theme_dark = ${JSON.stringify(밝.mode === "dark" ? 밝.key : "moon")};
         localStorage.setItem(k, JSON.stringify(p));
       })();`,
     });
@@ -225,7 +241,7 @@ for (const key of PALETTES) {
        스물네 장을 미리 받아 두는데, 무거우면 정작 볼 한 장이 대역을 나눠
        쓰느라 늦게 온다. 한 번 재어 보니 872ms가 5188ms로 늘었다. */
     const s = await c.send("Page.captureScreenshot", { format: "webp", quality: 82 });
-    const file = path.join(OUT, `${key}_${shot.file}${밝.꼬리}.webp`);
+    const file = path.join(OUT, `${key}_${shot.file}_${밝.key}.webp`);
     fs.writeFileSync(file, Buffer.from(s.data, "base64"));
     console.log(path.relative(process.cwd(), file));
     c.ws.close();
