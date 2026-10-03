@@ -16994,8 +16994,12 @@ textarea.memo-input.memo-area {
 
 
 /* ─── 알림 한 줄 ────────────────────────────────────────────────
-   그동안 alert이 하던 일을 받는다. 탭바 바로 위에 떠서 몇 초 뒤 스스로
-   사라지고, 길을 막지 않는다 — alert은 뜨는 동안 손가락이 묶였다.
+   그동안 alert이 하던 일을 받는다. 몇 초 뒤 스스로 사라지고 길을 막지 않는다 —
+   alert은 뜨는 동안 손가락이 묶였다.
+
+   화면 위쪽, 머리말 바로 밑에 선다. 아래쪽에 두면 손전화에서 글자판이 올라올 때
+   그 밑에 깔려 보이지 않는다. 적고 나서 뜨는 말이 많은데(빠뜨린 칸이 있습니다,
+   이미 있는 항목입니다) 하필 그때가 글자판이 올라와 있는 때다.
 
    바탕은 글자색 하나로 두고 왼쪽 점의 빛깔만 바꾼다. 바탕째 붉히면
    그냥 알려 주기만 하면 되는 일까지 화면을 압도한다. */
@@ -17003,9 +17007,9 @@ textarea.memo-input.memo-area {
   position: fixed;
   left: 8px;
   right: 8px;
-  /* 탭바 위에 선다. 탭바의 키는 글 내용과 홈 표시줄에 따라 달라지므로
+  /* 머리말 밑에 선다. 머리말 키는 화면마다 다르고 갈래 탭이 붙으면 더 커지므로
      NotifyHost가 재서 넣어 준다. 여기 적어 둔 값은 못 재었을 때의 자리다. */
-  bottom: 62px;
+  top: 82px;
   z-index: 950;
   display: flex;
   flex-direction: column;
@@ -17034,7 +17038,8 @@ textarea.memo-input.memo-area {
 }
 
 @keyframes note-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  /* 위에서 내려온다 — 서는 자리가 위쪽이라 올라오면 거꾸로다. */
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
   to   { opacity: 1; transform: none; }
 }
 

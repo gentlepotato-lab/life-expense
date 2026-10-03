@@ -75,18 +75,26 @@ export default function NotifyHost() {
   const timerBag = timers.current;
   useEffect(() => () => timerBag.forEach((t) => window.clearTimeout(t)), [timerBag]);
 
-  /* 알림이 설 높이. 탭바 키는 글 내용과 홈 표시줄(safe-area)에 따라 달라져서
-     CSS에 적어 둘 수 없다. 떠 있는 동안만 재면 된다. */
-  const [lift, setLift] = useState<number | null>(null);
+  /* 알림이 설 자리. 머리말 바로 밑이다.
+
+     머리말 키는 화면마다 다르고(갈래 탭이 붙으면 더 커진다) 붙박이로 설 때와
+     굴러 올라갈 때가 달라서 CSS에 적어 둘 수 없다. 떠 있는 동안만 재면 된다.
+     굴러 올라가 머리말이 화면 밖으로 나간 때를 대비해 8px 아래로는 안 간다. */
+  const [머리밑, set머리밑] = useState<number | null>(null);
   useEffect(() => {
     if (notes.length === 0) return;
     const measure = () => {
-      const bar = document.querySelector(".tabbar");
-      setLift(bar ? Math.round(bar.getBoundingClientRect().height) + 10 : null);
+      const head = document.querySelector(".page-head");
+      if (!head) return set머리밑(null);
+      set머리밑(Math.max(8, Math.round(head.getBoundingClientRect().bottom) + 8));
     };
     measure();
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    window.addEventListener("scroll", measure, { passive: true });
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure);
+    };
   }, [notes.length]);
 
   const closeAsk = useCallback(() => {
@@ -115,7 +123,7 @@ export default function NotifyHost() {
           className="notebox"
           role="status"
           aria-live="polite"
-          style={lift === null ? undefined : { bottom: lift }}
+          style={머리밑 === null ? undefined : { top: 머리밑 }}
         >
           {notes.map((n) => (
             <div key={n.id} className={`note note--${n.tone}`} onClick={() => drop(n.id)}>

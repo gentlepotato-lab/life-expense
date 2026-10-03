@@ -242,7 +242,7 @@ export default function Categories() {
     const cat1Names = cat1.map(c => c.cat1_name.trim());
     const duplicateCat1 = cat1Names.filter((v, i) => cat1Names.indexOf(v) !== i);
     if (duplicateCat1.length > 0) {
-      say.warn("이미 존재하는 항목입니다.");
+      say.warn("이미 있는 항목입니다.");
       return;
     }
 
@@ -257,7 +257,7 @@ export default function Categories() {
     for (const group of grouped) {
       const dup = group.cat2_names.filter((v, i) => group.cat2_names.indexOf(v) !== i);
       if (dup.length > 0) {
-        say.warn("이미 존재하는 항목입니다.");
+        say.warn("이미 있는 항목입니다.");
         return;
       }
     }
@@ -342,7 +342,7 @@ export default function Categories() {
     // --- CASE 1: '+ 중분류 추가' ---
     if (addCat1Mode) {
       if (!cat1Name || !cat2Name) {
-        say.warn("항목을 입력하세요.");
+        say.warn("항목을 입력해 주세요.");
         return;
       }
 
@@ -382,7 +382,7 @@ export default function Categories() {
             params: { cat2_id, name: cat3Name }
           });
         } else {
-          say.warn("이미 존재하는 세분류입니다.");
+          say.warn("이미 있는 세분류입니다.");
         }
       }
 
@@ -398,7 +398,7 @@ export default function Categories() {
     // --- CASE 2: 기존 중분류 아래 추가 ---
     if (selectedCat1ForAdd && !selectedCat2ForAdd) {
       if (!cat2Name) {
-        say.warn("소분류를 입력하세요.");
+        say.warn("소분류를 입력해 주세요.");
         return;
       }
 
@@ -426,13 +426,13 @@ export default function Categories() {
             await refreshListsAll();
             return;
           } else {
-            say.warn("이미 존재하는 세분류입니다.");
+            say.warn("이미 있는 세분류입니다.");
             return;
           }
         }
 
         // 세분류도 없으면 추가할 게 없으므로 중복 경고
-        say.warn("이미 존재하는 소분류입니다.");
+        say.warn("이미 있는 소분류입니다.");
         return;
       }
 
@@ -460,7 +460,7 @@ export default function Categories() {
     // --- CASE 3: 기존 소분류 아래 세분류 추가 ---
     if (selectedCat2ForAdd) {
       if (!cat3Name) {
-        say.warn("세분류를 입력하세요.");
+        say.warn("세분류를 입력해 주세요.");
         return;
       }
 
@@ -474,7 +474,7 @@ export default function Categories() {
         say.ok("추가 완료-!! ;-)");
       setAddOpen(false);
       } else {
-        say.warn("이미 존재하는 세분류입니다.");
+        say.warn("이미 있는 세분류입니다.");
       }
 
       setNewCat3Name("");
@@ -482,7 +482,7 @@ export default function Categories() {
       return;
     }
 
-    say.warn("항목을 입력하세요.");
+    say.warn("항목을 입력해 주세요.");
   };
 
   const refreshListsAll = async () => {
@@ -537,9 +537,9 @@ export default function Categories() {
       say.ok("제거 완료-!! ;-)");
     } catch (err: any) {
       if (err.response?.status === 409) {
-        say.warn("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
+        say.warn("쓰고 있는 항목이라 제거할 수 없습니다. 정리한 뒤에 다시 해 주세요.");
       } else {
-        say.bad("항목 제거 중 오류가 발생했습니다.");
+        say.bad("항목을 제거하지 못했습니다. 다시 시도해 주세요.");
       }
     }
   };
@@ -563,9 +563,9 @@ export default function Categories() {
       setSelectedCat2ForAdd(null);
     } catch (err: any) {
       if (err.response?.status === 409) {
-        say.warn("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
+        say.warn("쓰고 있는 항목이라 제거할 수 없습니다. 정리한 뒤에 다시 해 주세요.");
       } else {
-        say.bad("항목 제거 중 오류가 발생했습니다.");
+        say.bad("항목을 제거하지 못했습니다. 다시 시도해 주세요.");
       }
     }
   };
@@ -588,9 +588,9 @@ export default function Categories() {
       say.ok("제거 완료-!! ;-)");
     } catch (err: any) {
       if (err.response?.status === 409) {
-        say.warn("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
+        say.warn("쓰고 있는 항목이라 제거할 수 없습니다. 정리한 뒤에 다시 해 주세요.");
       } else {
-        say.bad("항목 제거 중 오류가 발생했습니다.");
+        say.bad("항목을 제거하지 못했습니다. 다시 시도해 주세요.");
       }
     }
   };
@@ -935,7 +935,7 @@ export default function Categories() {
                               <span
                                 className={`set-fixed${inoutTone(c2.inout)}`}
                                 role="group"
-                                aria-label="고정 · 변동"
+                                aria-label="고정/변동"
                               >
                                 <button
                                   type="button"
@@ -1086,7 +1086,7 @@ export default function Categories() {
                                             c2.fixed ? " set-fixed--lock" : ""
                                           }`}
                                           role="group"
-                                          aria-label="고정 · 변동"
+                                          aria-label="고정/변동"
                                         >
                                           <button
                                             type="button"

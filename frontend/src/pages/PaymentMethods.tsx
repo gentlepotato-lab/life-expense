@@ -394,7 +394,7 @@ export default function PaymentMethods() {
   /** 추가 폼에서 구분을 새로 만든다. 만든 즉시 그 폼의 선택값이 된다. */
   const createCategoryForAdd = async () => {
     const name = (
-      await askText({ title: "새 구분", label: "새 구분 이름을 입력하세요.", go: "추가" })
+      await askText({ title: "새 구분", label: "새 구분 이름을 입력해 주세요.", go: "추가" })
     )?.trim();
     if (!name) return;
     try {
@@ -411,7 +411,7 @@ export default function PaymentMethods() {
   /** 구분을 새로 만들고 그 자리에서 해당 결제 수단에 배정한다. */
   const createCategory = async (assignTo: number) => {
     const name = (
-      await askText({ title: "새 구분", label: "새 구분 이름을 입력하세요.", go: "추가" })
+      await askText({ title: "새 구분", label: "새 구분 이름을 입력해 주세요.", go: "추가" })
     )?.trim();
     if (!name) return;
     try {
@@ -429,7 +429,7 @@ export default function PaymentMethods() {
     if (
       !(await ask({
         title: "구분 제거",
-        body: `구분 "${name}" 을 제거합니다?`,
+        body: `"${name}" 구분을 제거할까요?`,
         go: "제거",
         danger: true,
       }))
@@ -452,9 +452,9 @@ export default function PaymentMethods() {
   // 신규 추가
   const handleAdd = async () => {
     const name = newName.trim();
-    if (!name) return say.warn("항목을 입력하세요.");
+    if (!name) return say.warn("항목을 입력해 주세요.");
     const exist = list.find((x) => x.method_name === name);
-    if (exist) return say.warn("이미 존재하는 항목입니다.");
+    if (exist) return say.warn("이미 있는 항목입니다.");
 
     await axios.post("/payment-methods/add", null, {
       params: { name, category_id: addCategoryId ?? undefined }
@@ -527,7 +527,7 @@ export default function PaymentMethods() {
     });
 
     if (r.data?.error === "IN_USE") {
-      say.warn("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
+      say.warn("쓰고 있는 항목이라 제거할 수 없습니다. 정리한 뒤에 다시 해 주세요.");
       return;
     }
 

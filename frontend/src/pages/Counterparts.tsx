@@ -291,14 +291,14 @@ export default function Counterparts() {
     }
 
     if (rows.some((c) => !c.name.trim())) {
-      say.warn("이름을 입력하세요.");
+      say.warn("이름을 입력해 주세요.");
       return;
     }
 
     const names = rows.map((c) => c.name.trim());
     const dup = names.find((n, i) => names.indexOf(n) !== i);
     if (dup) {
-      say.warn(`이름이 겹칩니다 — "${dup}"`);
+      say.warn("이미 있는 이름입니다.");
       return;
     }
 
@@ -397,7 +397,7 @@ export default function Counterparts() {
    */
   const createCategory = async (assignTo: number) => {
     const name = (
-      await askText({ title: "새 구분", label: "새 구분 이름을 입력하세요.", go: "추가" })
+      await askText({ title: "새 구분", label: "새 구분 이름을 입력해 주세요.", go: "추가" })
     )?.trim();
     if (!name) return;
     try {
@@ -415,7 +415,7 @@ export default function Counterparts() {
     if (
       !(await ask({
         title: "구분 제거",
-        body: `구분 "${name}" 을 제거합니다?`,
+        body: `"${name}" 구분을 제거할까요?`,
         go: "제거",
         danger: true,
       }))

@@ -138,7 +138,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       form.amount == null || form.amount === '' ||
       !form.pay_method
     ) {
-      say.warn("Date, CategoryM/S, Amount, PaymentMethod는 필수 입력입니다.");
+      say.warn("날짜, 분류, 금액, 결제 수단은 꼭 넣어 주세요.");
       return;
     }
 
@@ -148,11 +148,11 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       (x) => x.amount !== "" && Number(x.amount) > 0
     );
     if (splits.some((x) => x.amount === "" || Number(x.amount) <= 0)) {
-      say.warn("분할 금액은 0보다 커야 합니다.");
+      say.warn("쪼갠 금액은 0보다 커야 합니다.");
       return;
     }
     if (cleanSplits.reduce((a, r) => a + Number(r.amount), 0) > Number(form.amount)) {
-      say.warn("분할 합계가 결제 금액을 초과합니다.");
+      say.warn("쪼갠 합계가 결제 금액을 넘었습니다.");
       return;
     }
 
@@ -237,7 +237,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       onSaved?.();
     } catch (err) {
       console.error(err);
-      say.bad("입력 중 오류가 발생했습니다.");
+      say.bad("입력하지 못했습니다. 다시 시도해 주세요.");
     }
   };
 

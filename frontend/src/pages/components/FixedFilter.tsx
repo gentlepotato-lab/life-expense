@@ -87,7 +87,7 @@ export default function FixedFilter({ value, onChange, withIncome = true }: Prop
         className={`cal-source cal-source--fixed${켬 ? " on" : ""}`}
         aria-expanded={open}
         aria-haspopup="true"
-        title="고정 · 변동 가운데 무엇을 볼지 고른다."
+        title="고정/변동 가운데 무엇을 볼지 고른다."
         onClick={() => setOpen((v) => !v)}
       >
         고정/변동
@@ -98,7 +98,7 @@ export default function FixedFilter({ value, onChange, withIncome = true }: Prop
       </button>
 
       {open && (
-        <div className="fx-pop" role="dialog" aria-label="고정 · 변동 고르기">
+        <div className="fx-pop" role="dialog" aria-label="고정/변동 고르기">
           {묶음("out")}
           {withIncome && 묶음("in")}
         </div>

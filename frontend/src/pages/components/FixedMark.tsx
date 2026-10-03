@@ -37,7 +37,7 @@ export default function FixedMark({ on, onToggle, readOnly = false }: Props) {
       disabled={readOnly}
       title={title}
       aria-pressed={on}
-      aria-label={`고정 · 변동 — 지금은 ${이름}`}
+      aria-label={`고정/변동, 지금은 ${이름}`}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => {
         e.stopPropagation();

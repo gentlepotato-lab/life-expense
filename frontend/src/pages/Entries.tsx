@@ -229,7 +229,7 @@ export default function Entries() {
 
     // 필수 입력값 검증
     if (!draft.tx_date || !draft.cat1_id || !draft.cat2_id || draft.amount == null || draft.amount === '' || !draft.pay_method) {
-      say.warn("Date, IN/OUT, CategoryM/S, Amount, PaymentMethod는 필수 입력입니다.");
+      say.warn("날짜, IN/OUT, 분류, 금액, 결제 수단은 꼭 넣어 주세요.");
       return;
     }
 
@@ -238,12 +238,12 @@ export default function Entries() {
       (s) => s.amount !== "" && Number(s.amount) > 0
     );
     if (cleanSplits.length !== splits.length && splits.some((s) => s.amount === "" || Number(s.amount) <= 0)) {
-      say.warn("분할 금액은 0보다 커야 합니다.");
+      say.warn("쪼갠 금액은 0보다 커야 합니다.");
       return;
     }
     const splitSum = cleanSplits.reduce((s, r) => s + Number(r.amount), 0);
     if (splitSum > Number(draft.amount)) {
-      say.warn("분할 합계가 결제 금액을 초과합니다.");
+      say.warn("쪼갠 합계가 결제 금액을 넘었습니다.");
       return;
     }
 
@@ -283,7 +283,7 @@ export default function Entries() {
       await reload();
     } catch (err) {
       console.error(err);
-      say.bad("저장 중 오류가 발생했습니다.");
+      say.bad("저장하지 못했습니다. 다시 시도해 주세요.");
     }
   };
 
@@ -292,7 +292,7 @@ export default function Entries() {
     if (
       !(await ask({
         title: "내역 제거",
-        body: "정말 제거하시겠습니까?",
+        body: "이 내역을 제거할까요?",
         warn: "되돌릴 수 없습니다.",
         go: "제거",
         danger: true,
@@ -306,7 +306,7 @@ export default function Entries() {
       say.ok("제거 완료-!! ;-)");
     } catch (err) {
       console.error(err);
-      say.bad("제거 중 오류가 발생했습니다.");
+      say.bad("제거하지 못했습니다. 다시 시도해 주세요.");
     }
   };
 
@@ -320,7 +320,7 @@ export default function Entries() {
     if (
       !(await ask({
         title: next ? "실적에서 제외" : "실적에 포함",
-        body: next ? "실적에서 제외하시겠습니까?" : "실적에 포함하시겠습니까?",
+        body: next ? "실적에서 제외할까요?" : "실적에 포함할까요?",
         go: next ? "제외" : "포함",
       }))
     )
@@ -350,8 +350,8 @@ export default function Entries() {
        곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
     if (
       !(await ask({
-        title: "고정 · 변동 바꾸기",
-        body: `${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 변경하시겠습니까?`,
+        title: "고정/변동 바꾸기",
+        body: `${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 바꿀까요?`,
         go: "변경",
       }))
     )
@@ -367,7 +367,7 @@ export default function Entries() {
     } catch (err) {
       console.error(err);
       stamp(before);
-      say.bad("고정 · 변동을 담지 못했습니다.");
+      say.bad("고정/변동을 담지 못했습니다.");
     }
   };
 

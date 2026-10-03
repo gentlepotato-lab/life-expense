@@ -248,7 +248,7 @@ export default function SplitEditor({
       </div>
 
       {over && (
-        <p className="split-editor__warn">분할 합계가 결제 금액을 초과했습니다.</p>
+        <p className="split-editor__warn">쪼갠 합계가 결제 금액을 넘었습니다.</p>
       )}
     </div>
   );
