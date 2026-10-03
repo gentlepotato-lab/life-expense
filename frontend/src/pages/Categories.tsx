@@ -915,7 +915,13 @@ export default function Categories() {
                                         x.cat2_id === c2.cat2_id ? { ...x, editing: true } : x
                                       ));
                                     } else {
-                                      setSelectedCat2ForAdd(c2.cat2_id); // 🆕 세분류 추가용 선택
+                                      /* 다시 누르면 접는다 — 열 때 누른 그 자리를
+                                         또 눌러 닫는 것이 열고 닫는 가장 짧은 길이다.
+                                         잘못 눌러 열린 칸을 닫으려고 다른 데를
+                                         찾아다니지 않게 한다. */
+                                      setSelectedCat2ForAdd((prev) =>
+                                        prev === c2.cat2_id ? null : c2.cat2_id
+                                      );
                                     }
                                   }}
                                 >
@@ -1001,7 +1007,7 @@ export default function Categories() {
 
                           {/* 소분류 클릭 시 세분류 입력 칸 표시 */}
                           {selectedCat2ForAdd === c2.cat2_id && (
-                            <div className="cat3-add-row" style={{ marginLeft: "20px", marginTop: "4px" }}>
+                            <div className="cat3-add-row">
                               <input
                                 className="cat3-input"
                                 placeholder="(새 세분류)"

@@ -17123,3 +17123,37 @@ textarea.memo-input.memo-area {
 :root[data-motion="off"] .chart-drill {
   scroll-behavior: auto;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   161. 세분류 추가 줄의 칸과 단추(2026-10-03)
+   ─────────────────────────────────────────────────────────────
+   소분류를 누르면 그 아래 열리는 줄이다. 규칙이 없어 전역 크기로 떠 있었다 —
+   단추가 저 혼자 크고 칸과 맞붙어, 같은 일을 하는 위쪽 추가 폼과 다른 줄로
+   보였다. 그 폼의 꼬리(.set-add-form__tail)와 같은 값으로 못 박는다.
+   사이는 한 뼘 넓힌다(6 → 8px) — 칸과 단추가 붙으면 어디까지 적는 자리인지
+   눈이 먼저 묻는다.
+   ════════════════════════════════════════════════════════════ */
+.cat3-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 4px 0 0 20px;
+}
+
+.cat3-add-row > .cat3-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--set-input-h);
+  min-height: var(--set-input-h);
+  max-height: var(--set-input-h);
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+}
+
+.cat3-add-row > .ui-btn {
+  flex: 0 0 auto;
+  height: 26px;
+  min-height: 26px;
+  font-size: var(--font-size-xs);
+}
