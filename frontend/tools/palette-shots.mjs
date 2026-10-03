@@ -50,13 +50,19 @@ const SHOTS = [
   { file: "calendar", url: "/calendar" },
 ];
 
-/* 얼마나 썼는지. 한 글자도 읽히면 안 되므로 더 세게 흐린다. */
+/* 얼마나 썼는지. 한 글자도 읽히면 안 되므로 더 세게 흐린다.
+
+   건수(`18건`)는 여기 넣지 않는다 — 얼마를 썼는지가 아니라 몇 번 썼는지라
+   신상이 아니고, 다른 화면에서도 드러나 있다. */
 const 금액 = [
   ".amount-text", ".amount-split", ".date-group__sum", ".cal__net",
   ".cal-sum__in", ".cal-sum__out", ".chart-tile__value", ".card-perf__value",
   ".wh-row__val", ".wh-sum__won", ".cal__day-net", ".goal-row__won",
   ".me-stat__num", ".nudge__meta", ".place-row__won", ".cal__amt",
   ".recharts-cartesian-axis-tick-value", ".recharts-label",
+  /* 카드 실적 판을 펼쳐 둔 채로 찍히게 되면서 드러난 셋. 띠 아래 눈금 금액,
+     돌려받고 남은 내 몫, 실적에서 뺀 금액이다. */
+  ".card-perf__mark", ".card-perf__sub--mine", ".card-perf__sub--x",
 ];
 
 /* 누구와 어디서. 사람과 자리의 이름, 그리고 손수 지은 구분 이름. */
