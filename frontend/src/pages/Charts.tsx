@@ -42,6 +42,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { currentPalette } from "../utils/palettes";
 import { manwon } from "../utils/amount";
 import { say } from "../utils/notify";
+import { scrollEase } from "../utils/motion";
 import {
   EMPTY_FILTER,
   fixedSetsFrom,
@@ -1750,7 +1751,7 @@ export default function Charts() {
   const goCard = useCallback((i: number) => {
     const el = cardStripRef.current;
     if (!el) return;
-    el.scrollTo({ left: i * cardStep(), behavior: "smooth" });
+    el.scrollTo({ left: i * cardStep(), behavior: scrollEase() });
   }, []);
 
   /* 다 들어가면 넘길 것이 없다 — 그때는 점도 화살표도 두지 않는다.
@@ -2765,7 +2766,7 @@ function CatDrillPopup({
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    el.scrollTo({ left: subRows ? el.scrollWidth : 0, behavior: "smooth" });
+    el.scrollTo({ left: subRows ? el.scrollWidth : 0, behavior: scrollEase() });
   }, [subRows]);
 
   return (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ArrowUpIcon from "./ArrowUpIcon";
+import { scrollEase } from "../../utils/motion";
 
 /**
  * 맨 위로 — 화면 오른쪽 아래에 붙어 있는 단추.
@@ -41,7 +42,7 @@ export default function ScrollTopButton() {
       aria-label="맨 위로"
       title="맨 위로"
       tabIndex={on ? 0 : -1}
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      onClick={() => window.scrollTo({ top: 0, behavior: scrollEase() })}
     >
       <ArrowUpIcon />
     </button>

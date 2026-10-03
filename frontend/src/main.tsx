@@ -4,6 +4,7 @@ import "./index.css";
 import { pref } from "./utils/prefs";
 import { applyPalette } from "./utils/palettes";
 import { applyTheme, currentStep, watchSystem, DEFAULT_MODE, DEFAULT_LIGHT, DEFAULT_DARK } from "./utils/theme";
+import { applyMotion } from "./utils/motion";
 
 /* 밝기와 빛깔은 첫 칠보다 먼저 정해져야 한다. 그리고 나서 갈아 끼우면 열
    때마다 화면이 한 번 바뀌는 것이 보인다. 담아 둔 값은 localStorage에 있어
@@ -18,6 +19,10 @@ function 끼우기() {
     pref("theme_dark") || DEFAULT_DARK
   );
   applyPalette(pref("palette"), currentStep().dark);
+  /* 움직임도 첫 칠보다 먼저 정해져야 한다. 뒤에 끄면 미끄러지다 멈추는 것이
+     보이고, 그것은 끈 것이 아니라 고장 난 것으로 읽힌다.
+     앞머리 로고는 이보다 더 먼저 서야 해서 index.html이 따로 붙인다. */
+  applyMotion(pref("motion_on"));
 }
 
 끼우기();

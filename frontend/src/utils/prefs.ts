@@ -18,6 +18,7 @@ const FALLBACK: Prefs = {
   home_path: "/",
   nudge_on: "1",
   memo_show: "1",
+  motion_on: "1",
   tape_style: "flower",
   palette: "jjok",
   theme_mode: "light",

@@ -18,6 +18,10 @@ PREF_KEYS = {
     # 내역 세 화면에서 카드 아래 메모 판을 보일지. 끄면 메모는 꾹 눌러 뜨는
     # 편집 팝업에서만 본다.
     "memo_show": "1",
+    # 화면이 움직일지. 끄면 애니메이션만 멈추고 하는 일은 그대로다 —
+    # 꾹 누르기 진행 표시처럼 "언제 열리는지"를 알리는 움직임은 남는다.
+    # (frontend/src/utils/motion.ts).
+    "motion_on": "1",
     # 금액을 가리는 마스킹 테이프. 화면이 아는 일곱 가지 가운데 하나다.
     # (frontend/src/utils/tapes.ts).
     "tape_style": "flower",

@@ -1699,16 +1699,6 @@ div:has(> .pm-item) .drag-handle {
   }
 }
 
-/* ─────────────────────────────────────────────
-   18. Accessibility
-────────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -2541,31 +2531,6 @@ html.modal-open .calculator-trigger-button {
   .edit-modal__foot-right {
     width: 100%;
     justify-content: flex-end;
-  }
-}
-
-/* 움직임 최소화를 선호하는 사용자
-   ─────────────────────────────────────────────────────────────
-   장식적인 등장 애니메이션만 끈다.
-   누름 피드백(2% 확대)과 길게 누르기 진행 표시는 "지금 무슨 일이 일어나는지"
-   를 알려주는 기능적 신호이므로 유지한다.
-   Windows의 "애니메이션 효과"를 끄면 이 쿼리가 참이 되므로,
-   여기서 transform을 죽이면 데스크톱에서 누름 반응이 사라진다. */
-@media (prefers-reduced-motion: reduce) {
-  .popup-overlay,
-  .popup-panel {
-    animation: none !important;
-  }
-
-  .card {
-    transition: none !important;
-  }
-
-  /* 위쪽 Accessibility 절의 `* { animation: none !important }`를 되돌린다.
-     길게 누르기 진행 표시는 장식이 아니라 "언제 팝업이 열리는지"를 알려주는
-     기능적 신호라서, 이게 없으면 데스크톱에서 아무 반응 없이 팝업만 튀어나온다. */
-  .card--pressable.pressing::after {
-    animation: longpress-progress var(--longpress-delay) linear forwards !important;
   }
 }
 
@@ -7331,12 +7296,6 @@ body {
   box-shadow: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .subtabs__thumb {
-    transition: none;
-  }
-}
-
 /* 목록이 긴 화면과 짧은 화면 사이를 오갈 때 세로 스크롤 막대가 생겼다 없어지며
    본문 폭이 15px씩 달라졌다. 막대 자리를 늘 비워 두면 어느 화면에서나 폭이 같다.
    막대가 화면 위에 겹쳐 뜨는 기기(모바일)에서는 아무 일도 하지 않는다. */
@@ -12071,15 +12030,6 @@ html.pin-off .cp-page > .is-pinned {
   transform: translate3d(0, calc(-1 * var(--pin-h, 0px)), 0);
 }
 
-/* 굴림 애니메이션을 꺼 둔 사람에게는 그냥 있고 없고로만 보인다. */
-@media (prefers-reduced-motion: reduce) {
-  .page-head.is-pinned,
-  .page-wrap > .is-pinned,
-  .cp-page > .is-pinned {
-    transition: none;
-  }
-}
-
 /* ─── 맨 위로 ────────────────────────────────────────────────
    오른쪽 위 네 단추와 같은 크기·같은 결이되 동그라미다. 자리는 오른쪽
    아래, 이동 막대 위. 오른쪽 끝은 네 단추와 같은 셈으로 맞춘다 —
@@ -14116,15 +14066,6 @@ html.modal-open .scroll-top {
   to   { background-size: 100% 2px; }
 }
 
-/* 진행 표시는 장식이 아니라 "언제 팝업이 열리는지"를 알려 주는 신호다 —
-   내역 카드와 같이, 움직임을 줄이는 자리에서도 이것만은 남긴다. */
-@media (prefers-reduced-motion: reduce) {
-  .goal-row.is-pressing::after,
-  .nudge.is-pressing::after {
-    animation: longpress-sweep var(--longpress-delay) linear forwards !important;
-  }
-}
-
 .goal-bar {
   position: relative;
   background: var(--color-border);
@@ -14336,12 +14277,6 @@ input.target__area {
   background-size: 0 2px;
   animation: longpress-sweep var(--longpress-delay) linear forwards;
   pointer-events: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pm-item.is-pressing::after {
-    animation: longpress-sweep var(--longpress-delay) linear forwards !important;
-  }
 }
 
 /* 구간 목록의 맨 아랫줄 — [+]는 왼쪽, [혜택]은 오른쪽 끝 */
@@ -15608,12 +15543,6 @@ textarea.memo-input.memo-area {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .edit-lock__tip {
-    animation: none;
-    opacity: 1;
-  }
-}
 /* ═══════════════════════════════════════════════════════════════
    149. 어두운 바탕에서 테이프의 테를 눕힌다(2026-09)
    ─────────────────────────────────────────────────────────────
@@ -17054,10 +16983,6 @@ textarea.memo-input.memo-area {
   white-space: pre-line;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .note { animation: none; }
-}
-
 /* ─── 되묻기 · 이름 받기 ────────────────────────────────────────
    틀은 앱이 이미 쓰는 팝업 그대로다. 여기서는 본문에 들어갈 말과
    되돌릴 수 없는 쪽 단추만 보탠다. */
@@ -17146,4 +17071,55 @@ textarea.memo-input.memo-area {
    빼 둔다 — 거기는 amber가 깔려 있어 흰빛으로 덮으면 불이 꺼진다. */
 :root[data-dark="1"] .set-onoff:not(.set-onoff--on) {
   background: color-mix(in srgb, #FFFFFF 12%, var(--color-surface));
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   160. 움직임 끄기(2026-10-03)
+   ─────────────────────────────────────────────────────────────
+   돈쓴이에서 끄면 `<html>`에 표시가 붙고(utils/motion.ts), 여기서 그것을 본다.
+
+   하나하나 끄는 대신 한 자리에 모아 둔 까닭은, 앞으로 새로 만드는 움직임이
+   저절로 이 스위치를 따르게 하려는 것이다 — 끌 자리를 잊어도 꺼진다.
+   예전에는 이 일을 `@media (prefers-reduced-motion: reduce)`가 맡았다. 그것은
+   기기가 정하는 것이라 끄고 켤 수가 없었고, 운영체제가 조용히 그렇게 켜 둔
+   기기(iPad가 그랬다)에서는 앞머리 로고가 멈춰 보였다. 이제는 쓰는 사람이
+   정한다.
+
+   끄는 것은 움직임뿐이다. 다만 꾹 누르기 진행 표시 셋은 되살린다 — 그것은
+   꾸밈이 아니라 "언제 팝업이 열리는지"를 알려주는 기능적 신호라서, 없으면
+   데스크톱에서 아무 반응 없이 팝업만 튀어나온다. 잠금 말풍선도 세워 둔다 —
+   떠오르는 움직임 안에 보이기가 들어 있어, 그냥 끄면 말이 뜨지 않는다.
+
+   앞머리 로고는 여기서 손대지 않는다. 그것은 이 묶음이 닿기도 전에 첫 획을
+   그으므로 index.html이 제 손으로 표시를 붙이고 제 규칙으로 세워 둔다.
+   ════════════════════════════════════════════════════════════ */
+:root[data-motion="off"] * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* 꾹 누르기 진행 표시 — 위 규칙을 되돌린다. 셈이 한 겹 높아 순서에 기대지
+   않는다(0-4-1 대 0-2-0). */
+:root[data-motion="off"] .card--pressable.pressing::after {
+  animation: longpress-progress var(--longpress-delay) linear forwards !important;
+}
+
+:root[data-motion="off"] .goal-row.is-pressing::after,
+:root[data-motion="off"] .nudge.is-pressing::after,
+:root[data-motion="off"] .pm-item.is-pressing::after {
+  animation: longpress-sweep var(--longpress-delay) linear forwards !important;
+}
+
+/* 편집을 눌러라를 알리는 말풍선. 뜨는 동안이 사라지는 것은 그만이지만,
+   뜨지 않으면 눌러도 아무 말이 없다. */
+:root[data-motion="off"] .edit-lock__tip {
+  opacity: 1;
+}
+
+/* 부드럽게 굴러가는 것도 움직임이다. animation도 transition도 아니라 위 규칙에
+   걸리지 않으므로 따로 끈다. 코드에서 굴리는 자리는 utils/motion.ts의
+   scrollEase가 맡는다 — 끄더라도 가기는 간다, 가는 동안이 없어질 뿐이다. */
+:root[data-motion="off"],
+:root[data-motion="off"] .chart-drill {
+  scroll-behavior: auto;
 }

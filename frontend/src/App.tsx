@@ -25,6 +25,7 @@ import TabBar from "./pages/components/TabBar";
 import NotifyHost from "./pages/components/NotifyHost";
 import { loadPrefs, pref, takeHome } from "./utils/prefs";
 import { applyTape } from "./utils/tapes";
+import { applyMotion } from "./utils/motion";
 
 /**
  * 앞머리 화면이 떠 있는 시간. 사라지는 데 걸리는 320ms는 여기에 포함하지 않는다.
@@ -78,11 +79,15 @@ function App() {
   /* 설정은 화면이 뜨기 전에 있어야 하므로 브라우저에 담아 둔 것으로 먼저 그리고,
      서버에서 받아 온 것은 다음에 열 때부터 쓴다.
 
-     마스킹 테이프만은 받아 온 그 자리에서 갈아 끼운다 — 변수 하나라 다시
-     그릴 것이 없고, 다음에 열 때까지 기다릴 까닭도 없다. */
+     마스킹 테이프와 움직임만은 받아 온 그 자리에서 갈아 끼운다 — 둘 다
+     표시 하나라 다시 그릴 것이 없고, 다음에 열 때까지 기다릴 까닭도 없다.
+     다른 기기에서 끄고 왔으면 이 기기도 그 자리에서 따라 멈춘다. */
   useEffect(() => {
     applyTape(pref("tape_style"));
-    void loadPrefs().then(() => applyTape(pref("tape_style")));
+    void loadPrefs().then(() => {
+      applyTape(pref("tape_style"));
+      applyMotion(pref("motion_on"));
+    });
   }, []);
 
   return (

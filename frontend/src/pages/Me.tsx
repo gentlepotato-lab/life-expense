@@ -15,6 +15,7 @@ import {
 import type { Step } from "../utils/theme";
 import PalettePopup from "./components/PalettePopup";
 import { putPrefs } from "../utils/prefs";
+import { applyMotion } from "../utils/motion";
 import useEditLock from "../hooks/useEditLock";
 import { EditLockCover, EditLockTip } from "./components/EditLock";
 import { BulbOnIcon, BulbOffIcon } from "./components/SkipIcons";
@@ -247,6 +248,7 @@ export default function Me() {
         prefs.theme_dark ?? DEFAULT_DARK
       );
       applyPalette(prefs.palette ?? DEFAULT_PALETTE, currentStep().dark);
+      applyMotion(prefs.motion_on);
       say.ok("저장 완료-!! ;-)");
       setEditMode(false);
       load();
@@ -509,7 +511,24 @@ export default function Me() {
               </div>
             </div>
 
-            {/* 테이프 무늬 — 고르는 것은 위 넷과 같다. [저장]을 눌러야 담기고,
+            {/* 움직임은 꾸밈이라 끌 수 있어야 하고, 끈다고 하는 일이 달라져서는
+                안 된다. 끄면 미끄러지고 떠오르는 동안만 사라져 끝난 자리가 곧바로
+                선다 — 꾹 누르기 진행 표시처럼 "언제 열리는지"를 알리는 움직임은
+                남는다(index.css 160절). */}
+            <div className="me-pref">
+              {lockCover()}
+              <span className="me-pref__name">화면 애니메이션</span>
+              <div className="me-pref__control">
+                {onoff(
+                  "motion_on",
+                  "화면 애니메이션",
+                  "미끄러지고 떠오르며 움직인다.",
+                  "움직임 없이 곧바로 보인다. 하는 일은 그대로다."
+                )}
+              </div>
+            </div>
+
+            {/* 테이프 무늬 — 고르는 것은 위 다섯과 같다. [저장]을 눌러야 담기고,
                 담기는 그때 화면 곳곳의 테이프가 바뀐다. */}
             <div className="me-pref me-pref--tape">
               {lockCover()}
