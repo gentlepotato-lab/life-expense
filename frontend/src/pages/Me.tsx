@@ -17,6 +17,7 @@ import PalettePopup from "./components/PalettePopup";
 import { putPrefs } from "../utils/prefs";
 import useEditLock from "../hooks/useEditLock";
 import { EditLockCover, EditLockTip } from "./components/EditLock";
+import { BulbOnIcon, BulbOffIcon } from "./components/SkipIcons";
 import { say } from "../utils/notify";
 /**
  * 돈쓴이 — 쓰는 사람과 앱 자신.
@@ -146,6 +147,48 @@ export default function Me() {
   const { lockAt, showLock, tipRef } = useEditLock(editMode);
 
   const lockCover = () => <EditLockCover editMode={editMode} onLock={showLock} />;
+
+  /**
+   * 켬·끔 한 쌍.
+   *
+   * 정기 내역 편집 팝업의 한 번 건너뛰기와 같은 스위치다. 켜진 전구가 켬,
+   * 꺼진 전구가 끔이다. 알약 하나로 적던 때와 달리 고를 것이 둘임을 눌러 보지
+   * 않아도 알고, 같은 일을 하는 자리가 화면마다 같은 모양으로 선다.
+   *
+   * 보기 모드에서는 손만 막는다 — 흐려지지 않아, 무엇이 걸려 있는지 알려고
+   * 편집을 켰다 끌 일이 없다. 누름은 줄을 덮은 잠금 판이 받아 말을 띄운다.
+   */
+  const onoff = (key: string, name: string, 켬말: string, 끔말: string) => {
+    const on = prefs[key] === "1";
+    return (
+      <span
+        className={`set-fixed set-onoff${on ? " set-onoff--on" : ""}`}
+        role="group"
+        aria-label={name}
+      >
+        <button
+          type="button"
+          className={on ? "on" : ""}
+          aria-pressed={on}
+          disabled={!editMode}
+          title={켬말}
+          onClick={() => setPref(key, "1")}
+        >
+          <BulbOnIcon />
+        </button>
+        <button
+          type="button"
+          className={on ? "" : "on"}
+          aria-pressed={!on}
+          disabled={!editMode}
+          title={끔말}
+          onClick={() => setPref(key, "0")}
+        >
+          <BulbOffIcon />
+        </button>
+      </span>
+    );
+  };
 
   const load = () => {
     Promise.all([
@@ -436,14 +479,12 @@ export default function Me() {
               {lockCover()}
               <span className="me-pref__name">마스킹 테이프 붙이기</span>
               <div className="me-pref__control">
-                <button
-                  type="button"
-                  className={`set-hide-btn${prefs.blur_default === "1" ? " on" : ""}`}
-                  disabled={!editMode}
-                  onClick={() => setPref("blur_default", prefs.blur_default === "1" ? "0" : "1")}
-                >
-                  {prefs.blur_default === "1" ? "켬" : "끔"}
-                </button>
+                {onoff(
+                  "blur_default",
+                  "마스킹 테이프 붙이기",
+                  "금액을 테이프로 덮는다.",
+                  "금액을 그대로 보인다."
+                )}
               </div>
             </div>
 
@@ -451,29 +492,20 @@ export default function Me() {
               {lockCover()}
               <span className="me-pref__name">내역에 메모 보이기</span>
               <div className="me-pref__control">
-                <button
-                  type="button"
-                  className={`set-hide-btn${prefs.memo_show === "1" ? " on" : ""}`}
-                  disabled={!editMode}
-                  onClick={() => setPref("memo_show", prefs.memo_show === "1" ? "0" : "1")}
-                >
-                  {prefs.memo_show === "1" ? "켬" : "끔"}
-                </button>
+                {onoff(
+                  "memo_show",
+                  "내역에 메모 보이기",
+                  "카드 아래 메모 판을 보인다.",
+                  "메모는 꾹 눌러 뜨는 편집 팝업에서만 본다."
+                )}
               </div>
             </div>
 
             <div className="me-pref">
               {lockCover()}
-              <span className="me-pref__name">잔소리 받기</span>
+              <span className="me-pref__name">잔소리 듣기</span>
               <div className="me-pref__control">
-                <button
-                  type="button"
-                  className={`set-hide-btn${prefs.nudge_on === "1" ? " on" : ""}`}
-                  disabled={!editMode}
-                  onClick={() => setPref("nudge_on", prefs.nudge_on === "1" ? "0" : "1")}
-                >
-                  {prefs.nudge_on === "1" ? "켬" : "끔"}
-                </button>
+                {onoff("nudge_on", "잔소리 듣기", "잔소리를 듣는다.", "잔소리를 듣지 않는다.")}
               </div>
             </div>
 
