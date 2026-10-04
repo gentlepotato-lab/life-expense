@@ -20,7 +20,7 @@ import { PAGE_ICON } from "./MenuIcons";
 const DESC: Record<string, string | string[]> = {
   "/entries": "기록을 마친 지출과 수입",
   "/pending-entries": "확정 전에 검수하는 항목",
-  "/scheduled-entries": "매달 반복되는 지출",
+  "/scheduled-entries": "정기적으로 반복되는 지출",
   "/calendar": "한 달을 한눈에",
   "/categories": ["중분류", "소분류", "세분류"],
   "/payment-methods": ["카드", "계좌", "간편결제"],
