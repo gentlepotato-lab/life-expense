@@ -17035,22 +17035,75 @@ textarea.memo-input.memo-area {
   pointer-events: none;
 }
 
+/* 알림 한 장. 바탕은 앞머리 로고가 쓰는 그 형광펜이다 — 같은 손이 그은 자국으로
+   읽히라고 두 줄을 겹쳐 긋고, 겹친 자리가 두 번 칠한 것처럼 진해지게 둔다.
+
+   알약(둥근 테)과 그림자를 걷은 까닭. 반투명한 띠에 그림자를 함께 두면 띠 밖으로
+   검은 기운이 번져 지저분해진다. 띠 자체가 충분히 진해 바탕과 갈린다. */
 .note {
   pointer-events: auto;
+  position: relative;
+  /* 띠는 ::before · ::after가 그린다. 바탕끼리 섞이지 않게 제 켜를 세운다. */
+  isolation: isolate;
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: 100%;
-  padding: 9px 12px;
-  border-radius: var(--radius-full);
-  background: var(--color-text-primary);
+  /* 띠가 좌우로 14 · 16px 더 나가므로 그만큼 자리를 비워 둔다. 100%로 두면 긴
+     말이 올 때 띠 끝이 화면 밖으로 잘린다 — 360px에서 왼끝이 1px까지 왔다. */
+  max-width: calc(100% - 36px);
+  /* 위아래 11px은 띠가 글자를 품는 데 필요한 값이다 — 아래 ::before 주석 참고. */
+  padding: 11px 18px;
   color: #ffffff;
   font-size: var(--font-size-sm);
   font-weight: 600;
   line-height: 1.35;
-  box-shadow: 0 6px 20px rgba(16, 24, 40, 0.22);
   cursor: pointer;
   animation: note-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 형광펜 두 줄.
+
+   33px짜리 띠를 위는 0에서 아래는 8에서 시작하면 겹친 자리가 8~33(25px)이다.
+   글줄이 19px이고 위아래 여백이 11px이라 글자는 11~30에 서므로, 글자가 겹친 자리
+   안에 온전히 든다. 이게 핵심이다 — 겹친 자리가 글자를 가로지르면 취소선처럼
+   보여 읽히지 않는다.
+
+   55%짜리 두 겹이 포개져 글자 뒤는 80%가 된다. 위아래로 남는 옅은 테가 형광펜이
+   지나간 자국이다.
+
+   좌우로 나가는 길이를 어긋나게 둔 것은 손으로 그은 결을 내려는 것이다. 두 줄이
+   똑같이 끝나면 자로 그은 네모가 된다. */
+.note::before,
+.note::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  /* 칸 키에서 5px을 뺀 것이 한 줄의 키다. 위는 0에서 아래는 5에서 시작하므로
+     겹친 자리가 `칸 − 10`이고, 글자는 위아래 여백 11px을 빼 `칸 − 22`라 늘
+     그 안에 든다. 숫자로 박아 두면 글자 크기가 바뀔 때 어긋난다. */
+  height: calc(100% - 5px);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.55);
+  transform: skewX(-9deg);
+}
+
+.note::before {
+  top: 0;
+  left: -14px;
+  right: -4px;
+}
+
+.note::after {
+  bottom: 0;
+  left: -2px;
+  right: -16px;
+}
+
+/* 글자와 점은 띠 위에 선다. */
+.note__dot,
+.note__text {
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes note-in {
@@ -17086,13 +17139,73 @@ textarea.memo-input.memo-area {
   color: var(--color-text-primary);
 }
 
-/* 되돌릴 수 없다는 한 줄. 본문과 떼어 붉게 적는다. */
+/* 되돌릴 수 없다는 한 줄. 본문과 떼어 붉게 적는다.
+
+   뒤에 알림과 같은 형광펜 두 줄을 깐다. 다만 아주 옅게(8%)다 — 알림은 화면 위에
+   홀로 떠서 진해야 읽히지만, 이 줄은 흰 팝업 안에 있어 검은 띠를 그대로 쓰면
+   무겁고 경고의 붉은빛마저 잃는다. 글씨는 붉은 채로 두고 띠만 살짝 깐다.
+
+   띠는 글자 상자 "안"에 가둔다. 알림은 화면에 홀로 떠서 좌우로 나가도 그만이지만,
+   이 줄은 팝업 안에 있어 밖으로 나가면 팝업 테두리를 넘는다. 안쪽 여백 14px을
+   두고 그 안에서 띠를 그리면, 상자가 팝업 안에 있는 한 띠도 반드시 안에 있다. */
 .ask-warn {
   margin: 8px 0 0;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 14px;
+  position: relative;
+  /* 띠는 ::before · ::after가 그린다. 제 켜를 세워 바깥과 섞이지 않게 한다. */
+  isolation: isolate;
   font-size: var(--font-size-xs);
   font-weight: 600;
   line-height: 1.5;
   color: var(--color-danger);
+}
+
+/* 쪼개기 편집기의 넘침 한 줄. 되묻기의 그 줄과 같은 꼴이다. 오른쪽에 붙어 있던
+   자리는 왼쪽 여백을 자동으로 밀어 지킨다. */
+.split-editor__warn {
+  margin: 0 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 14px;
+  position: relative;
+  isolation: isolate;
+}
+
+/* 형광펜 두 줄 — 알림(.note)과 같은 셈이다. 칸 키에서 5px을 뺀 것이 한 줄의
+   키이고, 아래 줄을 5px 내려 겹치므로 글자가 늘 겹친 자리 안에 든다.
+   좌우로 나가는 길이를 어긋나게 둔 것도 알림과 같다 — 자로 그은 네모가 되지
+   않게 하려는 것이다. 글자 뒤로 깔려야 하므로 켜를 음수로 둔다.
+
+   좌우를 4px씩 들여 둔 것은 기울임 때문이다. skewX는 가운데를 축으로 미므로
+   띠의 위아래 모서리가 제 상자보다 1.8px씩(키 23 × tan9° ÷ 2) 밖으로 나간다.
+   4px이면 그 몫을 삼키고도 남아, 띠가 상자를 넘지 않는다. */
+.ask-warn::before,
+.ask-warn::after,
+.split-editor__warn::before,
+.split-editor__warn::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  height: calc(100% - 5px);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.08);
+  transform: skewX(-9deg);
+}
+
+.ask-warn::before,
+.split-editor__warn::before {
+  top: 0;
+  left: 4px;
+  right: 11px;
+}
+
+.ask-warn::after,
+.split-editor__warn::after {
+  bottom: 0;
+  left: 10px;
+  right: 4px;
 }
 
 /* 되돌릴 수 없는 일을 하는 단추. 내역 편집 팝업의 [삭제]와 같은 빛깔을
