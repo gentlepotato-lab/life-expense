@@ -7083,7 +7083,8 @@ body {
 /* ─── 공통 — 테이프 자체 ────────────────────────────────────── */
 .amount-text.masked::after,
 .amount-split.masked::after,
-.date-group__sum.masked::after {
+.date-group__sum.masked::after,
+.pd-amt.masked::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -9320,7 +9321,8 @@ button.cat2-inout:active {
 
 .amount-text.masked::after,
 .amount-split.masked::after,
-.date-group__sum.masked::after {
+.date-group__sum.masked::after,
+.pd-amt.masked::after {
   transform: translateY(-50%) rotate(calc(var(--tape-tilt) + var(--tape-shift)));
 }
 
@@ -10226,11 +10228,17 @@ button.cat2-inout:active {
 /* ─── 종 단추와 팝업 ─────────────────────────────────
    배지는 자리를 잡아먹지 않는 absolute라, 단추 줄의 오른쪽 끝이 내용
    기둥과 맞춰 둔 자리에서 밀리지 않는다. */
-.quick-actions > .nudge-trigger-button {
+.quick-actions > .nudge-trigger-button,
+.quick-actions > .pend-trigger-button {
   position: relative;
 }
 
-.nudge-badge {
+/* 대기(모래시계)의 배지는 잔소리 것과 한 규칙에서 크기와 꼴을 받는다.
+   빛깔만 따로다 — 셋이 한 줄에 서는데 모두 같은 빛이면 어느 쪽 수인지 눈이
+   먼저 묻는다. 팔레트가 내려 주는 빛 안에서 나눈다.
+   beta는 으뜸빛, 대기는 호박빛, 잔소리는 붉은빛이다. */
+.nudge-badge,
+.pend-badge {
   position: absolute;
   top: -5px;
   right: -5px;
@@ -12965,6 +12973,7 @@ html.modal-open .scroll-top {
 .amount-text.masked::after,
 .amount-split.masked::after,
 .date-group__sum.masked::after,
+.pd-amt.masked::after,
 .nudge__tape {
   background-image: var(--tape-img);
 }
@@ -17505,4 +17514,356 @@ textarea.memo-input.memo-area {
   color: var(--color-text-primary);
   font-style: normal;
   font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   164. 대기 내역을 한 장씩 넘겨 보는 팝업(2026-10-04)
+   ─────────────────────────────────────────────────────────────
+   대기는 쌓이기만 하고 잔소리에서만 세어 주었다. 보내려면 내역 탭으로
+   들어가 목록을 훑어야 했다. 모래시계 단추를 계산기와 잔소리 사이에 세우고,
+   눌러서 한 장씩 보고 바로 보낸다.
+
+   이 절이 푸는 어려움은 하나다 — 장을 넘길 때 판이 흔들리면 안 된다.
+   처음에는 칸마다 키를 못 박고 그 합이 같기를 바랐는데, 글꼴 셈이 1px씩
+   어긋나 386과 385를 오갔다. 그래서 카드 키 자체(270px)를 못 박고 세로
+   묶음으로 두어 남는 자리를 메모가 먹게 했다. 합을 믿지 않는다.
+
+   그 덕에 어느 건이 올라와도 판 키가 같다 — 360×480에서 448px, 360×640에서
+   486px, 400×760과 430×932에서 470px. 아홉 가지 경우(장소도 메모도 없는
+   건, 긴 장소, 긴 메모, 열 자리 금액, 셋이 한꺼번에, 아주 긴 메모, 가려진
+   금액, 드러낸 금액, 쪼갠 건)에서 모두 같은 값이었다.
+   ════════════════════════════════════════════════════════════ */
+
+/* 판 · 머리말 · 발은 잔소리 팝업과 같은 부품을 쓴다(.popup-panel--framed).
+   폭도 둥글기도 그늘도 뜨는 결도 거기서 받는다 — 여기서 따로 정하면 같은
+   자리에 뜨는 두 팝업이 미묘하게 달라 보인다.
+
+   더하는 것은 둘뿐이다. 세로 묶음으로 두어 카드 자리만 늘었다 줄게 하는
+   것과, 아주 낮은 화면에서 발이 밖으로 나가지 않게 가두는 것이다. */
+.pd-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+}
+
+/* 몇째 장인지. 자릿수가 늘어도 글자가 춤추지 않게 고정폭 숫자를 쓴다. */
+.pd-panel > .popup-head {
+  align-items: baseline;
+}
+
+.pd-count {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-none {
+  flex: 0 0 auto;
+  padding: 34px 10px;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* 머리말 밑으로 한 뼘 띄운다. 겉판의 머리말은 제 아래여백이 없어, 0으로
+   두면 카드가 금에 바싹 붙는다. */
+.pd-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px 16px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── 쌓인 장 ────────────────────────────────────────────────
+   뒤에 비치는 장은 다섯 겹에서 멈춘다. 스무 장이 겹치면 더미가 아니라
+   얼룩으로 보인다 — 몇 장 남았는지는 머리말의 수가 말한다. */
+.pd-stack {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  /* 끌어서 넘기는 자리다. 브라우저의 가로 몸짓과 다투지 않게 비켜 둔다. */
+  touch-action: pan-y;
+  /* 끄는 동안 글자가 잡혀 파랗게 칠해지는 것을 막는다 — 넘기려던 손짓이
+     글자 고르기가 되어 버린다. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pd-leaf {
+  position: absolute;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+}
+
+/* 카드 — 키를 못 박는다(위 머리글). */
+.pd-card {
+  position: relative;
+  z-index: 9;
+  /* 오른쪽 18px은 쌓인 장에 내준다. */
+  margin-right: 18px;
+  height: 270px;
+  max-height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+
+/* 날짜는 쓰기(beta)의 그 딱지를 그대로 쓴다(.ws-tag--now). 자리만 잡아 준다. */
+.pd-when {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-bottom: 8px;
+}
+
+/* 분류는 두 줄까지. 길면 둘째 줄 끝에서 접는다 — 세 줄이 되면 그 카드만
+   깊어져 넘길 때마다 아래가 들썩인다. */
+.pd-cat {
+  flex: 0 0 auto;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* 두 줄 자리는 비워 두되 글은 그 가운데 선다. 위에 붙여 두면 한 줄짜리
+   분류에서 아래로 22px이 비어, 금액이 멀찍이 떨어져 보인다. */
+.pd-cat > span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+}
+
+/* 금액 한 줄. 열 자리(1,234,567,890)도 360px에서 넘치지 않는다. */
+.pd-amt {
+  flex: 0 0 auto;
+  height: 34px;
+  margin: 2px 0 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 34px;
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--color-danger);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-card--in .pd-amt {
+  color: var(--color-success);
+}
+
+/* 가림은 목록과 한 꼴이다. 테이프 그림도 기울기도 위 114 · 136절의 규칙에서
+   함께 받는다(--tape-img) — 돈쓴이에서 고른 테이프가 여기에도 그대로 붙는다.
+   여기서는 이 자리에 맞는 크기만 정한다.
+
+   수입 쪽까지 함께 적는 까닭은 셈값 때문이다. `.pd-card--in .pd-amt`가
+   (0,2,0)이라 `.pd-amt.masked` 하나로는 이기지 못해, 수입 건에서만 초록
+   숫자가 테이프 밑으로 비쳤다. */
+.pd-amt.masked,
+.pd-amt.revealed {
+  position: relative;
+}
+
+.pd-amt.masked,
+.pd-card--in .pd-amt.masked {
+  color: transparent;
+  cursor: ew-resize;
+  user-select: none;
+  -webkit-user-select: none;
+  /* 세로로만 굴리게 둔다 — 가로는 테이프를 걷는 몸짓이 쓴다. */
+  touch-action: pan-y;
+}
+
+.pd-amt.masked::after {
+  left: 0;
+  right: 0;
+  height: 30px;
+}
+
+/* 떼는 순간 — 목록처럼 오른쪽으로 밀려나며 사라진다. */
+.pd-amt.revealed::after {
+  content: "";
+  position: absolute;
+  inset: 4px 0;
+  background: none;
+  opacity: 0;
+  transform: translateX(18px) rotate(-6deg);
+  pointer-events: none;
+}
+
+/* 장소 · 결제 수단 · N빵은 한 줄에 선다. 줄을 바꾸면 그 카드만 깊어진다.
+   좁아지면 긴 쪽부터 말줄임한다. */
+.pd-meta {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  margin-top: 6px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.pd-chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 2px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 메모는 남는 자리를 다 쓰고, 넘치면 제 안에서 굴러간다. 카드는 안 자란다. */
+.pd-memo {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 9px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-size: var(--font-size-xs);
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  /* 메모를 끝까지 굴린 뒤에도 팝업 뒤 화면이 따라 굴러가지 않게 한다. */
+  overscroll-behavior: contain;
+  /* 여기서는 세로 굴림이 먼저다. 가로는 카드를 넘기는 데 쓰이므로 둘을
+     갈라 두지 않으면 굴리려다 장이 밀린다. */
+  touch-action: pan-y;
+  /* 글은 고를 수 있게 둔다 — 더미에 걸어 둔 금지를 여기서만 푼다. */
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.pd-memo--none {
+  color: var(--color-text-tertiary);
+}
+
+/* ─── 장이 바뀌는 결 ────────────────────────────────────────
+   넘긴 쪽의 반대에서 밀려 들어온다. 그냥 갈아 끼우면 글자만 바뀌어, 넘어간
+   것인지 고쳐진 것인지 알 수 없다. 움직임을 꺼 두면(160절) 저절로 멎는다. */
+@keyframes pd-in-next {
+  from { opacity: 0; transform: translate3d(34px, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes pd-in-prev {
+  from { opacity: 0; transform: translate3d(-34px, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* 3D로 적어 두면 어느 기기에서나 합성기가 맡는다 — 본줄기가 막혀도
+   미끄러진다. 갈래 탭의 알약이 쓰는 그 방법이다. */
+.pd-card--next,
+.pd-card--prev {
+  will-change: transform, opacity;
+}
+
+/* 채움을 both가 아니라 backwards로 둔다. both로 두면 결이 끝난 뒤에도 그
+   마지막 틀이 남아, 손을 따라가라고 걸어 둔 자리(inline transform)를 덮는다.
+   결은 애니메이션 원천이라 inline보다 세다. */
+.pd-card--next {
+  animation: pd-in-next 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.pd-card--prev {
+  animation: pd-in-prev 280ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* 떼면 제자리로 눅게 돌아간다. 끄는 동안에는 결을 끈다 — 손보다 늦게
+   따라오면 종이가 아니라 고무처럼 느껴진다. */
+.pd-card {
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pd-card--dragging {
+  transition: none;
+  animation: none;
+}
+
+/* 넘길 수 있다는 표. 화살표 둘 사이에 점이 늘어서 "양쪽으로 민다"가
+   글 없이 읽힌다. 아주 옅게 둔다 — 한 번 알면 다시 볼 일이 없다. */
+.pd-swipe {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  padding: 9px 0 0;
+  color: var(--color-text-tertiary);
+  opacity: 0.75;
+}
+
+.pd-swipe > svg {
+  width: 76px;
+  height: 12px;
+}
+
+.pd-tip {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 4px 2px 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+}
+
+/* 아래 발(닫기 · 대기 내역)과 붙으면 넷이 한 덩어리로 보인다. 하는 일이
+   다르므로 한 뼘 떼어 둔다 — 발이 제 위여백 8px을 가지므로 여기 10px을
+   더해 18px이 된다. */
+.pd-act {
+  flex: 0 0 auto;
+  display: flex;
+  gap: var(--space-2);
+  padding: 14px 16px 10px;
+}
+
+/* 치수는 다른 팝업의 아래 단추와 같은 것을 쓴다(32px · 둥글기 8px · 600).
+   여기서 따로 키우면 같은 일을 하는 단추가 화면마다 달라 보인다.
+   정하는 것은 둘이 자리를 반씩 나눈다는 것뿐이다. */
+.pd-act > .ui-btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* 모래시계 단추 — 기호는 내역 탭의 것을 그대로 받아 오므로 크기만 맞춘다. */
+.pend-trigger-button__icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+}
+
+.pend-trigger-button__icon > svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 대기 배지만 빛깔이 다르다. 호박빛은 "쌓여서 기다리는 것"이라 붉은빛(챙길
+   것)과도 으뜸빛(beta)과도 뜻이 겹치지 않는다. 팔레트를 바꾸면 따라간다. */
+.pend-badge {
+  background: var(--color-amber);
 }

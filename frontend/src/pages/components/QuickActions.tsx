@@ -3,6 +3,7 @@ import BellIcon from "./BellIcon";
 import CalculatorIcon from "./CalculatorIcon";
 import CalculatorPopup from "./CalculatorPopup";
 import NudgePopup from "./NudgePopup";
+import PendingDeckPopup from "./PendingDeckPopup";
 import PenIcon from "./PenIcon";
 import RefreshIcon from "./RefreshIcon";
 import ScrollTopButton from "./ScrollTopButton";
@@ -10,6 +11,8 @@ import SlideIcon from "./SlideIcon";
 import WriteEntryModal from "./WriteEntryModal";
 import WriteSlideModal from "./WriteSlideModal";
 import useNudges, { invalidateNudges } from "../../hooks/useNudges";
+import usePending, { invalidatePending } from "../../hooks/usePending";
+import { PAGE_ICON } from "./MenuIcons";
 import { closeOverlays } from "../../hooks/useBackClose";
 import { prefOn } from "../../utils/prefs";
 
@@ -30,6 +33,8 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
   const [slideOpen, setSlideOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [nudgeOpen, setNudgeOpen] = useState(false);
+  /* 대기 내역을 한 장씩 넘겨 보는 팝업 — 계산기와 잔소리 사이에 선다. */
+  const [deckOpen, setDeckOpen] = useState(false);
 
   /* 한 건 적고 나면 잔소리도 달라진다 — 그때만 다시 센다. */
   const [nudgeKey, setNudgeKey] = useState(0);
@@ -40,6 +45,11 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
      배지가 답해야 할 물음이다. */
   const mind = prefOn("nudge_on") ? nudges.length : 0;
 
+  /* 모래시계 배지에 적을 수. 팝업이 넘겨 볼 장과 같은 줄에서 나온다 —
+     따로 세면 배지에는 5라 적혀 있는데 열면 넉 장인 일이 생긴다. */
+  const [pendKey, setPendKey] = useState(0);
+  const { rows: pendRows, ready: pendReady } = usePending(pendKey);
+
   /**
    * 한 번에 하나만 띄운다.
    *
@@ -49,16 +59,18 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
    *
    * 같은 단추를 다시 누르면 닫기만 한다. 계산기가 원래 그랬다.
    */
-  const only = (which: "write" | "slide" | "calc" | "nudge") => {
+  const only = (which: "write" | "slide" | "calc" | "deck" | "nudge") => {
     const already =
       (which === "write" && writeOpen) ||
       (which === "slide" && slideOpen) ||
       (which === "calc" && calculatorOpen) ||
+      (which === "deck" && deckOpen) ||
       (which === "nudge" && nudgeOpen);
     void closeOverlays().then(() => {
       setWriteOpen(!already && which === "write");
       setSlideOpen(!already && which === "slide");
       setCalculatorOpen(!already && which === "calc");
+      setDeckOpen(!already && which === "deck");
       setNudgeOpen(!already && which === "nudge");
     });
   };
@@ -67,10 +79,10 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
      열려 있을 때만 손을 대므로, 이 화면의 다른 팝업이 걸어 둔 것을
      지우고 나가는 일이 없다. */
   useEffect(() => {
-    if (!writeOpen && !slideOpen && !calculatorOpen && !nudgeOpen) return;
+    if (!writeOpen && !slideOpen && !calculatorOpen && !deckOpen && !nudgeOpen) return;
     document.documentElement.classList.add("modal-open");
     return () => document.documentElement.classList.remove("modal-open");
-  }, [writeOpen, slideOpen, calculatorOpen, nudgeOpen]);
+  }, [writeOpen, slideOpen, calculatorOpen, deckOpen, nudgeOpen]);
 
   return (
     <>
@@ -106,6 +118,20 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
         >
           <CalculatorIcon />
         </button>
+        {/* 대기 내역 — 내역 탭의 그 모래시계를 그대로 쓴다. 다른 기호를
+            새로 그리면 같은 것을 가리키는 그림이 둘이 된다. */}
+        <button
+          className="calculator-trigger-button pend-trigger-button"
+          onClick={() => only("deck")}
+          aria-label="대기 내역"
+        >
+          <span className="pend-trigger-button__icon" aria-hidden="true">
+            {PAGE_ICON["/pending-entries"]}
+          </span>
+          {pendReady && pendRows.length > 0 && (
+            <span className="pend-badge">{pendRows.length > 9 ? "9+" : pendRows.length}</span>
+          )}
+        </button>
         <button
           className="calculator-trigger-button nudge-trigger-button"
           onClick={() => only("nudge")}
@@ -126,6 +152,8 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
           onSaved={() => {
             invalidateNudges();
             setNudgeKey((k) => k + 1);
+            invalidatePending();
+            setPendKey((k) => k + 1);
             onSaved?.();
           }}
         />
@@ -136,6 +164,8 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
           onSaved={() => {
             invalidateNudges();
             setNudgeKey((k) => k + 1);
+            invalidatePending();
+            setPendKey((k) => k + 1);
             onSaved?.();
           }}
         />
@@ -143,6 +173,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
       {calculatorOpen && (
         <CalculatorPopup onClose={() => setCalculatorOpen(false)} />
       )}
+      {deckOpen && <PendingDeckPopup onClose={() => setDeckOpen(false)} />}
       {nudgeOpen && (
         <NudgePopup nudges={nudges} ready={ready} onClose={() => setNudgeOpen(false)} />
       )}

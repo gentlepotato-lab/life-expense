@@ -969,6 +969,9 @@ export default function PendingEntries() {
 
       {/* 카드 리스트 — 날짜별 단으로 묶어서 표시 */}
       <div className="card-list">
+        {/* 비어 있으면 그렇다고 말한다. 모래시계 팝업이 쓰는 말과 한 글자도
+            다르면 안 된다 — 같은 비어 있음을 두 가지로 말하게 된다. */}
+        {dateGroups.length === 0 && <p className="page-empty">대기 중인 내역이 없습니다.</p>}
         {dateGroups.map((group) => (
           <section key={group.date || "no-date"} className="date-group">
             <DateGroupHeader
