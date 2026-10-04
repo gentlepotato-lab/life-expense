@@ -17363,3 +17363,79 @@ textarea.memo-input.memo-area {
   min-height: 26px;
   font-size: var(--font-size-xs);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   162. 대기 내역의 선택 상자(2026-10-04)
+   ─────────────────────────────────────────────────────────────
+   대기는 지금껏 한 건씩 [전송]하거나 걸러 둔 것을 통째로 보내는 둘뿐이었다.
+   그 사이가 비어 있었다 — 열 건 가운데 셋만 보내려면 세 번 눌러야 했다.
+   카드마다 선택 상자를 두고, 하나라도 선택하면 [모두 전송]이 [선택 전송]이
+   된다.
+
+   자리는 [전송]이 선 줄의 왼쪽 끝이다. 메모 판 왼쪽에 끼우면 메모가 없는
+   카드에 줄이 하나 새로 생겨 카드가 26px 깊어진다 — 대기만 지출 · 정기보다
+   키가 달라진다. 이 줄의 왼쪽은 장소가 없을 때 비어 있고, 있어도 상자 하나
+   들어갈 만큼은 남는다. 어느 쪽이든 카드 키는 그대로다.
+
+   선택하지 않은 꼴은 점선 테다. 실선으로 두면 같은 줄의 [전송]과 두 단추가
+   나란히 선 것처럼 보여, 하나는 누르는 것이고 하나는 선택하는 것이라는
+   차이가 지워진다. 속의 체크는 아주 옅게 미리 넣어 둔다 — 빈 네모는
+   무엇이 들어갈 자리인지 묻게 하지만, 흐린 체크는 답을 먼저 보여 준다.
+   선택하면 테가 실선으로 닫히고 속이 으뜸빛으로 차, 점선 → 실선이라는 꼴의
+   바뀜까지 더해 두 상태가 멀어진다.
+   ════════════════════════════════════════════════════════════ */
+.pe-pick {
+  flex: 0 0 auto;
+  width: 20px;
+  min-width: 20px;
+  /* 전역 단추의 최소 키(32px)가 그대로 살면 상자가 줄보다 깊어져 [전송] 줄이
+     8px 자란다 — 카드 키가 바뀌지 않아야 하므로 최소 키까지 못 박는다. */
+  height: 20px;
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1.5px dashed var(--color-text-tertiary);
+  border-radius: 5px;
+  background: var(--color-surface);
+  color: color-mix(in srgb, var(--color-text-tertiary) 45%, transparent);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pe-pick--on {
+  border-style: solid;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+/* 머무름(hover)이 켠 꼴의 속빛을 덮지 않게 한다.
+
+   전역의 `button:hover`는 바탕을 옅은 빛으로 되돌린다. 셈값이 (0,1,1)이라
+   `.pe-pick--on`(0,1,0)을 이겨, 손가락으로 누른 뒤 머무름이 붙어 있는 동안은
+   테만 실선으로 닫히고 속은 비어 흰 체크가 묻혔다 — 다른 데를 눌러 머무름이
+   떨어져야 비로소 차 보였다. 눌린 그 자리에서 바로 차야 한다.
+
+   셈값을 (0,2,0)으로 올려 되찾는다. 누르는 중(:active)과 초점(:focus)도 함께
+   못 박아, 어느 결에도 켠 꼴이 한 가지로 보인다. */
+.pe-pick--on:hover,
+.pe-pick--on:focus,
+.pe-pick--on:active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+/* 손가락만 쓰는 기기는 머무름이 눌린 자리에 그대로 들러붙는다. 선택하지 않은
+   상자에 전역 머무름이 남으면 테빛만 으뜸빛으로 바뀐 채 굳어, 선택한 것도
+   선택하지 않은 것도 아닌 꼴이 된다. 마우스가 있는 기기의 머무름 결은 그대로 둔다. */
+@media (hover: none) {
+  .pe-pick:hover {
+    border-color: var(--color-text-tertiary);
+    background: var(--color-surface);
+  }
+}

@@ -67,6 +67,24 @@ export default function PendingEntries() {
   const [rows, setRows] = useState<any[]>([]);
   const [allRows, setAllRows] = useState<any[]>([]); // 필터용 원본
 
+  /* 선택한 항목. 화면에 지금 보이는 것만 센다 — 걸러서 사라진 건이 선택된 채로
+     남아 있으면, 눈에 없는 것이 함께 날아간다. 아래 picked에서 추려 쓴다. */
+  const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
+
+  const togglePick = useCallback((id: number) => {
+    setPickedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const picked = useMemo(
+    () => rows.filter((r) => pickedIds.has(r.entry_id)),
+    [rows, pickedIds]
+  );
+
   const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout?: number | null; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; is_active?: number }[]>([]);
@@ -454,39 +472,49 @@ export default function PendingEntries() {
     }
   };
 
-  // 모든 항목을 지출 내역으로 보낸다(지금 걸러 둔 것만)
-  const sendAllEntries = async () => {
-    if (rows.length === 0) {
+  /* 여러 건을 한꺼번에 지출 내역으로 보낸다.
+
+     선택한 항목이 없으면 지금 걸러 둔 것을 통째로, 하나라도 선택했으면 그것만
+     보낸다. 보내는 길은 하나라 뒤처리(다시 읽기 · 필터 다시 걸기)도 하나다. */
+  const sendMany = async () => {
+    const 선택함 = picked.length > 0;
+    const 보낼것 = 선택함 ? picked : rows;
+
+    if (보낼것.length === 0) {
       say.warn("보낼 항목이 없습니다.");
       return;
     }
 
     if (
       !(await ask({
-        title: "모두 지출 내역으로 보내기",
-        body: "모두 지출 내역으로 보낼까요?",
-        go: "모두 보내기",
+        title: 선택함 ? "선택한 항목 지출 내역으로 보내기" : "모두 지출 내역으로 보내기",
+        body: 선택함
+          ? `선택한 ${보낼것.length}건을 지출 내역으로 보낼까요?`
+          : "모두 지출 내역으로 보낼까요?",
+        go: 선택함 ? "선택 보내기" : "모두 보내기",
       }))
     )
       return;
 
     try {
-      // 현재 화면에 표시된 항목들의 entry_id만 전송
-      const entryIds = rows.map(r => r.entry_id);
+      const entryIds = 보낼것.map((r) => r.entry_id);
       const res = await api.post("/pending-entries/send-filtered", {
         entry_ids: entryIds
       });
       const sentCount = res.data.sent_count ?? 0;
-      
+
       if (sentCount === 0) {
         say.warn("보낼 항목이 없습니다.");
       } else {
         say.ok(`${sentCount}건 전송 완료-!! ;-)`);
       }
-      
+
+      /* 보낸 것은 목록에서 사라지므로 선택한 항목도 함께 비운다. */
+      setPickedIds(new Set());
+
       // 데이터 다시 로드(sended = 0인 항목만 표시됨)
       await loadData();
-      
+
       // 필터가 활성화되어 있으면 다시 적용
       if (isFilterActive) {
         applyFilter();
@@ -929,8 +957,11 @@ export default function PendingEntries() {
               필터
             </button>
 
-            <button onClick={sendAllEntries} className="ui-btn primary">
-              모두 전송
+            {/* 선택한 항목이 하나라도 있으면 단추가 할 일을 바꿔 말한다. 수는
+                단추에 적지 않는다 — 단추 폭이 선택할 때마다 들썩여 옆의 [필터]가
+                밀린다. 몇 건이 갔는지는 보낸 뒤 알림이 말한다. */}
+            <button onClick={sendMany} className="ui-btn primary">
+              {picked.length > 0 ? "선택 전송" : "모두 전송"}
             </button>
           </div>
         </div>
@@ -958,6 +989,8 @@ export default function PendingEntries() {
                 onOpenEditor={openEditor}
                 onStartReveal={startReveal}
                 onSend={sendOne}
+                picked={pickedIds.has(row.entry_id)}
+                onTogglePick={togglePick}
                 blurred={isBlurred(row, blurSets)}
                 fixed={isFixed(row, fixSets)}
                 onToggleFixed={toggleFixed}
@@ -1353,6 +1386,8 @@ export function PendingCard({
   onOpenEditor,
   onStartReveal,
   onSend,
+  picked = false,
+  onTogglePick,
   blurred,
   readOnly = false,
   onTogglePerfExclude,
@@ -1367,6 +1402,10 @@ export function PendingCard({
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
   onSend?: (row: any) => void;
+  /* 선택한 항목인지. 넘기지 않으면 선택 상자가 서지 않는다 — 기간 상세처럼
+     보기만 하는 화면은 지금까지와 같은 꼴을 지킨다. */
+  picked?: boolean;
+  onTogglePick?: (id: number) => void;
   /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onTogglePerfExclude?: (row: PerfRow, next: boolean) => void;
   /* 이 건이 고정인지 — 건에 정해 둔 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
@@ -1455,6 +1494,23 @@ export function PendingCard({
           그었다고 굳히는 일이라 떼어 놓지 않는다. 장소는 남는 폭만 쓰고 넘치면
           말줄임된다. 메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
       <div className="entry-ln entry-ln--send">
+        {/* 선택해서 함께 보내는 상자. 카드를 꾹 누르면 편집 팝업이 열리므로
+            이 상자는 꾹 누르기에서 빼 둔다(data-no-longpress). */}
+        {!readOnly && onTogglePick && (
+          <button
+            type="button"
+            className={`pe-pick${picked ? " pe-pick--on" : ""}`}
+            data-no-longpress
+            aria-pressed={picked}
+            title={picked ? "선택 해제" : "선택"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePick(row.entry_id);
+            }}
+          >
+            ✓
+          </button>
+        )}
         {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
         {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
         <FixedMark
