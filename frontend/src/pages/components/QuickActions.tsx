@@ -87,7 +87,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
         <button
           className="calculator-trigger-button slide-trigger-button"
           onClick={() => only("slide")}
-          aria-label="쓰기 슬라이드(beta)"
+          aria-label="쓰기(beta)"
         >
           <SlideIcon />
           <span className="beta-badge">beta</span>

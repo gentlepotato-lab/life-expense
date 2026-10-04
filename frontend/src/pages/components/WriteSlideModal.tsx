@@ -294,11 +294,11 @@ export default function WriteSlideModal({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="쓰기 슬라이드"
+        aria-label="쓰기"
       >
         <header className="edit-modal__head">
           <div className="edit-modal__head-text">
-            <h3 className="edit-modal__title">쓰기 슬라이드</h3>
+            <h3 className="edit-modal__title">쓰기</h3>
           </div>
           <button type="button" className="edit-modal__close" onClick={onClose} aria-label="닫기">
             ×
