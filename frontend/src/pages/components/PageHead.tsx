@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { PAGE_TITLE, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
+import { PAGE_TITLE, PAGE_NOTE, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
 import useHeadPin from "../../hooks/useHeadPin";
 
 /**
@@ -26,6 +26,27 @@ const PARENT: Record<string, string> = {
   "/calendar/detail": "/calendar",
 };
 
+/**
+ * 안내 한 줄을 조각으로 가른다.
+ *
+ * 중괄호로 감싼 말은 다른 화면의 이름이라 조금 짙게 세운다. 누를 수 있는
+ * 것은 아니므로 단추나 링크로 만들지 않는다 — 가리키기만 한다.
+ *
+ * split에 묶음(괄호)을 쓰면 가른 자리의 알맹이도 함께 끼어 나온다. 짝수
+ * 자리가 보통 글, 홀수 자리가 화면 이름이다.
+ */
+function noteParts(note: string) {
+  return note.split(/\{([^}]+)\}/).map((part, i) =>
+    i % 2 === 0 ? (
+      part
+    ) : (
+      <em key={i} className="page-note__at">
+        {part}
+      </em>
+    )
+  );
+}
+
 export default function PageHead() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -38,6 +59,8 @@ export default function PageHead() {
   const tabKey = PARENT[pathname] ?? pathname;
   const subs = subTabsFor(tabKey);
   const index = subs ? subs.indexOf(tabKey) : -1;
+  /* 갈래 탭이 선 화면에서도 둔다 — 제목과 탭 사이에 끼어 선다. */
+  const note = PAGE_NOTE[pathname];
 
   useEffect(() => {
     document.title = pathname === "/" ? "돈을 쓰다" : `${title} · 돈을 쓰다`;
@@ -52,6 +75,8 @@ export default function PageHead() {
           <span className="page-title__in">{title}</span>
         </h1>
       </div>
+
+      {note && <p className="page-note">{noteParts(note)}</p>}
 
       {subs && (
         <div
