@@ -75,18 +75,23 @@ export default function NotifyHost() {
   const timerBag = timers.current;
   useEffect(() => () => timerBag.forEach((t) => window.clearTimeout(t)), [timerBag]);
 
-  /* 알림이 설 자리. 머리말 바로 밑이다.
+  /* 알림이 설 자리. 갈래 탭 바로 밑이다.
 
-     머리말 키는 화면마다 다르고(갈래 탭이 붙으면 더 커진다) 붙박이로 설 때와
-     굴러 올라갈 때가 달라서 CSS에 적어 둘 수 없다. 떠 있는 동안만 재면 된다.
-     굴러 올라가 머리말이 화면 밖으로 나간 때를 대비해 8px 아래로는 안 간다. */
+     갈래 탭이 있는 화면은 머리말이 117에서 끝나므로 125에 선다. 갈래 탭이 없는
+     화면은 머리말이 74에서 끝나지만 거기 맞추면 화면을 옮길 때마다 알림이
+     오르내려, 눈이 늘 같은 데를 보지 못한다. 그래서 낮은 쪽을 125로 올려 맞춘다.
+
+     그래도 재는 까닭은 머리말이 더 길어질 수 있어서다 — 제목이 접히거나 갈래가
+     늘면 125로는 가린다. 둘 가운데 깊은 쪽을 쓴다. */
+  const 기본자리 = 125;
   const [머리밑, set머리밑] = useState<number | null>(null);
   useEffect(() => {
     if (notes.length === 0) return;
     const measure = () => {
       const head = document.querySelector(".page-head");
       if (!head) return set머리밑(null);
-      set머리밑(Math.max(8, Math.round(head.getBoundingClientRect().bottom) + 8));
+      const 바닥 = Math.round(head.getBoundingClientRect().bottom) + 8;
+      set머리밑(Math.max(기본자리, 바닥));
     };
     measure();
     window.addEventListener("resize", measure);
