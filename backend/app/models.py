@@ -1,5 +1,5 @@
 from app.deps import Base
-from sqlalchemy import Column, Integer, String, Numeric, Date, ForeignKey, SmallInteger, TIMESTAMP, func, UniqueConstraint, DateTime
+from sqlalchemy import Column, Integer, String, Numeric, Date, ForeignKey, SmallInteger, TIMESTAMP, func, UniqueConstraint, DateTime, Index
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 
@@ -48,6 +48,15 @@ class PaymentMethod(Base):
 
 class Entry(Base):
     __tablename__ = "entries"
+    # 조회는 거의 늘 날짜로 들어온다(달 조회, 날짜 정렬, 기간 조회).
+    # 분류와 결제수단은 거르기와 삭제 전 사용 확인에 쓴다.
+    __table_args__ = (
+        Index("ix_entries_tx_date", "tx_date"),
+        Index("ix_entries_cat2", "cat2_id"),
+        Index("ix_entries_cat3", "cat3_id"),
+        Index("ix_entries_pay_method", "pay_method"),
+    )
+
     entry_id = Column(Integer, primary_key=True, autoincrement=True)
     tx_date = Column(Date, nullable=False)
     cat1_id = Column(Integer, ForeignKey("categories_lvl1.cat1_id"))
@@ -116,6 +125,12 @@ class Place(Base):
 
 class PendingEntry(Base):
     __tablename__ = "pending_entries"
+    # 목록은 늘 sended = 0만 본다. schedule_id는 정기 내역이 매분 중복을
+    # 확인할 때 쓴다.
+    __table_args__ = (
+        Index("ix_pending_sended", "sended"),
+        Index("ix_pending_schedule", "schedule_id", "tx_date"),
+    )
 
     entry_id = Column(Integer, primary_key=True, autoincrement=True)
     tx_date = Column(Date, nullable=False)
@@ -135,6 +150,14 @@ class PendingEntry(Base):
     perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
     # 비면 분류를 따른다. 손으로 바꾸면 그 건에만 남는다.
     fixed_flag = Column(SmallInteger, nullable=True)
+    # 어느 정기 내역이 만들었는지. 손으로 넣은 건은 비어 있다.
+    # 중복 생성 확인에 쓴다. 분류와 금액이 같은 정기 내역이 여럿이어도
+    # 이 값으로 서로를 구분한다.
+    schedule_id = Column(
+        Integer,
+        ForeignKey("scheduled_entries.schedule_id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     def to_dict(self):
         return {
@@ -183,6 +206,10 @@ class Holiday(Base):
 
 class ScheduledEntry(Base):
     __tablename__ = "scheduled_entries"
+    # 스케줄러가 매분 next_run_at으로 고른다.
+    __table_args__ = (
+        Index("ix_scheduled_next_run", "next_run_at"),
+    )
 
     schedule_id = Column(Integer, primary_key=True, autoincrement=True)
     
@@ -259,6 +286,10 @@ class EntrySplit(Base):
     분할은 자기 자신을 다시 쪼갤 수 없으므로 깊이는 항상 1이다.
     """
     __tablename__ = "entry_splits"
+    # 함께한 상대를 지우기 전에 쓰임을 센다.
+    __table_args__ = (
+        Index("ix_entry_splits_counterpart", "counterpart_id"),
+    )
 
     split_id = Column(Integer, primary_key=True, autoincrement=True)
     entry_id = Column(Integer, ForeignKey("entries.entry_id", ondelete="CASCADE"), nullable=False)

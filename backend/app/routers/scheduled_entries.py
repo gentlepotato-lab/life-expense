@@ -207,6 +207,24 @@ def update_scheduled_entry(schedule_id: int, payload: ScheduledEntryUpdate, db: 
     def now_or_new(key):
         return update_data.get(key, getattr(schedule, key))
 
+    # 생성과 같은 범위 검증. 예전에는 생성에만 있어서, 수정으로는
+    # day_of_month = 99 같은 값이 그대로 저장됐다.
+    if 'day_of_month' in update_data and not (1 <= update_data['day_of_month'] <= LAST_DAY):
+        raise HTTPException(
+            status_code=400,
+            detail=f"day_of_month must be 1-31 or {LAST_DAY}(말일)",
+        )
+    if 'hour' in update_data and not (0 <= update_data['hour'] <= 23):
+        raise HTTPException(status_code=400, detail="hour must be 0-23")
+    if 'minute' in update_data and not (0 <= update_data['minute'] <= 59):
+        raise HTTPException(status_code=400, detail="minute must be 0-59")
+    if 'holiday_handling' in update_data and update_data['holiday_handling'] not in ['before', 'on', 'after']:
+        raise HTTPException(status_code=400, detail="holiday_handling must be 'before', 'on', or 'after'")
+    if 'inout' in update_data and update_data['inout'] not in (-1, 1):
+        raise HTTPException(status_code=400, detail="inout must be -1 or 1")
+    if 'amount' in update_data and update_data['amount'] is not None and update_data['amount'] < 0:
+        raise HTTPException(status_code=400, detail="amount must be 0 or more")
+
     # 감출지 말지가 다음 실행 일시를 가른다. 그래서 주기 · 날짜보다 먼저 본다 —
     # 감춘 줄에 예정일이 남아 있으면 안 오는데 날짜만 서 있는 자리가 된다.
     hidden_now = update_data.get('is_active', schedule.is_active) == 0
@@ -269,8 +287,19 @@ def delete_scheduled_entry(schedule_id: int, db: SessionDep = Depends()):
     db.commit()
     return {"status": "ok"}
 
-def find_nearest_non_holiday(target_date: date, holiday_handling: str, db: Session) -> date:
-    """휴일이 아닌 가장 가까운 날짜 찾기"""
+def find_nearest_non_holiday(
+    target_date: date,
+    holiday_handling: str,
+    db: Session,
+    keep_month: bool = False,
+) -> date:
+    """휴일이 아닌 가장 가까운 날짜 찾기
+
+    keep_month는 말일 설정에만 쓴다. 말일은 그 달의 마지막 날이라는 뜻이므로
+    휴일 후 처리로 다음 달까지 밀리면 설정한 의미가 사라진다. 그래서 말일은
+    달을 넘기지 않고, 그 달 안에서 앞으로 당긴다.
+    휴일 전/당일 처리는 원래 달을 넘기지 않으므로 영향이 없다.
+    """
     def is_holiday_date(d: date) -> bool:
         """주어진 날짜가 휴일인지 확인(Holiday 테이블 또는 weekday 기반)"""
         h = db.query(Holiday).filter(Holiday.dt == d).first()
@@ -303,8 +332,19 @@ def find_nearest_non_holiday(target_date: date, holiday_handling: str, db: Sessi
         current = target_date
         for _ in range(30):  # 최대 30일 후까지 검색
             current = current + timedelta(days=1)
+            if keep_month and current.month != target_date.month:
+                break  # 말일은 달을 넘기지 않는다
             if not is_holiday_date(current):
                 return current
+        if keep_month:
+            # 그 달 안에 평일이 없으면 앞으로 당긴다
+            current = target_date
+            for _ in range(30):
+                current = current - timedelta(days=1)
+                if current.month != target_date.month:
+                    break
+                if not is_holiday_date(current):
+                    return current
         return target_date  # 못 찾으면 원래 날짜 반환
 
 def _first_of_next_month(d: date) -> date:
@@ -316,6 +356,26 @@ def _first_of_next_month(d: date) -> date:
     달의 첫날로 옮기면 며칠짜리 달이든 한 달씩만 정확히 나아간다.
     """
     return date(d.year + 1, 1, 1) if d.month == 12 else date(d.year, d.month + 1, 1)
+
+
+def _first_valid_from(d: date, day_of_month: int) -> date:
+    """d가 든 달부터 보며, 그 날이 실제로 있는 첫 달의 날짜.
+
+    31일 설정이면 2월처럼 그 날이 없는 달은 건너뛴다. 예전에는 이 처리가
+    자리마다 달라서, 같은 "매월 31일"인데 어떤 길로 가면 2월 28일로 당겨지고
+    어떤 길로 가면 2월을 건너뛰었다. 한 곳으로 모아 건너뛰기로 맞춘다.
+    그 달의 끝 날에 두려면 말일(32)을 고르면 된다.
+
+    말일은 day_in_month가 그 달 끝 날로 바꿔 주므로 늘 첫 달에서 끝난다.
+    """
+    y, m = d.year, d.month
+    for _ in range(13):
+        try:
+            return date(y, m, day_in_month(y, m, day_of_month))
+        except ValueError:
+            nxt = _first_of_next_month(date(y, m, 1))
+            y, m = nxt.year, nxt.month
+    return d
 
 
 def calculate_next_run_at(
@@ -340,47 +400,22 @@ def calculate_next_run_at(
         base_date = now.date()
     
     # 1단계: 이번 달의 원래 스케줄된 날짜 계산
-    #        말일이면 그 달의 끝 날로 바꿔 둔다 — 1~31은 값이 그대로라
-    #        지금까지의 셈이 달라지지 않는다.
-    try:
-        scheduled_date = date(
-            base_date.year,
-            base_date.month,
-            day_in_month(base_date.year, base_date.month, day_of_month),
-        )
-    except ValueError:
-        # 유효하지 않은 날짜(예: 2월 30일) - 다음 달로 이동
-        if base_date.month == 12:
-            scheduled_date = date(base_date.year + 1, 1, min(day_of_month, 31))
-        else:
-            next_month = base_date.month + 1
-            scheduled_date = date(base_date.year, next_month, min(day_of_month, 31))
+    #        말일이면 그 달의 끝 날로 바꿔 둔다.
+    #        그 날이 없는 달(2월 31일 등)은 건너뛴다.
+    scheduled_date = _first_valid_from(base_date, day_of_month)
     
     # 2단계: 원래 날짜(휴일 처리 전)가 현재 시간보다 과거인지 체크
     scheduled_datetime = datetime.combine(scheduled_date, datetime.min.time().replace(hour=hour, minute=minute))
     
     if scheduled_datetime <= now:
-        # 다음 달로 이동
-        if scheduled_date.month == 12:
-            scheduled_date = date(
-                scheduled_date.year + 1,
-                1,
-                day_in_month(scheduled_date.year + 1, 1, day_of_month),
-            )
-        else:
-            try:
-                scheduled_date = date(
-                    scheduled_date.year,
-                    scheduled_date.month + 1,
-                    day_in_month(scheduled_date.year, scheduled_date.month + 1, day_of_month),
-                )
-            except ValueError:
-                # 유효하지 않은 날짜(예: 2월 30일)
-                last_day = calendar.monthrange(scheduled_date.year, scheduled_date.month + 1)[1]
-                scheduled_date = date(scheduled_date.year, scheduled_date.month + 1, min(day_of_month, last_day))
+        # 다음 달로 이동. 그 날이 없는 달은 건너뛴다.
+        scheduled_date = _first_valid_from(
+            _first_of_next_month(scheduled_date), day_of_month
+        )
     
     # 3단계: 휴일 처리 적용하여 실제 실행 날짜 결정
-    target_date = find_nearest_non_holiday(scheduled_date, holiday_handling, db)
+    keep_month = day_of_month >= LAST_DAY  # 말일은 달을 넘기지 않는다
+    target_date = find_nearest_non_holiday(scheduled_date, holiday_handling, db, keep_month)
 
     # 3.5단계: 당겨진 날짜가 과거로 넘어갔으면 다음 달로 미룬다.
     #
@@ -399,11 +434,10 @@ def calculate_next_run_at(
         )
         if moment > now:
             break
-        nxt = _first_of_next_month(scheduled_date)
-        scheduled_date = date(
-            nxt.year, nxt.month, day_in_month(nxt.year, nxt.month, day_of_month)
+        scheduled_date = _first_valid_from(
+            _first_of_next_month(scheduled_date), day_of_month
         )
-        target_date = find_nearest_non_holiday(scheduled_date, holiday_handling, db)
+        target_date = find_nearest_non_holiday(scheduled_date, holiday_handling, db, keep_month)
 
     # 4단계: 최종 DateTime 반환
     target_datetime = datetime.combine(target_date, datetime.min.time().replace(hour=hour, minute=minute))
@@ -522,7 +556,9 @@ def calculate_next_run_span(
             if nominal is not None and datetime.combine(nominal, at) > now:
                 # 휴일 처리는 날짜를 앞뒤로 민다. 당겨진 날이 이미 지났으면
                 # 이 달은 놓친 것이니 다음 자리를 본다.
-                target = find_nearest_non_holiday(nominal, holiday_handling, db)
+                target = find_nearest_non_holiday(
+                    nominal, holiday_handling, db, day_of_month >= LAST_DAY
+                )
                 moment = datetime.combine(target, at)
                 if moment > now:
                     return moment
@@ -570,12 +606,16 @@ def process_scheduled_entries(db: Session):
 
     for schedule in schedules:
         # 중복 방지 확인
+        #
+        # 예전에는 날짜와 분류와 금액이 같으면 같은 건으로 보았다. 그런데
+        # 같은 날 같은 분류로 같은 금액이 나가는 정기 내역은 얼마든지 있다.
+        # 그런 경우 뒤의 것이 이미 있는 것으로 판정되어 대기 내역이 만들어지지
+        # 않고 다음 주기로 넘어갔다. 그 달 지출이 그대로 사라진 것이다.
+        # 이제 어느 정기 내역이 만든 것인지로 확인한다.
         target_date = schedule.next_run_at.date()
         existing = db.query(PendingEntry).filter(
+            PendingEntry.schedule_id == schedule.schedule_id,
             PendingEntry.tx_date == target_date,
-            PendingEntry.cat1_id == schedule.cat1_id,
-            PendingEntry.cat2_id == schedule.cat2_id,
-            PendingEntry.amount == schedule.amount,
             PendingEntry.sended == 0
         ).first()
         
@@ -601,6 +641,7 @@ def process_scheduled_entries(db: Session):
             perf_exclude=schedule.perf_exclude,
             fixed_flag=schedule.fixed_flag,
             sended=0,
+            schedule_id=schedule.schedule_id,
         )
         db.add(new_pending)
         db.flush()                  # entry_id를 받아야 분할을 붙일 수 있다.
