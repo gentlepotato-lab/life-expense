@@ -105,21 +105,27 @@ export default function Entries() {
 
   // 메타데이터 불러오기
   useEffect(() => {
-    axios.get("/categories/lvl1").then((r) => setCat1List(r.data));
-    axios.get("/categories/lvl2").then((r) => setCat2List(r.data));
-    axios.get("/counterparts").then((r) => setCpList(r.data));
-    axios.get("/categories/lvl3").then((r) => setCat3List(r.data));
-    axios.get("/payment-methods").then((r) =>
-      setPayList(
-        r.data.map((p: any) => ({
-          code: p.method_id,
-          name: p.method_name,
-          is_active: p.is_active,
-          /* 카드인 줄에만 실적 제외 기호가 선다. */
-          category: p.category,
-        }))
+    // 조회가 실패하면 빈 목록으로 둔다. 그냥 두면 처리되지 않은 거절만
+    // 남고 화면은 까닭 없이 비어 보인다. 기준 자료라 한 번은 알린다.
+    const 메타실패 = () => say.warn("기준 자료를 불러오지 못했습니다. 새로 고쳐 주세요.");
+    axios.get("/categories/lvl1").then((r) => setCat1List(r.data)).catch(메타실패);
+    axios.get("/categories/lvl2").then((r) => setCat2List(r.data)).catch(메타실패);
+    axios.get("/counterparts").then((r) => setCpList(r.data)).catch(메타실패);
+    axios.get("/categories/lvl3").then((r) => setCat3List(r.data)).catch(메타실패);
+    axios
+      .get("/payment-methods")
+      .then((r) =>
+        setPayList(
+          r.data.map((p: any) => ({
+            code: p.method_id,
+            name: p.method_name,
+            is_active: p.is_active,
+            /* 카드인 줄에만 실적 제외 기호가 선다. */
+            category: p.category,
+          }))
+        )
       )
-    );
+      .catch(메타실패);
   }, []);
 
   // 팝업 열렸을 때 뒤 화면 스크롤/인터랙션 막기
@@ -1074,7 +1080,13 @@ export default function Entries() {
       {/* 팝업은 map() 밖에서 렌더링 */}
       {filterOpen && (
         <div className="popup-overlay" onClick={closeFilter}>
-          <div className="popup-panel popup-panel--framed" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="popup-panel popup-panel--framed"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="필터"
+          >
 
             {/* 머리·본문·바닥을 편집 팝업과 같은 짜임으로 */}
             <header className="popup-head">

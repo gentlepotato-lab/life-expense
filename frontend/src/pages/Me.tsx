@@ -194,12 +194,18 @@ export default function Me() {
   const load = () => {
     Promise.all([
       axios.get("/profile").then((r) => r.data).catch(() => EMPTY),
-      axios.get("/profile/prefs").then((r) => r.data).catch(() => ({})),
+      // 설정은 실패를 빈 값과 구분한다. 빈 값으로 받으면 아래에서 그것으로
+      // 브라우저에 담아 둔 사본까지 덮어, 빛깔과 밝기가 기본값으로 돌아간다.
+      axios.get("/profile/prefs").then((r) => r.data).catch(() => null),
       axios.get("/profile/summary").then((r) => r.data).catch(() => null),
     ]).then(([p, f, s]) => {
       setProfile({ ...EMPTY, ...p });
-      setPrefs(f);
-      putPrefs(f);
+      if (f) {
+        setPrefs(f);
+        putPrefs(f);
+      } else {
+        say.warn("설정을 불러오지 못했습니다. 담아 둔 값으로 보여 드립니다.");
+      }
       setSummary(s);
       setReady(true);
     });

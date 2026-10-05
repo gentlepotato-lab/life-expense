@@ -702,6 +702,9 @@ export default function ScheduledEntries() {
   };
 
   const handleSubmit = async () => {
+    // 편집(saveDraft)과 같은 잠금을 건다. 보내는 동안 다시 누르면 같은
+    // 정기 지출이 두 건 등록된다.
+    if (isSaving) return;
     if (
       !form.day_of_month ||
       !form.time ||
@@ -734,6 +737,7 @@ export default function ScheduledEntries() {
     // time 문자열을 시/분으로 분리(HH:MM → hour, minute)
     const [hour, minute] = form.time.split(":").map(Number);
 
+    setIsSaving(true);
     try {
       const placeId = await ensurePlaceId(formPlace, form.place_id);
 
@@ -775,6 +779,8 @@ export default function ScheduledEntries() {
     } catch (err: any) {
       console.error(err);
       say.bad("등록하지 못했습니다. " + (err.response?.data?.detail || err.message));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -859,7 +865,8 @@ export default function ScheduledEntries() {
           title="새 정기 지출"
           onClose={closeForm}
           onSave={handleSubmit}
-          saveLabel="등록"
+          saveDisabled={isSaving}
+          saveLabel={isSaving ? "등록 중..." : "등록"}
           headerFields={
             <>
               {/* 첫 줄은 주기와 시작이 나눠 쓴다. 매월은 시작을 묻지 않으므로
@@ -1492,6 +1499,21 @@ export function ScheduleCard({
       className={`card card--entry schedule-card card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
       {...(readOnly ? {} : handlers)}
       title={readOnly ? undefined : "꾹 눌러서 편집"}
+      /* 꾹 누르기는 마우스와 손가락만 닿는다. 키보드로도 같은 자리를 열 수
+         있게 역할과 Enter · Space를 붙인다. */
+      {...(readOnly
+        ? {}
+        : {
+            role: "button" as const,
+            tabIndex: 0,
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.target !== e.currentTarget) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                openEditor();
+              }
+            },
+          })}
     >
       {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국 */}
       <div
@@ -1609,8 +1631,16 @@ export function ScheduleCard({
               role="button"
               tabIndex={0}
               data-no-longpress
+              aria-expanded={splitOpen}
               title={splitOpen ? "몫 접기" : "함께한 사람 보기"}
               onClick={(e) => { e.stopPropagation(); setSplitOpen((v) => !v); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSplitOpen((v) => !v);
+                }
+              }}
             >
               {/* 뺄셈 한 덩어리 — "모두 펼치기|접기"와 같은 음영을 깔고 손잡이만 밖에 둔다. */}
               <span className="amount-split__calc">

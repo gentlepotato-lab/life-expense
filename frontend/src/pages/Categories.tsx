@@ -9,6 +9,7 @@ import {
   closestCenter,
   PointerSensor,
   TouchSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -16,6 +17,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
+  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import QuickActions from "./components/QuickActions";
@@ -66,6 +68,8 @@ function SortableItem({ id, children, dragHandle = false }: SortableItemProps) {
 
 export default function Categories() {
   const [editMode, setEditMode] = useState(false);
+  // 불러오는 중과 "없음"을 가른다. 목표 · 어디 쓰나와 같은 방식이다.
+  const [ready, setReady] = useState(false);
   const [cat1, setCat1] = useState<any[]>([]);
   const [cat2, setCat2] = useState<any[]>([]);
   const [cat3, setCat3] = useState<any[]>([]);
@@ -141,45 +145,52 @@ export default function Categories() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: { delay: 120, tolerance: 6 }
-    })
+    }),
+    // 순서 바꾸기를 키보드로도 할 수 있게 한다.
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // 셋을 한 번에 기다린다. 호출 수는 그대로 셋이고, 다 끝난 뒤에야
+  // ready를 켜서 "불러오는 중"과 "없음"을 가른다.
   useEffect(() => {
-    axios.get("/categories/lvl1").then((r) =>
-      setCat1(r.data.map((c: any) => ({
-        cat1_id: c.id,
-        cat1_name: c.name,
-        emoji: c.emoji ?? null,
-        is_active: c.is_active ?? 1,
-        blur: c.blur ?? 0,
-        editing: false
-      })))
-    );
+    Promise.all([
+      axios.get("/categories/lvl1"),
+      axios.get("/categories/lvl2"),
+      axios.get("/categories/lvl3"),
+    ])
+      .then(([r1, r2, r3]) => {
+        setCat1(r1.data.map((c: any) => ({
+          cat1_id: c.id,
+          cat1_name: c.name,
+          emoji: c.emoji ?? null,
+          is_active: c.is_active ?? 1,
+          blur: c.blur ?? 0,
+          editing: false
+        })));
 
-    axios.get("/categories/lvl2").then((r) =>
-      setCat2(r.data.map((c: any) => ({
-        cat2_id: c.id,
-        cat2_name: c.name,
-        cat1_id: c.cat1_id,
-        blur: c.blur ?? 0, // blur 값 받기
-        inout: c.inout ?? null, // inout 값 받기
-        is_active: c.is_active ?? 1,
-        fixed: c.fixed ?? 0,
-        editing: false
-      })))
-    );
+        setCat2(r2.data.map((c: any) => ({
+          cat2_id: c.id,
+          cat2_name: c.name,
+          cat1_id: c.cat1_id,
+          blur: c.blur ?? 0, // blur 값 받기
+          inout: c.inout ?? null, // inout 값 받기
+          is_active: c.is_active ?? 1,
+          fixed: c.fixed ?? 0,
+          editing: false
+        })));
 
-    axios.get("/categories/lvl3").then((r) =>
-      setCat3(r.data.map((c: any) => ({
-        cat3_id: c.id,
-        cat3_name: c.name,
-        cat2_id: c.cat2_id,
-        is_active: c.is_active ?? 1,
-        fixed: c.fixed ?? 0,
-        blur: c.blur ?? 0,
-        editing: false
-      })))
-    );
+        setCat3(r3.data.map((c: any) => ({
+          cat3_id: c.id,
+          cat3_name: c.name,
+          cat2_id: c.cat2_id,
+          is_active: c.is_active ?? 1,
+          fixed: c.fixed ?? 0,
+          blur: c.blur ?? 0,
+          editing: false
+        })));
+      })
+      .catch(() => say.bad("분류를 불러오지 못했습니다. 새로 고쳐 주세요."))
+      .finally(() => setReady(true));
   }, []);
 
   /* 고정 · 변동 — 달마다 같은 자리에 오는 돈인지. 중분류에는 두지 않는다.
@@ -317,10 +328,16 @@ export default function Categories() {
       )
     };
 
-    axios.post("/categories/save", payload).then(() => {
-      say.ok("저장 완료-!! ;-)");
-      setEditMode(false);
-    });
+    // 실패하면 알린다. 편집 상태도 그대로 두어 다시 저장할 수 있게 한다.
+    axios
+      .post("/categories/save", payload)
+      .then(() => {
+        say.ok("저장 완료-!! ;-)");
+        setEditMode(false);
+      })
+      .catch(() => {
+        say.bad("저장하지 못했습니다. 다시 시도해 주세요.");
+      });
   };
 
   /**
@@ -334,7 +351,18 @@ export default function Categories() {
   const toggleHidden3 = (id: number) =>
     setCat3(cat3.map(x => x.cat3_id === id ? { ...x, is_active: x.is_active ? 0 : 1 } : x));
 
+  // 추가는 중, 소, 세분류를 차례로 만든다. 가운데서 실패하면 예전에는 조용히
+  // 멈췄다. 알리고 목록을 서버 상태로 맞춰, 화면과 서버가 어긋난 채 남지 않게 한다.
   const handleAdd = async () => {
+    try {
+      await handleAddCore();
+    } catch {
+      say.bad("추가하지 못했습니다. 다시 시도해 주세요.");
+      await refreshListsAll().catch(() => {});
+    }
+  };
+
+  const handleAddCore = async () => {
     const cat1Name = newCat1Name.trim();
     const cat2Name = newCat2Name.trim();
     const cat3Name = newCat3Name.trim();
@@ -492,11 +520,14 @@ export default function Categories() {
       axios.get("/categories/lvl3"),
     ]);
 
+    // 처음 불러올 때와 같은 칸을 받는다. 예전에는 여기만 blur와 fixed가
+    // 빠져 있어, 분류를 더하거나 지운 직후에는 그 둘이 꺼진 듯 보였다.
     setCat1(r1.data.map((c: any) => ({
       cat1_id: c.id,
       cat1_name: c.name,
       emoji: c.emoji ?? null,
       is_active: c.is_active ?? 1,
+      blur: c.blur ?? 0,
       editing: false,
     })));
 
@@ -507,6 +538,7 @@ export default function Categories() {
       is_active: c.is_active ?? 1,
       blur: c.blur ?? 0,
       inout: c.inout ?? null,
+      fixed: c.fixed ?? 0,
       editing: false,
     })));
 
@@ -515,6 +547,8 @@ export default function Categories() {
       cat3_name: c.name,
       cat2_id: c.cat2_id,
       is_active: c.is_active ?? 1,
+      blur: c.blur ?? 0,
+      fixed: c.fixed ?? 0,
       editing: false,
     })));
   };
@@ -745,6 +779,11 @@ export default function Categories() {
         </div>
         )}
 
+        {!ready && <p className="page-empty">불러오는 중입니다.</p>}
+        {ready && cat1View.length === 0 && (
+          <p className="page-empty">등록된 분류가 없습니다.</p>
+        )}
+
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndCat1}>
           <SortableContext items={cat1View.map((c) => c.cat1_id)} strategy={verticalListSortingStrategy}>
             {cat1View.map((c1) => (
@@ -942,6 +981,7 @@ export default function Categories() {
                                   className={c2.fixed ? "on" : ""}
                                   aria-disabled={!editMode || undefined}
                                   title="고정 — 달마다 같은 자리에 온다."
+                                  aria-label="고정"
                                   aria-pressed={!!c2.fixed}
                                   onClick={(e) => {
                                     if (!editMode) return showLock(e);
@@ -955,6 +995,7 @@ export default function Categories() {
                                   className={c2.fixed ? "" : "on"}
                                   aria-disabled={!editMode || undefined}
                                   title="변동 — 그때그때 달라진다."
+                                  aria-label="변동"
                                   aria-pressed={!c2.fixed}
                                   onClick={(e) => {
                                     if (!editMode) return showLock(e);
@@ -1094,6 +1135,7 @@ export default function Categories() {
                                             disabled={editMode && !!c2.fixed}
                                             aria-disabled={!editMode || !!c2.fixed || undefined}
                                             title="고정 — 달마다 같은 자리에 온다."
+                                            aria-label="고정"
                                             aria-pressed={!!(c2.fixed || c3.fixed)}
                                             onClick={(e) => {
                                               if (!editMode) return showLock(e);
@@ -1108,6 +1150,7 @@ export default function Categories() {
                                             disabled={editMode && !!c2.fixed}
                                             aria-disabled={!editMode || !!c2.fixed || undefined}
                                             title="변동 — 그때그때 달라진다."
+                                            aria-label="변동"
                                             aria-pressed={!(c2.fixed || c3.fixed)}
                                             onClick={(e) => {
                                               if (!editMode) return showLock(e);

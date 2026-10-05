@@ -12,13 +12,15 @@ import {
   closestCenter,
   PointerSensor,
   TouchSensor,
+  KeyboardSensor,
   useSensor,
   useSensors
 } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
-  useSortable
+  useSortable,
+  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import QuickActions from "./components/QuickActions";
@@ -289,7 +291,9 @@ export default function PaymentMethods() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: { delay: 120, tolerance: 6 }
-    })
+    }),
+    // 순서 바꾸기를 키보드로도 할 수 있게 한다.
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   // 초기 데이터 로드
@@ -456,9 +460,14 @@ export default function PaymentMethods() {
     const exist = list.find((x) => x.method_name === name);
     if (exist) return say.warn("이미 있는 항목입니다.");
 
-    await axios.post("/payment-methods/add", null, {
-      params: { name, category_id: addCategoryId ?? undefined }
-    });
+    try {
+      await axios.post("/payment-methods/add", null, {
+        params: { name, category_id: addCategoryId ?? undefined }
+      });
+    } catch {
+      say.bad("추가하지 못했습니다. 다시 시도해 주세요.");
+      return;
+    }
 
     setNewName("");
     setAddCategoryId(null);
@@ -494,16 +503,24 @@ export default function PaymentMethods() {
       sort_order: i + 1
     }));
 
-    await axios.post("/payment-methods/save", payload);
-    // 이모지는 분류 행에 저장한다.
-    await axios.post(
-      "/payment-methods/categories/save",
-      categories.map((c, i) => ({
-        category_id: c.category_id,
-        emoji: c.emoji,
-        sort_order: i + 1,
-      }))
-    );
+    try {
+      await axios.post("/payment-methods/save", payload);
+      // 이모지는 분류 행에 저장한다.
+      await axios.post(
+        "/payment-methods/categories/save",
+        categories.map((c, i) => ({
+          category_id: c.category_id,
+          emoji: c.emoji,
+          sort_order: i + 1,
+        }))
+      );
+    } catch {
+      // 편집 상태를 유지해 다시 저장할 수 있게 둔다. 화면은 서버 상태로 맞춘다.
+      say.bad("저장하지 못했습니다. 다시 시도해 주세요.");
+      await refresh().catch(() => {});
+      await refreshCategories().catch(() => {});
+      return;
+    }
     say.ok("저장 완료-!! ;-)");
     setEditMode(false);
     await refresh();
@@ -522,9 +539,15 @@ export default function PaymentMethods() {
     )
       return;
 
-    const r = await axios.delete("/payment-methods/delete", {
-      params: { method_id: id }
-    });
+    let r;
+    try {
+      r = await axios.delete("/payment-methods/delete", {
+        params: { method_id: id }
+      });
+    } catch {
+      say.bad("제거하지 못했습니다. 다시 시도해 주세요.");
+      return;
+    }
 
     if (r.data?.error === "IN_USE") {
       say.warn("쓰고 있는 항목이라 제거할 수 없습니다. 정리한 뒤에 다시 해 주세요.");

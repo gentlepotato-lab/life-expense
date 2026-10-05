@@ -3,6 +3,7 @@ import { stash, takeStash } from "../utils/pageState";
 import FixedFilter from "./components/FixedFilter";
 import { useNavigate } from "react-router-dom";
 import axios from "../api/client";
+import { say } from "../utils/notify";
 import EntryFilterPopup from "./components/EntryFilterPopup";
 import QuickActions from "./components/QuickActions";
 import {
@@ -109,19 +110,25 @@ export default function Calendar() {
   const isFilterActive = useMemo(() => hasCondition(appliedFilter), [appliedFilter]);
 
   useEffect(() => {
-    axios.get("/categories/lvl1").then((r) => setCat1List(r.data));
-    axios.get("/categories/lvl2").then((r) => setCat2List(r.data));
-    axios.get("/categories/lvl3").then((r) => setCat3List(r.data));
-    axios.get("/counterparts").then((r) => setCpList(r.data));
-    axios.get("/payment-methods").then((r) =>
-      setPayList(
-        r.data.map((p: { method_id: number; method_name: string; is_active?: number }) => ({
-          code: String(p.method_id),
-          name: p.method_name,
-          is_active: p.is_active,
-        }))
+    // 조회가 실패하면 빈 목록으로 둔다. 그냥 두면 처리되지 않은 거절만
+    // 남고 화면은 까닭 없이 비어 보인다. 기준 자료라 한 번은 알린다.
+    const 메타실패 = () => say.warn("기준 자료를 불러오지 못했습니다. 새로 고쳐 주세요.");
+    axios.get("/categories/lvl1").then((r) => setCat1List(r.data)).catch(메타실패);
+    axios.get("/categories/lvl2").then((r) => setCat2List(r.data)).catch(메타실패);
+    axios.get("/categories/lvl3").then((r) => setCat3List(r.data)).catch(메타실패);
+    axios.get("/counterparts").then((r) => setCpList(r.data)).catch(메타실패);
+    axios
+      .get("/payment-methods")
+      .then((r) =>
+        setPayList(
+          r.data.map((p: { method_id: number; method_name: string; is_active?: number }) => ({
+            code: String(p.method_id),
+            name: p.method_name,
+            is_active: p.is_active,
+          }))
+        )
       )
-    );
+      .catch(메타실패);
   }, []);
 
   /* 세 자료를 한 달치로 모은다. */

@@ -901,6 +901,8 @@ export default function Charts() {
 
   /* 그림 카드의 차례와 감춤 — 다른 설정 화면처럼 [편집]을 눌러야 손댈 수 있다. */
   const [editMode, setEditMode] = useState(false);
+  // 보내는 동안 다시 누르면 같은 배치가 두 번 저장된다.
+  const [cardSaving, setCardSaving] = useState(false);
   const [cardOrder, setCardOrder] = useState<string[]>([]);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   /* 한 줄을 다 쓰는 카드. 처음 값은 코드가 적어 둔 것을 따른다. */
@@ -1000,28 +1002,34 @@ export default function Charts() {
   );
 
   useEffect(() => {
-    axios.get("/categories/lvl1").then((r) => setCat1List(r.data));
-    axios.get("/categories/lvl2").then((r) => setCat2List(r.data));
-    axios.get("/categories/lvl3").then((r) => setCat3List(r.data));
-    axios.get("/counterparts").then((r) => setCpList(r.data));
-    axios.get("/payment-methods").then((r) =>
-      setPayList(
-        r.data.map(
-          (p: {
-            method_id: number;
-            method_name: string;
-            category?: string;
-            is_active?: number;
-          }) => ({
-            code: String(p.method_id),
-            name: p.method_name,
-            /* 카드 실적은 구분이 `카드` 인 것만 센다. */
-            category: p.category,
-            is_active: p.is_active,
-          })
+    // 조회가 실패하면 빈 목록으로 둔다. 그냥 두면 처리되지 않은 거절만
+    // 남고 화면은 까닭 없이 비어 보인다. 기준 자료라 한 번은 알린다.
+    const 메타실패 = () => say.warn("기준 자료를 불러오지 못했습니다. 새로 고쳐 주세요.");
+    axios.get("/categories/lvl1").then((r) => setCat1List(r.data)).catch(메타실패);
+    axios.get("/categories/lvl2").then((r) => setCat2List(r.data)).catch(메타실패);
+    axios.get("/categories/lvl3").then((r) => setCat3List(r.data)).catch(메타실패);
+    axios.get("/counterparts").then((r) => setCpList(r.data)).catch(메타실패);
+    axios
+      .get("/payment-methods")
+      .then((r) =>
+        setPayList(
+          r.data.map(
+            (p: {
+              method_id: number;
+              method_name: string;
+              category?: string;
+              is_active?: number;
+            }) => ({
+              code: String(p.method_id),
+              name: p.method_name,
+              /* 카드 실적은 구분이 `카드` 인 것만 센다. */
+              category: p.category,
+              is_active: p.is_active,
+            })
+          )
         )
       )
-    );
+      .catch(메타실패);
   }, []);
 
   /* 세 자료를 한 달치로 모은다 — 달력과 같은 방식이다. */
@@ -2340,6 +2348,7 @@ export default function Charts() {
 
   /* 다른 설정 화면과 같은 흐름 — [편집]으로 열고 [저장]으로 담는다. */
   const toggleEdit = async () => {
+    if (cardSaving) return;
     if (!editMode) {
       setBeforeEdit(stamp(cardOrder, hidden, wideSet));
       setEditMode(true);
@@ -2350,6 +2359,7 @@ export default function Charts() {
       setEditMode(false);
       return;
     }
+    setCardSaving(true);
     try {
       await axios.post(
         "/charts/cards",
@@ -2363,6 +2373,8 @@ export default function Charts() {
       setEditMode(false);
     } catch (err) {
       say.bad(apiErrorMessage(err));
+    } finally {
+      setCardSaving(false);
     }
   };
 
@@ -2413,8 +2425,13 @@ export default function Charts() {
             </button>
 
             {/* 다른 설정 화면과 같은 자리 — 툴바 오른쪽 끝 */}
-            <button type="button" className="ui-btn primary chart-edit__btn" onClick={toggleEdit}>
-              {editMode ? "저장" : "편집"}
+            <button
+              type="button"
+              className="ui-btn primary chart-edit__btn"
+              onClick={toggleEdit}
+              disabled={cardSaving}
+            >
+              {editMode ? (cardSaving ? "저장 중..." : "저장") : "편집"}
             </button>
           </div>
         </div>

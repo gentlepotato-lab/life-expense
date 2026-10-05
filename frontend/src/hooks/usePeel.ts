@@ -290,9 +290,11 @@ export default function usePeel(onPeeled: () => void, disabled = false) {
   const onPointerUp = useCallback(() => finish(true), [finish]);
   const onPointerCancel = useCallback(() => finish(false), [finish]);
 
-  /* 잡은 채 길게 누를 때 뜨는 컨텍스트 메뉴를 막는다. */
+  /* 잡은 채 길게 누를 때 뜨는 컨텍스트 메뉴를 막는다.
+     잡고 있지 않을 때는 막지 않는다. 늘 막으면 PC에서 카드 우클릭 메뉴가
+     아예 안 뜬다. useLongPress도 같은 방식이다. */
   const onContextMenu = useCallback((e: ReactMouseEvent<HTMLElement>) => {
-    e.preventDefault();
+    if (dragRef.current || holdRef.current !== null) e.preventDefault();
   }, []);
 
   return { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onContextMenu };

@@ -68,7 +68,24 @@ export default function MonthPicker({
 
   return (
     <div className="ms-wrap mp-wrap" ref={wrapRef}>
-      <div className="ms-display" onClick={() => setOpen(!open)}>
+      {/* button이 아니라 div인 것은 전역 button 규칙(min-height 등)이 걸려
+          모양이 달라지기 때문이다. 대신 역할과 키 조작을 손으로 붙인다. */}
+      <div
+        className="ms-display"
+        role="button"
+        tabIndex={0}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(!open);
+          } else if (e.key === "Escape" && open) {
+            setOpen(false);
+          }
+        }}
+      >
         {value ? (
           <span className="ms-value">{ymLong(value) + suffix}</span>
         ) : (

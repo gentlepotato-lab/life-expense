@@ -184,6 +184,8 @@ export default function NotifyHost() {
         <div className="popup-overlay ask-overlay" onClick={closeText}>
           <form
             className="popup-panel popup-panel--framed"
+            role="dialog"
+            aria-modal="true"
             onClick={(e) => e.stopPropagation()}
             onSubmit={(e) => {
               e.preventDefault();

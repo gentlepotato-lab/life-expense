@@ -139,21 +139,27 @@ export default function PendingEntries() {
   useBackClose(placePickerOpen, () => setPlacePickerOpen(false));
 
   useEffect(() => {
-    api.get("/categories/lvl1").then((r) => setCat1List(r.data));
-    api.get("/categories/lvl2").then((r) => setCat2List(r.data));
-    api.get("/counterparts").then((r) => setCpList(r.data));
-    api.get("/categories/lvl3").then((r) => setCat3List(r.data));
-    api.get("/payment-methods").then((r) =>
-      setPayList(
-        r.data.map((p: any) => ({
-          code: p.method_id,
-          name: p.method_name,
-          is_active: p.is_active,
-          /* 카드인 줄에만 실적 제외 기호가 선다. */
-          category: p.category,
-        }))
+    // 조회가 실패하면 빈 목록으로 둔다. 그냥 두면 처리되지 않은 거절만
+    // 남고 화면은 까닭 없이 비어 보인다. 기준 자료라 한 번은 알린다.
+    const 메타실패 = () => say.warn("기준 자료를 불러오지 못했습니다. 새로 고쳐 주세요.");
+    api.get("/categories/lvl1").then((r) => setCat1List(r.data)).catch(메타실패);
+    api.get("/categories/lvl2").then((r) => setCat2List(r.data)).catch(메타실패);
+    api.get("/counterparts").then((r) => setCpList(r.data)).catch(메타실패);
+    api.get("/categories/lvl3").then((r) => setCat3List(r.data)).catch(메타실패);
+    api
+      .get("/payment-methods")
+      .then((r) =>
+        setPayList(
+          r.data.map((p: any) => ({
+            code: p.method_id,
+            name: p.method_name,
+            is_active: p.is_active,
+            /* 카드인 줄에만 실적 제외 기호가 선다. */
+            category: p.category,
+          }))
+        )
       )
-    );
+      .catch(메타실패);
   }, []);
 
   // 팝업 열렸을 때 뒤 화면 스크롤/인터랙션 막기
@@ -440,7 +446,12 @@ export default function PendingEntries() {
   };
 
   // Send 단일 카드: (1) pending 업데이트 → (2) send API → (3) 목록에서 제거
+  // 보내는 동안 잠근다. 확인을 누른 뒤 응답이 늦을 때 다시 누르면 같은 건이
+  // 두 번 나간다.
+  const [sending, setSending] = useState(false);
+
   const sendOne = async (row: any) => {
+    if (sending) return;
     // 필수 입력값 검증
     if (!row.tx_date || !row.cat1_id || !row.cat2_id || row.amount == null || row.amount === '' || !row.pay_method) {
       say.warn("날짜, 분류, 금액, 결제 수단은 꼭 넣어 주세요.");
@@ -483,6 +494,7 @@ export default function PendingEntries() {
         place_url: row.place_url ?? "",
       };
 
+      setSending(true);
       await api.put(`/pending-entries/${row.entry_id}`, payload);
 
       // 2) entries로 전송 + sended=TRUE
@@ -494,6 +506,8 @@ export default function PendingEntries() {
     } catch (err) {
       console.error(err);
       say.bad("전송하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -502,6 +516,7 @@ export default function PendingEntries() {
      선택한 항목이 없으면 지금 걸러 둔 것을 통째로, 하나라도 선택했으면 그것만
      보낸다. 보내는 길은 하나라 뒤처리(다시 읽기 · 필터 다시 걸기)도 하나다. */
   const sendMany = async () => {
+    if (sending) return;
     const 선택함 = picked.length > 0;
     const 보낼것 = 선택함 ? picked : rows;
 
@@ -522,6 +537,7 @@ export default function PendingEntries() {
       return;
 
     try {
+      setSending(true);
       const entryIds = 보낼것.map((r) => r.entry_id);
       const res = await api.post("/pending-entries/send-filtered", {
         entry_ids: entryIds
@@ -547,6 +563,8 @@ export default function PendingEntries() {
     } catch (err) {
       console.error(err);
       say.bad("전송하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -985,7 +1003,7 @@ export default function PendingEntries() {
             {/* 도구 줄은 늘 [모두 전송]이다. 고른 것만 보내는 일은 아래
                 고르기 막대가 맡는다 — 같은 자리의 단추가 때에 따라 다른 일을
                 하면 무엇이 갈지 누르기 전에 알 수 없다. */}
-            <button onClick={sendMany} className="ui-btn primary">
+            <button onClick={sendMany} className="ui-btn primary" disabled={sending}>
               모두 전송
             </button>
           </div>
@@ -1037,7 +1055,12 @@ export default function PendingEntries() {
         onClear={() => setPickedIds(new Set())}
         onReceipt={() => setReceiptOpen(true)}
         more={
-          <button type="button" className="pick-bar__more" onClick={sendMany}>
+          <button
+            type="button"
+            className="pick-bar__more"
+            onClick={sendMany}
+            disabled={sending}
+          >
             선택 전송
           </button>
         }
@@ -1169,7 +1192,13 @@ export default function PendingEntries() {
       {/* 필터 팝업 */}
       {filterOpen && (
         <div className="popup-overlay" onClick={closeFilter}>
-          <div className="popup-panel popup-panel--framed" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="popup-panel popup-panel--framed"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="필터"
+          >
             {/* 머리·본문·바닥을 편집 팝업과 같은 짜임으로 */}
             <header className="popup-head">
               <h3 className="popup-head__title">필터</h3>

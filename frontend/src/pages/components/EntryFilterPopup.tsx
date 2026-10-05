@@ -221,6 +221,9 @@ export default function EntryFilterPopup({
       <div
         className="popup-panel popup-panel--framed"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="필터"
       >
         <header className="popup-head">
           <h3 className="popup-head__title">필터</h3>

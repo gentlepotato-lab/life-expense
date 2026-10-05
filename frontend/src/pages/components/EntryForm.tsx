@@ -64,6 +64,9 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
   const [selectedPlace, setSelectedPlace] = useState<any>(null);
 
   const [isDirty, setIsDirty] = useState(false);
+  // 저장은 장소, 지출, 분할을 차례로 보낸다. 그 사이에 단추를 다시 누르면
+  // 지출이 두 건 생긴다. 보내는 동안 단추를 쉬게 한다.
+  const [saving, setSaving] = useState(false);
 
   /* 손댄 여부를 부르는 쪽에도 알린다. */
   useEffect(() => {
@@ -71,8 +74,13 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
   }, [isDirty, onDirtyChange]);
 
   // 중분류(카테고리1) 불러오기
+  // 조회가 실패하면 빈 목록으로 둔다. 고를 것이 없으면 아래 검사에 걸려
+  // 저장이 막히므로, 잘못된 값이 들어가지는 않는다.
   useEffect(() => {
-    axios.get("/categories/lvl1").then((res) => setCat1List(res.data));
+    axios
+      .get("/categories/lvl1")
+      .then((res) => setCat1List(res.data))
+      .catch(() => say.warn("분류를 불러오지 못했습니다. 새로 고쳐 주세요."));
   }, []);
 
   // 소분류(카테고리2) 불러오기 → cat1_id 변경 시
@@ -80,7 +88,8 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
     if (!form.cat1_id) return;
     axios
       .get("/categories/lvl2", { params: { cat1_id: form.cat1_id } })
-      .then((res) => setCat2List(res.data));
+      .then((res) => setCat2List(res.data))
+      .catch(() => setCat2List([]));
   }, [form.cat1_id]);
 
   // 소분류 선택 시 IN/OUT 자동 설정
@@ -103,20 +112,24 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
     }
     axios
       .get("/categories/lvl3", { params: { cat2_id: form.cat2_id } })
-      .then((res) => setCat3List(res.data));
+      .then((res) => setCat3List(res.data))
+      .catch(() => setCat3List([]));
   }, [form.cat2_id]);
 
   // 결제 수단 불러오기
   useEffect(() => {
-    axios.get("/payment-methods").then((res) =>
-      setPayList(
-        res.data.map((p: any) => ({
-          code: String(p.method_id),
-          name: p.method_name,
-          is_active: p.is_active,
-        }))
+    axios
+      .get("/payment-methods")
+      .then((res) =>
+        setPayList(
+          res.data.map((p: any) => ({
+            code: String(p.method_id),
+            name: p.method_name,
+            is_active: p.is_active,
+          }))
+        )
       )
-    );
+      .catch(() => say.warn("결제 수단을 불러오지 못했습니다. 새로 고쳐 주세요."));
   }, []);
 
   const handleChange = (
@@ -128,8 +141,29 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
     setIsDirty(true);
   };
 
+  /** 보내고 난 뒤 폼을 비운다. 두 자리에서 쓴다. */
+  const reset = () => {
+    setForm({
+      tx_date: "",
+      cat1_id: "",
+      cat2_id: "",
+      cat3_id: "",
+      inout: "-1",
+      amount: "",
+      pay_method: "",
+      memo: "",
+      place_id: "",
+    });
+    setSelectedPlace(null);
+    setSelectedPlaceName("");
+    setSplits([]);
+    setCat2List([]);
+    setIsDirty(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
 
     if (
       !form.tx_date ||
@@ -156,6 +190,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       return;
     }
 
+    setSaving(true);
     try {
       let place_id = form.place_id ? Number(form.place_id) : null;
 
@@ -209,35 +244,30 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       const res = await axios.post("/entries", payload);
 
       // 몫은 건이 생긴 뒤에야 붙일 수 있다. 빈 채로는 부르지 않는다.
+      //
+      // 여기서 실패하면 지출은 이미 들어가 있다. 예전에는 바깥 catch가
+      // "입력하지 못했습니다"라고만 알려, 다시 누르면 같은 지출이 또
+      // 들어갔다. 지출이 들어간 사실을 알리고 폼을 비워 다시 보내지 않게 한다.
       const newId = res.data?.entry_ids?.[0];
       if (newId && cleanSplits.length > 0) {
-        await axios.put(`/entries/${newId}/splits`, cleanSplits);
+        try {
+          await axios.put(`/entries/${newId}/splits`, cleanSplits);
+        } catch {
+          say.warn("지출은 들어갔는데 쪼갠 몫을 붙이지 못했습니다. 지출 내역에서 고쳐 주세요.");
+          reset();
+          onSaved?.();
+          return;
+        }
       }
 
       say.ok("전송 완료-!! ;-)");
-
-      // 초기화
-      setForm({
-        tx_date: "",
-        cat1_id: "",
-        cat2_id: "",
-        cat3_id: "",
-        inout: "-1",
-        amount: "",
-        pay_method: "",
-        memo: "",
-        place_id: "",
-      });
-      setSelectedPlace(null);
-      setSelectedPlaceName("");
-      setSplits([]);
-      setCat2List([]);
-      setIsDirty(false);
-
+      reset();
       onSaved?.();
     } catch (err) {
       console.error(err);
       say.bad("입력하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -410,7 +440,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           <button
             type="submit"
             className="ui-btn primary w-full entry-form__submit"
-            disabled={!isDirty}
+            disabled={!isDirty || saving}
           >
             전송
           </button>

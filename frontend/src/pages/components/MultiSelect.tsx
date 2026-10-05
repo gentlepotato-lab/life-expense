@@ -31,7 +31,6 @@ export default function MultiSelect<T>({
      다음에 열었을 때 목록이 비어 보인다. */
   const [query, setQuery] = useState("");
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
-  const ref = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
   // 드롭다운 위치 계산 — 화면 밖으로 나가지 않도록 가둔다.
@@ -80,16 +79,6 @@ export default function MultiSelect<T>({
   }, [open]);
 
   // 바깥 클릭 시 닫기
-  useEffect(() => {
-    const handleClick = (e: any) => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
-  }, []);
-
   const toggleValue = (value: T) => {
     if (onSpecialClick && onSpecialClick(value) === true) {
       return;
@@ -130,8 +119,25 @@ export default function MultiSelect<T>({
 
   return (
     <div className="ms-wrap" ref={wrapRef}>
-      {/* 표시 영역 */}
-      <div className="ms-display" onClick={() => setOpen(!open)}>
+      {/* 표시 영역
+          button이 아니라 div인 것은 전역 button 규칙(min-height 등)이 걸려
+          모양이 달라지기 때문이다. 대신 역할과 키 조작을 손으로 붙인다. */}
+      <div
+        className="ms-display"
+        role="button"
+        tabIndex={0}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(!open);
+          } else if (e.key === "Escape" && open) {
+            setOpen(false);
+          }
+        }}
+      >
         {selected.length === 0 && (
           <span className="ms-placeholder">{placeholder}</span>
         )}

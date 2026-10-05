@@ -13,6 +13,7 @@ import {
   closestCenter,
   PointerSensor,
   TouchSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -20,6 +21,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
+  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import QuickActions from "./components/QuickActions";
@@ -112,6 +114,8 @@ const fingerprint = (list: Counterpart[]) =>
  */
 export default function Counterparts() {
   const [list, setList] = useState<Counterpart[]>([]);
+  // 불러오는 중과 "없음"을 가른다. 목표 · 어디 쓰나와 같은 방식이다.
+  const [ready, setReady] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
   /* 편집이 아닐 때 잠긴 조각을 누르면 왜 안 되는지 알린다 — 다른 설정 화면과
@@ -144,7 +148,9 @@ export default function Counterparts() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } }),
+    // 순서 바꾸기를 키보드로도 할 수 있게 한다.
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   /**
@@ -227,8 +233,11 @@ export default function Counterparts() {
   };
 
   useEffect(() => {
-    refreshCategories();
-    refresh(showInactive);
+    // 조회가 실패하면 알린다. 그냥 두면 처리되지 않은 거절만 남고 화면은
+    // 까닭 없이 비어 보인다.
+    Promise.all([refreshCategories(), refresh(showInactive)])
+      .catch(() => say.bad("불러오지 못했습니다. 새로 고쳐 주세요."))
+      .finally(() => setReady(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showInactive]);
 
@@ -598,7 +607,9 @@ export default function Counterparts() {
             </section>
           )}
 
-          {saved.length === 0 && drafts.length === 0 && (
+          {!ready && <p className="page-empty">불러오는 중입니다.</p>}
+
+          {ready && saved.length === 0 && drafts.length === 0 && (
             <p className="page-empty">
               등록된 항목이 없습니다.
               <span className="page-empty__hint">
