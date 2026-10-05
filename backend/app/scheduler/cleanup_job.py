@@ -55,11 +55,11 @@ def run_monthly_cleanup():
 def start_cleanup_scheduler():
     """
     정리 작업 스케줄러 시작
-    매월 1일 새벽 2시에 실행
+    매월 20일 새벽 2시에 실행
     """
     scheduler = BackgroundScheduler()
-    
-    # 매월 1일 새벽 2시
+
+    # 매월 20일 새벽 2시
     scheduler.add_job(
         run_monthly_cleanup,
         trigger="cron",
@@ -69,6 +69,6 @@ def start_cleanup_scheduler():
         id="monthly_cleanup",
         replace_existing=True
     )
-    
+
     scheduler.start()
-    logger.info("Monthly cleanup scheduler started (runs on day 1 at 02:00)")
+    logger.info("Monthly cleanup scheduler started (runs on day 20 at 02:00)")

@@ -14,6 +14,13 @@ router = APIRouter()
 KASI_KEY = os.getenv("KASI_API_KEY")
 
 def fetch_kasi_holidays(year: int, month: int):
+    """공공데이터에서 그 달의 공휴일을 받는다.
+
+    (성공 여부, 목록)을 돌려준다. 성공 여부를 따로 두는 까닭은 "조회 실패"와
+    "그 달에 공휴일이 없음"을 구분해야 하기 때문이다. 둘을 같게 보면 API가
+    멈춘 날 설날이나 추석이 평일로 저장되고, 정기 내역의 휴일 처리가 통째로
+    어긋난다.
+    """
     url = (
         "http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/"
         "getRestDeInfo"
@@ -27,7 +34,18 @@ def fetch_kasi_holidays(year: int, month: int):
     print(f"[fetch_kasi_holidays] Fetching holidays for {year}-{month:02d}")
     print(f"[fetch_kasi_holidays] URL: {url}")
 
-    r = requests.get(url)
+    # 응답이 없으면 무한정 기다리지 않는다. 스케줄러가 매일 부르는 자리라
+    # 한 번 묶이면 그 작업이 통째로 멈춘다.
+    try:
+        r = requests.get(url, timeout=10)
+    except requests.RequestException as e:
+        print(f"[fetch_kasi_holidays] 조회 실패: {str(e)}")
+        return False, []
+
+    if r.status_code != 200:
+        print(f"[fetch_kasi_holidays] 조회 실패: HTTP {r.status_code}")
+        return False, []
+
     text = r.text.strip()
 
     # 1) JSON 시도
@@ -35,7 +53,7 @@ def fetch_kasi_holidays(year: int, month: int):
         js = r.json()
         items = js["response"]["body"].get("items")
         if not items:
-            return []
+            return True, []
         items = items.get("item", [])
         if isinstance(items, dict):
             items = [items]
@@ -44,7 +62,7 @@ def fetch_kasi_holidays(year: int, month: int):
             dt = it["locdate"]
             d = date(int(dt[:4]), int(dt[4:6]), int(dt[6:8]))
             result.append((d, it.get("dateName")))
-        return result
+        return True, result
     except:
         pass
 
@@ -58,18 +76,47 @@ def fetch_kasi_holidays(year: int, month: int):
             if locdate:
                 d = date(int(locdate[:4]), int(locdate[4:6]), int(locdate[6:8]))
                 items.append((d, name))
-        return items
+        return True, items
     except Exception as e:
         print(f"[fetch_kasi_holidays] JSON/XML 파싱 실패: {str(e)}")
         print(f"[fetch_kasi_holidays] Response text: {text[:500]}")
-        return []
+        return False, []
 
 # ----------------------------
 # 핵심 업데이트 로직 → 스케줄러 + API 공동 사용
 # ----------------------------
-def update_holidays_core(db: Session, year: int, month: int):
+def update_holidays_core(db: Session, year: int, month: int) -> bool:
+    """그 달의 휴일을 다시 적재한다. 반영했으면 True.
+
+    조회를 먼저 하고 성공했을 때만 표를 고친다. 예전에는 반대였다. 월 전체를
+    주말만 휴일로 되돌려 커밋한 다음 API 결과로 덮었는데, 그 사이 조회가
+    실패하면 덮을 것이 없어 이미 알고 있던 공휴일까지 평일로 남았다.
+    """
     print(f"\n[update_holidays_core] Starting update for {year}-{month:02d}")
     days = monthrange(year, month)[1]
+
+    ok, items = fetch_kasi_holidays(year, month)
+
+    if not ok:
+        # 조회가 안 되면 알고 있던 것을 그대로 둔다. 다만 아직 한 줄도 없는
+        # 달이면 주말만이라도 채워 둔다. 있던 값을 덮지는 않는다.
+        has_row = db.query(Holiday).filter(
+            Holiday.year == year, Holiday.month == month
+        ).first()
+        if not has_row:
+            for day in range(1, days + 1):
+                d = date(year, month, day)
+                weekday = d.weekday()
+                db.add(Holiday(
+                    dt=d, year=year, month=month, day=day, weekday=weekday,
+                    is_holiday=1 if weekday in (5, 6) else 0,
+                    holiday_name=None,
+                ))
+            db.commit()
+            print(f"[update_holidays_core] 조회 실패. 주말만 채웠다 {year}-{month:02d}")
+        else:
+            print(f"[update_holidays_core] 조회 실패. 기존 값을 그대로 둔다 {year}-{month:02d}")
+        return False
 
     # (1) 월 전체 날짜 insert 또는 update
     for day in range(1, days + 1):
@@ -103,8 +150,7 @@ def update_holidays_core(db: Session, year: int, month: int):
 
     db.commit()
 
-    # (2) 공공데이터 API → 공휴일만 True로 override
-    items = fetch_kasi_holidays(year, month)
+    # (2) 받아 둔 공휴일만 True로 override
     print(f"[update_holidays_core] Fetched {len(items)} holidays from API")
 
     for d, name in items:
@@ -118,6 +164,7 @@ def update_holidays_core(db: Session, year: int, month: int):
 
     db.commit()
     print(f"[update_holidays_core] Successfully updated holidays for {year}-{month:02d}\n")
+    return True
 
 
 # ----------------------------
@@ -146,5 +193,10 @@ def get_holidays(year: int, month: int, db: Session = Depends(get_db)):
 # ----------------------------
 @router.get("/update")
 def update_holidays(year: int, month: int, db: Session = Depends(get_db)):
-    update_holidays_core(db, year, month)
-    return {"status": "ok", "updated": f"{year}-{month:02d}"}
+    ok = update_holidays_core(db, year, month)
+    # 조회가 안 되면 알려 준다. ok로만 돌려주면 공휴일이 빠진 채로
+    # 반영된 줄 알게 된다.
+    return {
+        "status": "ok" if ok else "fetch_failed",
+        "updated": f"{year}-{month:02d}",
+    }
