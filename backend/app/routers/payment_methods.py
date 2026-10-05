@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from app.deps import SessionDep
 
 # 자리는 main.py에서 /api/payment-methods로 붙인다.
@@ -78,21 +79,30 @@ def save_methods(payload: list[dict], db: SessionDep = Depends()):
 # 삭제
 @router.delete("/delete")
 def delete_method(method_id: int, db: SessionDep = Depends()):
-    # entries 사용 중이면 막기...
+    # 쓰는 곳이 있으면 막는다.
+    # 지출 내역만 보면 모자란다. 대기 내역은 결제수단에 FK가 없어 지워도 DB가
+    # 막지 않고 이름만 비어 버리고, 정기 내역은 FK가 막아 500이 난다.
     used = db.execute(text("""
-        SELECT 1 FROM life_expense.entries
-         WHERE pay_method = :id
-         LIMIT 1
+        SELECT 1 FROM life_expense.entries           WHERE pay_method = :id LIMIT 1
+    """), {"id": method_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.pending_entries   WHERE pay_method = :id LIMIT 1
+    """), {"id": method_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.scheduled_entries WHERE pay_method = :id LIMIT 1
     """), {"id": method_id}).fetchone()
 
     if used:
         return {"error": "IN_USE"}
 
-    db.execute(text("""
-        DELETE FROM life_expense.payment_methods
-         WHERE method_id = :id
-    """), {"id": method_id})
-    db.commit()
+    try:
+        db.execute(text("""
+            DELETE FROM life_expense.payment_methods
+             WHERE method_id = :id
+        """), {"id": method_id})
+        db.commit()
+    except IntegrityError:
+        # 위에서 못 걸러 낸 참조가 남아 있을 때. 500 대신 같은 안내로 돌린다.
+        db.rollback()
+        return {"error": "IN_USE"}
 
     return {"status": "deleted"}
 

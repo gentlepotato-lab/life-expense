@@ -9,7 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 
 from app.deps import SessionDep
-from app.models import Counterpart, CounterpartCategory, EntrySplit
+from app.models import (
+    Counterpart,
+    CounterpartCategory,
+    EntrySplit,
+    PendingEntrySplit,
+    ScheduledEntrySplit,
+)
 
 router = APIRouter()
 
@@ -106,7 +112,13 @@ def delete_counterpart(counterpart_id: int, db: SessionDep = Depends()):
     if not row:
         raise HTTPException(status_code=404, detail="counterpart not found")
 
-    used = db.query(EntrySplit).filter(EntrySplit.counterpart_id == counterpart_id).count()
+    # 지출 분할만 보면 모자란다. 아직 나가지 않은 대기 · 정기 분할에서만
+    # 쓰이고 있어도 지우면 누구와 나눴는지가 사라진다. 셋을 함께 센다.
+    used = (
+        db.query(EntrySplit).filter(EntrySplit.counterpart_id == counterpart_id).count()
+        + db.query(PendingEntrySplit).filter(PendingEntrySplit.counterpart_id == counterpart_id).count()
+        + db.query(ScheduledEntrySplit).filter(ScheduledEntrySplit.counterpart_id == counterpart_id).count()
+    )
 
     try:
         if used:

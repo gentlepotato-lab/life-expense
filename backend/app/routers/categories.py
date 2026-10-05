@@ -246,6 +246,13 @@ def add_cat2(
 
 @router.delete("/delete/lvl1")
 def delete_cat1(cat1_id: int, db: Session = Depends(get_db)):
+    # 대기 내역은 분류에 FK가 없어 DB가 막아 주지 않는다. 먼저 확인한다.
+    used = db.execute(text("""
+        SELECT 1 FROM life_expense.pending_entries WHERE cat1_id = :cid LIMIT 1
+    """), {"cid": cat1_id}).fetchone()
+    if used:
+        raise HTTPException(status_code=409, detail="USED_CATEGORY")
+
     try:
         # 하위 소분류 먼저 삭제
         db.query(CategoryL2).filter(CategoryL2.cat1_id == cat1_id).delete()
@@ -260,40 +267,54 @@ def delete_cat1(cat1_id: int, db: Session = Depends(get_db)):
 
 @router.delete("/delete/lvl2")
 def delete_cat2(cat2_id: int, db: Session = Depends(get_db)):
-    # 1) entries 테이블에서 사용 여부 확인
+    # 1) 쓰는 곳이 있는지 확인
+    #    지출 내역만 보면 모자란다. 대기 내역은 분류에 FK가 없어 지워도 DB가
+    #    막지 않고 이름만 비어 버리고, 정기 내역은 FK가 막아 500이 난다.
+    #    셋을 함께 보고 하나라도 쓰고 있으면 409로 알린다.
     used = db.execute(text("""
-        SELECT 1
-          FROM life_expense.entries
-         WHERE cat2_id = :cid
-         LIMIT 1
+        SELECT 1 FROM life_expense.entries           WHERE cat2_id = :cid LIMIT 1
+    """), {"cid": cat2_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.pending_entries   WHERE cat2_id = :cid LIMIT 1
+    """), {"cid": cat2_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.scheduled_entries WHERE cat2_id = :cid LIMIT 1
     """), {"cid": cat2_id}).fetchone()
 
     if used:
         raise HTTPException(status_code=409, detail="USED_CATEGORY")
 
-    # 2) 세분류 먼저 삭제
-    db.query(CategoryL3).filter(CategoryL3.cat2_id == cat2_id).delete()
+    try:
+        # 2) 세분류 먼저 삭제
+        db.query(CategoryL3).filter(CategoryL3.cat2_id == cat2_id).delete()
 
-    # 3) 소분류 삭제
-    db.query(CategoryL2).filter(CategoryL2.cat2_id == cat2_id).delete()
-    db.commit()
+        # 3) 소분류 삭제
+        db.query(CategoryL2).filter(CategoryL2.cat2_id == cat2_id).delete()
+        db.commit()
+    except IntegrityError:
+        # 위에서 못 걸러 낸 참조가 남아 있을 때. 500 대신 같은 안내로 돌린다.
+        db.rollback()
+        raise HTTPException(status_code=409, detail="USED_CATEGORY")
 
     return {"status": "ok"}
 
 @router.delete("/delete/lvl3")
 def delete_cat3(cat3_id: int, db: Session = Depends(get_db)):
     used = db.execute(text("""
-        SELECT 1
-          FROM life_expense.entries
-         WHERE cat3_id = :cid
-         LIMIT 1
+        SELECT 1 FROM life_expense.entries           WHERE cat3_id = :cid LIMIT 1
+    """), {"cid": cat3_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.pending_entries   WHERE cat3_id = :cid LIMIT 1
+    """), {"cid": cat3_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.scheduled_entries WHERE cat3_id = :cid LIMIT 1
     """), {"cid": cat3_id}).fetchone()
 
     if used:
         raise HTTPException(status_code=409, detail="USED_CATEGORY")
 
-    db.query(CategoryL3).filter(CategoryL3.cat3_id == cat3_id).delete()
-    db.commit()
+    try:
+        db.query(CategoryL3).filter(CategoryL3.cat3_id == cat3_id).delete()
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="USED_CATEGORY")
     return {"status": "ok"}
 
 @router.post("/blur/set")
