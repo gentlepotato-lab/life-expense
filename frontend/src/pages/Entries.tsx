@@ -14,6 +14,9 @@ import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import SplitRows from "./components/SplitRows";
 import QuickActions from "./components/QuickActions";
+import PickBar from "./components/PickBar";
+import ReceiptPopup from "./components/ReceiptPopup";
+import type { ReceiptRow } from "../utils/receipt";
 import MemoPad from "./components/MemoPad";
 import PerfExcludeButton from "./components/PerfExcludeButton";
 import FixedMark from "./components/FixedMark";
@@ -807,6 +810,51 @@ export default function Entries() {
     [rows]
   );
 
+  /* ── 영수증으로 뽑을 것 고르기 ──────────────────────────────
+     고른 것은 지금 화면에 보이는 줄에서만 센다. 달을 옮기거나 걸러서
+     사라진 건이 고른 채 남아 있으면, 눈에 없는 것이 영수증에 찍힌다. */
+  const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
+  const [receiptOpen, setReceiptOpen] = useState(false);
+
+  const togglePick = useCallback((id: number) => {
+    setPickedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  /* 달을 옮기면 푼다. 다른 달의 건이 섞인 영수증은 기간이 말이 안 된다. */
+  useEffect(() => {
+    setPickedIds(new Set());
+  }, [yearMonth]);
+
+  const picked = useMemo(
+    () => rows.filter((r) => pickedIds.has(r.entry_id)),
+    [rows, pickedIds]
+  );
+
+  /* 영수증 한 줄로 옮긴다. 보이는 그대로를 담는다 — 쪼갠 건은 실지출이다. */
+  const receiptRows = useMemo<ReceiptRow[]>(() => {
+    const name1 = new Map(cat1List.map((c) => [c.id, c.name]));
+    const name2 = new Map(cat2List.map((c) => [c.id, c.name]));
+    const name3 = new Map(cat3List.map((c) => [c.id, c.name]));
+    const payName = new Map(payList.map((p) => [String(p.code), p.name]));
+    return picked.map((r) => ({
+      key: `entry-${r.entry_id}`,
+      src: "지출" as const,
+      date: String(r.tx_date ?? "").slice(0, 10),
+      cat: [name1.get(Number(r.cat1_id)), name2.get(Number(r.cat2_id)), name3.get(Number(r.cat3_id))]
+        .filter(Boolean)
+        .join(" › "),
+      amount: Number((r.split_count ?? 0) > 0 ? r.net_amount : r.amount) || 0,
+      inout: (r.inout as number) ?? null,
+      place: String(r.place_name ?? "").trim(),
+      pay: payName.get(String(r.pay_method ?? "")) ?? "",
+    }));
+  }, [picked, cat1List, cat2List, cat3List, payList]);
+
   /* 버튼과 기간 표시는 '적용된 값'만 본다. 초안은 팝업 안에서만 산다. */
   const isFilterActive = useMemo(() => hasCondition(appliedFilter), [appliedFilter]);
 
@@ -880,6 +928,8 @@ export default function Entries() {
                 payList={payList}
                 onOpenEditor={openEditor}
                 onStartReveal={startReveal}
+                picked={pickedIds.has(row.entry_id)}
+                onTogglePick={togglePick}
                 blurred={isBlurred(row, blurSets)}
                 fixed={isFixed(row, fixSets)}
                 onTogglePerfExclude={togglePerfExclude}
@@ -889,6 +939,18 @@ export default function Entries() {
           </section>
         ))}
       </div>
+
+      <PickBar
+        count={picked.length}
+        all={rows.length}
+        onAll={() => setPickedIds(new Set(rows.map((r) => r.entry_id)))}
+        onClear={() => setPickedIds(new Set())}
+        onReceipt={() => setReceiptOpen(true)}
+      />
+
+      {receiptOpen && (
+        <ReceiptPopup rows={receiptRows} onClose={() => setReceiptOpen(false)} />
+      )}
 
       {/* 편집 팝업 */}
       {draft && (
@@ -1272,6 +1334,8 @@ export function EntryCard({
   payList,
   onOpenEditor,
   onStartReveal,
+  picked = false,
+  onTogglePick,
   blurred,
   readOnly = false,
   onTogglePerfExclude,
@@ -1284,6 +1348,10 @@ export function EntryCard({
   payList: { code: string; name: string; category?: string }[];
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
+  /* 골라 둔 건인지. 넘기지 않으면 고르기 상자가 서지 않는다 — 기간 상세처럼
+     보기만 하는 화면은 지금까지와 같은 꼴을 지킨다. */
+  picked?: boolean;
+  onTogglePick?: (id: number) => void;
   /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
      넘기지 않으면 예전처럼 소분류만 본다. */
   blurred?: boolean;
@@ -1369,6 +1437,24 @@ export function EntryCard({
           차지했다. 장소와 같은 줄로 올려 정기와 같은 두 칸 짜임이 된다 —
           장소는 왼쪽 끝, 결제 수단은 오른쪽 끝. 둘 다 없으면 줄도 만들지 않는다. */}
       <div className="entry-ln">
+          {/* 고르기 상자. 대기 내역과 같은 자리다 — 장소와 결제 수단이 선 줄의
+              왼쪽 끝. 분류 줄에 넣으면 분류 글이 통째로 밀려 쪽마다 자리가
+              달라진다. 카드를 꾹 누르면 편집 팝업이 열리므로 빼 둔다. */}
+          {onTogglePick && (
+            <button
+              type="button"
+              className={`pe-pick${picked ? " pe-pick--on" : ""}`}
+              data-no-longpress
+              aria-pressed={picked}
+              title={picked ? "선택 해제" : "선택"}
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePick(row.entry_id);
+              }}
+            >
+              ✓
+            </button>
+          )}
           {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
           {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
           <FixedMark

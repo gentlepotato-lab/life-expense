@@ -15,6 +15,9 @@ import SplitRows from "./components/SplitRows";
 import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import QuickActions from "./components/QuickActions";
+import PickBar from "./components/PickBar";
+import ReceiptPopup from "./components/ReceiptPopup";
+import type { ReceiptRow } from "../utils/receipt";
 import MemoPad from "./components/MemoPad";
 import PerfExcludeButton from "./components/PerfExcludeButton";
 import FixedMark from "./components/FixedMark";
@@ -569,6 +572,46 @@ export default function ScheduledEntries() {
     [sortedSchedules]
   );
 
+  /* ── 영수증으로 뽑을 것 고르기 ──────────────────────────────
+     고른 것은 지금 보이는 줄에서만 센다. 걸러서 사라진 건이 고른 채 남아
+     있으면 눈에 없는 것이 영수증에 찍힌다. */
+  const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
+  const [receiptOpen, setReceiptOpen] = useState(false);
+
+  const togglePick = useCallback((id: number) => {
+    setPickedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const picked = useMemo(
+    () => sortedSchedules.filter((x) => pickedIds.has(x.schedule_id)),
+    [sortedSchedules, pickedIds]
+  );
+
+  const receiptRows = useMemo<ReceiptRow[]>(() => {
+    const payName = new Map(payList.map((p) => [String(p.code), p.name]));
+    return picked.map((x) => ({
+      key: `sched-${x.schedule_id}`,
+      src: "정기" as const,
+      date: String(x.next_run_at ?? "").slice(0, 10),
+      cat: [
+        cat1List.find((c) => c.id === x.cat1_id)?.name,
+        x.cat2_id != null ? cat2Map[x.cat2_id]?.name : null,
+        x.cat3_id != null ? cat3Map[x.cat3_id]?.name : null,
+      ]
+        .filter(Boolean)
+        .join(" › "),
+      amount: Number((x.split_count ?? 0) > 0 ? x.net_amount : x.amount) || 0,
+      inout: (x.inout as number) ?? null,
+      place: "",
+      pay: payName.get(String(x.pay_method ?? "")) ?? "",
+    }));
+  }, [picked, cat1List, cat2Map, cat3Map, payList]);
+
   const buildSchedulePayload = (schedule: any) => {
     const [hour, minute] = (schedule.time || "00:00").split(":").map(Number);
 
@@ -1043,6 +1086,8 @@ export default function ScheduledEntries() {
               payList={payList}
               toTimeString={toTimeString}
               onOpenEditor={openEditor}
+              picked={pickedIds.has(s.schedule_id)}
+              onTogglePick={togglePick}
               blurred={isBlurred(s, blurSets)}
               fixed={isFixed(s, fixSets)}
               onToggleFixed={toggleFixed}
@@ -1052,6 +1097,18 @@ export default function ScheduledEntries() {
           </section>
           ))}
         </div>
+      )}
+
+      <PickBar
+        count={picked.length}
+        all={sortedSchedules.length}
+        onAll={() => setPickedIds(new Set(sortedSchedules.map((x) => x.schedule_id)))}
+        onClear={() => setPickedIds(new Set())}
+        onReceipt={() => setReceiptOpen(true)}
+      />
+
+      {receiptOpen && (
+        <ReceiptPopup rows={receiptRows} onClose={() => setReceiptOpen(false)} />
       )}
 
       {/* 편집 팝업 */}
@@ -1354,6 +1411,8 @@ export function ScheduleCard({
   payList,
   toTimeString,
   onOpenEditor,
+  picked = false,
+  onTogglePick,
   blurred,
   readOnly = false,
   onTogglePerfExclude,
@@ -1367,6 +1426,10 @@ export function ScheduleCard({
   payList: { code: string; name: string; category?: string }[];
   toTimeString: (hour?: number, minute?: number) => string;
   onOpenEditor?: (schedule: any) => void;
+  /* 골라 둔 건인지. 넘기지 않으면 고르기 상자가 서지 않는다 — 기간 상세처럼
+     보기만 하는 화면은 지금까지와 같은 꼴을 지킨다. */
+  picked?: boolean;
+  onTogglePick?: (id: number) => void;
   /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onTogglePerfExclude?: (schedule: PerfRow, next: boolean) => void;
   /* 이 건이 고정인지 — 건에 정해 둔 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
@@ -1480,6 +1543,23 @@ export function ScheduleCard({
             결제 수단은 세 화면 모두 그렇듯 줄 오른쪽 끝에 선다.
             메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
         <div className="entry-ln">
+          {/* 고르기 상자. 지출과 대기와 같은 자리다 — 결제 수단이 선 줄의
+              왼쪽 끝. 꾹 누르면 편집 팝업이 열리므로 빼 둔다. */}
+          {onTogglePick && (
+            <button
+              type="button"
+              className={`pe-pick${picked ? " pe-pick--on" : ""}`}
+              data-no-longpress
+              aria-pressed={picked}
+              title={picked ? "선택 해제" : "선택"}
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePick(s.schedule_id);
+              }}
+            >
+              ✓
+            </button>
+          )}
           <span className="schedule-card__when">
             <span className="schedule-card__when-day">
               {whenLabel(s.interval_months, s.anchor_ym, s.day_of_month)}

@@ -12,6 +12,9 @@ import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import QuickActions from "./components/QuickActions";
+import PickBar from "./components/PickBar";
+import ReceiptPopup from "./components/ReceiptPopup";
+import type { ReceiptRow } from "../utils/receipt";
 import MemoPad from "./components/MemoPad";
 import PerfExcludeButton from "./components/PerfExcludeButton";
 import FixedMark from "./components/FixedMark";
@@ -85,12 +88,34 @@ export default function PendingEntries() {
     [rows, pickedIds]
   );
 
+
   const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout?: number | null; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; is_active?: number }[]>([]);
   const [payList, setPayList] = useState<
     { code: string; name: string; is_active?: number; category?: string }[]
   >([]);
+
+  const [receiptOpen, setReceiptOpen] = useState(false);
+
+  const receiptRows = useMemo<ReceiptRow[]>(() => {
+    const name1 = new Map(cat1List.map((c) => [c.id, c.name]));
+    const name2 = new Map(cat2List.map((c) => [c.id, c.name]));
+    const name3 = new Map(cat3List.map((c) => [c.id, c.name]));
+    const payName = new Map(payList.map((p) => [String(p.code), p.name]));
+    return picked.map((r) => ({
+      key: `pending-${r.entry_id}`,
+      src: "대기" as const,
+      date: String(r.tx_date ?? "").slice(0, 10),
+      cat: [name1.get(Number(r.cat1_id)), name2.get(Number(r.cat2_id)), name3.get(Number(r.cat3_id))]
+        .filter(Boolean)
+        .join(" › "),
+      amount: Number((r.split_count ?? 0) > 0 ? r.net_amount : r.amount) || 0,
+      inout: (r.inout as number) ?? null,
+      place: String(r.place_name ?? "").trim(),
+      pay: payName.get(String(r.pay_method ?? "")) ?? "",
+    }));
+  }, [picked, cat1List, cat2List, cat3List, payList]);
 
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -957,11 +982,11 @@ export default function PendingEntries() {
               필터
             </button>
 
-            {/* 선택한 항목이 하나라도 있으면 단추가 할 일을 바꿔 말한다. 수는
-                단추에 적지 않는다 — 단추 폭이 선택할 때마다 들썩여 옆의 [필터]가
-                밀린다. 몇 건이 갔는지는 보낸 뒤 알림이 말한다. */}
+            {/* 도구 줄은 늘 [모두 전송]이다. 고른 것만 보내는 일은 아래
+                고르기 막대가 맡는다 — 같은 자리의 단추가 때에 따라 다른 일을
+                하면 무엇이 갈지 누르기 전에 알 수 없다. */}
             <button onClick={sendMany} className="ui-btn primary">
-              {picked.length > 0 ? "선택 전송" : "모두 전송"}
+              모두 전송
             </button>
           </div>
         </div>
@@ -1004,6 +1029,23 @@ export default function PendingEntries() {
         ))}
       </div>
 
+
+      <PickBar
+        count={picked.length}
+        all={rows.length}
+        onAll={() => setPickedIds(new Set(rows.map((r) => r.entry_id)))}
+        onClear={() => setPickedIds(new Set())}
+        onReceipt={() => setReceiptOpen(true)}
+        more={
+          <button type="button" className="pick-bar__more" onClick={sendMany}>
+            선택 전송
+          </button>
+        }
+      />
+
+      {receiptOpen && (
+        <ReceiptPopup rows={receiptRows} onClose={() => setReceiptOpen(false)} />
+      )}
 
       {/* 편집 팝업 */}
       {draft && (
@@ -1499,7 +1541,7 @@ export function PendingCard({
       <div className="entry-ln entry-ln--send">
         {/* 선택해서 함께 보내는 상자. 카드를 꾹 누르면 편집 팝업이 열리므로
             이 상자는 꾹 누르기에서 빼 둔다(data-no-longpress). */}
-        {!readOnly && onTogglePick && (
+        {onTogglePick && (
           <button
             type="button"
             className={`pe-pick${picked ? " pe-pick--on" : ""}`}

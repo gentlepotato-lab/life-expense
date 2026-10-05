@@ -18,6 +18,9 @@ import {
   type Src,
 } from "../utils/calendarFilter";
 import { EntryCard } from "./Entries";
+import PickBar from "./components/PickBar";
+import ReceiptPopup from "./components/ReceiptPopup";
+import type { ReceiptRow } from "../utils/receipt";
 import { PendingCard } from "./PendingEntries";
 import { ScheduleCard, type CategoryL2Meta, type CategoryL3Meta } from "./ScheduledEntries";
 import QuickActions from "./components/QuickActions";
@@ -38,7 +41,12 @@ import QuickActions from "./components/QuickActions";
  */
 
 /** 그날의 카드 한 장 — 어느 자료에서 왔는지 함께 들고 다닌다. */
+/** 갈래를 영수증에 적을 말로. 바뀌지 않으므로 밖에 둔다. */
+const 갈래말 = { expense: "지출", pending: "대기", scheduled: "정기" } as const;
+
 type Item = {
+  /** 고를 때 쓰는 열쇠. 갈래를 붙여야 entry_id와 schedule_id가 겹치지 않는다. */
+  key: string;
   src: Src;
   /** 날짜별로 묶기 위한 값. 정기는 다음 예정일에서 뽑는다. */
   tx_date: string;
@@ -251,6 +259,7 @@ export default function CalendarDetail() {
         if (!passFixed(x as { inout?: number }, fixPick, fixSets)) return;
         if (!passes(src, x, date)) return;
         out.push({
+          key: `${src}-${x.entry_id ?? x.schedule_id}`,
           src,
           tx_date: date,
           inout: x.inout as number,
@@ -280,6 +289,47 @@ export default function CalendarDetail() {
     () => groupByDate(items),
     [items]
   );
+
+  /* ── 영수증으로 뽑을 것 고르기 ──────────────────────────────
+     한 화면에 세 갈래가 섞여 있어 열쇠에 갈래를 붙인다. entry_id와
+     schedule_id는 서로 다른 표의 번호라 그냥 쓰면 겹친다. */
+  const [pickedKeys, setPickedKeys] = useState<Set<string>>(new Set());
+  const [receiptOpen, setReceiptOpen] = useState(false);
+
+  const togglePick = useCallback((key: string) => {
+    setPickedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const picked = useMemo(() => items.filter((it) => pickedKeys.has(it.key)), [items, pickedKeys]);
+
+  const receiptRows = useMemo<ReceiptRow[]>(() => {
+    const name1 = new Map(cat1List.map((c) => [c.id, c.name]));
+    const payName = new Map(payNum.map((p) => [String(p.code), p.name]));
+    return picked.map((it) => {
+      const r = it.raw as Record<string, unknown>;
+      return {
+        key: it.key,
+        src: 갈래말[it.src],
+        date: it.tx_date,
+        cat: [
+          name1.get(Number(r.cat1_id)),
+          r.cat2_id != null ? cat2Map[Number(r.cat2_id)]?.name : null,
+          r.cat3_id != null ? cat3Map[Number(r.cat3_id)]?.name : null,
+        ]
+          .filter(Boolean)
+          .join(" › "),
+        amount: Number(it.net_amount ?? it.amount ?? 0),
+        inout: it.inout ?? null,
+        place: String(r.place_name ?? "").trim(),
+        pay: payName.get(String(r.pay_method ?? "")) ?? "",
+      };
+    });
+  }, [picked, cat1List, cat2Map, cat3Map, payNum]);
 
   /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다 — 내역 세 화면과 같다. */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
@@ -392,6 +442,8 @@ export default function CalendarDetail() {
                       payList={payNum}
                       onOpenEditor={noop}
                       onStartReveal={(id, e) => reveal(setExRows, id, e)}
+                      picked={pickedKeys.has(item.key)}
+                      onTogglePick={() => togglePick(item.key)}
                       blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
                       fixed={isFixed(row, fixSets)}
                       readOnly
@@ -409,6 +461,8 @@ export default function CalendarDetail() {
                       payList={payNum}
                       onOpenEditor={noop}
                       onStartReveal={(id, e) => reveal(setPeRows, id, e)}
+                      picked={pickedKeys.has(item.key)}
+                      onTogglePick={() => togglePick(item.key)}
                       blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
                       fixed={isFixed(row, fixSets)}
                       readOnly
@@ -424,6 +478,8 @@ export default function CalendarDetail() {
                     cat3Map={cat3Map}
                     payList={payStr}
                     toTimeString={toTimeString}
+                    picked={pickedKeys.has(item.key)}
+                    onTogglePick={() => togglePick(item.key)}
                     blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
                     fixed={isFixed(row, fixSets)}
                     readOnly
@@ -436,6 +492,18 @@ export default function CalendarDetail() {
 
       {loaded && dateGroups.length === 0 && (
         <p className="page-empty">조회된 내역이 없습니다.</p>
+      )}
+
+      <PickBar
+        count={picked.length}
+        all={items.length}
+        onAll={() => setPickedKeys(new Set(items.map((it) => it.key)))}
+        onClear={() => setPickedKeys(new Set())}
+        onReceipt={() => setReceiptOpen(true)}
+      />
+
+      {receiptOpen && (
+        <ReceiptPopup rows={receiptRows} onClose={() => setReceiptOpen(false)} />
       )}
 
       <QuickActions />

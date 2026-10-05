@@ -17867,3 +17867,192 @@ textarea.memo-input.memo-area {
 .pend-badge {
   background: var(--color-amber);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   165. 고르기 막대와 영수증(2026-10-04)
+   ─────────────────────────────────────────────────────────────
+   내역을 골라 영수증 한 장으로 뽑는다. 단추를 도구 줄에 넣어 보았더니
+   360px에서 지출과 정기의 도구 줄이 두 줄이 되어(24 → 56, 47px) 아래
+   내용이 통째로 밀렸다. 고를 때만 넣는 쪽은 고를 때마다 밀렸다 돌아와
+   더 나빴다. 그래서 도구 줄을 건드리지 않고 아래에 따로 띄운다.
+
+   영수증은 canvas로 그린다. DOM으로 한 벌 그리고 복사할 때 또 한 벌
+   그리면 둘이 어긋나는 날이 온다. 머리와 발과 항목을 각각 canvas로 두어
+   가운데만 굴리고, 복사할 때는 같은 붓으로 셋을 이어 한 장을 만든다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 고르기 막대 ──────────────────────────────────────────── */
+.pick-bar {
+  position: fixed;
+  /* 본문과 같은 선에 세운다. 좁은 화면에서는 좌우 8px이 그대로 남고(카드도
+     같은 자리에 선다), 넓은 화면에서는 카드 폭(760px)에 묶여 가운데로 온다.
+     묶지 않으면 1400px짜리 화면에서 막대만 1369px로 혼자 늘어난다. */
+  left: 0;
+  right: 0;
+  width: calc(100% - var(--space-2) * 2);
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+  /* 아래 이동 막대(62px) 바로 위에 선다. */
+  bottom: 62px;
+  z-index: 940;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 10px 8px 14px;
+  border-radius: 14px;
+  background: var(--color-text-primary);
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.28);
+  animation: pick-bar-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pick-bar-in {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.pick-bar__n {
+  flex: 0 0 auto;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 곁단추는 막대 바탕에 옅게 뜬다. 흰 알약으로 두면 [영수증]과 같은 무게로
+   보여 어느 것이 본일인지 흐려진다. */
+.pick-bar__sub {
+  flex: 0 0 auto;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pick-bar__sub:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 해제는 왼쪽 무리의 끝이다. 그 오른쪽은 본일 단추 자리로 민다. */
+.pick-bar__sub + .pick-bar__go,
+.pick-bar__sub + .pick-bar__more {
+  margin-left: auto;
+}
+
+.pick-bar__go,
+.pick-bar__more {
+  flex: 0 0 auto;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pick-bar__go {
+  background: #ffffff;
+  color: var(--color-text-primary);
+}
+
+.pick-bar__more {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+/* ─── 영수증 ───────────────────────────────────────────────── */
+/* 키를 화면보다 124px 작게 잡는다. 겉판이 가운데로 세우므로 위아래로 62px씩
+   남고, 그만큼이 오른쪽 위 단추 넷(바닥 50px)과 아래 이동 막대(62px)를
+   비켜 가는 자리다. 32px만 비우면 긴 영수증이 단추에 걸친다. */
+.rc-panel {
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 124px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 종이. 위아래가 톱니로 뜯긴 자국을 가짜 그림자 없이 바탕으로만 낸다. */
+.rc-paper {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fffefa;
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.28);
+}
+
+.rc-paper::before,
+.rc-paper::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: radial-gradient(circle at 5px 8px, #fffefa 5.4px, transparent 5.6px) 0 0 / 10px 8px repeat-x;
+}
+
+.rc-paper::before { top: -8px; }
+.rc-paper::after  { bottom: -8px; transform: scaleY(-1); }
+
+/* 가운데만 굴러간다. 머리와 발은 붙박이라 합계가 늘 보인다. */
+.rc-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.rc-canvas {
+  display: block;
+  /* canvas는 inline이라 아래에 글줄 몫의 빈틈이 생긴다. */
+  vertical-align: top;
+  /* 종이는 330px로 그리되 판이 그보다 좁으면 줄여서 세운다. height: auto가
+     그린 비율을 지키므로 글이 찌그러지지 않는다. 복사하는 그림은 늘 330px
+     폭 그대로라 화면이 좁아도 받는 그림은 작아지지 않는다. */
+  width: 100%;
+  height: auto;
+}
+
+/* 종이의 뜯긴 자국이 아래로 8px 삐져나오므로 그만큼 더 띄운다. 안 띄우면
+   톱니가 단추 위에 얹힌다. */
+.rc-act {
+  flex: 0 0 auto;
+  padding: 20px 0 0;
+}
+
+/* 넷을 똑같은 폭으로 나누면(flex: 1 1 0) 330px 안에서 한 칸이 82px이라
+   [다운로드]의 글자(45px)에 그림과 안쪽 여백을 더한 85px이 들어가지 않아
+   잘린다. 그래서 글자만큼 선 뒤에 남는 자리만 고르게 나눠 갖는다. */
+.rc-act > .ui-btn {
+  flex: 1 1 auto;
+  gap: 4px;
+}
+
+/* 그림을 단 단추. 잔소리 상세의 [그 화면으로] 단추와 같은 16px이다. */
+.rc-act__go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rc-act__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.rc-act__icon > svg {
+  width: 100%;
+  height: 100%;
+}
