@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import select, text
 from datetime import date
 import pandas as pd
@@ -68,9 +68,58 @@ def set_fixed(entry_id: int, value: str = Query(...), db: SessionDep = Depends()
     db.commit()
     return {"status": "ok", "updated": result.rowcount}
 
+def _check_bulk_row(r: dict) -> None:
+    """일괄 수정 한 줄을 검사한다.
+
+    이 길은 dict를 그대로 받아 raw SQL로 넘긴다. 장소 메타가 줄마다 달라
+    스키마 하나로 묶기 어려웠던 탓인데, 그래서 금액이 음수든 inout이 5든
+    그대로 들어가 집계가 깨졌다. 숫자로 셈하는 칸만 여기서 막는다.
+    """
+    if r.get("entry_id") is None:
+        raise HTTPException(status_code=400, detail="entry_id is required")
+
+    if "inout" in r and r["inout"] not in (-1, 1):
+        raise HTTPException(
+            status_code=400,
+            detail=f"inout must be -1 or 1 (entry_id={r.get('entry_id')})",
+        )
+
+    if "amount" in r and r["amount"] is not None:
+        try:
+            amount = float(r["amount"])
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=400,
+                detail=f"amount must be a number (entry_id={r.get('entry_id')})",
+            )
+        # 0원은 받는다. 쿠폰이나 포인트로 전액 결제한 건이 그렇다.
+        if amount < 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"amount must be 0 or more (entry_id={r.get('entry_id')})",
+            )
+
+    for key in ("cat1_id", "cat2_id", "cat3_id", "pay_method", "place_id"):
+        v = r.get(key)
+        if v in (None, ""):
+            continue
+        try:
+            int(v)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=400,
+                detail=f"{key} must be a number (entry_id={r.get('entry_id')})",
+            )
+
+
 @router.put("/bulk")
 def update_entries_bulk(rows: list[dict], db: SessionDep = Depends()):
     updated = 0
+
+    # 한 줄이라도 어긋나면 아무것도 고치지 않는다. 절반만 들어가면 어디까지
+    # 반영됐는지 알 길이 없다.
+    for r in rows:
+        _check_bulk_row(r)
 
     for r in rows:
 
@@ -395,10 +444,17 @@ def get_entries_by_month(ym: str, db: SessionDep = Depends()):
                      LEFT JOIN
                  life_expense.v_entries_net vn
                      ON vn.entry_id = e.entry_id
-           WHERE TO_CHAR(e.tx_date, 'YYYY-MM') = :ym
+           WHERE e.tx_date >= :ym_from
+             AND e.tx_date <  :ym_to
         ORDER BY e.tx_date DESC, e.entry_id DESC
     """)
-    rows = db.execute(sql, {"ym": ym}).mappings().all()
+    # 예전에는 TO_CHAR(e.tx_date, 'YYYY-MM') = :ym 으로 비교했다. 컬럼에 함수를
+    # 씌우면 tx_date 인덱스를 쓸 수 없어 매번 전체를 훑는다. 같은 달을
+    # 범위로 바꾸면 결과는 그대로이면서 인덱스를 탄다.
+    y, m = int(ym[:4]), int(ym[5:7])
+    ym_from = date(y, m, 1)
+    ym_to = date(y + 1, 1, 1) if m == 12 else date(y, m + 1, 1)
+    rows = db.execute(sql, {"ym_from": ym_from, "ym_to": ym_to}).mappings().all()
     return [dict(r) for r in rows]
 
 # 단일 삭제

@@ -1,13 +1,20 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import date, datetime
+from typing import Literal
+
+# 금액은 0원을 받는다. 쿠폰이나 포인트로 전액 결제한 건이 그렇다.
+# 음수는 받지 않는다. 돌려받은 돈은 수입(inout = 1)으로 적는다.
+Amount = Field(ge=0)
 
 class EntryIn(BaseModel):
     tx_date: date
     cat1_id: int
     cat2_id: int
-    inout: int
-    amount: float
-    pay_method: str
+    inout: Literal[-1, 1]
+    amount: float = Amount
+    # entries.pay_method는 payment_methods를 가리키는 정수다. 예전에는 여기만
+    # str이라 EntryUpdate와 어긋나 있었다.
+    pay_method: int
     memo: str | None = None
     cat3_id: int | None = None
 
@@ -39,8 +46,8 @@ class EntryUpdate(BaseModel):
     cat1_id: int | None = None
     cat2_id: int | None = None
     cat3_id: int | None = None
-    inout: int | None = None
-    amount: float | None = None
+    inout: Literal[-1, 1] | None = None
+    amount: float | None = Field(default=None, ge=0)
     pay_method: int | None = None
     memo: str | None = None
 
