@@ -11,6 +11,7 @@ import type { SplitDraft } from "./components/SplitEditor";
 import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
+import Collapse from "./components/Collapse";
 import SplitRows from "./components/SplitRows";
 import QuickActions from "./components/QuickActions";
 import PickBar from "./components/PickBar";
@@ -926,24 +927,26 @@ export default function Entries() {
               open={!collapsedDays.has(group.date)}
               onToggle={() => toggleDay(group.date)}
             />
-            {!collapsedDays.has(group.date) &&
-              group.items.map((row: any) => (
-              <EntryCard
-                key={row.entry_id}
-                row={row}
-                cat1List={cat1List}
-                cat2List={cat2List}
-                payList={payList}
-                onOpenEditor={openEditor}
-                onStartReveal={startReveal}
-                picked={pickedIds.has(row.entry_id)}
-                onTogglePick={togglePick}
-                blurred={isBlurred(row, blurSets)}
-                fixed={isFixed(row, fixSets)}
-                onTogglePerfExclude={togglePerfExclude}
-                onToggleFixed={toggleFixed}
-              />
-            ))}
+            <Collapse open={!collapsedDays.has(group.date)}>
+              {
+                group.items.map((row: any) => (
+                <EntryCard
+                  key={row.entry_id}
+                  row={row}
+                  cat1List={cat1List}
+                  cat2List={cat2List}
+                  payList={payList}
+                  onOpenEditor={openEditor}
+                  onStartReveal={startReveal}
+                  picked={pickedIds.has(row.entry_id)}
+                  onTogglePick={togglePick}
+                  blurred={isBlurred(row, blurSets)}
+                  fixed={isFixed(row, fixSets)}
+                  onTogglePerfExclude={togglePerfExclude}
+                  onToggleFixed={toggleFixed}
+                />
+              ))}
+            </Collapse>
           </section>
         ))}
       </div>
@@ -1461,7 +1464,9 @@ export function EntryCard({
             </span>
             <span className="amount-split__caret" aria-hidden="true">›</span>
           </span>
-          {open && <SplitRows base="/entries" ownerId={row.entry_id} />}
+          <Collapse open={open}>
+            <SplitRows base="/entries" ownerId={row.entry_id} />
+          </Collapse>
         </div>
       )}
     </article>

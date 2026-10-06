@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import axios from "../../api/client";
 import useBackClose from "../../hooks/useBackClose";
+import useListFit from "../../hooks/useListFit";
 import { EditField } from "./CardEditModal";
 import GroupItemList, { type GroupMeta } from "./GroupItemList";
 import { say } from "../../utils/notify";
@@ -31,6 +32,8 @@ export default function GroupMakePopup({
   const [name, setName] = useState("");
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
+  const 목록 = useRef<HTMLDivElement | null>(null);
+  useListFit(목록, items.length);
 
   const save = async () => {
     if (saving) return;
@@ -91,7 +94,7 @@ export default function GroupMakePopup({
 
         <div className="popup-body" style={{ paddingTop: 0 }}>
           <p className="mk-note">아래 내역을 묶습니다.</p>
-          <div className="mk-list">
+          <div className="mk-list" ref={목록}>
             <GroupItemList items={items} meta={meta} />
           </div>
         </div>

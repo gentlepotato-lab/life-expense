@@ -31,6 +31,7 @@ import CardPerkPopup, { type PerkTier } from "./components/CardPerkPopup";
 import useLongPress from "../hooks/useLongPress";
 import { manwon } from "../utils/amount";
 import { say, ask, askText } from "../utils/notify";
+import Collapse from "./components/Collapse";
 /**
  * 카드 줄 — 꾹 누르면 그 카드의 혜택이 펼쳐진다.
  *
@@ -720,7 +721,7 @@ export default function PaymentMethods() {
           </div>
 
         {/* 접힌 묶음은 줄을 그리지 않는다. */}
-        {!collapsed.has(groupLabel(g.cat)) && (
+        <Collapse open={!collapsed.has(groupLabel(g.cat))}>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -924,7 +925,7 @@ export default function PaymentMethods() {
             ))}
           </SortableContext>
         </DndContext>
-        )}
+        </Collapse>
         </>
         )}
         </SortableGroup>

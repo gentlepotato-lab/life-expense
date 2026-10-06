@@ -11,6 +11,7 @@ import type { SplitDraft } from "./components/SplitEditor";
 import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
+import Collapse from "./components/Collapse";
 import QuickActions from "./components/QuickActions";
 import PickBar from "./components/PickBar";
 import ReceiptPopup from "./components/ReceiptPopup";
@@ -1027,26 +1028,28 @@ export default function PendingEntries() {
               open={!collapsedDays.has(group.date)}
               onToggle={() => toggleDay(group.date)}
             />
-            {!collapsedDays.has(group.date) &&
-              group.items.map((row: any) => (
-              <PendingCard
-                key={row.entry_id}
-                row={row}
-                cat1List={cat1List}
-                cat2List={cat2List}
-                cat3List={cat3List}
-                payList={payList}
-                onOpenEditor={openEditor}
-                onStartReveal={startReveal}
-                onSend={sendOne}
-                picked={pickedIds.has(row.entry_id)}
-                onTogglePick={togglePick}
-                blurred={isBlurred(row, blurSets)}
-                fixed={isFixed(row, fixSets)}
-                onToggleFixed={toggleFixed}
-                onTogglePerfExclude={togglePerfExclude}
-              />
-            ))}
+            <Collapse open={!collapsedDays.has(group.date)}>
+              {
+                group.items.map((row: any) => (
+                <PendingCard
+                  key={row.entry_id}
+                  row={row}
+                  cat1List={cat1List}
+                  cat2List={cat2List}
+                  cat3List={cat3List}
+                  payList={payList}
+                  onOpenEditor={openEditor}
+                  onStartReveal={startReveal}
+                  onSend={sendOne}
+                  picked={pickedIds.has(row.entry_id)}
+                  onTogglePick={togglePick}
+                  blurred={isBlurred(row, blurSets)}
+                  fixed={isFixed(row, fixSets)}
+                  onToggleFixed={toggleFixed}
+                  onTogglePerfExclude={togglePerfExclude}
+                />
+              ))}
+            </Collapse>
           </section>
         ))}
       </div>
@@ -1666,7 +1669,9 @@ export function PendingCard({
             </span>
             <span className="amount-split__caret" aria-hidden="true">›</span>
           </span>
-          {open && <SplitRows base="/pending-entries" ownerId={row.entry_id} />}
+          <Collapse open={open}>
+            <SplitRows base="/pending-entries" ownerId={row.entry_id} />
+          </Collapse>
         </div>
       )}
     </article>

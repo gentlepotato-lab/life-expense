@@ -18,6 +18,7 @@ import GroupHead from "./components/GroupHead";
 import ReceiptPopup from "./components/ReceiptPopup";
 import type { ReceiptRow } from "../utils/receipt";
 import { CollapseAllButtons } from "./components/CollapseToggle";
+import Collapse from "./components/Collapse";
 import { EntryCard } from "./Entries";
 import type { GroupMeta } from "./components/GroupItemList";
 import { groupByDate } from "../utils/dateGroup";
@@ -290,19 +291,23 @@ export default function EntryGroups() {
                 <MemoPad memo={group.memo} />
               </GroupTap>
 
-              {group.items.length === 0
-                ? open && <p className="page-empty">담긴 내역이 없습니다.</p>
-                : !open && (
-                    <GroupBrief
-                      group={group}
-                      onToggle={() => toggleGroup(group.group_id)}
-                      onOpen={() => setOpenId(group.group_id)}
-                    />
-                  )}
+              {group.items.length === 0 ? (
+                <Collapse open={open}>
+                  <p className="page-empty">담긴 내역이 없습니다.</p>
+                </Collapse>
+              ) : (
+                <Collapse open={!open}>
+                  <GroupBrief
+                    group={group}
+                    onToggle={() => toggleGroup(group.group_id)}
+                    onOpen={() => setOpenId(group.group_id)}
+                  />
+                </Collapse>
+              )}
 
               {/* 펼친 몸통은 점선 난간이 왼쪽에서 받친다. 날짜 단이 여럿
                   서면 어디까지가 한 묶음인지 눈으로 잡히지 않는다. */}
-              {open && (
+              <Collapse open={open}>
                 <div className="mk-body">
                   {groupByDate(group.items as GroupItem[]).map((day) => (
                   <section key={day.date || "no-date"} className="date-group">
@@ -340,7 +345,7 @@ export default function EntryGroups() {
                     </section>
                   ))}
                 </div>
-              )}
+              </Collapse>
             </section>
           );
         })}

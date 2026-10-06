@@ -43,6 +43,7 @@ import { currentPalette } from "../utils/palettes";
 import { manwon } from "../utils/amount";
 import { say } from "../utils/notify";
 import { scrollEase } from "../utils/motion";
+import Collapse from "./components/Collapse";
 import {
   EMPTY_FILTER,
   fixedSetsFrom,
@@ -2502,7 +2503,7 @@ export default function Charts() {
             )}
           </header>
 
-          {cardOpen && (
+          <Collapse open={cardOpen}>
           <div
             className="card-perf__strip"
             ref={cardStripRef}
@@ -2518,7 +2519,7 @@ export default function Charts() {
               />
             ))}
           </div>
-          )}
+          </Collapse>
         </section>
       )}
 

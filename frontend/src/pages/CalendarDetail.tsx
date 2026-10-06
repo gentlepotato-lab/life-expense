@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "../api/client";
 import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
+import Collapse from "./components/Collapse";
 import { groupByDate } from "../utils/dateGroup";
 import {
   EMPTY_FILTER,
@@ -438,65 +439,67 @@ export default function CalendarDetail() {
               open={!collapsedDays.has(group.date)}
               onToggle={() => toggleDay(group.date)}
             />
-            {!collapsedDays.has(group.date) &&
-              group.items.map((item) => {
-                const row = item.raw;
-                if (item.src === "expense") {
+            <Collapse open={!collapsedDays.has(group.date)}>
+              {
+                group.items.map((item) => {
+                  const row = item.raw;
+                  if (item.src === "expense") {
+                    return (
+                      <EntryCard
+                        key={`ex-${row.entry_id}`}
+                        row={row}
+                        cat1List={cat1List}
+                        cat2List={cat2List as never}
+                        payList={payNum}
+                        onOpenEditor={(r) => setEditing({ kind: "entry", row: r })}
+                        onStartReveal={(id, e) => reveal(setExRows, id, e)}
+                        picked={pickedKeys.has(item.key)}
+                        onTogglePick={() => togglePick(item.key)}
+                        blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
+                        fixed={isFixed(row, fixSets)}
+                      />
+                    );
+                  }
+                  if (item.src === "pending") {
+                    return (
+                      <PendingCard
+                        key={`pe-${row.entry_id}`}
+                        row={row}
+                        cat1List={cat1List}
+                        cat2List={cat2List as never}
+                        cat3List={cat3List as never}
+                        payList={payNum}
+                        onOpenEditor={(r) => setEditing({ kind: "pending", row: r })}
+                        onStartReveal={(id, e) => reveal(setPeRows, id, e)}
+                        picked={pickedKeys.has(item.key)}
+                        onTogglePick={() => togglePick(item.key)}
+                        blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
+                        fixed={isFixed(row, fixSets)}
+                      />
+                    );
+                  }
                   return (
-                    <EntryCard
-                      key={`ex-${row.entry_id}`}
-                      row={row}
+                    <ScheduleCard
+                      key={`sc-${row.schedule_id}`}
+                      s={row}
                       cat1List={cat1List}
-                      cat2List={cat2List as never}
-                      payList={payNum}
-                      onOpenEditor={(r) => setEditing({ kind: "entry", row: r })}
-                      onStartReveal={(id, e) => reveal(setExRows, id, e)}
+                      cat2Map={cat2Map}
+                      cat3Map={cat3Map}
+                      payList={payStr}
+                      toTimeString={toTimeString}
+                      /* 정기는 여기서 고치지 않는다. 한 건이 아니라 앞으로
+                         계속 올 약속이라, 주기와 휴일 처리와 끝 달과 감추기를
+                         함께 봐야 고친 뜻이 온전해진다. 그 자리는 정기 내역 한
+                         곳으로 둔다. */
+                      readOnly
                       picked={pickedKeys.has(item.key)}
                       onTogglePick={() => togglePick(item.key)}
                       blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
                       fixed={isFixed(row, fixSets)}
                     />
                   );
-                }
-                if (item.src === "pending") {
-                  return (
-                    <PendingCard
-                      key={`pe-${row.entry_id}`}
-                      row={row}
-                      cat1List={cat1List}
-                      cat2List={cat2List as never}
-                      cat3List={cat3List as never}
-                      payList={payNum}
-                      onOpenEditor={(r) => setEditing({ kind: "pending", row: r })}
-                      onStartReveal={(id, e) => reveal(setPeRows, id, e)}
-                      picked={pickedKeys.has(item.key)}
-                      onTogglePick={() => togglePick(item.key)}
-                      blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
-                      fixed={isFixed(row, fixSets)}
-                    />
-                  );
-                }
-                return (
-                  <ScheduleCard
-                    key={`sc-${row.schedule_id}`}
-                    s={row}
-                    cat1List={cat1List}
-                    cat2Map={cat2Map}
-                    cat3Map={cat3Map}
-                    payList={payStr}
-                    toTimeString={toTimeString}
-                    /* 정기는 여기서 고치지 않는다. 한 건이 아니라 앞으로
-                       계속 올 약속이라, 주기와 휴일 처리와 끝 달과 감추기를
-                       함께 봐야 고친 뜻이 온전해진다. 그 자리는 정기 내역 한
-                       곳으로 둔다. */
-                    readOnly
-                    picked={pickedKeys.has(item.key)}
-                    onTogglePick={() => togglePick(item.key)}
-                    blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
-                    fixed={isFixed(row, fixSets)}
-                  />
-                );
-              })}
+                })}
+            </Collapse>
           </section>
         ))}
       </div>

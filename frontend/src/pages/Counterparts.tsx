@@ -28,6 +28,7 @@ import QuickActions from "./components/QuickActions";
 import useEditLock from "../hooks/useEditLock";
 import { EditLockTip } from "./components/EditLock";
 import { say, ask, askText } from "../utils/notify";
+import Collapse from "./components/Collapse";
 type Counterpart = {
   counterpart_id: number;
   name: string;
@@ -700,7 +701,7 @@ export default function Counterparts() {
               </div>
 
               {/* 접힌 묶음은 줄을 그리지 않는다. */}
-              {!collapsed.has(groupLabel(g.cat)) && (
+              <Collapse open={!collapsed.has(groupLabel(g.cat))}>
               <>
               {/* 순서 변경은 같은 묶음 안에서만 — 구분을 바꾸면 묶음이 바뀐다. */}
               <DndContext
@@ -724,7 +725,7 @@ export default function Counterparts() {
                 </SortableContext>
               </DndContext>
               </>
-              )}
+              </Collapse>
             </>
             )}
             </SortableGroup>

@@ -4,6 +4,7 @@ import QuickActions from "./components/QuickActions";
 import PlaceMapPopup from "./components/PlaceMapPopup";
 import PlacePeriodPopup from "./components/PlacePeriodPopup";
 import CollapseToggle, { CollapseAllButtons } from "./components/CollapseToggle";
+import Collapse from "./components/Collapse";
 import {
   allKeys,
   board,
@@ -323,20 +324,20 @@ export default function Places() {
             <div key={g.key} className="wh-group">
               {head(g, false)}
 
-              {isOpen(g.key) && (
+              <Collapse open={isOpen(g.key)}>
                 <div className="wh-body">
                   {g.children.length > 0
                     ? g.children.map((kid) => (
                         <div key={kid.key} className="wh-group wh-group--in">
                           {head(kid, true)}
-                          {isOpen(kid.key) && (
+                          <Collapse open={isOpen(kid.key)}>
                             <div className="wh-body">{rowsOf(kid.places)}</div>
-                          )}
+                          </Collapse>
                         </div>
                       ))
                     : rowsOf(g.places)}
                 </div>
-              )}
+              </Collapse>
             </div>
           ))}
       </div>

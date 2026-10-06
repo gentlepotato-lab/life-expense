@@ -14516,6 +14516,20 @@ input.target__area {
   max-height: var(--memo-two);
 }
 
+/* 메모는 떼었다 붙이는 것이 아니라 두 줄에서 끊는 것이라, 겹(Collapse)이
+   아니라 끊는 키를 끈다. max-content로 끌려면 안쪽 키를 끌 수 있다고
+   알려 줘야 한다(interpolate-size). 이 한 줄은 메모 판에만 걸린다. */
+.memo-body {
+  interpolate-size: allow-keywords;
+  max-height: max-content;
+  overflow: hidden;
+  transition: max-height var(--collapse-dur) var(--ease);
+}
+
+:root[data-motion="off"] .memo-body {
+  transition: none;
+}
+
 .memo-fade {
   position: absolute;
   right: 0;
@@ -17997,12 +18011,31 @@ textarea.memo-input.memo-area {
   position: absolute;
   left: 0;
   right: 0;
-  height: 8px;
-  background: radial-gradient(circle at 5px 8px, #fffefa 5.4px, transparent 5.6px) 0 0 / 10px 8px repeat-x;
+  height: 4px;
+  background-repeat: repeat-x;
+  background-size: 12px 4px;
 }
 
-.rc-paper::before { top: -8px; }
-.rc-paper::after  { bottom: -8px; transform: scaleY(-1); }
+/* 핑킹가위로 자른 자국 — 굴곡 없이 곧은 빗금으로만 간다.
+   한 칸은 12px, 깊이는 4px이다. 한 칸을 넓히고 깊이를 줄이면 빗금이
+   그만큼 눕는다 — 45도로 서 있던 것이 34도로 내려앉아 이가 완만해진다.
+
+   위는 솟은 이, 아래는 파인 홈이다. 위로 솟는 키와 아래로 파인 깊이를
+   더하면 어디서나 4px이라, 두 장을 포개면 이가 홈에 꼭 들어간다. 이가
+   가장 높은 자리에서 홈이 가장 깊고, 이가 없는 자리에서 홈도 없다.
+
+   동그라미나 타원으로는 이 맞물림을 뾰족하게 낼 수 없었다. 호는 이웃과
+   만나는 자리가 뭉개지고 끝도 서지 않는다. 꼭짓점을 찍어 그리는 편이
+   가위 자국에 가깝다. */
+.rc-paper::before {
+  top: -4px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='4'%3E%3Cpath d='M0 4 L6 0 L12 4 Z' fill='%23fffefa'/%3E%3C/svg%3E");
+}
+
+.rc-paper::after {
+  bottom: -4px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='4'%3E%3Cpath d='M0 0 L0 4 L6 0 L12 4 L12 0 Z' fill='%23fffefa'/%3E%3C/svg%3E");
+}
 
 /* 가운데만 굴러간다. 머리와 발은 붙박이라 합계가 늘 보인다. */
 .rc-scroll {
@@ -18396,4 +18429,79 @@ textarea.memo-input.memo-area {
   .pick-bar:has(> :nth-child(6)) .pick-bar__go {
     padding: 0 10px;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   167. 접고 펴는 동안(2026-10-06)
+   ─────────────────────────────────────────────────────────────
+   지금까지는 접으면 안쪽이 통째로 사라지고 펴면 통째로 나타났다. 한 틀에
+   끝나니 목록이 툭 끊긴다. 키를 0에서 제 키까지 끌어 주면 어디가 접히고
+   펴지는지가 눈으로 따라온다(components/Collapse.tsx).
+
+   쉬고 있을 때는 상자를 만들지 않는다. 겹 하나를 끼우면 바로 아래 자식을
+   가리키는 규칙이 어긋나는데, display: contents면 상자가 없어 안쪽이
+   지금까지와 똑같은 자리에 선다. 상자는 움직이는 동안에만 생긴다.
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Collapse.tsx의 DUR과 값을 맞출 것 */
+  --collapse-dur: 200ms;
+  /* 처음에 세게 밀고 끝에서 사뿐히 앉는다. 화면이 쓰는 --ease는 양끝이
+     모두 느린 곡선이라, 접기에 걸면 처음 30ms쯤 가만히 있다가 뚝 떨어져
+     머뭇거리는 것처럼 보였다. */
+  --collapse-ease: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.collapse {
+  display: contents;
+}
+
+.collapse__in {
+  display: contents;
+}
+
+/* 바깥 겹이 키를 끄는 동안 안쪽 겹은 위에서 내려온다. 키만 끌면 아래가
+   잘려 올라가는 발이지, 카드가 펴지는 꼴이 아니다.
+
+   움직이는 동안만 제 상자 안에 가둔다(contain). 안쪽이 다시 셈될 때 바깥
+   화면까지 함께 셈하지 않아 틀이 덜 무겁다.
+
+   will-change는 걸지 않는다. 걸어 두었더니 켜는 순간 겹을 따로 떼어 내느라
+   첫 움직임이 24ms에서 34ms로 밀렸다 — 그 10ms가 머뭇거림으로 보인다. */
+.collapse.is-moving {
+  display: block;
+  overflow: hidden;
+  contain: layout paint;
+  transition: height var(--collapse-dur) var(--collapse-ease);
+}
+
+.collapse.is-moving > .collapse__in {
+  display: block;
+}
+
+.collapse.is-opening > .collapse__in {
+  animation: collapse-in var(--collapse-dur) var(--collapse-ease) both;
+}
+
+.collapse.is-closing > .collapse__in {
+  animation: collapse-out var(--collapse-dur) var(--collapse-ease) both;
+}
+
+@keyframes collapse-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes collapse-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-10px); }
+}
+
+/* 움직임을 끄면 끌지 않고 곧바로 끝낸 자리에 선다(160절). */
+:root[data-motion="off"] .collapse.is-moving {
+  transition: none;
+}
+
+:root[data-motion="off"] .collapse.is-moving > .collapse__in {
+  animation: none;
 }

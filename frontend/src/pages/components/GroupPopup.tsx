@@ -1,6 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import axios from "../../api/client";
 import useBackClose from "../../hooks/useBackClose";
+import useListFit from "../../hooks/useListFit";
 import ClipMark from "./ClipMark";
 import GroupAddPopup from "./GroupAddPopup";
 import GroupItemList, { type GroupMeta } from "./GroupItemList";
@@ -56,6 +57,8 @@ export default function GroupPopup({
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [addOpen, setAddOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const 목록 = useRef<HTMLDivElement | null>(null);
+  useListFit(목록, group.items.length);
 
   const togglePick = useCallback((id: number) => {
     setPicked((prev) => {
@@ -208,7 +211,7 @@ export default function GroupPopup({
           </div>
 
           <div className="popup-body" style={{ paddingTop: 0 }}>
-            <div className="mk-list">
+            <div className="mk-list" ref={목록}>
               {group.items.length === 0 ? (
                 <p className="page-empty">담긴 내역이 없습니다.</p>
               ) : (

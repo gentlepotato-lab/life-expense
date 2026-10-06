@@ -14,6 +14,7 @@ import DateGroupHeader from "./components/DateGroupHeader";
 import SplitRows from "./components/SplitRows";
 import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
 import { CollapseAllButtons } from "./components/CollapseToggle";
+import Collapse from "./components/Collapse";
 import QuickActions from "./components/QuickActions";
 import PickBar from "./components/PickBar";
 import ReceiptPopup from "./components/ReceiptPopup";
@@ -1086,25 +1087,27 @@ export default function ScheduledEntries() {
               open={!collapsedDays.has(group.date)}
               onToggle={() => toggleDay(group.date)}
             />
-            {!collapsedDays.has(group.date) &&
-              group.items.map((s: any) => (
-            <ScheduleCard
-              key={s.schedule_id}
-              s={s}
-              cat1List={cat1List}
-              cat2Map={cat2Map}
-              cat3Map={cat3Map}
-              payList={payList}
-              toTimeString={toTimeString}
-              onOpenEditor={openEditor}
-              picked={pickedIds.has(s.schedule_id)}
-              onTogglePick={togglePick}
-              blurred={isBlurred(s, blurSets)}
-              fixed={isFixed(s, fixSets)}
-              onToggleFixed={toggleFixed}
-              onTogglePerfExclude={togglePerfExclude}
-            />
-            ))}
+            <Collapse open={!collapsedDays.has(group.date)}>
+              {
+                group.items.map((s: any) => (
+              <ScheduleCard
+                key={s.schedule_id}
+                s={s}
+                cat1List={cat1List}
+                cat2Map={cat2Map}
+                cat3Map={cat3Map}
+                payList={payList}
+                toTimeString={toTimeString}
+                onOpenEditor={openEditor}
+                picked={pickedIds.has(s.schedule_id)}
+                onTogglePick={togglePick}
+                blurred={isBlurred(s, blurSets)}
+                fixed={isFixed(s, fixSets)}
+                onToggleFixed={toggleFixed}
+                onTogglePerfExclude={togglePerfExclude}
+              />
+              ))}
+            </Collapse>
           </section>
           ))}
         </div>

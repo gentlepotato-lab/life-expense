@@ -25,6 +25,7 @@ import { PinIcon, WaveIcon } from "./components/FixedIcons";
 import useEditLock from "../hooks/useEditLock";
 import { EditLockTip } from "./components/EditLock";
 import { say, ask } from "../utils/notify";
+import Collapse from "./components/Collapse";
 /**
  * 고정 · 변동 고르개가 입을 빛깔 — 그 갈래가 나가는 돈인지 들어오는 돈인지를
  * 따른다. 이름 앞의 +/− 점(.cat2-inout)이 이미 그 빛깔이라, 한 줄 안에서
@@ -887,7 +888,7 @@ export default function Categories() {
                 </SortableItem>
 
                 {/* 접힌 중분류는 아래를 그리지 않는다. */}
-                {isOpen(`1:${c1.cat1_id}`) && (
+                <Collapse open={isOpen(`1:${c1.cat1_id}`)}>
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -1060,8 +1061,8 @@ export default function Categories() {
                           )}
 
                           {/* 세분류는 cat2-header-row 밖 & 새 DndContext 영역 - 세분류가 있을 때만 표시 */}
-                          {isOpen(`2:${c2.cat2_id}`) &&
-                            cat3View.filter((c) => c.cat2_id === c2.cat2_id).length > 0 && (
+                          <Collapse open={isOpen(`2:${c2.cat2_id}`) &&
+                            cat3View.filter((c) => c.cat2_id === c2.cat2_id).length > 0}>
                             <DndContext
                               sensors={sensors}
                               collisionDetection={closestCenter}
@@ -1203,12 +1204,12 @@ export default function Categories() {
                                 </div>
                               </SortableContext>
                             </DndContext>
-                          )}
+                          </Collapse>
                         </>
                       ))}
                   </SortableContext>
                 </DndContext>
-                )}
+                </Collapse>
               </div>
             ))}
           </SortableContext>
