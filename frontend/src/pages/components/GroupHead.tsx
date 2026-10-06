@@ -1,6 +1,5 @@
-import ClipMark from "./ClipMark";
 import GroupTap from "./GroupTap";
-import { clipTone, type EntryGroup } from "../../utils/groups";
+import type { EntryGroup } from "../../utils/groups";
 
 /**
  * 묶음 한 덩이의 머리말.
@@ -73,8 +72,9 @@ export default function GroupHead({
         ✓
       </button>
 
-      <ClipMark tone={clipTone(group)} />
-
+      {/* 이름은 네모난 딱지에 담는다. 앞에 클립을 세워 두었는데 걷었다 —
+          카드마다 클립이 이미 서 있어 머리말까지 같은 그림을 두면 한 화면에
+          클립이 여럿 선다. */}
       <span className="date-group__label">{group.name}</span>
       <span className="date-group__count" title={`${group.count}건`}>
         {group.count}

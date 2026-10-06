@@ -48,7 +48,7 @@ export default function GroupPopup({
   onChanged: () => void;
   onClose: () => void;
 }) {
-  useBackClose(true, onClose);
+
 
   const [editName, setEditName] = useState(false);
   const [editMemo, setEditMemo] = useState(false);
@@ -60,6 +60,27 @@ export default function GroupPopup({
   const 목록 = useRef<HTMLDivElement | null>(null);
   useListFit(목록, group.items.length);
 
+  /* 고쳐 놓고 아직 담지 않은 것이 있는지. 담긴 것과 글자만 견준다. */
+  const 고친것 =
+    name.trim() !== group.name.trim() || memo.trim() !== (group.memo ?? "").trim();
+
+  /* 담지 않은 채로 닫으면 고친 것이 소리 없이 사라진다. 한 번 묻는다. */
+  const 닫기 = async () => {
+    if (!고친것) {
+      onClose();
+      return;
+    }
+    const 예 = await ask({
+      title: "고친 것 버리기",
+      body: "담지 않은 이름이나 메모가 있습니다.",
+      go: "버리고 닫기",
+      danger: true,
+    });
+    if (예) onClose();
+  };
+
+  useBackClose(true, 닫기);
+
   const togglePick = useCallback((id: number) => {
     setPicked((prev) => {
       const next = new Set(prev);
@@ -69,22 +90,38 @@ export default function GroupPopup({
     });
   }, []);
 
-  /** 이름과 메모는 칸을 벗어날 때 담는다. 따로 누를 단추를 두지 않는다. */
-  const saveField = async (field: "name" | "memo", value: string) => {
-    const before = field === "name" ? group.name : (group.memo ?? "");
-    if (value.trim() === before.trim()) return;
-    if (field === "name" && !value.trim()) {
+  /**
+   * 이름과 메모를 담는다.
+   *
+   * 칸을 벗어날 때 곧바로 담던 것을 [저장]으로 옮겼다. 글자를 고치자마자
+   * 담기면 고치던 중에 손이 빗나가도 그대로 남아, 무엇이 담겼는지 알 수
+   * 없었다. 담는 때를 누르는 사람이 정하는 쪽이 맞다.
+   *
+   * 담고 나면 닫는다 — 이 앱의 다른 [저장]이 모두 그렇다.
+   */
+  const save = async () => {
+    if (busy) return;
+    if (!name.trim()) {
       say.warn("묶음 이름을 적어 주세요.");
-      setName(group.name);
       return;
     }
+    if (!고친것) {
+      onClose();
+      return;
+    }
+    setBusy(true);
     try {
-      await axios.patch(`/entry-groups/${group.group_id}`, { [field]: value.trim() });
+      await axios.patch(`/entry-groups/${group.group_id}`, {
+        name: name.trim(),
+        memo: memo.trim(),
+      });
+      say.ok("저장 완료-!! ;-)");
       onChanged();
+      onClose();
     } catch (err: unknown) {
       say.bad(apiErrorMessage(err, "담지 못했습니다."));
-      if (field === "name") setName(group.name);
-      else setMemo(group.memo ?? "");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -134,7 +171,7 @@ export default function GroupPopup({
 
   return (
     <>
-      <div className="popup-overlay" onClick={onClose}>
+      <div className="popup-overlay" onClick={닫기}>
         <div
           className="popup-panel popup-panel--framed"
           onClick={(e) => e.stopPropagation()}
@@ -165,10 +202,7 @@ export default function GroupPopup({
                   maxLength={60}
                   autoFocus
                   onChange={(e) => setName(e.target.value)}
-                  onBlur={() => {
-                    setEditName(false);
-                    saveField("name", name);
-                  }}
+                  onBlur={() => setEditName(false)}
                 />
               ) : (
                 <button
@@ -191,10 +225,7 @@ export default function GroupPopup({
                   maxLength={200}
                   autoFocus
                   onChange={(e) => setMemo(e.target.value)}
-                  onBlur={() => {
-                    setEditMemo(false);
-                    saveField("memo", memo);
-                  }}
+                  onBlur={() => setEditMemo(false)}
                 />
               ) : (
                 <button
@@ -237,15 +268,18 @@ export default function GroupPopup({
           </div>
 
           {/* 다른 팝업과 같은 차례로 — 되돌리는 것, 닫기, 하려던 것 */}
-          <div className="btn-row popup-foot">
+          <div className="btn-row popup-foot mk-foot">
             <button type="button" className="ui-btn" onClick={unlink} disabled={busy}>
               묶음 풀기
             </button>
             <button type="button" className="ui-btn" onClick={removePicked} disabled={busy}>
               묶음에서 빼기
             </button>
-            <button type="button" className="ui-btn primary" onClick={onClose}>
+            <button type="button" className="ui-btn" onClick={닫기} disabled={busy}>
               닫기
+            </button>
+            <button type="button" className="ui-btn primary" onClick={save} disabled={busy}>
+              저장
             </button>
           </div>
         </div>
