@@ -18253,31 +18253,98 @@ textarea.memo-input.memo-area {
   animation: longpress-progress var(--longpress-delay) linear forwards;
 }
 
-/* ─── 접어 둔 묶음이 보이는 한 줄 ─────────────────────────────
-   카드로 세우지 않는다. 카드로 두면 펼쳤을 때의 카드 목록과 생김새가
-   겹쳐, 접은 것인지 펼친 것인지가 흐려진다. 기간 딱지 하나만 선다.
-   누르는 법은 머리말과 같다 — 그냥 누르면 펼쳐지고, 꾹 누르면 묶음
-   팝업이 열린다. */
+/* ─── 접어 둔 묶음이 보이는 자리 ─────────────────────────────
+   집어 둔 종이 더미로 그린다. 기간 한 줄만 적어 두었더니 안에 무엇이
+   들었는지 짐작할 거리가 없어 펼쳐 볼 생각이 들지 않았다. 아래로 삐져나온
+   가장자리가 "여러 장이 집혀 있다"를 글자 없이 말한다.
+
+   왼쪽 들여쓰기는 펼친 몸통이 카드를 세우는 자리와 맞춘다. 접힌 더미가
+   선 그 자리에서 카드가 펼쳐 나오는 것으로 보여야 한다.
+
+   누르는 법은 머리말과 같다 — 그냥 누르면 펼쳐지고, 꾹 누르면 묶음 팝업이
+   열린다. */
 .mk-brief {
   position: relative;
   display: flex;
-  align-items: center;
-  margin: 0 0 6px 10px;
-  padding: 2px 0;
+  align-items: flex-start;
+  /* 밑은 비우지 않는다. 묶음과 묶음 사이는 단이 들고 있는 12px이 정하고,
+     여기서 더 보태면 지출 내역의 단 사이보다 벌어진다. */
+  margin: 0 0 0 15px;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
 }
 
-.mk-brief__when {
-  flex: 0 1 auto;
+/* 겹친 만큼 자리를 더 쓴다. 장마다 4px씩 내려 깔리므로 그만큼 키가 는다. */
+.mk-stack {
+  position: relative;
+  flex: 1 1 auto;
   min-width: 0;
-  display: inline-block;
+  height: 28px;
+}
+
+.mk-brief--2 .mk-stack {
+  height: 32px;
+}
+
+.mk-brief--3 .mk-stack {
+  height: 36px;
+}
+
+/* 테와 모서리는 카드에서 빌려 온다 — 겹쳐 있는 것이 카드라는 말이다.
+   속을 적지는 않는다. 적으면 펼쳤을 때와 겹쳐 보인다. */
+.mk-stack__leaf {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+/* 뒷장일수록 안으로 들여 깔고 옅게 둔다. 바깥으로 내보내면 그만큼
+   화면이 넓어져 가로로 밀린다. */
+.mk-stack__leaf--back {
+  top: 8px;
+  left: 10px;
+  right: 10px;
+  opacity: 0.5;
+}
+
+.mk-stack__leaf--mid {
+  top: 4px;
+  left: 5px;
+  right: 5px;
+  opacity: 0.75;
+}
+
+.mk-stack__leaf--top {
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.mk-stack__when {
+  flex: 0 0 auto;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 곁들이는 한마디는 남는 폭만 쓴다. 기간이 길어 자리가 없으면 먼저 접힌다. */
+.mk-stack__what {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 22px;
-  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
 }
 
 
