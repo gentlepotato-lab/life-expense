@@ -17482,9 +17482,14 @@ textarea.memo-input.memo-area {
 
 /* 손가락만 쓰는 기기는 머무름이 눌린 자리에 그대로 들러붙는다. 선택하지 않은
    상자에 전역 머무름이 남으면 테빛만 으뜸빛으로 바뀐 채 굳어, 선택한 것도
-   선택하지 않은 것도 아닌 꼴이 된다. 마우스가 있는 기기의 머무름 결은 그대로 둔다. */
+   선택하지 않은 것도 아닌 꼴이 된다. 마우스가 있는 기기의 머무름 결은 그대로 둔다.
+
+   선택하지 않은 상자만 집는다(:not). 그냥 `.pe-pick:hover`로 두었더니 셈값이
+   `.pe-pick--on:hover`와 (0,2,0)으로 같은데 뒤에 서 있어 켠 꼴을 덮었다.
+   손가락은 머무름을 떼어 내지 못하니 누른 자리에서 상자가 빈 채로 굳고,
+   다른 데를 한 번 더 짚어야 그제야 찼다. 셈값을 올려 자리다툼을 없앤다. */
 @media (hover: none) {
-  .pe-pick:hover {
+  .pe-pick:not(.pe-pick--on):hover {
     border-color: var(--color-text-tertiary);
     background: var(--color-surface);
   }
