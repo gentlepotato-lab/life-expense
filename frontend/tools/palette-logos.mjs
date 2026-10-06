@@ -34,6 +34,7 @@ const ART = {
   sut: { ink: "#2F3033", aqua: "#5FAE2E", dark: "#D2D7DD" },
   podo: { ink: "#6B3F5E", aqua: "#8CA83F", dark: "#C28FB2" },
   crayon: { ink: "#1E5FD8", aqua: "#00A84F", dark: "#6D9CF3" },
+  bada: { ink: "#0F7490", aqua: "#2E9E6B", dark: "#55B3CC" },
 };
 
 export default function makeLogos() {

@@ -31,7 +31,7 @@ const W = 460;
 const H = 700;
 
 /** 벌 여섯. src/utils/palettes.ts의 key와 같아야 한다. */
-const PALETTES = ["jjok", "hwangto", "meok", "sut", "podo", "crayon"];
+const PALETTES = ["jjok", "hwangto", "meok", "sut", "podo", "crayon", "bada"];
 
 /** 밝기 여섯. src/utils/theme.ts의 STEPS와 같아야 한다.
     예전에는 밝은 쪽 한 벌과 어두운 쪽 한 벌만 찍었다. 벌을 견주는 데에는
@@ -41,6 +41,7 @@ const 밝기 = [
   { key: "paper", mode: "light" },
   { key: "now", mode: "light" },
   { key: "hanji", mode: "light" },
+  { key: "mist", mode: "light" },
   { key: "dawn", mode: "dark" },
   { key: "moon", mode: "dark" },
   { key: "dusk", mode: "dark" },

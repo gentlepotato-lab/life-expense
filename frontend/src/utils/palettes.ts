@@ -1,5 +1,5 @@
 /**
- * 빛깔 여섯 벌.
+ * 빛깔 일곱 벌.
  *
  * 앱의 색은 그동안 네 군데에 흩어져 있었다 — :root 토큰, 씀씀이 그림의 다섯
  * 조각, 구분에 쓰는 열 가지, 첫 화면 그림. 벌째로 갈아 끼우려면 넷을 한자리에
@@ -224,6 +224,40 @@ export const PALETTES: Palette[] = [
     ],
     art: { ink: "#1E5FD8", aqua: "#00A84F", tint: "#BDD0F2" },
     dark: { primary: "#5B90F0", primaryDark: "#4A7EDC", artInk: "#6D9CF3" },
+  },
+  /* 바다 — 청록을 으뜸으로 세운 한 벌. 여섯 벌 가운데 초록빛 계열을 단추에
+     올린 것이 없었고, 바다 쪽 청록도 비어 있었다.
+
+     씀씀이 다섯 조각은 눈으로 고르지 않고 검사기에 걸었다(docs/palette-shots.md).
+     밝기 띠·채도 바닥·색각 이상에서의 이웃 구분을 모두 통과했고, 보통 눈으로
+     가장 가까운 이웃도 ΔE 25다. 청록과 초록을 나란히 두었더니 보통 눈에서도
+     ΔE 11까지 떨어져 초록을 빼고 자개빛과 물풀빛으로 갈라 놓았다. */
+  {
+    key: "bada",
+    label: "바다",
+    tone: {
+      primary: "#0F7490", primaryDark: "#0A5B72", primaryLight: "#DFEFF4",
+      success: "#2E9E6B", successDark: "#247F56",
+      danger: "#E2574C", dangerDark: "#C4433A", amber: "#D9922E",
+      zero: "#8FA8C0", zeroDark: "#6E8AA6",
+      successTint: "#E3F2EA", successInk: "#1C6B49",
+    },
+    chart: ["#E2574C", "#1796B0", "#D9922E", "#8E6FB5", "#5FA83C"],
+    chartEtc: "#93A5B1",
+    chartWeek: "#D3E8EF",
+    cats: [
+      { label: "바다", solid: "#0F7490" }, { label: "여울", solid: "#1796B0" },
+      { label: "모래", solid: "#D9922E" }, { label: "산호", solid: "#E2574C" },
+      { label: "자개", solid: "#8E6FB5" }, { label: "물안개", solid: "#4FA8D8" },
+      { label: "물풀", solid: "#5FA83C" }, { label: "노을", solid: "#E8863C" },
+      { label: "물보라", solid: "#35C0B4" }, { label: "갯바위", solid: "#8A9BA6" },
+    ],
+    art: { ink: "#0F7490", aqua: "#2E9E6B", tint: "#BEDCE6" },
+    /* 으뜸빛이 짙어 어두운 바탕에서는 카드와 거의 같은 무게가 된다. 재어 보니
+       달빛 칸의 카드 바탕에서 1.74였다. 한 단 띄워 3.19로 올린다.
+       구분 첫 칸은 으뜸빛과 같은 색이라 함께 올린다. */
+    dark: { primary: "#3FA3BD", primaryDark: "#2F8FA8", artInk: "#55B3CC",
+            cats: [{ at: 0, color: "#3FA3BD" }] },
   },
 ];
 
