@@ -9,6 +9,7 @@ from app.routers import (
     charts,
     counterparts,
     entries,
+    entry_groups,
     goals,
     holidays,
     payment_methods,
@@ -49,6 +50,58 @@ def add_inout_columns():
     except Exception as e:
         print(f"⚠️ 컬럼 작업 중 오류 (이미 적용되어 있을 수 있음): {e}")
 
+@app.on_event("startup")
+def create_entry_groups():
+    """묶음 표와, 세 내역 표에 묶음을 가리키는 칸을 만든다.
+
+    이미 있으면 아무 일도 하지 않는다(IF NOT EXISTS). 묶음을 풀 때 담겨
+    있던 내역이 함께 지워지면 안 되므로 ON DELETE SET NULL로 건다.
+    """
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS life_expense.entry_groups (
+                    group_id   SERIAL PRIMARY KEY,
+                    name       VARCHAR(60) NOT NULL,
+                    memo       VARCHAR(200),
+                    kind       VARCHAR(12) NOT NULL DEFAULT 'entry',
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP
+                )
+            """))
+            for table, index in (
+                ("entries", "ix_entries_group"),
+                ("pending_entries", "ix_pending_group"),
+                ("scheduled_entries", "ix_scheduled_group"),
+            ):
+                conn.execute(text(f"""
+                    ALTER TABLE life_expense.{table}
+                    ADD COLUMN IF NOT EXISTS group_id INTEGER
+                """))
+                conn.execute(text(f"""
+                    CREATE INDEX IF NOT EXISTS {index}
+                        ON life_expense.{table} (group_id)
+                """))
+            # 제약은 IF NOT EXISTS가 없다. 이름으로 있는지 보고 없을 때만 건다.
+            for table, fk in (
+                ("entries", "fk_entries_group"),
+                ("pending_entries", "fk_pending_group"),
+                ("scheduled_entries", "fk_scheduled_group"),
+            ):
+                exists = conn.execute(text("""
+                    SELECT 1 FROM pg_constraint WHERE conname = :fk
+                """), {"fk": fk}).first()
+                if not exists:
+                    conn.execute(text(f"""
+                        ALTER TABLE life_expense.{table}
+                        ADD CONSTRAINT {fk} FOREIGN KEY (group_id)
+                            REFERENCES life_expense.entry_groups (group_id)
+                            ON DELETE SET NULL
+                    """))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️ 묶음 표 작업 중 오류 (이미 적용되어 있을 수 있음): {e}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -88,6 +141,7 @@ app.include_router(goals.router, prefix=f"{API}/goals", tags=["goals"])
 app.include_router(charts.router, prefix=f"{API}/charts", tags=["charts"])
 app.include_router(profile.router, prefix=f"{API}/profile", tags=["profile"])
 app.include_router(entries.router, prefix=f"{API}/entries", tags=["entries"])
+app.include_router(entry_groups.router, prefix=f"{API}/entry-groups", tags=["entry_groups"])
 app.include_router(pending_entries.router, prefix=f"{API}/pending-entries", tags=["pending_entries"])
 app.include_router(scheduled_entries.router, prefix=f"{API}/scheduled-entries", tags=["scheduled_entries"])
 app.include_router(places.router, prefix=f"{API}/places", tags=["places"])

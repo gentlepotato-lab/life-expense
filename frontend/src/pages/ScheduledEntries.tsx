@@ -17,6 +17,9 @@ import { CollapseAllButtons } from "./components/CollapseToggle";
 import QuickActions from "./components/QuickActions";
 import PickBar from "./components/PickBar";
 import ReceiptPopup from "./components/ReceiptPopup";
+import ClipMark from "./components/ClipMark";
+import { prefOn } from "../utils/prefs";
+import GroupMakePopup from "./components/GroupMakePopup";
 import type { ReceiptRow } from "../utils/receipt";
 import MemoPad from "./components/MemoPad";
 import PerfExcludeButton from "./components/PerfExcludeButton";
@@ -576,6 +579,7 @@ export default function ScheduledEntries() {
      고른 것은 지금 보이는 줄에서만 센다. 걸러서 사라진 건이 고른 채 남아
      있으면 눈에 없는 것이 영수증에 찍힌다. */
   const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
+  const [makeOpen, setMakeOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
 
   const togglePick = useCallback((id: number) => {
@@ -1112,10 +1116,34 @@ export default function ScheduledEntries() {
         onAll={() => setPickedIds(new Set(sortedSchedules.map((x) => x.schedule_id)))}
         onClear={() => setPickedIds(new Set())}
         onReceipt={() => setReceiptOpen(true)}
+        more={
+          <button
+            type="button"
+            className="pick-bar__more"
+            onClick={() => setMakeOpen(true)}
+          >
+            묶기
+          </button>
+        }
       />
 
       {receiptOpen && (
         <ReceiptPopup rows={receiptRows} onClose={() => setReceiptOpen(false)} />
+      )}
+
+      {makeOpen && (
+        <GroupMakePopup
+          kind="scheduled"
+          /* 정기는 열쇠 칸 이름이 schedule_id라 받는 쪽 모양으로 맞춘다. */
+          items={picked.map((x) => ({ ...x, entry_id: x.schedule_id }))}
+          meta={{ cat1List, cat2List, payList }}
+          onDone={() => {
+            setMakeOpen(false);
+            setPickedIds(new Set());
+            loadSchedules();
+          }}
+          onClose={() => setMakeOpen(false)}
+        />
       )}
 
       {/* 편집 팝업 */}
@@ -1494,9 +1522,12 @@ export function ScheduleCard({
      그 줄은 생겨야 하므로 여기서 따로 센다. */
   const hidden = s.is_active === 0;
 
+  /* 묶인 건은 왼쪽 위 접은 자국이 클립이 된다(index.css 166절). */
+  const isClipped = s.group_id != null && prefOn("group_show");
+
   return (
     <div
-      className={`card card--entry schedule-card card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
+      className={`card card--entry schedule-card card--pressable${readOnly ? " card--flat" : ""}${isClipped ? " is-clipped" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
       {...(readOnly ? {} : handlers)}
       title={readOnly ? undefined : "꾹 눌러서 편집"}
       /* 꾹 누르기는 마우스와 손가락만 닿는다. 키보드로도 같은 자리를 열 수
@@ -1515,10 +1546,15 @@ export function ScheduleCard({
             },
           })}
     >
-      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국 */}
+      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국.
+          묶인 건에서는 그 자리가 클립이 된다. 요소는 그대로 두어야 금액
+          빛깔 규칙(.card:has(.in-bar))이 살아 있다. */}
       <div
         className={`inout-bar ${s.inout === 1 ? "in-bar" : s.inout === -1 ? "out-bar" : ""}`}
-      ></div>
+        title={isClipped && s.group_name ? `묶음 ${s.group_name}` : undefined}
+      >
+        {isClipped && <ClipMark />}
+      </div>
       {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리 · 접혀 넘어오는 조각.
           보기만 하는 화면(기간 상세)에서도 뗄 수 있다 — 거기서는 끝까지 떼어도
           열 팝업이 없으니 제자리로 펴져 붙기만 한다. */}

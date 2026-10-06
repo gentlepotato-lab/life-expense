@@ -153,3 +153,18 @@ class ScheduledEntryUpdate(BaseModel):
     memo: str | None = None
     place_id: int | None = None
     is_active: int | None = None
+
+class EntryGroupIn(BaseModel):
+    """묶음 만들기. ids는 그 자리에서 담을 내역이다."""
+    name: str
+    memo: str | None = None
+    kind: str = "entry"
+    ids: list[int] = []
+
+class EntryGroupUpdate(BaseModel):
+    """이름과 메모만 고친다. 담긴 내역은 따로 다룬다."""
+    name: str | None = None
+    memo: str | None = None
+
+class EntryGroupItems(BaseModel):
+    ids: list[int] = []

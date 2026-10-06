@@ -11,6 +11,7 @@ import Goals from "./pages/Goals";
 import Me from "./pages/Me";
 import Places from "./pages/Places";
 import Calendar from "./pages/Calendar";
+import EntryGroups from "./pages/EntryGroups";
 import CalendarDetail from "./pages/CalendarDetail";
 import Home from "./pages/Home";
 import Nudges from "./pages/Nudges";
@@ -124,6 +125,8 @@ function App() {
         <Route path="/scheduled-entries" element={<ScheduledEntries />} />
         {/* 달력 페이지 */}
         <Route path="/calendar" element={<Calendar />} />
+
+        <Route path="/entry-groups" element={<EntryGroups />} />
         {/* 달력에서 고른 기간의 상세 — 달력에 딸린 화면이다. */}
         <Route path="/calendar/detail" element={<CalendarDetail />} />
         {/* 설정 탭 첫 화면 */}

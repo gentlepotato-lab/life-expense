@@ -6,7 +6,7 @@ import calendar
 from app.deps import SessionDep
 from app.models import (
     ScheduledEntry, Holiday, PendingEntry, Place,
-    ScheduledEntrySplit, PendingEntrySplit,
+    ScheduledEntrySplit, PendingEntrySplit, EntryGroup,
 )
 from app.schemas import ScheduledEntryIn, ScheduledEntryOut, ScheduledEntryUpdate
 from app.routers.splits import copy_splits
@@ -62,6 +62,13 @@ def list_scheduled_entries(
             if s.counterpart_id not in ids:
                 ids.append(s.counterpart_id)
 
+    # 묶음 이름도 한 번에 모은다. 카드에 클립을 세울지 이것 하나로 가른다.
+    group_ids = {r.group_id for r in rows if r.group_id}
+    group_names = {}
+    if group_ids:
+        for g in db.query(EntryGroup).filter(EntryGroup.group_id.in_(group_ids)).all():
+            group_names[g.group_id] = g.name
+
     result = []
     for r in rows:
         split_amount, split_count = split_agg.get(r.schedule_id, (0.0, 0))
@@ -89,6 +96,8 @@ def list_scheduled_entries(
             "memo": r.memo,
             "place_id": r.place_id,
             "place_name": place_names.get(r.place_id),
+            "group_id": r.group_id,
+            "group_name": group_names.get(r.group_id),
             "perf_exclude": r.perf_exclude,
             "fixed_flag": r.fixed_flag,
             "is_active": r.is_active,

@@ -14,6 +14,9 @@ import { CollapseAllButtons } from "./components/CollapseToggle";
 import QuickActions from "./components/QuickActions";
 import PickBar from "./components/PickBar";
 import ReceiptPopup from "./components/ReceiptPopup";
+import ClipMark from "./components/ClipMark";
+import { prefOn } from "../utils/prefs";
+import GroupMakePopup from "./components/GroupMakePopup";
 import type { ReceiptRow } from "../utils/receipt";
 import MemoPad from "./components/MemoPad";
 import PerfExcludeButton from "./components/PerfExcludeButton";
@@ -73,6 +76,7 @@ export default function PendingEntries() {
   /* 선택한 항목. 화면에 지금 보이는 것만 센다 — 걸러서 사라진 건이 선택된 채로
      남아 있으면, 눈에 없는 것이 함께 날아간다. 아래 picked에서 추려 쓴다. */
   const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
+  const [makeOpen, setMakeOpen] = useState(false);
 
   const togglePick = useCallback((id: number) => {
     setPickedIds((prev) => {
@@ -1055,19 +1059,42 @@ export default function PendingEntries() {
         onClear={() => setPickedIds(new Set())}
         onReceipt={() => setReceiptOpen(true)}
         more={
-          <button
-            type="button"
-            className="pick-bar__more"
-            onClick={sendMany}
-            disabled={sending}
-          >
-            선택 전송
-          </button>
+          <>
+            <button
+              type="button"
+              className="pick-bar__more"
+              onClick={() => setMakeOpen(true)}
+            >
+              묶기
+            </button>
+            <button
+              type="button"
+              className="pick-bar__more"
+              onClick={sendMany}
+              disabled={sending}
+            >
+              선택 전송
+            </button>
+          </>
         }
       />
 
       {receiptOpen && (
         <ReceiptPopup rows={receiptRows} onClose={() => setReceiptOpen(false)} />
+      )}
+
+      {makeOpen && (
+        <GroupMakePopup
+          kind="pending"
+          items={picked}
+          meta={{ cat1List, cat2List, payList }}
+          onDone={() => {
+            setMakeOpen(false);
+            setPickedIds(new Set());
+            loadData();
+          }}
+          onClose={() => setMakeOpen(false)}
+        />
       )}
 
       {/* 편집 팝업 */}
@@ -1509,18 +1536,26 @@ export function PendingCard({
   const [open, setOpen] = useState(false);
   const shownAmount = hasSplit ? row.net_amount : row.amount;
 
+  /* 묶인 건은 왼쪽 위 접은 자국이 클립이 된다(index.css 166절). */
+  const isClipped = row.group_id != null && prefOn("group_show");
+
   return (
     <article
-      className={`card card--entry card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
+      className={`card card--entry card--pressable${readOnly ? " card--flat" : ""}${isClipped ? " is-clipped" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
       {...(readOnly ? {} : handlers)}
       title={readOnly ? undefined : "꾹 눌러서 편집"}
     >
-      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국 */}
+      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국.
+          묶인 건에서는 그 자리가 클립이 된다. 요소는 그대로 두어야 금액
+          빛깔 규칙(.card:has(.in-bar))이 살아 있다. */}
       <div
         className={`inout-bar ${
           row.inout === 1 ? "in-bar" : row.inout === -1 ? "out-bar" : ""
         }`}
-      ></div>
+        title={isClipped && row.group_name ? `묶음 ${row.group_name}` : undefined}
+      >
+        {isClipped && <ClipMark />}
+      </div>
       {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리 · 접혀 넘어오는 조각.
           보기만 하는 화면(기간 상세)에서도 뗄 수 있다 — 거기서는 끝까지 떼어도
           열 팝업이 없으니 제자리로 펴져 붙기만 한다. */}

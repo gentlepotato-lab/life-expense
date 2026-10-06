@@ -511,6 +511,19 @@ export default function Me() {
 
             <div className="me-pref">
               {lockCover()}
+              <span className="me-pref__name">내역에 묶음 보이기</span>
+              <div className="me-pref__control">
+                {onoff(
+                  "group_show",
+                  "내역에 묶음 보이기",
+                  "묶인 건에 클립을 세운다.",
+                  "묶음은 묶음 내역에서만 본다."
+                )}
+              </div>
+            </div>
+
+            <div className="me-pref">
+              {lockCover()}
               <span className="me-pref__name">잔소리 듣기</span>
               <div className="me-pref__control">
                 {onoff("nudge_on", "잔소리 듣기", "잔소리를 듣는다.", "잔소리를 듣지 않는다.")}

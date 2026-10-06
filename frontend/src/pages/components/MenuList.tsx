@@ -19,9 +19,10 @@ import { PAGE_ICON } from "./MenuIcons";
 /** 경로별 한 줄 설명. 배열이면 딱지로 늘어놓는다. */
 const DESC: Record<string, string | string[]> = {
   "/entries": "기록을 마친 지출과 수입",
-  "/pending-entries": "확정 전에 검수하는 항목",
-  "/scheduled-entries": "정기적으로 반복되는 지출",
+  "/pending-entries": "확정 전에 검수하는 내역",
+  "/scheduled-entries": "정기적으로 반복되는 내역",
   "/calendar": "한 달을 한눈에",
+  "/entry-groups": "묶어서 보는 내역",
   "/categories": ["중분류", "소분류", "세분류"],
   "/payment-methods": ["카드", "계좌", "간편결제"],
   "/counterparts": "금액을 나눠 낸 사람",

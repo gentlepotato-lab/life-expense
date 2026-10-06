@@ -180,6 +180,8 @@ def list_pending_entries(db: SessionDep = Depends()):
              , COALESCE(vn.split_count, 0) AS split_count
              -- 화면에서 "함께한 상대"로 걸러 낼 수 있도록 상대 ID를 함께 보낸다.
              -- 목록을 한 번만 읽고 화면에서 거르는 구조라, 행마다 들려 있어야 한다.
+             -- 묶음 이름. 카드에 클립을 세울지 여기 하나로 가른다.
+             , eg.name AS group_name
              , COALESCE(
                    (SELECT array_agg(DISTINCT s.counterpart_id)
                       FROM life_expense.pending_entry_splits s
@@ -192,6 +194,8 @@ def list_pending_entries(db: SessionDep = Depends()):
                ON p.place_id = pl.place_id
         LEFT JOIN life_expense.v_pending_entries_net vn
                ON vn.entry_id = p.entry_id
+        LEFT JOIN life_expense.entry_groups eg
+               ON eg.group_id = p.group_id
         WHERE p.sended = 0
         ORDER BY p.tx_date DESC, p.entry_id DESC
     """)

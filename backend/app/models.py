@@ -46,6 +46,37 @@ class PaymentMethod(Base):
     annual_fee = Column(Numeric(14, 2))
     sort_order = Column(Integer, default=0, nullable=True)
 
+class EntryGroup(Base):
+    """
+    묶음 — 따로 든 내역 여럿을 한 덩이로 본다.
+
+    쪼개기(N빵)와는 다르다. 쪼개기는 한 건 안을 나누고, 묶음은 독립된 건
+    여럿을 하나로 모은다. 여행이나 행사처럼 날이 걸쳐 있고 분류도 제각각인
+    지출을 한자리에서 보려는 것이다.
+
+    kind는 어느 화면의 내역을 묶었는지다. 지출과 대기와 정기는 표가 달라
+    한 묶음이 둘을 섞어 담지 않는다 — 섞으면 합계의 뜻이 흐려지고, 대기가
+    전송되는 순간 같은 건이 두 표에 걸친다.
+    """
+    __tablename__ = "entry_groups"
+
+    group_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(60), nullable=False)
+    memo = Column(String(200))
+    # 'entry' | 'pending' | 'scheduled'
+    kind = Column(String(12), nullable=False, server_default="entry", default="entry")
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    def to_dict(self):
+        return {
+            "group_id": self.group_id,
+            "name": self.name,
+            "memo": self.memo,
+            "kind": self.kind,
+        }
+
+
 class Entry(Base):
     __tablename__ = "entries"
     # 조회는 거의 늘 날짜로 들어온다(달 조회, 날짜 정렬, 기간 조회).
@@ -55,6 +86,7 @@ class Entry(Base):
         Index("ix_entries_cat2", "cat2_id"),
         Index("ix_entries_cat3", "cat3_id"),
         Index("ix_entries_pay_method", "pay_method"),
+        Index("ix_entries_group", "group_id"),
     )
 
     entry_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -77,6 +109,12 @@ class Entry(Base):
     perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
     # 비면 분류를 따른다. 손으로 바꾸면 그 건에만 남는다.
     fixed_flag = Column(SmallInteger, nullable=True)
+    # 어느 묶음에 들어 있는지. 묶음을 풀면 비워진다(SET NULL).
+    group_id = Column(
+        Integer,
+        ForeignKey("entry_groups.group_id", ondelete="SET NULL"),
+        nullable=True,
+    )
     place = relationship("Place", back_populates="entries")
 
     def to_dict(self):
@@ -130,6 +168,7 @@ class PendingEntry(Base):
     __table_args__ = (
         Index("ix_pending_sended", "sended"),
         Index("ix_pending_schedule", "schedule_id", "tx_date"),
+        Index("ix_pending_group", "group_id"),
     )
 
     entry_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -156,6 +195,12 @@ class PendingEntry(Base):
     schedule_id = Column(
         Integer,
         ForeignKey("scheduled_entries.schedule_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    # 어느 묶음에 들어 있는지. 묶음을 풀면 비워진다(SET NULL).
+    group_id = Column(
+        Integer,
+        ForeignKey("entry_groups.group_id", ondelete="SET NULL"),
         nullable=True,
     )
 
@@ -209,6 +254,7 @@ class ScheduledEntry(Base):
     # 스케줄러가 매분 next_run_at으로 고른다.
     __table_args__ = (
         Index("ix_scheduled_next_run", "next_run_at"),
+        Index("ix_scheduled_group", "group_id"),
     )
 
     schedule_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -247,6 +293,13 @@ class ScheduledEntry(Base):
     perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
     # 비면 분류를 따른다. 손으로 바꾸면 그 건에만 남는다.
     fixed_flag = Column(SmallInteger, nullable=True)
+
+    # 어느 묶음에 들어 있는지. 묶음을 풀면 비워진다(SET NULL).
+    group_id = Column(
+        Integer,
+        ForeignKey("entry_groups.group_id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     # 활성화 여부
     is_active = Column(SmallInteger, default=1, nullable=False)    # 1: 활성, 0: 비활성

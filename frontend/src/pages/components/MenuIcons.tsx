@@ -56,6 +56,24 @@ export const PAGE_ICON: Record<string, React.ReactNode> = {
     </svg>
   ),
 
+  /* 묶음 — 여러 장을 한 덩이로 모아 클립으로 집었다.
+     클립은 내역 카드의 그것과 같은 모양이다(ClipMark.tsx). 같은 것을
+     가리키는데 그림이 다르면 한 식구로 읽히지 않는다. 제 상자에서 그린
+     뒤 맨 앞 장의 왼쪽 위 귀퉁이로 옮겨 비스듬히 세운다. */
+  "/entry-groups": (
+    <svg viewBox="0 0 32 32" {...stroke}>
+      {/* 뒤로 비낀 장 — 여럿을 모았다는 뜻 */}
+      <path d="M12 7h12a2 2 0 0 1 2 2v13" />
+      {/* 맨 앞 장 */}
+      <rect x="7" y="11" width="16" height="16" rx="2" />
+      <path d="M11 19h8M11 23h5" />
+      {/* 집은 클립 */}
+      <g transform="translate(7 11) rotate(-45) scale(0.45) translate(-11 -17)" strokeWidth={3.6}>
+        <path d="M6.5 30.5V9.5a4.5 4.5 0 0 1 9 0V25.5a3.5 3.5 0 0 1-7 0V13.5" />
+      </g>
+    </svg>
+  ),
+
   "/categories": (
     <svg viewBox="0 0 32 32" {...stroke}>
       <path d="M5 8h9l2 3h11v13H5z" />

@@ -1,4 +1,3 @@
-import { visible } from "../utils/visible";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
@@ -7,7 +6,7 @@ import PlacePicker from "./components/PlacePicker";
 import MultiSelect from "./components/MultiSelect";
 import SingleSelect from "./components/SingleSelect";
 import CardEditModal, { EditField, EditDivider } from "./components/CardEditModal";
-import SplitEditor from "./components/SplitEditor";
+import EntryEditFields from "./components/EntryEditFields";
 import type { SplitDraft } from "./components/SplitEditor";
 import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
@@ -18,9 +17,11 @@ import PickBar from "./components/PickBar";
 import ReceiptPopup from "./components/ReceiptPopup";
 import type { ReceiptRow } from "../utils/receipt";
 import MemoPad from "./components/MemoPad";
+import ClipMark from "./components/ClipMark";
+import GroupMakePopup from "./components/GroupMakePopup";
+import { prefOn } from "../utils/prefs";
 import PerfExcludeButton from "./components/PerfExcludeButton";
 import FixedMark from "./components/FixedMark";
-import GrowArea from "./components/GrowArea";
 import useLongPress from "../hooks/useLongPress";
 import usePeel from "../hooks/usePeel";
 import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
@@ -821,6 +822,7 @@ export default function Entries() {
      사라진 건이 고른 채 남아 있으면, 눈에 없는 것이 영수증에 찍힌다. */
   const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [makeOpen, setMakeOpen] = useState(false);
 
   const togglePick = useCallback((id: number) => {
     setPickedIds((prev) => {
@@ -952,10 +954,33 @@ export default function Entries() {
         onAll={() => setPickedIds(new Set(rows.map((r) => r.entry_id)))}
         onClear={() => setPickedIds(new Set())}
         onReceipt={() => setReceiptOpen(true)}
+        more={
+          <button
+            type="button"
+            className="pick-bar__more"
+            onClick={() => setMakeOpen(true)}
+          >
+            묶기
+          </button>
+        }
       />
 
       {receiptOpen && (
         <ReceiptPopup rows={receiptRows} onClose={() => setReceiptOpen(false)} />
+      )}
+
+      {makeOpen && (
+        <GroupMakePopup
+          kind="entry"
+          items={picked}
+          meta={{ cat1List, cat2List, payList }}
+          onDone={() => {
+            setMakeOpen(false);
+            setPickedIds(new Set());
+            loadData();
+          }}
+          onClose={() => setMakeOpen(false)}
+        />
       )}
 
       {/* 편집 팝업 */}
@@ -974,106 +999,17 @@ export default function Entries() {
             </EditField>
           }
         >
-          <div className="edit-grid">
-            {/* 1행 — 분류 3단 */}
-            <EditField label="중분류" span={4} required>
-              <SingleSelect
-                noun="중분류"
-                options={visible(cat1List, (c) => c.id === draft.cat1_id)
-                  .map(c => ({ value: String(c.id), label: c.name }))}
-                selected={draft.cat1_id ? String(draft.cat1_id) : ""}
-                onChange={(value) => setField("cat1_id", value ? Number(value) : null)}
-                placeholder="(중분류)"
-              />
-            </EditField>
-
-            <EditField label="소분류" span={4} required>
-              <SingleSelect
-                noun="소분류"
-                options={visible(cat2List, (c) => c.id === draft.cat2_id)
-                  .filter((c) => c.cat1_id === draft.cat1_id)
-                  .map(c => ({ value: String(c.id), label: c.name }))}
-                selected={draft.cat2_id ? String(draft.cat2_id) : ""}
-                onChange={(value) => setField("cat2_id", value ? Number(value) : null)}
-                placeholder="(소분류)"
-              />
-            </EditField>
-
-            <EditField label="세분류" span={4}>
-              <SingleSelect
-                noun="세분류"
-                options={visible(cat3List, (c) => c.id === draft.cat3_id)
-                  .filter((c) => c.cat2_id === draft.cat2_id)
-                  .map(c => ({ value: String(c.id), label: c.name }))}
-                selected={draft.cat3_id ? String(draft.cat3_id) : ""}
-                onChange={(value) => setField("cat3_id", value ? Number(value) : null)}
-                placeholder="(세분류)"
-              />
-            </EditField>
-
-            {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
-            <EditField label="IN/OUT" span={4} required>
-              <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
-                {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
-              </span>
-            </EditField>
-
-            <EditField label="결제 수단" span={4}>
-              <SingleSelect
-                noun="결제 수단"
-                options={visible(payList, (p) => p.code === draft.pay_method)
-                  .map(p => ({ value: p.code, label: p.name }))}
-                selected={draft.pay_method || ""}
-                onChange={(value) => setField("pay_method", value)}
-                placeholder="(결제 수단)"
-              />
-            </EditField>
-
-            <EditField label="금액" span={4} required>
-              <input
-                type="number"
-                value={draft.amount ?? ""}
-                onChange={(e) => setField("amount", e.target.value === "" ? "" : Number(e.target.value))}
-                className="amount-input"
-              />
-            </EditField>
-
-            {/* 3행 — 장소 */}
-            <EditField label="장소/가게" span={12}>
-              <div className="edit-place">
-                <span className="edit-place__name">📍 {draft.place_name || "—"}</span>
-                <button
-                  type="button"
-                  className="ui-btn small edit-location-btn"
-                  onClick={() => setPlacePickerOpen(true)}
-                >
-                  변경
-                </button>
-              </div>
-            </EditField>
-
-            {/* 4행 — 메모 */}
-            <EditField label="메모" span={12}>
-              <GrowArea
-                className="memo-input memo-area"
-                value={draft.memo || ""}
-                maxLength={200}
-                onChange={(v) => setField("memo", v)}
-              />
-            </EditField>
-          </div>
-
-          {/* 금액 쪼개기 — 지출일 때만 의미가 있다. */}
-          {draft.inout === -1 && (
-            <>
-              <EditDivider />
-              <SplitEditor
-                grossAmount={Number(draft.amount) || 0}
-                value={splits}
-                onChange={setSplits}
-              />
-            </>
-          )}
+          <EntryEditFields
+            draft={draft}
+            setField={setField}
+            cat1List={cat1List}
+            cat2List={cat2List}
+            cat3List={cat3List}
+            payList={payList}
+            splits={splits}
+            setSplits={setSplits}
+            onPickPlace={() => setPlacePickerOpen(true)}
+          />
         </CardEditModal>
       )}
 
@@ -1353,6 +1289,8 @@ export function EntryCard({
   onTogglePerfExclude,
   fixed,
   onToggleFixed,
+  clipped,
+  onTap,
 }: {
   row: any;
   cat1List: { id: number; name: string }[];
@@ -1376,10 +1314,19 @@ export function EntryCard({
   fixed?: boolean;
   /* 고정 · 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onToggleFixed?: (row: FixedRow, next: boolean) => void;
+  /* 묶인 건으로 그릴지. 넘기지 않으면 건에 적힌 묶음과 돈쓴이의
+     `내역에 묶음 보이기`를 함께 본다. 묶음 내역은 늘 켜서 넘긴다. */
+  clipped?: boolean;
+  /* 그냥 눌렀을 때. 넘기지 않으면 아무 일도 없다 — 지금까지와 같다.
+     묶음 내역이 쓴다. 거기서는 펼친 묶음을 카드로도 접을 수 있어야 한다. */
+  onTap?: () => void;
 }) {
   const openEditor = useCallback(() => onOpenEditor(row), [onOpenEditor, row]);
   const { pressing, handlers } = useLongPress(openEditor);
   const peel = usePeel(openEditor);
+
+  /* 묶인 건은 왼쪽 위 접은 자국이 클립이 된다(index.css 166절). */
+  const isClipped = clipped ?? (row.group_id != null && prefOn("group_show"));
 
   const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
   const isBlur = blurred ?? (cat2List.find(c => c.id === row.cat2_id)?.blur === 1);
@@ -1393,16 +1340,22 @@ export function EntryCard({
 
   return (
     <article
-      className={`card card--entry card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
+      className={`card card--entry card--pressable${readOnly ? " card--flat" : ""}${isClipped ? " is-clipped" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
       {...(readOnly ? {} : handlers)}
+      onClick={onTap}
       title={readOnly ? undefined : "꾹 눌러서 편집"}
     >
-      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국 */}
+      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국.
+          묶인 건에서는 그 자리가 클립이 된다. 요소는 그대로 두어야 금액
+          빛깔 규칙(.card:has(.in-bar))이 살아 있다. */}
       <div
         className={`inout-bar ${
           row.inout === 1 ? "in-bar" : row.inout === -1 ? "out-bar" : ""
         }`}
-      ></div>
+        title={isClipped && row.group_name ? `묶음 ${row.group_name}` : undefined}
+      >
+        {isClipped && <ClipMark />}
+      </div>
       {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리 · 접혀 넘어오는 조각.
           보기만 하는 화면(기간 상세)에서도 뗄 수 있다 — 거기서는 끝까지 떼어도
           열 팝업이 없으니 제자리로 펴져 붙기만 한다. */}

@@ -427,6 +427,8 @@ def get_entries_by_month(ym: str, db: SessionDep = Depends()):
                  , COALESCE(vn.split_count, 0) AS split_count
                  -- 달력이 "함께한 상대"로 걸러 낼 때 쓴다. 화면에서 거르는 구조라
                  -- 행마다 들려 있어야 한다(pending_entries와 같은 방식).
+                 -- 묶음 이름. 카드에 클립을 세울지 여기 하나로 가른다.
+                 , eg.name AS group_name
                  , COALESCE(
                        (SELECT array_agg(DISTINCT s.counterpart_id)
                           FROM life_expense.entry_splits s
@@ -444,6 +446,9 @@ def get_entries_by_month(ym: str, db: SessionDep = Depends()):
                      LEFT JOIN
                  life_expense.v_entries_net vn
                      ON vn.entry_id = e.entry_id
+                     LEFT JOIN
+                 life_expense.entry_groups eg
+                     ON eg.group_id = e.group_id
            WHERE e.tx_date >= :ym_from
              AND e.tx_date <  :ym_to
         ORDER BY e.tx_date DESC, e.entry_id DESC
@@ -683,6 +688,7 @@ def filter_entries(
                , COALESCE(vn.split_amount, 0) AS split_amount
                , COALESCE(vn.net_amount, e.amount) AS net_amount
                , COALESCE(vn.split_count, 0) AS split_count
+               , eg.name AS group_name
           FROM life_expense.entries e
                    LEFT JOIN
                life_expense.categories_lvl3 c3
@@ -693,6 +699,9 @@ def filter_entries(
                    LEFT JOIN
                life_expense.v_entries_net vn
                    ON vn.entry_id = e.entry_id
+                   LEFT JOIN
+               life_expense.entry_groups eg
+                   ON eg.group_id = e.group_id
          WHERE 1 = 1
     """
 

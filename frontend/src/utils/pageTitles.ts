@@ -24,6 +24,7 @@ export const PAGE_TITLE: Record<string, string> = {
   "/pending-entries": "대기 내역",
   "/scheduled-entries": "정기 내역",
   "/calendar": "달력",
+  "/entry-groups": "묶음 내역",
   "/calendar/detail": "기간 내역",
 
   /* 설정 탭 */
@@ -62,9 +63,10 @@ export const PAGE_NOTE: Record<string, string> = {
   /* 내역 탭 */
   "/history": "기록한 지출과 수입을 확인합니다.",
   "/entries": "기록을 마친 지출과 수입을 확인합니다.",
-  "/pending-entries": "확정 전에 검수하는 항목을 관리합니다.",
-  "/scheduled-entries": "정기적으로 반복되는 지출을 관리합니다.",
+  "/pending-entries": "확정 전에 검수하는 내역을 관리합니다.",
+  "/scheduled-entries": "정기적으로 반복되는 내역을 관리합니다.",
   "/calendar": "한 달을 한눈에 확인합니다.",
+  "/entry-groups": "묶음별로 내역을 확인합니다.",
   "/calendar/detail": "선택한 기간의 지출과 수입을 확인합니다.",
 
   /* 설정 탭 */
@@ -99,6 +101,7 @@ export const ENTRY_TABS = [
   "/pending-entries",
   "/scheduled-entries",
   "/calendar",
+  "/entry-groups",
 ];
 
 /** 설정 탭이 품는 화면들 */

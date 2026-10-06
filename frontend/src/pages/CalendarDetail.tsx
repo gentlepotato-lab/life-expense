@@ -24,6 +24,8 @@ import type { ReceiptRow } from "../utils/receipt";
 import { PendingCard } from "./PendingEntries";
 import { ScheduleCard, type CategoryL2Meta, type CategoryL3Meta } from "./ScheduledEntries";
 import QuickActions from "./components/QuickActions";
+import EntryEditHost, { type EditMeta } from "./components/EntryEditHost";
+import type { GroupKind } from "../utils/groups";
 
 /**
  * 달력에서 고른 기간의 상세.
@@ -177,6 +179,9 @@ export default function CalendarDetail() {
   const [peRows, setPeRows] = useState<Record<string, unknown>[]>([]);
   const [scRows, setScRows] = useState<Record<string, unknown>[]>([]);
   const [loaded, setLoaded] = useState(false);
+  /* 꾹 눌러 고치는 중인 한 건. 고치고 나면 다시 받아 온다. */
+  const [editing, setEditing] = useState<{ kind: GroupKind; row: Record<string, unknown> } | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!days.length) return;
@@ -211,7 +216,7 @@ export default function CalendarDetail() {
     return () => {
       alive = false;
     };
-  }, [days]);
+  }, [days, reloadKey]);
 
   /* Blur는 중 · 소 · 세 어디에 걸려도 함께 덮인다. */
   const blurSets = useMemo(
@@ -222,6 +227,11 @@ export default function CalendarDetail() {
   /* 고정 · 변동도 카드에 그대로 보인다. 여기서는 보기만 한다 — 손대는 자리는
      지출 · 대기 · 정기 세 화면이다. */
   const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
+
+  const editMeta: EditMeta = useMemo(
+    () => ({ cat1List, cat2List, cat3List, payList: payStr }),
+    [cat1List, cat2List, cat3List, payStr]
+  );
 
   /* 달력이 쓰던 판정을 그대로 쓴다 — 달력 칸과 여기 카드가 어긋나지 않게 */
   const passes = useCallback(
@@ -386,7 +396,6 @@ export default function CalendarDetail() {
     if (days.length <= 3) return days.map(shortDate).join(" · ");
     return `${days.slice(0, 2).map(shortDate).join(" · ")} 외 ${days.length - 2}일`;
   }, [days]);
-  const noop = useCallback(() => {}, []);
   const toTimeString = useCallback((hour?: number, minute?: number) => {
     if (typeof hour !== "number" || typeof minute !== "number") return "00:00";
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
@@ -440,13 +449,12 @@ export default function CalendarDetail() {
                       cat1List={cat1List}
                       cat2List={cat2List as never}
                       payList={payNum}
-                      onOpenEditor={noop}
+                      onOpenEditor={(r) => setEditing({ kind: "entry", row: r })}
                       onStartReveal={(id, e) => reveal(setExRows, id, e)}
                       picked={pickedKeys.has(item.key)}
                       onTogglePick={() => togglePick(item.key)}
                       blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
                       fixed={isFixed(row, fixSets)}
-                      readOnly
                     />
                   );
                 }
@@ -459,13 +467,12 @@ export default function CalendarDetail() {
                       cat2List={cat2List as never}
                       cat3List={cat3List as never}
                       payList={payNum}
-                      onOpenEditor={noop}
+                      onOpenEditor={(r) => setEditing({ kind: "pending", row: r })}
                       onStartReveal={(id, e) => reveal(setPeRows, id, e)}
                       picked={pickedKeys.has(item.key)}
                       onTogglePick={() => togglePick(item.key)}
                       blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
                       fixed={isFixed(row, fixSets)}
-                      readOnly
                     />
                   );
                 }
@@ -478,11 +485,15 @@ export default function CalendarDetail() {
                     cat3Map={cat3Map}
                     payList={payStr}
                     toTimeString={toTimeString}
+                    /* 정기는 여기서 고치지 않는다. 한 건이 아니라 앞으로
+                       계속 올 약속이라, 주기와 휴일 처리와 끝 달과 감추기를
+                       함께 봐야 고친 뜻이 온전해진다. 그 자리는 정기 내역 한
+                       곳으로 둔다. */
+                    readOnly
                     picked={pickedKeys.has(item.key)}
                     onTogglePick={() => togglePick(item.key)}
                     blurred={isBlurred(row as { cat1_id?: number }, blurSets)}
                     fixed={isFixed(row, fixSets)}
-                    readOnly
                   />
                 );
               })}
@@ -506,7 +517,17 @@ export default function CalendarDetail() {
         <ReceiptPopup rows={receiptRows} onClose={() => setReceiptOpen(false)} />
       )}
 
-      <QuickActions />
+      {editing && (
+        <EntryEditHost
+          kind={editing.kind}
+          row={editing.row}
+          meta={editMeta}
+          onSaved={() => setReloadKey((k) => k + 1)}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
+      <QuickActions onSaved={() => setReloadKey((k) => k + 1)} />
     </div>
   );
 }

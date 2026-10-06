@@ -18,6 +18,7 @@ export default function PickBar({
   onClear,
   onReceipt,
   more,
+  unit = "건",
 }: {
   /** 고른 수 */
   count: number;
@@ -28,12 +29,17 @@ export default function PickBar({
   onReceipt: () => void;
   /** 그 쪽에만 있는 단추 */
   more?: ReactNode;
+  /** 세는 낱말. 묶음 내역은 건이 아니라 묶음을 센다. */
+  unit?: string;
 }) {
   if (count === 0) return null;
 
   return (
     <div className="pick-bar" role="toolbar" aria-label="고른 내역">
-      <span className="pick-bar__n">{count}건 선택</span>
+      <span className="pick-bar__n">
+        {count}
+        {unit} 선택
+      </span>
       <button
         type="button"
         className="pick-bar__sub"

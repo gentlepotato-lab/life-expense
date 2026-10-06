@@ -18056,3 +18056,344 @@ textarea.memo-input.memo-area {
   width: 100%;
   height: 100%;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   166. 묶음(2026-10-06)
+   ─────────────────────────────────────────────────────────────
+   따로 든 내역 여럿을 한 덩이로 본다. 쪼개기(N빵)가 한 건 안을 나누는
+   것이라면, 묶음은 독립된 건 여럿을 하나로 모은다.
+
+   묶인 카드는 왼쪽 위 접은 자국(119절)이 클립으로 바뀐다. 포스트잇을
+   접어 둔 종이가 아니라 집어 둔 종이가 되는 것이다. .in-bar / .out-bar
+   요소는 그대로 두므로 금액 빛깔 규칙(.card:has(.in-bar))이 살아 있고,
+   잡는 자리(.peel-grip)도 따로 깔려 있어 떼기는 그대로 듣는다.
+
+   묶음 내역은 날짜 단(.date-group)을 한 겹 더 싸는 꼴이다. 안쪽은 지출
+   내역과 한 치도 다르지 않다 — 머리말도 카드도 쓰던 것 그대로다.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── 클립 그림 ────────────────────────────────────────────── */
+.clip-mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* 쇠붙이가 종이에 드리우는 그늘. 접은 자국의 그림자와 같은 결이다. */
+  filter: drop-shadow(0.5px 1px 1.2px rgba(16, 24, 40, 0.22));
+}
+
+/* ─── 묶인 카드의 귀퉁이 ──────────────────────────────────────
+   클립은 모서리를 물고 카드 밖으로 조금 나온다. 그래야 집혀 있는 것으로
+   읽힌다. 카드가 overflow: hidden이라 나온 쪽이 잘리므로 묶인 카드에서만
+   푼다. 안에 담긴 것들(메모 판, 몫 줄, 테이프)은 모두 제 상자 안에
+   머물러 있어 풀어도 새 나가지 않는다. */
+.card--entry.is-clipped {
+  overflow: visible;
+  /* 접을 자국이 없으니 왼쪽 위만 각지게 둘 까닭도 없다. */
+  border-radius: var(--radius-lg);
+}
+
+/* 자리는 두 가지에 걸린다. 비스듬히 세우면 차지하는 네모가 24px에서
+   34px로 불어나므로(24 × √2), 왼쪽으로는 카드 바깥 여백(8px)을 넘지 않아야
+   화면 밖으로 잘리지 않고, 아래로는 분류 글이 시작하는 15px 위에서 끝나야
+   글자를 덮지 않는다. 그 둘을 지키면서 가장 크게 잡은 것이 24px이다. */
+.card--entry.is-clipped > .inout-bar,
+.card--pressable.card--entry.is-clipped > .inout-bar {
+  width: 24px;
+  height: 24px;
+  top: -14px;
+  left: 0;
+  clip-path: none;
+  filter: none;
+  background: none;
+  /* 그림일 뿐이다. 누름은 아래 깔린 .peel-grip이 그대로 받는다. */
+  pointer-events: none;
+  transform: rotate(-45deg);
+}
+
+/* 접은 자국이 깔던 비탈 그라데이션을 지운다. 세 갈래(수입, 지출, 0원)가
+   저마다 제 규칙으로 깔아 두므로 셋을 모두 덮어야 한다. */
+.card--entry.is-clipped > .in-bar,
+.card--entry.is-clipped > .out-bar,
+.card--entry.is-clipped:has(.amount-text.zero) > .in-bar,
+.card--entry.is-clipped:has(.amount-text.zero) > .out-bar,
+.card--entry.is-clipped:has(.amount-text.zero) > .inout-bar {
+  background: none;
+}
+
+.card--entry.is-clipped > .in-bar {
+  color: var(--color-success);
+}
+
+.card--entry.is-clipped > .out-bar {
+  color: var(--color-danger);
+}
+
+/* 0원은 수입도 지출도 아니다. 금액이 쓰는 규칙(147절)과 같은 빛깔이다. */
+.card--entry.is-clipped:has(.amount-text.zero) > .inout-bar {
+  color: var(--color-zero);
+}
+
+/* ─── 묶음 머리말 ─────────────────────────────────────────────
+   접든 펼치든 늘 그 자리에 그대로 있다. 접고 펼 때 생김새가 통째로 바뀌면
+   목록이 흔들린다. 바뀌는 것은 그 아래뿐이다. */
+.mk-head {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+
+/* 묶음 이름은 안쪽 날짜보다 한 단 크다. 두 머리말이 나란히 서므로
+   크기로 층이 갈려야 어느 쪽이 품는 쪽인지 한눈에 잡힌다. */
+.mk-group > .date-group__head > .date-group__label {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+}
+
+.mk-group > .date-group__head > .clip-mark {
+  flex: 0 0 auto;
+  width: 11px;
+  height: 17px;
+  color: var(--color-danger);
+}
+
+.mk-group > .date-group__head > .clip-mark.is-in {
+  color: var(--color-success);
+}
+
+/* 수입과 지출이 섞였거나 합이 0이면 어느 한쪽 빛깔로 적을 수 없다. */
+.mk-group > .date-group__head > .clip-mark.is-zero {
+  color: var(--color-zero);
+}
+
+.mk-group > .date-group__head > .pe-pick {
+  margin-right: 2px;
+}
+
+/* 묶음 메모는 머리말 바로 아래, 몸통보다 앞이다. 머리말과 같게 눌리므로
+   누름을 받는 겹(.mk-memo)이 한 번 감싼다. */
+.mk-memo {
+  position: relative;
+  margin: 0 0 6px 10px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+/* 메모가 없으면 판이 서지 않는다. 감싼 겹만 남아 빈 자리를 먹지 않게 한다. */
+.mk-memo:not(:has(.memo-pad)) {
+  display: none;
+}
+
+.mk-memo > .memo-pad {
+  margin: 0;
+}
+
+/* 꾹 누르는 동안 — 언제 열리는지 알리는 띠. 내역 카드의 그것과 같은
+   결이다. 움직임을 꺼도 이 띠는 남는다(160절) — 꾸밈이 아니라 알림이라서
+   그렇다. 누름을 받는 세 자리가 함께 쓴다. */
+.mk-memo.is-pressing::after,
+.mk-brief.is-pressing::after,
+.mk-head.is-pressing::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 0;
+  background: var(--color-primary);
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  animation: longpress-progress var(--longpress-delay) linear forwards;
+}
+
+/* ─── 접어 둔 묶음이 보이는 한 줄 ─────────────────────────────
+   카드로 세우지 않는다. 카드로 두면 펼쳤을 때의 카드 목록과 생김새가
+   겹쳐, 접은 것인지 펼친 것인지가 흐려진다. 기간 딱지 하나만 선다.
+   누르는 법은 머리말과 같다 — 그냥 누르면 펼쳐지고, 꾹 누르면 묶음
+   팝업이 열린다. */
+.mk-brief {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 0 0 6px 10px;
+  padding: 2px 0;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+.mk-brief__when {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* ─── 펼친 몸통 ───────────────────────────────────────────────
+   점선 난간이 왼쪽에서 받친다. 날짜 단이 여럿 서면 어디까지가 한 묶음인지
+   눈으로 잡히지 않는다. 들여 세우는 것만으로는 약하고, 실선은 카드 테두리처럼
+   읽혀 한 겹 더 생긴 것 같다. 점선은 한 덩이의 처음과 끝만 말하고 물러선다. */
+.mk-body {
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1.5px dashed var(--color-border);
+}
+
+/* 난간이 들여쓰기를 맡으므로 안쪽 날짜 단은 제 폭을 다 쓴다. */
+.mk-group .date-group {
+  width: 100%;
+  margin-left: 0;
+}
+
+/* ─── 팝업 ───────────────────────────────────────────────── */
+/* 담긴 내역 목록. 키를 못 박는다 — 담긴 것이 몇이든, 메모를 펼치든 접든
+   판이 들썩이지 않아야 한다. 대기 내역 팝업이 카드 키를 못 박은 것과 같은
+   까닭이다(164절). 합을 믿지 않는다.
+
+   두 건까지는 굴리지 않고 다 보이는 키로 잡았다. 메모가 달린 두 건이
+   날짜도 서로 다를 때가 가장 커서 348px이 들었다. 다만 짧은 화면에서는
+   판이 밖으로 나가므로 거기에 맞춰 가둔다 — 판에서 목록 말고 들어가는
+   것이 299px이다.
+
+   클립이 카드 왼쪽 밖으로 조금 나온다. 그만큼 비워 두지 않으면 가로
+   스크롤이 생긴다. 넘칠 일이 없으니 가로는 아예 막아 둔다. */
+.mk-list {
+  height: min(352px, calc(100dvh - 310px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 0 1px 2px 12px;
+}
+
+.mk-list .date-group:first-child .date-group__head {
+  margin-top: 0;
+}
+
+/* 팝업 안의 카드는 한 단 납작하다. 목록을 훑는 자리가 아니라 무엇이 담겼는지
+   확인하는 자리라 더 많이 보이는 편이 낫다. */
+.mk-list .card--entry {
+  padding: 7px var(--card-px);
+}
+
+.mk-note {
+  margin: 0 0 4px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* 쉬는 이름과 메모 — 누르면 그 자리가 입력칸이 된다. 키도 좌우 안여백도
+   입력칸과 같게 두어, 바뀌는 순간에 글이 좌우로도 아래로도 움직이지 않는다. */
+.mk-read {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 var(--control-px);
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--color-text-primary);
+}
+
+/* 이름은 그 묶음의 제목이다. 쉬고 있을 때는 한 단 크게 세운다. */
+.mk-read--name {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+}
+
+.mk-read--memo {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.mk-read__pen {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  color: var(--color-text-secondary);
+}
+
+.mk-read__pen > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.popup-head__title > .clip-mark {
+  display: inline-block;
+  width: 11px;
+  height: 17px;
+  margin-right: 5px;
+  vertical-align: -2px;
+  color: var(--color-danger);
+}
+
+.popup-head__title > .clip-mark.is-in {
+  color: var(--color-success);
+}
+
+.popup-head__title > .clip-mark.is-zero {
+  color: var(--color-zero);
+}
+
+/* 내역 추가의 달 이동과 찾기 줄 — 내역 화면과 어디 쓰나가 쓰던 꼴 그대로다. */
+.mk-find {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.mk-find > .ui-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mk-month {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.mk-month__label {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mk-month__filter {
+  margin-left: auto;
+}
+
+/* ─── 고르기 막대가 붐빌 때 ───────────────────────────────────
+   대기 내역은 [묶기]가 더해지면서 칸이 여섯이 된다. 390px에서 50px이
+   모자라 [영수증]이 밖으로 밀렸다. 여섯일 때, 그것도 좁은 화면에서만
+   사이와 안여백을 줄인다. 다섯 이하인 화면(지출, 정기, 기간)은 한 치도
+   달라지지 않는다. */
+@media (max-width: 440px) {
+  .pick-bar:has(> :nth-child(6)) {
+    gap: 6px;
+    padding-left: 10px;
+    padding-right: 8px;
+  }
+
+  .pick-bar:has(> :nth-child(6)) .pick-bar__sub {
+    padding: 0 8px;
+  }
+
+  .pick-bar:has(> :nth-child(6)) .pick-bar__more,
+  .pick-bar:has(> :nth-child(6)) .pick-bar__go {
+    padding: 0 10px;
+  }
+}
