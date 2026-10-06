@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import useBackClose from "../../hooks/useBackClose";
 import { PALETTES, paletteOf, swatchOf } from "../../utils/palettes";
-import { currentStep } from "../../utils/theme";
+import type { Step } from "../../utils/theme";
 
 /** 예시로 보여 주는 네 화면. 파일 이름과 차례가 이 줄에서 정해진다. */
 const SHOTS = [
@@ -25,11 +25,20 @@ const SHOTS = [
 
 export default function PalettePopup({
   value,
+  step,
   onPick,
   onClose,
 }: {
   /** 지금 줄에서 골라져 있는 벌 */
   value: string;
+  /**
+   * 지금 줄에서 골라져 있는 밝기 칸.
+   *
+   * 화면에 끼워진 칸이 아니라 줄에서 고른 칸이다. 밝기는 담아야 화면에
+   * 끼워지므로, 끼워진 칸을 보면 고르는 중에 바꾼 밝기를 예시가 따라오지
+   * 못한다 — 흰 종이를 골라 놓고 예시만 새벽빛으로 떴다.
+   */
+  step: Step;
   onPick: (key: string) => void;
   onClose: () => void;
 }) {
@@ -42,10 +51,9 @@ export default function PalettePopup({
 
   /* 들여다보는 벌은 고른 벌과 따로 논다. 넘겨 보다가 마음에 들면 그때
      [이 빛깔로]를 눌러 줄에 담는다. */
-  /* 그림은 지금 서 있는 밝기 칸으로 찍힌 것을 보여 준다. 밝기는 누르면 그
-     자리에서 바뀌므로 따로 미리 볼 것이 없지만, 벌을 견주는 그림만은 지금
-     화면과 같은 바탕이어야 한다 — 바탕이 다르면 벌이 아니라 밝기를 견주게 된다. */
-  const 꼬리 = `_${currentStep().key}`;
+  /* 그림은 줄에서 고른 밝기 칸으로 찍힌 것을 보여 준다. 벌을 견주는 그림은
+     고른 바탕과 같아야 한다 — 바탕이 다르면 벌이 아니라 밝기를 견주게 된다. */
+  const 꼬리 = `_${step.key}`;
 
   const [shown, setShown] = useState(value);
   const [at, setAt] = useState(0);
@@ -171,7 +179,7 @@ export default function PalettePopup({
               aria-pressed={x.key === shown}
               onClick={() => setShown(x.key)}
             >
-              <i style={{ background: swatchOf(x, currentStep().dark).primary }} />
+              <i style={{ background: swatchOf(x, step.dark).primary }} />
               {x.label}
             </button>
           ))}

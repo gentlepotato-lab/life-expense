@@ -10,7 +10,7 @@ import { PAGE_TITLE, HOME_TABS, ENTRY_TABS, SETTING_TABS } from "../utils/pageTi
 import { applyTape, DEFAULT_TAPE, TAPES } from "../utils/tapes";
 import { applyPalette, DEFAULT_PALETTE, PALETTES, swatchOf } from "../utils/palettes";
 import {
-  applyTheme, currentStep, STEPS, DEFAULT_MODE, DEFAULT_LIGHT, DEFAULT_DARK,
+  applyTheme, currentStep, resolveStep, STEPS, DEFAULT_MODE, DEFAULT_LIGHT, DEFAULT_DARK,
 } from "../utils/theme";
 import type { Step } from "../utils/theme";
 import PalettePopup from "./components/PalettePopup";
@@ -217,6 +217,21 @@ export default function Me() {
     setProfile((prev) => ({ ...prev, [key]: value }));
   const setPref = (key: string, value: string) =>
     setPrefs((prev) => ({ ...prev, [key]: value }));
+
+  /**
+   * 줄에서 골라져 있는 밝기 칸.
+   *
+   * 화면에 끼워진 칸(currentStep)과 다를 수 있다. 밝기는 담아야 끼워지므로,
+   * 고치는 동안에는 고른 것과 끼워진 것이 갈린다. 빛깔 알약과 예시 그림은
+   * 고른 쪽을 따라가야 한다 — 흰 종이를 골라 놓고 예시만 새벽빛으로 뜨면
+   * 벌이 아니라 밝기를 견주게 된다.
+   */
+  const 고른칸 = () =>
+    resolveStep(
+      prefs.theme_mode ?? DEFAULT_MODE,
+      prefs.theme_light ?? DEFAULT_LIGHT,
+      prefs.theme_dark ?? DEFAULT_DARK
+    );
 
   /* 칸을 고르면 그 칸이 선 쪽에 담고, 보는 쪽도 그쪽으로 옮긴다. 밝은 칸과
      어두운 칸을 따로 기억해 두어야 시스템으로 옮겨도 살아남는다. */
@@ -576,7 +591,7 @@ export default function Me() {
                       className={`me-pal__btn${on ? " on" : ""}`}
                       style={{
                         background: (() => {
-                          const t = swatchOf(p, currentStep().dark);
+                          const t = swatchOf(p, 고른칸().dark);
                           return `linear-gradient(90deg, ${t.primary} 0 33.34%, ${t.success} 33.34% 66.67%, ${t.danger} 66.67% 100%)`;
                         })(),
                       }}
@@ -707,6 +722,7 @@ export default function Me() {
       {palOpen && (
         <PalettePopup
           value={prefs.palette ?? DEFAULT_PALETTE}
+          step={고른칸()}
           onPick={(key) => setPref("palette", key)}
           onClose={() => setPalOpen(false)}
         />
