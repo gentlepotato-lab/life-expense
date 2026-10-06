@@ -14523,7 +14523,7 @@ input.target__area {
   interpolate-size: allow-keywords;
   max-height: max-content;
   overflow: hidden;
-  transition: max-height var(--collapse-dur) var(--ease);
+  transition: max-height var(--collapse-dur) var(--collapse-ease);
 }
 
 :root[data-motion="off"] .memo-body {
@@ -17435,6 +17435,12 @@ textarea.memo-input.memo-area {
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
+  /* 전역 button의 `transition: all 0.2s`가 여기까지 쓸고 간다. 눌러도 속빛이
+     0.2초에 걸쳐 스며들고 그동안 체크는 반투명이라, 누른 자리에서는 묻혀
+     보이다가 다른 데를 눌러 볼 즈음에야 다 차 보였다. 고르는 상자는 누른 그
+     틀에 답해야 하므로 쓸고 가는 것을 여기서 끊는다. 머무름도 함께 끊기는데,
+     체크 상자는 원래 켜고 끄는 것이 똑 떨어지는 쪽이 맞다. */
+  transition: none;
 }
 
 .pe-pick--on {
@@ -18444,12 +18450,21 @@ textarea.memo-input.memo-area {
    ════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Collapse.tsx의 DUR과 값을 맞출 것 */
-  --collapse-dur: 200ms;
-  /* 처음에 세게 밀고 끝에서 사뿐히 앉는다. 화면이 쓰는 --ease는 양끝이
-     모두 느린 곡선이라, 접기에 걸면 처음 30ms쯤 가만히 있다가 뚝 떨어져
-     머뭇거리는 것처럼 보였다. */
-  --collapse-ease: cubic-bezier(0.33, 1, 0.68, 1);
+  /* 밑값이다. 접고 펴는 겹은 열리는 키에 따라 제 시간(--collapse-run)을
+     스스로 적는다(Collapse.tsx). 여기 값은 그것이 없을 때와 메모 펼치기가
+     쓴다. */
+  --collapse-dur: 240ms;
+  /* 틀마다 늘어나는 몫이 고른 곡선을 고른다.
+
+     처음에 세게 미는 곡선(0.33,1,0.68,1)을 쓰다가 바꿨다. 재 보니 그 곡선은
+     첫 틀 하나에 전체 키의 23%를 쏟고, 마지막 세 틀은 3~18px씩만 움직였다.
+     툭 벌어졌다가 질질 끄는 꼴이라, 틀 사이가 고르게 16ms씩인데도 버벅이는
+     것처럼 보였다.
+
+     이 곡선은 가장 큰 틀이 11%이고, 1.5%도 못 움직이는 틀이 하나뿐이다.
+     어느 틀에서도 튀지 않고 어느 틀에서도 멈춰 보이지 않는다. 240ms면
+     60Hz에서 열네 틀이라, 나눠 가질 틀도 넉넉하다. */
+  --collapse-ease: cubic-bezier(0.37, 0, 0.63, 1);
 }
 
 .collapse {
@@ -18472,7 +18487,7 @@ textarea.memo-input.memo-area {
   display: block;
   overflow: hidden;
   contain: layout paint;
-  transition: height var(--collapse-dur) var(--collapse-ease);
+  transition: height var(--collapse-run, var(--collapse-dur)) var(--collapse-ease);
 }
 
 .collapse.is-moving > .collapse__in {
@@ -18480,11 +18495,11 @@ textarea.memo-input.memo-area {
 }
 
 .collapse.is-opening > .collapse__in {
-  animation: collapse-in var(--collapse-dur) var(--collapse-ease) both;
+  animation: collapse-in var(--collapse-run, var(--collapse-dur)) var(--collapse-ease) both;
 }
 
 .collapse.is-closing > .collapse__in {
-  animation: collapse-out var(--collapse-dur) var(--collapse-ease) both;
+  animation: collapse-out var(--collapse-run, var(--collapse-dur)) var(--collapse-ease) both;
 }
 
 @keyframes collapse-in {

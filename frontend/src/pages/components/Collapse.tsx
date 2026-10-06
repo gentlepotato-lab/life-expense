@@ -1,7 +1,20 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
-/** 접고 펴는 데 걸리는 시간. index.css의 --collapse-dur과 값을 맞출 것 */
-const DUR = 200;
+/**
+ * 얼마나 열리고 닫히느냐에 따라 걸릴 시간을 달리 잡는다.
+ *
+ * 모두 한 시간에 맞춰 두었더니, 808px짜리는 가장 빠른 틀에서 89px씩 건너뛰고
+ * 32px짜리는 3px씩만 기었다. 카드 한 줄이 86px이니 앞엣것은 한 틀에 한 줄씩
+ * 뛰어 아래 내용이 툭툭 밀렸고, 뒤엣것은 그냥 굼떴다. 걸음 폭을 비슷하게
+ * 맞춰야 둘 다 고르게 보인다.
+ *
+ * 180ms 아래로는 내리지 않는다 — 그보다 짧으면 틀이 열 개도 안 되어 곡선을
+ * 나눠 가질 자리가 없다. 420ms 위로도 올리지 않는다. 아주 긴 목록까지 비례해
+ * 늘리면 접는 데만 1초가 걸려, 고르기 전에 느린 것이 먼저 거슬린다.
+ */
+function 걸릴시간(키: number) {
+  return Math.round(Math.min(420, Math.max(180, 150 + 키 * 0.24)));
+}
 
 /**
  * 접고 펴는 동안 키가 미끄러지는 겹.
@@ -73,8 +86,14 @@ export default function Collapse({ open, children }: { open: boolean; children: 
        트랜지션으로 두었더니 걸리지 않았다 — 안쪽은 쉴 때 상자가 없다가
        (display: contents) 움직이는 순간 생기는데, 상자가 없던 자리에서는
        끌어 줄 앞 값이 없기 때문이다. 짜인 움직임은 그 자리에서도 돈다. */
-    const 끝키 = open ? `${el.scrollHeight}px` : "0px";
-    el.style.height = open ? "0px" : `${el.scrollHeight}px`;
+    const 속키 = el.scrollHeight;
+    const 길이 = 걸릴시간(속키);
+    /* 이번 한 번에만 걸리는 시간. 바깥 겹과 안쪽 겹이 같은 값을 보도록
+       CSS 변수로 적는다 — 안쪽은 짜인 움직임이라 따로 적을 자리가 없다. */
+    el.style.setProperty("--collapse-run", `${길이}ms`);
+
+    const 끝키 = open ? `${속키}px` : "0px";
+    el.style.height = open ? "0px" : `${속키}px`;
     void el.offsetHeight;
     el.style.height = 끝키;
 
@@ -84,7 +103,7 @@ export default function Collapse({ open, children }: { open: boolean; children: 
       if (ref.current) ref.current.style.height = "";
       setMoving(false);
       if (!open) setMounted(false);
-    }, DUR);
+    }, 길이);
   }, [moving, open]);
 
   if (!mounted) return null;
