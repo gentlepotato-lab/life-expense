@@ -19,7 +19,6 @@ import QuickActions from "./components/QuickActions";
 import PickBar from "./components/PickBar";
 import ReceiptPopup from "./components/ReceiptPopup";
 import ClipMark from "./components/ClipMark";
-import { prefOn } from "../utils/prefs";
 import GroupMakePopup from "./components/GroupMakePopup";
 import type { ReceiptRow } from "../utils/receipt";
 import MemoPad from "./components/MemoPad";
@@ -1526,7 +1525,7 @@ export function ScheduleCard({
   const hidden = s.is_active === 0;
 
   /* 묶인 건은 왼쪽 위 접은 자국이 클립이 된다(index.css 166절). */
-  const isClipped = s.group_id != null && prefOn("group_show");
+  const isClipped = s.group_id != null;
 
   return (
     <div

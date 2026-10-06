@@ -20,7 +20,6 @@ import type { ReceiptRow } from "../utils/receipt";
 import MemoPad from "./components/MemoPad";
 import ClipMark from "./components/ClipMark";
 import GroupMakePopup from "./components/GroupMakePopup";
-import { prefOn } from "../utils/prefs";
 import PerfExcludeButton from "./components/PerfExcludeButton";
 import FixedMark from "./components/FixedMark";
 import useLongPress from "../hooks/useLongPress";
@@ -1328,8 +1327,10 @@ export function EntryCard({
   const { pressing, handlers } = useLongPress(openEditor);
   const peel = usePeel(openEditor);
 
-  /* 묶인 건은 왼쪽 위 접은 자국이 클립이 된다(index.css 166절). */
-  const isClipped = clipped ?? (row.group_id != null && prefOn("group_show"));
+  /* 묶인 건은 왼쪽 위 책갈피가 클립이 된다(index.css 166절).
+     켜고 끄는 설정을 두었다가 걷었다 — 묶어 놓고 묶인 줄 알리지 않을 까닭이
+     없고, 끄면 묶음을 풀 자리도 함께 멀어졌다. */
+  const isClipped = clipped ?? row.group_id != null;
 
   const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
   const isBlur = blurred ?? (cat2List.find(c => c.id === row.cat2_id)?.blur === 1);
