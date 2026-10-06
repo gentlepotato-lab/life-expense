@@ -117,6 +117,16 @@ export function applyTheme(mode: string, light: string, dark: string): void {
   st.setProperty("--color-text-primary", s.t1);
   st.setProperty("--color-text-secondary", s.t2);
   st.setProperty("--color-text-tertiary", s.t3);
+
+  /* 화면 위아래의 시스템 자리도 바탕빛을 따라가게 한다.
+     index.html에 흰빛 하나가 박혀 있고 한 번도 바뀌지 않아, 어두운 벌을 써도
+     위가 흰 띠로 남았다. 띄워 쓸 때는 위의 상태 표시줄이 이 값을 그대로
+     쓰고, 아래 이동 막대는 바닥의 바탕빛을 보고 맞춰 칠한다 — html과 body가
+     이미 --color-bg를 깔고 있으므로 이 한 줄이면 위아래가 같이 따라온다.
+
+     칸마다 색은 STEPS가 들고 있다. 여기서 새로 적지 않는다. */
+  const 표 = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (표) 표.content = s.bg;
 }
 
 /**
