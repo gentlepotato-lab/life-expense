@@ -27,7 +27,7 @@ import makeLogos from "./palette-logos.mjs";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, "..", "public", "palette");
 const BASE = process.env.PAL_BASE || "http://expense.life.localhost";
-const W = 390;
+const W = 460;
 const H = 700;
 
 /** 벌 여섯. src/utils/palettes.ts의 key와 같아야 한다. */
