@@ -13710,10 +13710,17 @@ html.modal-open .scroll-top {
 }
 
 /* 끄는 동안 카드 자체는 그대로 둔다. 마우스로 누르면 .card:active의
-   scale(1.02)이 걸리므로(우선순위 0-4-0) 같은 무게로 눌러 둔다. */
+   scale(1.02)이 걸리므로(우선순위 0-4-0) 같은 무게로 눌러 둔다.
+
+   되돌리는 데 시간이 걸려서는 안 된다. 손가락이 닿아 있는 동안에는 :active가
+   살아 있어 카드가 1.02로 커져 있는데, 그 변형이 전이로 천천히 풀리면 그동안
+   카드가 position: fixed의 기준이 된다 — 화면 아래에 못 박은 안내 한 줄
+   (.peel-tip)이 뜨는 그 순간에 카드 옆에 떴다가 제자리로 날아갔다. 실제로
+   재어 보니 첫 두 틀 동안 바닥이 804가 아니라 234였다. 바로 끊는다. */
 .card.card--entry.card--pressable.is-peeling,
 .card.card--entry.card--pressable.is-settling {
   transform: none;
+  transition-duration: 0s;
 }
 
 /* 뜯는 동안 카드 아래에 뜨는 한 줄.
@@ -13774,11 +13781,15 @@ body:has(.pick-bar) .peel-tip {
 }
 
 /* 끝까지 떼었을 때 — 한 뼘 들려 "떨어졌다"는 것을 알린다. */
+/* 끝까지 떼면 카드가 살짝 들린다. 드는 데 transform을 쓰지 않는다 — 변형이
+   걸리면 그 카드가 position: fixed의 기준이 되어, 화면 아래에 못 박은 안내
+   한 줄(.peel-tip)이 카드 쪽으로 끌려 올라갔다. 카드는 relative라 top으로
+   같은 만큼 들 수 있고, 그것은 기준을 만들지 않는다. */
 .card.card--entry.card--pressable.is-peeling.is-peeled {
-  transform: translateY(-2px);
+  top: -2px;
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03),
               0 14px 30px -14px rgba(16, 24, 40, 0.24);
-  transition: transform 140ms ease-out, box-shadow 140ms ease-out;
+  transition: top 140ms ease-out, box-shadow 140ms ease-out;
 }
 
 /* ═══════════════════════════════════════════════════════════════
