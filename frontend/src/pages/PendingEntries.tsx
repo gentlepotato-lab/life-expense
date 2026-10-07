@@ -1577,7 +1577,8 @@ export function PendingCard({
         </span>
       )}
 
-      {/* 1행: 분류 + 금액 ── 날짜는 상단 날짜 단에서 표시한다. */}
+      {/* 1행: 분류 + 기호 + 금액 ── 날짜는 상단 날짜 단에서 표시한다.
+          기호 둘은 금액에 딸린 말이라 금액 바로 왼쪽에 선다. */}
       <div className="entry-ln entry-ln--head">
         <span className="cat-display">
           <span className="cat-text">{cat1Name}</span>
@@ -1594,6 +1595,21 @@ export function PendingCard({
             </>
           )}
         </span>
+
+        {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
+        <FixedMark
+          on={fixed ?? false}
+          readOnly={readOnly || !onToggleFixed}
+          onToggle={(next) => onToggleFixed?.(row, next)}
+        />
+        {/* 카드로 그은 건에만 실적 제외 기호가 선다. */}
+        {pay?.category === "카드" && (
+          <PerfExcludeButton
+            on={!!row.perf_exclude}
+            readOnly={readOnly || !onTogglePerfExclude}
+            onToggle={(next) => onTogglePerfExclude?.(row, next)}
+          />
+        )}
 
         <span
           className={`amount-text ${shownAmount === 0 ? "zero " : ""}${
@@ -1633,20 +1649,6 @@ export function PendingCard({
           </button>
         )}
         {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
-        {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
-        <FixedMark
-          on={fixed ?? false}
-          readOnly={readOnly || !onToggleFixed}
-          onToggle={(next) => onToggleFixed?.(row, next)}
-        />
-        {/* 카드로 그은 건에만 실적 제외 기호가 선다. */}
-        {pay?.category === "카드" && (
-          <PerfExcludeButton
-            on={!!row.perf_exclude}
-            readOnly={readOnly || !onTogglePerfExclude}
-            onToggle={(next) => onTogglePerfExclude?.(row, next)}
-          />
-        )}
         <span className="pay-method-text">{payName}</span>
         {!readOnly && (
           <div className="card-right">

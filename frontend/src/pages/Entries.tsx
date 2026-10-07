@@ -1382,7 +1382,9 @@ export function EntryCard({
         </span>
       )}
 
-      {/* ───── 1행: 분류 + 금액 ───── 날짜는 상단 날짜 단에서 표시한다. */}
+      {/* ───── 1행: 분류 + 기호 + 금액 ───── 날짜는 상단 날짜 단에서 표시한다.
+          기호 둘은 금액에 딸린 말이라 금액 바로 왼쪽에 선다. 둘째 줄 가운데에
+          두었더니 장소와 결제 수단 사이를 갈라 둘 다 잘려 보였다. */}
       <div className="entry-ln entry-ln--head">
         <span className="cat-display">
           <span className="cat-text">{cat1Name}</span>
@@ -1399,6 +1401,22 @@ export function EntryCard({
             </>
           )}
         </span>
+
+        {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
+        <FixedMark
+          on={fixed ?? false}
+          readOnly={readOnly || !onToggleFixed}
+          onToggle={(next) => onToggleFixed?.(row, next)}
+        />
+        {/* 카드로 그은 건에만 실적 제외 기호가 선다. 현금 · 계좌이체에는
+            실적이라는 것이 없다. */}
+        {pay?.category === "카드" && (
+          <PerfExcludeButton
+            on={!!row.perf_exclude}
+            readOnly={readOnly || !onTogglePerfExclude}
+            onToggle={(next) => onTogglePerfExclude?.(row, next)}
+          />
+        )}
 
         <span
           className={`amount-text ${shownAmount === 0 ? "zero " : ""}${
@@ -1417,42 +1435,28 @@ export function EntryCard({
       {/* ───── 2행: 장소 + 결제 수단 ───── */}
       {/* 메모를 카드 밖 제 판(MemoPad)으로 옮기면서 결제 수단이 혼자 한 줄을
           차지했다. 장소와 같은 줄로 올려 정기와 같은 두 칸 짜임이 된다 —
-          장소는 왼쪽 끝, 결제 수단은 오른쪽 끝. 둘 다 없으면 줄도 만들지 않는다. */}
+          장소는 왼쪽 끝, 결제 수단은 오른쪽 끝. 사이를 가르던 기호 둘은
+          첫 줄 금액 옆으로 올라가, 이 줄은 글 둘이 제 폭을 다 쓴다. */}
       <div className="entry-ln">
-          {/* 고르기 상자. 대기 내역과 같은 자리다 — 장소와 결제 수단이 선 줄의
-              왼쪽 끝. 분류 줄에 넣으면 분류 글이 통째로 밀려 쪽마다 자리가
-              달라진다. 카드를 꾹 누르면 편집 팝업이 열리므로 빼 둔다. */}
-          {onTogglePick && (
-            <button
-              type="button"
-              className={`pe-pick${picked ? " pe-pick--on" : ""}`}
-              data-no-longpress
-              aria-pressed={picked}
-              title={picked ? "선택 해제" : "선택"}
-              onClick={(e) => {
-                e.stopPropagation();
-                onTogglePick(row.entry_id);
-              }}
-            >
-              ✓
-            </button>
-          )}
-          {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
-          {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
-          <FixedMark
-            on={fixed ?? false}
-            readOnly={readOnly || !onToggleFixed}
-            onToggle={(next) => onToggleFixed?.(row, next)}
-          />
-          {/* 카드로 그은 건에만 실적 제외 기호가 선다. 현금 · 계좌이체에는
-              실적이라는 것이 없다. */}
-          {pay?.category === "카드" && (
-            <PerfExcludeButton
-              on={!!row.perf_exclude}
-              readOnly={readOnly || !onTogglePerfExclude}
-              onToggle={(next) => onTogglePerfExclude?.(row, next)}
-            />
-          )}
+        {/* 고르기 상자. 대기 내역과 같은 자리다 — 장소와 결제 수단이 선 줄의
+            왼쪽 끝. 분류 줄에 넣으면 분류 글이 통째로 밀려 쪽마다 자리가
+            달라진다. 카드를 꾹 누르면 편집 팝업이 열리므로 빼 둔다. */}
+        {onTogglePick && (
+          <button
+            type="button"
+            className={`pe-pick${picked ? " pe-pick--on" : ""}`}
+            data-no-longpress
+            aria-pressed={picked}
+            title={picked ? "선택 해제" : "선택"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePick(row.entry_id);
+            }}
+          >
+            ✓
+          </button>
+        )}
+        {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
         <span className="pay-method-text">{pay?.name ?? ""}</span>
       </div>
 

@@ -14898,8 +14898,8 @@ textarea.memo-input.memo-area {
    꺼진 것은 아주 옅어(#D5D9DE) 줄마다 있어도 거슬리지 않고, 켜면 원이 짙게
    차 목록을 훑을 때 그 한 줄이 바로 잡힌다.
 
-   기호 · 결제 수단 · [전송]은 한 덩이로 읽혀야 하므로 줄의 기본 사이(10px)를
-   6px로 좁힌다. 셋이 서로 딸린 말이라 멀찍이 떨어지면 남남처럼 보인다.
+   기호는 2026-10-07에 금액 옆으로 옮겨 갔다(168절). 고정/변동 기호와 금액이
+   한 덩이로 읽혀야 하므로 줄의 기본 사이(10px)를 6px로 좁힌다.
    ════════════════════════════════════════════════════════════ */
 
 /* 단추의 겉모습은 없다 — 기호만 남긴다. 공통 단추 규칙이 키 32px과 테두리 ·
@@ -14942,14 +14942,6 @@ textarea.memo-input.memo-area {
 .card--entry .perf-x:disabled {
   cursor: default;
   opacity: 1;
-}
-
-/* 기호 다음은 결제 수단, 그다음이 [전송]이다. 줄의 기본 사이가 10px이라
-   음수 여백으로 4px를 당겨 6px로 만든다. */
-.card--entry .entry-ln > .perf-x + .pay-method-text {
-  flex: 0 1 auto;
-  margin-left: -4px;
-  text-align: right;
 }
 
 .card--entry .entry-ln--send > .pay-method-text + .card-right {
@@ -16362,7 +16354,8 @@ textarea.memo-input.memo-area {
 
    기호 둘은 붙어서 줄 오른쪽으로 간다. 남는 자리를 먹는 쪽은 앞에 서는
    이 기호이고, 뒤따르는 실적 제외 단추의 auto는 걷는다 — 둘 다 먹으면
-   기호 사이가 벌어져 결제 수단이 따로 떨어져 보인다. */
+   기호 사이가 벌어진다. 둘이 서는 줄은 2026-10-07부터 금액이 선 첫 줄이다
+   (168절). */
 .fixed-mark {
   flex: 0 0 auto;
   align-self: center;
@@ -16435,13 +16428,6 @@ textarea.memo-input.memo-area {
    결제 수단이 서로 6px로 붙는 것과 같이 4px를 당긴다. */
 .card--entry .entry-ln > .fixed-mark + .perf-x {
   margin-left: -4px;
-}
-
-/* 기호가 하나뿐인 줄(현금 · 계좌이체)에서는 결제 수단이 기호 바로 뒤에 선다. */
-.card--entry .entry-ln > .fixed-mark + .pay-method-text {
-  flex: 0 1 auto;
-  margin-left: -4px;
-  text-align: right;
 }
 
 /* 고정과 변동은 나란한 두 갈래라 동그라미를 똑같이 채운다. 고정에만 색을
@@ -18752,4 +18738,33 @@ textarea.memo-input.memo-area {
 
 :root[data-motion="off"] .collapse.is-moving > .collapse__in {
   animation: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   168. 기호 둘을 금액 옆으로(2026-10-07)
+   ─────────────────────────────────────────────────────────────
+   고정/변동과 실적 제외는 둘째 줄 가운데, 장소와 결제 수단 사이에 서 있었다.
+   그 자리가 둘을 갈라 좁은 화면에서는 장소도 결제 수단도 말줄임으로 잘렸다 —
+   `삼성웰스토리 메가존산학연...`에 `K-패스(알뜰교통 S...`이 함께 나왔다.
+
+   둘은 금액에 딸린 말이다. 이 건이 달마다 오는 돈인지, 실적에서 빠지는지는
+   금액을 읽을 때 함께 읽는다. 그래서 첫 줄 금액 바로 왼쪽으로 옮겼다.
+   둘째 줄은 글 둘만 남아 저마다 제 폭을 다 쓴다.
+
+   사이는 기호 둘 사이와 같은 6px이다 — 셋이 한 덩이로 읽혀야 한다.
+
+   금액 칸은 96px로 못 박혀 있다(가린 금액의 테이프가 그 폭이라야 한다).
+   그 왼쪽에 기호를 세우면 숫자가 짧을수록 사이가 벌어지므로, 드러난 금액은
+   제 글만큼만 쓰게 둔다. 금액은 어차피 줄 오른쪽 끝에 붙으므로 숫자가 선
+   자리는 그대로다 — 비어 있던 왼쪽만 걷힌다.
+   ════════════════════════════════════════════════════════════ */
+
+.card--entry .entry-ln--head:has(> .fixed-mark) > .amount-text:not(.masked) {
+  width: auto;
+  min-width: 0;
+}
+
+.card--entry .entry-ln > .fixed-mark + .amount-text,
+.card--entry .entry-ln > .perf-x + .amount-text {
+  margin-left: -4px;
 }

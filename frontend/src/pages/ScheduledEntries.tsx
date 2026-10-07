@@ -1588,6 +1588,21 @@ export function ScheduleCard({
             )}
           </span>
 
+          {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
+          <FixedMark
+            on={fixed ?? false}
+            readOnly={readOnly || !onToggleFixed}
+            onToggle={(next) => onToggleFixed?.(s, next)}
+          />
+          {/* 카드로 긋는 건에만 실적 제외 기호가 선다. */}
+          {pay?.category === "카드" && (
+            <PerfExcludeButton
+              on={!!s.perf_exclude}
+              readOnly={readOnly || !onTogglePerfExclude}
+              onToggle={(next) => onTogglePerfExclude?.(s, next)}
+            />
+          )}
+
           <span
             className={`amount-text ${
               shownAmount === 0
@@ -1635,20 +1650,6 @@ export function ScheduleCard({
             <span className="schedule-card__when-time">{timeDisplay}</span>
           </span>
           <span className="schedule-card__holiday">{holidayLabel}</span>
-          {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
-          <FixedMark
-            on={fixed ?? false}
-            readOnly={readOnly || !onToggleFixed}
-            onToggle={(next) => onToggleFixed?.(s, next)}
-          />
-          {/* 카드로 긋는 건에만 실적 제외 기호가 선다. */}
-          {pay?.category === "카드" && (
-            <PerfExcludeButton
-              on={!!s.perf_exclude}
-              readOnly={readOnly || !onTogglePerfExclude}
-              onToggle={(next) => onTogglePerfExclude?.(s, next)}
-            />
-          )}
           <span className="pay-method-text">{pay?.name || "-"}</span>
         </div>
 
