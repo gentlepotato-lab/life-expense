@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../api/client";
 import { apiErrorMessage } from "../utils/apiError";
+import useBackClose from "../hooks/useBackClose";
 import SingleSelect from "./components/SingleSelect";
 import QuickActions from "./components/QuickActions";
 import useEditLock from "../hooks/useEditLock";
@@ -227,6 +228,21 @@ export default function Goals() {
     setDraft(Object.fromEntries(goals.map((g) => [g.goal_id, String(g.amount)])));
     setMemoDraft(Object.fromEntries(goals.map((g) => [g.goal_id, g.memo ?? ""])));
   }, [goals]);
+
+  /* 뒤로 가기 · Esc로 편집을 무른다. 화면을 떠나는 대신 편집만 닫는다 —
+     다른 설정 화면이 모두 그렇다(Categories · Counterparts · PaymentMethods).
+     고치던 칸은 담아 둔 목표로 되돌려 손댄 내용을 버린다.
+     Backspace는 받지 않는다. 금액 칸에서 지우다 한 글자가 비면 그 키가
+     편집을 닫아 버린다. */
+  useBackClose(
+    editMode,
+    () => {
+      setDraft(Object.fromEntries(goals.map((g) => [g.goal_id, String(g.amount)])));
+      setMemoDraft(Object.fromEntries(goals.map((g) => [g.goal_id, g.memo ?? ""])));
+      setEditMode(false);
+    },
+    false
+  );
 
   const stands = useMemo(
     () => (ready ? standsOf(goals, rows, today) : []),

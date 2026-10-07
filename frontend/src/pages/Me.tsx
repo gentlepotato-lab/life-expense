@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "../api/client";
 import { apiErrorMessage } from "../utils/apiError";
+import useBackClose from "../hooks/useBackClose";
 import QuickActions from "./components/QuickActions";
 import EmojiPicker from "./components/EmojiPicker";
 import GoToButton from "./components/GoToButton";
@@ -241,6 +242,20 @@ export default function Me() {
       theme_mode: s.dark ? "dark" : "light",
       [s.dark ? "theme_dark" : "theme_light"]: s.key,
     }));
+
+  /* 뒤로 가기 · Esc로 편집을 무른다. 화면을 떠나는 대신 편집만 닫는다 —
+     다른 설정 화면이 모두 그렇다. 여기는 고치기 전 값을 지문으로만 들고
+     있어 되돌릴 수 없으므로, 서버에서 다시 읽어 손댄 내용을 버린다.
+     Backspace는 받지 않는다. 이름이나 한마디를 지우다 칸이 비면 그 키가
+     편집을 닫아 버린다. */
+  useBackClose(
+    editMode,
+    () => {
+      setEditMode(false);
+      load();
+    },
+    false
+  );
 
   const stamp = () => JSON.stringify([profile, prefs]);
 

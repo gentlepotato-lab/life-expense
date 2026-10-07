@@ -2347,6 +2347,27 @@ export default function Charts() {
   const stamp = (order: string[], off: Set<string>, big: Set<string>) =>
     JSON.stringify(order.map((k) => [k, off.has(k) ? 0 : 1, big.has(k) ? 2 : 1]));
 
+  /* 뒤로 가기 · Esc로 편집을 무른다. 화면을 떠나는 대신 편집만 닫는다 —
+     다른 설정 화면이 모두 그렇다. 들어올 때 떠 둔 지문에서 차례 · 감춤 ·
+     넓이를 되살려 손댄 내용을 버린다.
+     Backspace는 받지 않는다. 카드를 끌어 옮기던 손이 그 키를 스치면 편집이
+     닫혀 옮기던 것이 사라진다. */
+  useBackClose(
+    editMode,
+    () => {
+      try {
+        const 떠둔것 = JSON.parse(beforeEdit) as [string, number, number][];
+        setCardOrder(떠둔것.map(([k]) => k));
+        setHidden(new Set(떠둔것.filter(([, on]) => !on).map(([k]) => k)));
+        setWideSet(new Set(떠둔것.filter(([, , span]) => span >= 2).map(([k]) => k)));
+      } catch {
+        /* 떠 둔 것이 없으면 보이는 그대로 둔다 — 편집만 닫는다. */
+      }
+      setEditMode(false);
+    },
+    false
+  );
+
   /* 다른 설정 화면과 같은 흐름 — [편집]으로 열고 [저장]으로 담는다. */
   const toggleEdit = async () => {
     if (cardSaving) return;
