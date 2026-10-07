@@ -26,8 +26,28 @@ const REVEAL = 12;
     단추를 누르려다 손이 조금만 흔들려도 장이 넘어갔다. 한 뼘은 끌어야 한다. */
 const SWIPE = 56;
 
-/** 끝에서 더 끌 때 손을 따라오는 몫. 덜 따라와야 "더 갈 데가 없다"가 손에 잡힌다. */
-const 끝저항 = 0.28;
+/**
+ * 끝에서 더 끌 때 따라오는 거리의 상한.
+ *
+ * 처음에는 손의 28%만 따라오게 두었는데, 비율만 두었더니 상한이 없었다. 한 뼘
+ * 반(260px)을 밀면 카드가 73px 빠져 폭의 4분의 1이 옆으로 나갔다. 그만큼
+ * 나가면 "벽"이 아니라 "넘어가다 만 것"으로 보인다. 마지막 장은 뒤에 깔린
+ * 장도 없어서 그 자리로 팝업의 빈 바닥이 드러났다.
+ *
+ * 18px은 카드 폭의 6%다. 기울었다가 되돌아오는 것으로 읽히고, 드러나는
+ * 빈자리도 눈에 띄지 않는다.
+ */
+const 끝상한 = 18;
+
+/**
+ * 끝에서 더 끌 때 따라오는 거리.
+ *
+ * 처음 한 뼘까지는 비율로 끌던 때와 거의 같아 손에 붙는 느낌이 그대로다
+ * (40px을 밀면 12px). 그 뒤로는 아무리 밀어도 상한에서 멈춘다.
+ */
+function 끝끌기(v: number): number {
+  return Math.sign(v) * 끝상한 * (1 - Math.exp(-Math.abs(v) / 끝상한));
+}
 
 export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
@@ -137,7 +157,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
     }
     /* 왼쪽 끝에서 더 오른쪽으로, 오른쪽 끝에서 더 왼쪽으로는 덜 따라온다. */
     const 끝 = (v < 0 && at >= 남은 - 1) || (v > 0 && at <= 0);
-    set민거리(끝 ? v * 끝저항 : v);
+    set민거리(끝 ? 끝끌기(v) : v);
   };
 
   const 뗌 = (e: React.PointerEvent) => {
