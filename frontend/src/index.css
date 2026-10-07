@@ -18505,9 +18505,21 @@ textarea.memo-input.memo-area {
   font-variant-numeric: tabular-nums;
 }
 
-/* 곁들이는 한마디는 남는 폭만 쓴다. 기간이 길어 자리가 없으면 먼저 접힌다. */
+/* 분류는 그 장이 무엇에 대한 것인지를 말하는 첫 말이다. 기간 다음에 서고,
+   자리가 모자라면 말줄임한다 — 겹은 한 줄이라 두 줄로 넘기지 않는다. */
+.mk-stack__cat {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* 곁들이는 한마디는 남는 폭만 쓴다. 앞의 둘이 길어 자리가 없으면 먼저 접힌다. */
 .mk-stack__what {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

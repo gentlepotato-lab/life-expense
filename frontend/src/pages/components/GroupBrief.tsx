@@ -1,4 +1,5 @@
 import GroupTap from "./GroupTap";
+import type { GroupMeta } from "./GroupItemList";
 import { formatDateLabel } from "../../utils/dateGroup";
 import type { EntryGroup, GroupItem } from "../../utils/groups";
 
@@ -15,10 +16,23 @@ function 겹칠장(건: number): number {
   return Math.min(3, Math.max(1, 건));
 }
 
-/** 맨 위 장에 곁들일 한마디. 카드가 먼저 적는 차례를 그대로 따른다. */
+/**
+ * 맨 위 장에 적을 분류.
+ *
+ * 카드 머리 줄과 같은 차례, 같은 빗금이다 — 접힌 자리라고 다른 꼴로 적으면
+ * 펼쳤을 때와 같은 건으로 읽히지 않는다. 자리가 모자라면 말줄임한다(CSS).
+ */
+function 분류(it: GroupItem | undefined, meta: GroupMeta): string {
+  if (!it) return "";
+  const 대 = meta.cat1List.find((c) => c.id === it.cat1_id)?.name ?? "";
+  const 중 = meta.cat2List.find((c) => c.id === it.cat2_id)?.name ?? "";
+  return [대, 중, it.cat3_name ?? ""].filter(Boolean).join(" > ");
+}
+
+/** 분류 뒤에 곁들일 한마디. 세분류는 분류가 이미 적으므로 뺀다. */
 function 첫줄(it: GroupItem | undefined): string {
   if (!it) return "";
-  return it.place_name || it.cat3_name || it.memo || "";
+  return it.place_name || it.memo || "";
 }
 
 /**
@@ -34,10 +48,12 @@ function 첫줄(it: GroupItem | undefined): string {
  */
 export default function GroupBrief({
   group,
+  meta,
   onToggle,
   onOpen,
 }: {
   group: EntryGroup;
+  meta: GroupMeta;
   onToggle: () => void;
   onOpen: () => void;
 }) {
@@ -51,6 +67,7 @@ export default function GroupBrief({
       : `${formatDateLabel(group.date_from)} ~ ${formatDateLabel(group.date_to!)}`;
 
   const 장 = 겹칠장(group.count);
+  const 갈래 = 분류(group.items[0], meta);
   const 한마디 = 첫줄(group.items[0]);
 
   return (
@@ -65,6 +82,7 @@ export default function GroupBrief({
         {장 >= 2 && <span className="mk-stack__leaf mk-stack__leaf--mid" aria-hidden="true" />}
         <span className="mk-stack__leaf mk-stack__leaf--top">
           <span className="mk-stack__when">{기간}</span>
+          {갈래 && <span className="mk-stack__cat">{갈래}</span>}
           {한마디 && <span className="mk-stack__what">{한마디}</span>}
         </span>
       </span>

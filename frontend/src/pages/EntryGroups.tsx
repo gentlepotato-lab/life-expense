@@ -299,6 +299,7 @@ export default function EntryGroups() {
                 <Collapse open={!open}>
                   <GroupBrief
                     group={group}
+                    meta={meta}
                     onToggle={() => toggleGroup(group.group_id)}
                     onOpen={() => setOpenId(group.group_id)}
                   />
