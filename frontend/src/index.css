@@ -18262,14 +18262,18 @@ textarea.memo-input.memo-area {
 }
 
 
-/* 묶음 이름은 네모난 딱지 안에 담는다.
+/* 묶음 이름은 꼬리표에 적는다.
 
    앞에 클립을 세워 두었는데 걷었다. 카드마다 클립이 이미 서 있어 머리말까지
-   같은 그림을 두면 한 화면에 클립이 여럿 선다. 딱지로 담으면 글자 자체가
+   같은 그림을 두면 한 화면에 클립이 여럿 선다. 꼬리표로 담으면 글자 자체가
    "여기까지가 한 덩이"라고 말해, 그림을 더 보태지 않아도 된다.
 
-   모서리는 2px만 둔다. 책갈피와 같은 결이다 — 종이 조각이라 거의 각지되
-   자른 자리가 날 서 보이지는 않는다.
+   왼쪽 끝을 뾰족하게 깎는다(clip-path) — 짐에 매다는 가격표 꼴이다. 테를
+   두르는 대신 옅게 깔고 글자에 으뜸빛을 준다. 그 아래 메모판과 접힌 더미가
+   저마다 네모를 두르고 있어, 머리말까지 네모를 더하면 한 줄에 네모가 겹겹이
+   쌓인다. 꼬리표는 테 없이 제 꼴로 선다.
+
+   빛깔은 으뜸빛에서 가져오므로 일곱 벌을 그대로 따라간다.
 
    안쪽 날짜 머리말보다 한 단 크다. 두 머리말이 나란히 서므로 크기로 층이
    갈려야 어느 쪽이 품는 쪽인지 한눈에 잡힌다. */
@@ -18278,10 +18282,15 @@ textarea.memo-input.memo-area {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 2px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
-  background: var(--color-surface);
+  /* 왼쪽은 뾰족해지는 몫(8px)만큼 더 비운다. */
+  padding: 2px 10px 2px 16px;
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  clip-path: polygon(8px 0, 100% 0, 100% 100%, 8px 100%, 0 50%);
+  /* 으뜸빛을 그대로 적으면 읽기가 나빠진다 — 재어 보니 가장 낮은 자리가
+     2.30이었다. 이름은 길게 읽는 글이 아니지만 그래도 묶음을 가리키는
+     이름이라 또렷해야 한다. 글빛 쪽으로 반쯤 당긴다. 낮에는 짙어지고
+     밤에는 밝아져, 어느 칸에서나 바탕 반대쪽으로 간다. */
+  color: color-mix(in srgb, var(--color-primary) 38%, var(--color-text-primary));
   font-size: var(--font-size-base);
   font-weight: 700;
 }
