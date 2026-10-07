@@ -133,8 +133,10 @@ export default function CalendarDetail() {
   const [cat3List, setCat3List] = useState<CategoryL3Meta[]>([]);
   /* 구분(`카드`인지)도 함께 든다 — 카드로 그은 줄에만 실적 제외 기호가
      서기 때문이다. 이 화면에서는 보기만 하므로 켜고 끄는 손은 넘기지 않는다. */
-  const [payNum, setPayNum] = useState<{ code: string; name: string; category?: string }[]>([]);
-  const [payStr, setPayStr] = useState<{ code: string; name: string; category?: string }[]>([]);
+  /* 결제 수단 목록은 하나면 된다. 한때 숫자로 담은 것과 글자로 담은 것을
+     따로 들고 있었는데, 받는 쪽이 저마다 다른 꼴로 견줬기 때문이다. 이제
+     견주는 자리가 모두 글자로 맞추므로 한 벌로 족하다. */
+  const [payList, setPayList] = useState<{ code: string; name: string; category?: string }[]>([]);
 
   const cat2Map = useMemo(() => {
     const m: Record<number, CategoryL2Meta> = {};
@@ -157,21 +159,11 @@ export default function CalendarDetail() {
       .then((r) => {
         type Pay = { method_id: number; method_name: string; category?: string };
         const list: Pay[] = Array.isArray(r.data) ? r.data : [];
-        setPayNum(
-          list.map((p) => ({
-            code: p.method_id as unknown as string,
-            name: p.method_name,
-            category: p.category,
-          }))
-        );
-        setPayStr(
+        setPayList(
           list.map((p) => ({ code: String(p.method_id), name: p.method_name, category: p.category }))
         );
       })
-      .catch(() => {
-        setPayNum([]);
-        setPayStr([]);
-      });
+      .catch(() => setPayList([]));
   }, []);
 
   /* 세 자료. 가려 둔 금액을 끌어서 볼 때 그 줄만 바꾸므로 따로 담는다.
@@ -230,8 +222,8 @@ export default function CalendarDetail() {
   const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
 
   const editMeta: EditMeta = useMemo(
-    () => ({ cat1List, cat2List, cat3List, payList: payStr }),
-    [cat1List, cat2List, cat3List, payStr]
+    () => ({ cat1List, cat2List, cat3List, payList }),
+    [cat1List, cat2List, cat3List, payList]
   );
 
   /* 달력이 쓰던 판정을 그대로 쓴다 — 달력 칸과 여기 카드가 어긋나지 않게 */
@@ -320,7 +312,7 @@ export default function CalendarDetail() {
 
   const receiptRows = useMemo<ReceiptRow[]>(() => {
     const name1 = new Map(cat1List.map((c) => [c.id, c.name]));
-    const payName = new Map(payNum.map((p) => [String(p.code), p.name]));
+    const payName = new Map(payList.map((p) => [String(p.code), p.name]));
     return picked.map((it) => {
       const r = it.raw as Record<string, unknown>;
       return {
@@ -340,7 +332,7 @@ export default function CalendarDetail() {
         pay: payName.get(String(r.pay_method ?? "")) ?? "",
       };
     });
-  }, [picked, cat1List, cat2Map, cat3Map, payNum]);
+  }, [picked, cat1List, cat2Map, cat3Map, payList]);
 
   /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다 — 내역 세 화면과 같다. */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
@@ -450,7 +442,7 @@ export default function CalendarDetail() {
                         row={row}
                         cat1List={cat1List}
                         cat2List={cat2List as never}
-                        payList={payNum}
+                        payList={payList}
                         onOpenEditor={(r) => setEditing({ kind: "entry", row: r })}
                         onStartReveal={(id, e) => reveal(setExRows, id, e)}
                         picked={pickedKeys.has(item.key)}
@@ -468,7 +460,7 @@ export default function CalendarDetail() {
                         cat1List={cat1List}
                         cat2List={cat2List as never}
                         cat3List={cat3List as never}
-                        payList={payNum}
+                        payList={payList}
                         onOpenEditor={(r) => setEditing({ kind: "pending", row: r })}
                         onStartReveal={(id, e) => reveal(setPeRows, id, e)}
                         picked={pickedKeys.has(item.key)}
@@ -485,7 +477,7 @@ export default function CalendarDetail() {
                       cat1List={cat1List}
                       cat2Map={cat2Map}
                       cat3Map={cat3Map}
-                      payList={payStr}
+                      payList={payList}
                       toTimeString={toTimeString}
                       /* 정기는 여기서 고치지 않는다. 한 건이 아니라 앞으로
                          계속 올 약속이라, 주기와 휴일 처리와 끝 달과 감추기를

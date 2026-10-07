@@ -118,7 +118,10 @@ export default function Entries() {
       .then((r) =>
         setPayList(
           r.data.map((p: any) => ({
-            code: p.method_id,
+            /* 열쇠는 글자로 담는다. 화면의 고르개가 쓰는 값이 글자이고,
+               선언도 글자다. 숫자로 담아 두었더니 선언과 어긋난 채 any에
+               가려, 다른 꼴로 담은 화면에서만 짝이 안 맞았다. */
+            code: String(p.method_id),
             name: p.method_name,
             is_active: p.is_active,
             /* 카드인 줄에만 실적 제외 기호가 선다. */

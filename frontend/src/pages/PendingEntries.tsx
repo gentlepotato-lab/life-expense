@@ -155,7 +155,8 @@ export default function PendingEntries() {
       .then((r) =>
         setPayList(
           r.data.map((p: any) => ({
-            code: p.method_id,
+            /* 열쇠는 글자로 담는다 — 지출 내역과 같다. */
+            code: String(p.method_id),
             name: p.method_name,
             is_active: p.is_active,
             /* 카드인 줄에만 실적 제외 기호가 선다. */
@@ -904,7 +905,9 @@ export default function PendingEntries() {
       filtered = filtered.filter((r) => filter.cat3.includes(r.cat3_id));
     }
     if (filter.pay.length) {
-      filtered = filtered.filter((r) => filter.pay.includes(r.pay_method));
+      /* 거르개가 쥔 열쇠는 글자, 줄이 쥔 것은 숫자다. 글자로 맞춰 견준다. */
+      const 고른것 = new Set(filter.pay.map(String));
+      filtered = filtered.filter((r) => 고른것.has(String(r.pay_method)));
     }
     if (filter.memo.trim()) {
       const q = filter.memo.trim();
@@ -1162,9 +1165,9 @@ export default function PendingEntries() {
             <EditField label="결제 수단" span={4} required>
               <SingleSelect
                 noun="결제 수단"
-                options={visible(payList, (p) => p.code === draft.pay_method)
+                options={visible(payList, (p) => String(p.code) === String(draft.pay_method))
                   .map(p => ({ value: p.code, label: p.name }))}
-                selected={draft.pay_method || ""}
+                selected={draft.pay_method == null || draft.pay_method === "" ? "" : String(draft.pay_method)}
                 onChange={(value) => setField("pay_method", value)}
                 placeholder="(결제 수단)"
               />
