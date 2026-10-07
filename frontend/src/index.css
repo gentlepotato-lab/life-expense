@@ -13716,6 +13716,63 @@ html.modal-open .scroll-top {
   transform: none;
 }
 
+/* 뜯는 동안 카드 아래에 뜨는 한 줄.
+
+   귀퉁이를 잡고 끌면 종이가 넘어오는데, 끝까지 끌면 무슨 일이 일어나는지는
+   해 보기 전에는 알 수 없었다. 한 줄로 미리 말한다.
+
+   늘 그려 두고 보이고 숨기는 일만 여기서 맡는다. 끄는 동안 React가 카드를
+   다시 그리면 className이 통째로 다시 적히면서, 뜯는 겹이 classList로 붙여
+   둔 is-peeling이 지워진다. 그리면 안 되는 자리다.
+
+   모습은 편집 잠금 안내(.edit-lock__tip)와 같은 꼴이다 — 화면 안에서 안내는
+   한 가지 모습으로 뜬다.
+
+   끌기를 놓으면(is-settling) 곧바로 사라진다. 펴지는 동안까지 떠 있으면
+   아직 할 일이 남은 것처럼 보인다. */
+.peel-tip {
+  /* 자리는 화면에 못 박는다. 카드에 붙여 두었더니 어느 카드를 뜯느냐에 따라
+     쪽지가 화면 위로도 아래로도 옮겨 다녀, 글을 찾느라 눈이 한 번 더 움직였다.
+     늘 같은 자리에 뜨면 한 번 본 뒤로는 찾지 않아도 된다.
+
+     아래 이동 막대 바로 위다 — 뜯는 손이 카드 가운데에 있으므로, 위에 두면
+     손이 가린다. */
+  position: fixed;
+  left: 50%;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  z-index: 10400;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-primary);
+  color: var(--color-surface);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 6px);
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.22);
+}
+
+/* 고르기 막대가 서 있으면(바닥 62px, 키 46px) 그 위로 비켜 선다. */
+body:has(.pick-bar) .peel-tip {
+  bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+}
+
+.card--entry.is-peeling > .peel-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  transition: opacity 140ms var(--ease), transform 140ms var(--ease);
+}
+
+:root[data-motion="off"] .card--entry.is-peeling > .peel-tip {
+  transition: none;
+}
+
 /* 끝까지 떼었을 때 — 한 뼘 들려 "떨어졌다"는 것을 알린다. */
 .card.card--entry.card--pressable.is-peeling.is-peeled {
   transform: translateY(-2px);

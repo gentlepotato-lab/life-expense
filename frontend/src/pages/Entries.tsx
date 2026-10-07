@@ -1368,6 +1368,13 @@ export function EntryCard({
         <span className="peel-flap__face" />
       </span>
       <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
+      {/* 뜯는 동안만 뜨는 한 줄. 늘 그려 두고 보이고 숨기는 일은 CSS가 맡는다 —
+          끄는 중에 React가 다시 그리면 뜯는 겹이 쥐고 있던 class가 지워진다. */}
+      {!readOnly && (
+        <span className="peel-tip" aria-hidden="true">
+          뜯으면 편집 팝업이 뜹니다.
+        </span>
+      )}
 
       {/* ───── 1행: 분류 + 금액 ───── 날짜는 상단 날짜 단에서 표시한다. */}
       <div className="entry-ln entry-ln--head">
