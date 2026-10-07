@@ -54,16 +54,3 @@ export const KIND_NAME: Record<GroupKind, string> = {
   pending: "대기 내역",
   scheduled: "정기 내역",
 };
-
-/**
- * 클립에 입힐 빛깔.
- *
- * 금액이 쓰는 규칙 그대로다. 지출뿐이면 벽돌빛, 수입뿐이면 풀빛,
- * 수입과 지출이 섞였거나 합이 0이면 어느 한쪽으로 적을 수 없으니 0빛이다.
- */
-export function clipTone(group: { has_in: boolean; has_out: boolean; net: number }): string {
-  if (group.net === 0) return " is-zero";
-  if (group.has_in && group.has_out) return " is-zero";
-  if (group.has_in) return " is-in";
-  return "";
-}

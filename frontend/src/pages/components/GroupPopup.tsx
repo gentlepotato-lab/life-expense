@@ -2,13 +2,12 @@ import { useCallback, useRef, useState } from "react";
 import axios from "../../api/client";
 import useBackClose from "../../hooks/useBackClose";
 import useListFit from "../../hooks/useListFit";
-import ClipMark from "./ClipMark";
 import GroupAddPopup from "./GroupAddPopup";
 import GroupItemList, { type GroupMeta } from "./GroupItemList";
 import { EditField } from "./CardEditModal";
 import { ask, say } from "../../utils/notify";
 import { apiErrorMessage } from "../../utils/apiError";
-import { clipTone, type EntryGroup } from "../../utils/groups";
+import { type EntryGroup } from "../../utils/groups";
 
 /** 고쳐 적는다는 표시. 쉬고 있는 이름과 메모 끝에 붙는다. */
 function PenMark() {
@@ -181,7 +180,6 @@ export default function GroupPopup({
         >
           <header className="popup-head">
             <h3 className="popup-head__title">
-              <ClipMark tone={clipTone(group)} />
               묶음
             </h3>
             <span className="date-group__meta">
@@ -220,7 +218,7 @@ export default function GroupPopup({
             <EditField label="메모" span={12}>
               {editMemo ? (
                 <input
-                  className="ui-input"
+                  className="ui-input mk-memo-in"
                   value={memo}
                   maxLength={200}
                   autoFocus
