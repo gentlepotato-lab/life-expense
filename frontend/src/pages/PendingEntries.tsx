@@ -1499,6 +1499,7 @@ export function PendingCard({
   onTogglePerfExclude,
   fixed,
   onToggleFixed,
+  peelTip,
 }: {
   row: any;
   cat1List: { id: number; name: string }[];
@@ -1508,6 +1509,10 @@ export function PendingCard({
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
   onSend?: (row: any) => void;
+  /* 뜯는 동안 뜨는 한 줄. 고치지 못하는 화면에서만 쓴다 — 어디로 가야
+     고치는지를 적는다. 넘기지 않으면 그 카드에서는 안내가 뜨지 않는다. */
+  peelTip?: string;
+
   /* 선택한 항목인지. 넘기지 않으면 선택 상자가 서지 않는다 — 기간 상세처럼
      보기만 하는 화면은 지금까지와 같은 꼴을 지킨다. */
   picked?: boolean;
@@ -1526,6 +1531,8 @@ export function PendingCard({
   readOnly?: boolean;
 }) {
   const openEditor = useCallback(() => onOpenEditor(row), [onOpenEditor, row]);
+  /* 여기서 고칠 수 있으면 뜯으라고, 없으면 어디서 고치는지를 적는다. */
+  const 안내 = readOnly ? peelTip : "뜯으면 편집 팝업이 뜹니다.";
   const { pressing, handlers } = useLongPress(openEditor);
   const peel = usePeel(openEditor);
 
@@ -1562,8 +1569,10 @@ export function PendingCard({
         {isClipped && <ClipMark />}
       </div>
       {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리 · 접혀 넘어오는 조각.
-          보기만 하는 화면(기간 상세)에서도 뗄 수 있다 — 거기서는 끝까지 떼어도
-          열 팝업이 없으니 제자리로 펴져 붙기만 한다. */}
+          어느 화면에서나 떼어진다 — 뜯는 손맛이 화면마다 달라지면 고장 난
+          것으로 읽힌다. 고치지 못하는 화면에서는 끝까지 떼어도 열 팝업이
+          없으니 제자리로 펴져 붙고, 대신 아래 한 줄이 어디서 고치는지를
+          알린다. */}
       <span className="peel-patch" aria-hidden="true" />
       <span className="peel-flap" aria-hidden="true">
         <span className="peel-flap__face" />
@@ -1571,9 +1580,9 @@ export function PendingCard({
       <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
       {/* 뜯는 동안만 뜨는 한 줄. 늘 그려 두고 보이고 숨기는 일은 CSS가 맡는다 —
           끄는 중에 React가 다시 그리면 뜯는 겹이 쥐고 있던 class가 지워진다. */}
-      {!readOnly && (
+      {안내 && (
         <span className="peel-tip" aria-hidden="true">
-          뜯으면 편집 팝업이 뜹니다.
+          {안내}
         </span>
       )}
 

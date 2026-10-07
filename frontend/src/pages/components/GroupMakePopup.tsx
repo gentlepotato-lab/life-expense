@@ -95,7 +95,7 @@ export default function GroupMakePopup({
         <div className="popup-body" style={{ paddingTop: 0 }}>
           <p className="mk-note">아래 내역을 묶습니다.</p>
           <div className="mk-list" ref={목록}>
-            <GroupItemList items={items} meta={meta} />
+            <GroupItemList items={items} meta={meta} kind={kind} />
           </div>
         </div>
 

@@ -166,7 +166,7 @@ export default function GroupAddPopup({
             ) : rows.length === 0 ? (
               <p className="page-empty">담을 수 있는 내역이 없습니다.</p>
             ) : (
-              <GroupItemList items={rows} meta={meta} picked={picked} onTogglePick={togglePick} />
+              <GroupItemList items={rows} meta={meta} kind={kind} picked={picked} onTogglePick={togglePick} />
             )}
           </div>
         </div>

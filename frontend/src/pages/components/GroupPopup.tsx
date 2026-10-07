@@ -247,6 +247,7 @@ export default function GroupPopup({
                 <GroupItemList
                   items={group.items}
                   meta={meta}
+                  kind={group.kind}
                   picked={picked}
                   onTogglePick={togglePick}
                 />

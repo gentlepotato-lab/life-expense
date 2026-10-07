@@ -1,7 +1,7 @@
 import { EntryCard } from "../Entries";
 import DateGroupHeader from "./DateGroupHeader";
 import { groupByDate } from "../../utils/dateGroup";
-import type { GroupItem } from "../../utils/groups";
+import { KIND_NAME, type GroupItem, type GroupKind } from "../../utils/groups";
 
 /**
  * 내역 카드가 분류와 결제 수단 이름을 적는 데 쓰는 기준 자료.
@@ -26,11 +26,14 @@ export type GroupMeta = {
 export default function GroupItemList({
   items,
   meta,
+  kind,
   picked,
   onTogglePick,
 }: {
   items: GroupItem[];
   meta: GroupMeta;
+  /** 어느 화면의 내역인지. 뜯었을 때 어디서 고치는지를 알리는 데 쓴다. */
+  kind?: GroupKind;
   /** 고른 건들. 넘기지 않으면 고르기 상자가 서지 않는다. */
   picked?: Set<number>;
   onTogglePick?: (id: number) => void;
@@ -60,6 +63,9 @@ export default function GroupItemList({
               /* 팝업에서는 꾹 눌러 고치지 않는다. 고치는 자리는 그 내역이
                  본래 서 있던 화면이다. */
               readOnly
+              /* 여기서는 고치지 않으니, 뜯었을 때 뜨는 한 줄이 그 내역이
+                 본래 선 화면을 가리킨다. */
+              peelTip={kind ? `${KIND_NAME[kind]}에서 고칠 수 있습니다.` : undefined}
               onOpenEditor={() => {}}
               onStartReveal={() => {}}
               picked={picked ? picked.has(row.entry_id) : undefined}
