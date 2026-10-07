@@ -343,7 +343,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           </span>
         </EditField>
 
-        <EditField label="결제 수단" span={4}>
+        <EditField label="결제 수단" span={4} required>
           <SingleSelect
             noun="결제 수단"
             options={visible(payList, (p) => p.code === form.pay_method)

@@ -1334,7 +1334,10 @@ export function EntryCard({
 
   const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
   const isBlur = blurred ?? (cat2List.find(c => c.id === row.cat2_id)?.blur === 1);
-  const pay = payList.find((p) => p.code === row.pay_method);
+  /* 글자로 견준다. 결제 수단 열쇠를 화면마다 숫자로도 문자열로도 담고 있어,
+     엄격하게 견주면 담은 꼴이 다른 화면에서만 이름을 못 찾았다 — 묶음 내역이
+     그랬다. 어느 꼴로 담기든 같은 열쇠면 같은 것으로 본다. */
+  const pay = payList.find((p) => String(p.code) === String(row.pay_method));
 
   // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount다.
   const hasSplit = (row.split_count ?? 0) > 0;

@@ -114,13 +114,16 @@ export default function EntryEditFields({
           </span>
         </EditField>
 
-        <EditField label="결제 수단" span={4}>
+        {/* 열쇠는 글자로 맞춰 둔다. 화면마다 숫자로도 문자열로도 담고 있어,
+            엄격하게 견주면 담은 꼴이 다른 화면에서만 고른 것이 비어 보였다.
+            담을 때는 숫자로 돌려놓는다 — 표에 들어가는 값은 숫자다. */}
+        <EditField label="결제 수단" span={4} required>
           <SingleSelect
             noun="결제 수단"
-            options={visible(payList, (p) => p.code === draft.pay_method)
-              .map(p => ({ value: p.code, label: p.name }))}
-            selected={draft.pay_method || ""}
-            onChange={(value) => setField("pay_method", value)}
+            options={visible(payList, (p) => String(p.code) === String(draft.pay_method))
+              .map(p => ({ value: String(p.code), label: p.name }))}
+            selected={draft.pay_method == null || draft.pay_method === "" ? "" : String(draft.pay_method)}
+            onChange={(value) => setField("pay_method", value === "" ? null : Number(value))}
             placeholder="(결제 수단)"
           />
         </EditField>
