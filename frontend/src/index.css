@@ -18065,11 +18065,26 @@ textarea.memo-input.memo-area {
   padding: 0 12px;
   border: 0;
   border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--color-surface) 14%, transparent);
-  color: var(--color-surface);
   font-size: var(--font-size-xs);
   font-weight: 600;
   cursor: pointer;
+}
+
+/* 머무름(hover)이 막대 단추의 바탕을 덮지 않게 한다.
+
+   전역의 `button:hover`는 바탕을 옅은 빛(--color-bg)으로 되돌린다. 셈값이
+   (0,1,1)이라 이 막대의 단추 규칙(0,1,0)을 이겨, 손가락으로 누르고 나면
+   어두운 막대 위에 밝은 알약이 그대로 굳었다 — 머무름은 손가락이 떼어 내지
+   못하므로 다른 데를 한 번 더 짚어야 돌아왔다. 체크 상자에서 겪은 것과 같은
+   자리다(161절). 셈값을 (0,2,0)으로 올려 되찾는다.
+
+   테빛도 함께 바뀌지만 이 단추들은 테 굵기가 0이라 보이지 않는다. */
+.pick-bar__sub,
+.pick-bar__sub:hover,
+.pick-bar__sub:focus,
+.pick-bar__sub:active {
+  background: color-mix(in srgb, var(--color-surface) 14%, transparent);
+  color: var(--color-surface);
 }
 
 .pick-bar__sub:disabled {
@@ -18096,14 +18111,37 @@ textarea.memo-input.memo-area {
   cursor: pointer;
 }
 
-.pick-bar__go {
+.pick-bar__go,
+.pick-bar__go:hover,
+.pick-bar__go:focus,
+.pick-bar__go:active {
   background: var(--color-surface);
   color: var(--color-text-primary);
 }
 
-.pick-bar__more {
+.pick-bar__more,
+.pick-bar__more:hover,
+.pick-bar__more:focus,
+.pick-bar__more:active {
   background: color-mix(in srgb, var(--color-surface) 22%, transparent);
   color: var(--color-surface);
+}
+
+/* 마우스가 있는 기기에서는 머무름이 손에서 떨어지므로 결을 그대로 둔다 —
+   막대 바탕 위의 둘은 한 단 밝게, 흰 알약은 한 단 어둡게. 위의 못 박은
+   규칙과 셈값이 같으므로 반드시 그 뒤에 선다. */
+@media (hover: hover) {
+  .pick-bar__sub:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-surface) 24%, transparent);
+  }
+
+  .pick-bar__more:hover {
+    background: color-mix(in srgb, var(--color-surface) 32%, transparent);
+  }
+
+  .pick-bar__go:hover {
+    background: color-mix(in srgb, var(--color-surface) 88%, var(--color-text-primary));
+  }
 }
 
 /* ─── 영수증 ───────────────────────────────────────────────── */
