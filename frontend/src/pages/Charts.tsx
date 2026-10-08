@@ -329,6 +329,17 @@ function topN(map: Map<string, number>, n: number): Slice[] {
   return [...all.slice(0, n), { name: "기타", value: rest }];
 }
 
+/**
+ * 그림 한 장이 세울 수 있는 줄의 끝 수 — 큰 것 다섯에 `기타` 하나다.
+ *
+ * 도넛의 이름표도 가로 막대도 줄 수만큼 키가 늘고 주므로, 카드 키를 이 수로
+ * 못 박는다. 예전에는 그 달 자료가 실제로 세운 줄 수로 잡았는데, 갈래가 적은
+ * 달에는 카드가 오므라들어 달을 넘길 때마다 아래 카드들이 위아래로 흔들렸다.
+ * 줄이 적은 달은 빈 자리가 남을 뿐이다 — 이름표는 그 안에서 가운데 서고,
+ * 막대는 사이가 벌어진다(굵기는 maxBarSize가 지킨다).
+ */
+const 줄끝 = 6;
+
 const colorOf = (name: string, i: number) =>
   name === "기타" ? ETC_COLOR() : PALETTE()[i % PALETTE().length];
 
@@ -372,9 +383,13 @@ function useWide(query = "(min-width: 640px)") {
 }
 
 /** "2026-08" → "26' 08". 말풍선과 견줌 보기 팝업이 함께 쓴다. */
-const ymTag = (ym: string) => `${ym.slice(2, 4)}' ${ym.slice(5, 7)}`;
+/** 말풍선에 적는 연월 — `'26. 10.` 한 꼴로 쓴다. 달은 앞의 0을 떼고 적는다. */
+const ymTag = (ym: string) => `'${ym.slice(2, 4)}. ${Number(ym.slice(5, 7))}.`;
 const prevTag = (ym: string) => `전월(${ymTag(ym)})`;
 const curTag = (ym: string) => `당월(${ymTag(ym)})`;
+
+/** 한 몫이 그 달에서 차지하는 비율. 그 달의 합을 잣대로 쓴다. */
+const 몫 = (값: number, 합: number) => (합 ? Math.round((값 / 합) * 100) : 0);
 
 /** 그림 위에 뜨는 말풍선 — 화면 톤에 맞춰 우리가 그린다. */
 type TipItem = {
@@ -583,8 +598,8 @@ function PrevBtn({
       }}
       title={
         on
-          ? "지난달 겹쳐 보기를 끈다. 꾹 누르면 숫자로 본다."
-          : "지난달을 흐리게 겹쳐 본다. 꾹 누르면 숫자로 본다."
+          ? "전월 겹쳐 보기를 끈다. 꾹 누르면 숫자로 본다."
+          : "전월을 흐리게 겹쳐 본다. 꾹 누르면 숫자로 본다."
       }
     >
       <span className="chart-prev-btn__key" aria-hidden="true" />
@@ -1113,19 +1128,6 @@ export default function Charts() {
     [rows, keep]
   );
 
-  /*
-   * 카드 키를 잡는 데 쓰는 줄 — 걸러 내기(지출 · 대기 · 정기, 걸린 조건,
-   * 고정 · 변동)를 모두 빼고 이 달에 든 나간 돈 전부다.
-   *
-   * 도넛과 가로 막대는 줄 수만큼 키가 늘고 주는데, 걸러 내기를 건드릴 때마다
-   * 줄이 오갔다. 카드가 들썩이면 아래 카드까지 통째로 밀려 눈이 자리를 놓친다.
-   * 그래서 자리는 걸러 내기가 아니라 이 달 자료가 잡는다 — 걸러 내면 그림만
-   * 비고 카드는 그대로 선다. 달을 옮길 때만 달라진다.
-   */
-  const 자리줄 = useMemo(
-    () => rows.filter((r) => r.inout !== 1 && !inSet.has(Number(r.cat2_id))),
-    [rows, inSet]
-  );
 
 
   const monthLabel = useMemo(() => {
@@ -1188,16 +1190,6 @@ export default function Charts() {
   /* ─── 중분류별 ────────────────────────────────────────────── */
   const cat1Name = useMemo(() => new Map(cat1List.map((c) => [c.id, c.name])), [cat1List]);
   const payName = useMemo(() => new Map(payList.map((p) => [p.code, p.name])), [payList]);
-
-  const 이름표자리 = useMemo(
-    () => topN(모으기(자리줄, (r) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음"), 5).length,
-    [자리줄, cat1Name]
-  );
-
-  const 수단자리 = useMemo(
-    () => topN(모으기(자리줄, (r) => payName.get(String(r.pay_method)) ?? "수단 없음"), 5).length,
-    [자리줄, payName]
-  );
 
   const byCat = useMemo(() => {
     const 합 = 모으기(shown, (r) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음");
@@ -1490,7 +1482,7 @@ export default function Charts() {
      조각 하나만 눌러도 두 달이 함께 보이게 하려는 것이다. 결제 수단별과 같은
      셈법으로 "기타"에 묶인 몫도 그 줄이 받는다. */
   const catRows = useMemo(() => {
-    if (!prevOn.cat1) return byCat.map((c) => ({ ...c }));
+    if (!prevOn.cat1) return byCat.map((c) => ({ ...c, 전월: 0 }));
     const 키 = (r: Row) => cat1Name.get(Number(r.cat1_id)) ?? "분류 없음";
     const 이달 = 모으기(shown, 키);
     const 지난달 = 모으기(prevRows, 키);
@@ -1973,7 +1965,7 @@ export default function Charts() {
                     <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} tickFormatter={shortWon} />
                     <Tooltip
                       {...TIP_PROPS}
-                      content={<Tip labelFormat={(v) => `${String(v).slice(0, 4)}. ${Number(String(v).slice(5))}.`} />}
+                      content={<Tip labelFormat={(v) => ymTag(String(v))} />}
                       active={tipAt?.key === "trend"}
                       defaultIndex={tipAt?.key === "trend" ? tipAt.i : undefined}
                     />
@@ -2093,15 +2085,18 @@ export default function Charts() {
 
                 <ul
                   className="chart-legend"
-                  style={{ "--legend-rows": 이름표자리 } as React.CSSProperties}
+                  style={{ "--legend-rows": 줄끝 } as React.CSSProperties}
                 >
-                  {byCat.map((c) => (
+                  {catRows.map((c) => (
                     <li key={c.name} className="chart-legend__row">
                       <span className="chart-legend__key" style={{ background: c.color }} />
                       <span className="chart-legend__name">{c.name}</span>
-                      <span className="chart-legend__pct">
-                        {catTotal ? Math.round((c.value / catTotal) * 100) : 0}%
-                      </span>
+                      {prevOn.cat1 && (
+                        <span className="chart-legend__prev">
+                          전월 {몫(c.전월 ?? 0, catPrevTotal)}%
+                        </span>
+                      )}
+                      <span className="chart-legend__pct">{몫(c.value, catTotal)}%</span>
                     </li>
                   ))}
                   {prevOn.cat1 &&
@@ -2109,10 +2104,10 @@ export default function Charts() {
                       <li key={`prev-${c.name}`} className="chart-legend__row is-prev">
                         <span className="chart-legend__key" style={{ background: c.color }} />
                         <span className="chart-legend__name">{c.name}</span>
-                        <span className="chart-legend__prev">지난달</span>
-                        <span className="chart-legend__pct">
-                          {catPrevTotal ? Math.round((c.value / catPrevTotal) * 100) : 0}%
+                        <span className="chart-legend__prev">
+                          전월 {몫(c.value, catPrevTotal)}%
                         </span>
+                        <span className="chart-legend__pct">0%</span>
                       </li>
                     ))}
                 </ul>
@@ -2134,10 +2129,11 @@ export default function Charts() {
                 />
               </header>
               <div
-                className="chart-card__body chart-card__body--rows"
-                /* 자리는 이 달 자료가 잡는다. 전월 대비를 켜서 지난달에만 쓰던
-                   수단이 더 서면 그때만 늘어난다. */
-                style={{ "--rows": Math.max(payRows.length, 수단자리) } as React.CSSProperties}
+                /* 키를 줄 수에 매지 않는다 — 날짜별 · 요일별과 같은 한 키다.
+                   줄마다 키를 주면 수단이 적은 달에 카드가 오므라들어, 달을
+                   넘길 때마다 아래 카드들이 위아래로 흔들렸다. 줄이 적으면
+                   막대 사이가 벌어질 뿐이다(굵기는 maxBarSize가 지킨다). */
+                className="chart-card__body"
                 onPointerDownCapture={() => 붙이기("pay")}
               >
                 <ResponsiveContainer width="100%" height="100%">

@@ -8794,19 +8794,54 @@ div:has(> .pm-item) {
   --legend-gap: 5px;
   flex: 1 1 auto;
   min-width: 0;
-  min-height: calc(
+  /* 자리를 못 박는다. 전월 대비를 켜면 지난달에만 있던 갈래가 줄로 더 서는데,
+     늘어나는 만큼 카드가 세로로 커졌다 — 카드 키는 어느 달에나 같아야 한다.
+     넘치는 줄은 이 안에서만 굴린다. */
+  height: calc(
     var(--legend-rows, 6) * var(--legend-row-h) +
     (var(--legend-rows, 6) - 1) * var(--legend-gap)
   );
+  overflow-y: auto;
+  overscroll-behavior: contain;
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
   /* 비워 둔 자리 안에서 줄을 가운데 세운다 — 위로 몰리면 줄이 적을 때
-     고리만 가운데 있고 이름표는 떠 있는 것처럼 보인다. */
+     고리만 가운데 있고 이름표는 떠 있는 것처럼 보인다.
+     넘칠 때는 가운데 세우면 첫 줄이 위로 잘려 손이 닿지 않으므로, 그때만
+     위에서부터 쌓는다(safe). 모르는 브라우저는 윗줄로 돌아간다. */
   justify-content: center;
+  justify-content: safe center;
   gap: var(--legend-gap);
+}
+
+/* 굴림대는 가늘게 두고 자리는 늘 비워 둔다 — 전월 대비를 켜고 끌 때마다
+   오른쪽 숫자가 좌우로 움직여서는 안 된다. 굴릴 것이 있다는 것도 이 대가
+   말해 준다. */
+.chart-legend {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.chart-legend::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chart-legend::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 양 끝 화살표 단추는 두지 않는다 — 손전화에는 없고, 데스크톱에서만
+   굴림대가 길쭉한 화살표 둘을 달고 나와 줄 끝과 겹쳐 보였다. */
+.chart-legend::-webkit-scrollbar-button {
+  display: none;
+}
+
+.chart-legend::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-text-tertiary) 45%, transparent);
 }
 
 .chart-legend__row {
@@ -15890,17 +15925,22 @@ textarea.memo-input.memo-area {
 }
 
 
-/* 지난달에만 있던 갈래는 이름표에 줄을 따로 얻는다. 이 달 줄보다
+/* 전월에만 있던 갈래는 이름표에 줄을 따로 얻는다. 이 달 줄보다
    한 단 물러서야 지금 쓰는 것과 섞이지 않는다. */
 .chart-legend__row.is-prev {
   opacity: 0.62;
 }
 
+/* 전월 몫 — 이번 달 비율 왼쪽에 한 단 작고 옅게 붙는다. 두 값이 한 줄에
+   서야 같은 잣대로 읽힌다. 예전에는 이 달 줄은 이번 달 비율만, 전월에만
+   있던 줄은 전월 비율만 적어, 한 칸에 잣대가 둘이라 값이 어긋나 보였다. */
 .chart-legend__prev {
   flex: 0 0 auto;
   font-size: 10px;
   font-weight: 700;
+  white-space: nowrap;
   color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 
 
