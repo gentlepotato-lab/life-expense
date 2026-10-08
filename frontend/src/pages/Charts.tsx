@@ -1561,8 +1561,12 @@ export default function Charts() {
     if (!tipAt) return;
     const 내려놓기 = (e: PointerEvent) => {
       const t = e.target as HTMLElement | null;
-      /* 그림 카드 안이면 둔다. 말풍선도 그 안에 있어 끄는 동안 안 꺼진다. */
-      if (t?.closest?.(".chart-card")) return;
+      /* 말풍선 위를 누른 것만 둔다 — 금액의 테이프를 끌어서 보려면 그동안
+         말풍선이 서 있어야 한다. 그 밖에는 같은 카드 안이라도 내려놓는다.
+         예전에는 카드 안이면 모두 두었더니, 이름표나 제목을 눌러도 말풍선이
+         남아 그림 바깥까지 나가야 사라졌다. 다른 조각을 누른 것이면
+         Recharts가 곧 새 말풍선을 올린다. */
+      if (t?.closest?.(".chart-tip")) return;
       setTipAt(null);
     };
     /* 말풍선 위를 오가는 손질은 뿌리에 닿기 전에 끓는다. 리액트는 손질을 뿌리

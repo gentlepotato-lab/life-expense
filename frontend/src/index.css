@@ -8774,7 +8774,12 @@ div:has(> .pm-item) {
   font-family: var(--font-family);
 }
 
+/* 말풍선은 이 칸 밖으로 비어져 나와 이름표 위를 덮는다. 칸과 이름표는
+   나란한 flex 낱개라 적힌 차례대로 포개지므로, 그냥 두면 뒤에 오는 이름표
+   글씨가 말풍선 위에 얹혀 비쳐 보였다. 이 칸을 한 겹 올려 둔다. */
 .chart-donut__plot {
+  position: relative;
+  z-index: 1;
   flex: 0 0 128px;
   width: 128px;
   height: 128px;
