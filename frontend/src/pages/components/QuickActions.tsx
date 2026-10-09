@@ -29,7 +29,7 @@ import { prefOn } from "../../utils/prefs";
  */
 export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
   const [writeOpen, setWriteOpen] = useState(false);
-  /* 쓰기 슬라이드(beta) — 시범으로 붙인 또 하나의 쓰기다. */
+  /* 쓰기 슬라이드(Quick) — 시범으로 붙인 또 하나의 쓰기다. */
   const [slideOpen, setSlideOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [nudgeOpen, setNudgeOpen] = useState(false);
@@ -94,15 +94,21 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
         >
           <RefreshIcon />
         </button>
-        {/* 쓰기 슬라이드(beta) — 쓰기 바로 왼쪽이다. 같은 일을 다른 길로
+        {/* 쓰기 슬라이드(Quick) — 쓰기 바로 왼쪽이다. 같은 일을 다른 길로
             하는 단추라 나란히 서야 그 관계가 보인다. */}
         <button
           className="calculator-trigger-button slide-trigger-button"
           onClick={() => only("slide")}
-          aria-label="쓰기(beta)"
+          aria-label="쓰기(Quick)"
         >
           <SlideIcon />
-          <span className="beta-badge">beta</span>
+          {/* 번개 하나로 "빠른 쓰기"라고 말한다 — 대기 · 잔소리 배지와 같은
+              지름의 동그라미라 세 개가 한 줄에서 같은 결로 읽힌다. */}
+          <span className="quick-badge">
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+              <path d="M14 1.5 L6 13.3 H11 L9.5 22.5 L17.5 10.3 H12.5 Z" fill="currentColor" />
+            </svg>
+          </span>
         </button>
         <button
           className="calculator-trigger-button write-trigger-button"

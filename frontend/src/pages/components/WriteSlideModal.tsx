@@ -9,7 +9,7 @@ import { todayStr, viewOf, type View } from "../../utils/day";
 import { formatDateLabel } from "../../utils/dateGroup";
 import { say } from "../../utils/notify";
 /**
- * 쓰기 슬라이드(beta).
+ * 쓰기 슬라이드(Quick).
  *
  * 한 화면에 모든 칸을 늘어놓는 기존 쓰기와 달리, 한 번에 하나씩 묻고 고르면
  * 곧바로 다음 장으로 넘어간다. 손가락 하나로 빠르게 적어 내려가는 것이
