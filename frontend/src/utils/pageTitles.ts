@@ -76,7 +76,7 @@ export const PAGE_NOTE: Record<string, string> = {
   "/categories": "중분류, 소분류, 세분류를 관리합니다.",
   "/payment-methods": "카드, 계좌, 간편결제를 관리합니다.",
   "/counterparts": "금액을 나눠 낸 사람을 관리합니다.",
-  "/goals": "분류마다 이 달의 목표를 정합니다.",
+  "/goals": "분류마다 이 달의 도전을 정합니다.",
 };
 
 /**

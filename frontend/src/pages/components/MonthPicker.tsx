@@ -24,6 +24,11 @@ export default function MonthPicker({
   /** 비울 수 있는 칸인가. 켜면 판 아래에 그 단추가 선다. */
   clearable = false,
   clearLabel = "없음",
+  /** 잠긴 칸인가 — 편집 모드가 아닐 때 읽기만 되는 자리에 쓴다. */
+  disabled = false,
+  /* 잠겼을 때 누름을 받을 곳. 받을 데가 있으면 왜 안 되는지 알린다 —
+     색·이모지 고르개와 같은 갈고리다. */
+  onLocked,
 }: {
   value: string | null | undefined;
   onChange: (ym: string) => void;
@@ -33,6 +38,8 @@ export default function MonthPicker({
   placeholder?: string;
   clearable?: boolean;
   clearLabel?: string;
+  disabled?: boolean;
+  onLocked?: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -71,13 +78,21 @@ export default function MonthPicker({
       {/* button이 아니라 div인 것은 전역 button 규칙(min-height 등)이 걸려
           모양이 달라지기 때문이다. 대신 역할과 키 조작을 손으로 붙인다. */}
       <div
-        className="ms-display"
+        className={`ms-display${disabled ? " readonly" : ""}`}
         role="button"
-        tabIndex={0}
+        tabIndex={disabled ? -1 : 0}
         aria-haspopup="dialog"
         aria-expanded={open}
-        onClick={() => setOpen(!open)}
+        aria-disabled={disabled || undefined}
+        onClick={(e) => {
+          if (disabled) {
+            onLocked?.(e);
+            return;
+          }
+          setOpen(!open);
+        }}
         onKeyDown={(e) => {
+          if (disabled) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             setOpen(!open);
@@ -93,7 +108,7 @@ export default function MonthPicker({
         )}
       </div>
 
-      {open && (
+      {open && !disabled && (
         <div className="ms-dropdown mp-panel" style={style}>
           <MonthGrid
             year={year}

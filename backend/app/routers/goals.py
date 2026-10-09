@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from app.deps import SessionDep
@@ -9,7 +11,7 @@ router = APIRouter()
 @router.get("")
 def list_goals(db: SessionDep = Depends()):
     """
-    걸어 둔 목표를 분류 이름까지 붙여 돌려준다.
+    걸어 둔 도전을 분류 이름까지 붙여 돌려준다.
 
     이름을 함께 보내는 것은 화면이 분류 세 벌을 따로 받아 짝을 맞추지 않아도
     되게 하려는 것이다. 이름이 바뀌어도 FK로 따라오므로 어긋나지 않는다.
@@ -19,6 +21,8 @@ def list_goals(db: SessionDep = Depends()):
              , g.cat1_id, g.cat2_id, g.cat3_id
              , g.amount
              , g.memo
+             , g.start_ym
+             , g.end_ym
              , g.sort_order
              , c1.cat1_name AS cat1_name
              , c1.emoji     AS cat1_emoji
@@ -38,6 +42,8 @@ def list_goals(db: SessionDep = Depends()):
         "cat3_id": r["cat3_id"],
         "amount": float(r["amount"]),
         "memo": r["memo"],
+        "start_ym": r["start_ym"],
+        "end_ym": r["end_ym"],
         "sort_order": r["sort_order"],
         # "식비 > 점심" — 비어 있는 단은 건너뛴다.
         "path": " > ".join(
@@ -63,24 +69,48 @@ def _target(payload: dict) -> tuple[int, int | None, int | None]:
     return cat1, cat2, cat3
 
 
+def _start_ym(payload: dict) -> str | None:
+    """어느 달부터 세는 도전인지. 비워 두면 서버가 이 달로 잡는다."""
+    raw = (payload.get("start_ym") or "").strip()
+    if not raw:
+        return None
+    if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", raw):
+        raise HTTPException(status_code=400, detail="시작 연월이 바르지 않습니다.")
+    return raw
+
+
+def _end_ym(payload: dict) -> str | None:
+    """어느 달까지 센 도전인지. 비워 두면 끝이 없다는 뜻이다."""
+    raw = (payload.get("end_ym") or "").strip()
+    if not raw:
+        return None
+    if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", raw):
+        raise HTTPException(status_code=400, detail="종료 연월이 바르지 않습니다.")
+    return raw
+
+
 def _amount(payload: dict) -> float:
     raw = payload.get("amount")
     if raw in (None, ""):
-        raise HTTPException(status_code=400, detail="목표 금액을 적어 주세요.")
+        raise HTTPException(status_code=400, detail="도전 금액을 적어 주세요.")
     try:
         value = float(raw)
     except (TypeError, ValueError):
-        raise HTTPException(status_code=400, detail="목표 금액이 숫자가 아닙니다.")
+        raise HTTPException(status_code=400, detail="도전 금액이 숫자가 아닙니다.")
     if value <= 0:
-        raise HTTPException(status_code=400, detail="목표 금액은 0보다 커야 합니다.")
+        raise HTTPException(status_code=400, detail="도전 금액은 0보다 커야 합니다.")
     return value
 
 
 @router.post("")
 def add_goal(payload: dict, db: SessionDep = Depends()):
-    """목표 하나를 새로 건다. 같은 분류에 이미 걸려 있으면 막는다."""
+    """도전 하나를 새로 건다. 같은 분류에 이미 걸려 있으면 막는다."""
     cat1, cat2, cat3 = _target(payload)
     amount = _amount(payload)
+    start = _start_ym(payload)
+    end = _end_ym(payload)
+    if end is not None and start is not None and end < start:
+        raise HTTPException(status_code=400, detail="종료 연월이 시작 연월보다 앞섭니다.")
     try:
         dup = db.execute(text("""
             SELECT 1
@@ -90,9 +120,9 @@ def add_goal(payload: dict, db: SessionDep = Depends()):
                AND COALESCE(cat3_id, 0) = COALESCE(:c3, 0)
         """), {"c1": cat1, "c2": cat2, "c3": cat3}).scalar()
         if dup:
-            raise HTTPException(status_code=400, detail="이미 목표를 걸어 둔 분류입니다.")
+            raise HTTPException(status_code=400, detail="이미 도전을 걸어 둔 분류입니다.")
 
-        # 새 목표는 맨 뒤에 선다.
+        # 새 도전은 맨 뒤에 선다.
         nxt = db.execute(text("""
             SELECT COALESCE(MAX(sort_order), 0) + 1 FROM life_expense.category_goals
         """)).scalar()
@@ -100,11 +130,13 @@ def add_goal(payload: dict, db: SessionDep = Depends()):
         memo = (payload.get("memo") or "").strip() or None
         goal_id = db.execute(text("""
             INSERT INTO life_expense.category_goals
-                        (cat1_id, cat2_id, cat3_id, amount, memo, sort_order)
-                 VALUES (:c1, :c2, :c3, :amt, :memo, :sort)
+                        (cat1_id, cat2_id, cat3_id, amount, memo, sort_order,
+                         start_ym, end_ym)
+                 VALUES (:c1, :c2, :c3, :amt, :memo, :sort,
+                         COALESCE(:start, to_char(now(), 'YYYY-MM')), :end)
               RETURNING goal_id
         """), {"c1": cat1, "c2": cat2, "c3": cat3, "amt": amount,
-                "memo": memo, "sort": nxt}).scalar()
+                "memo": memo, "sort": nxt, "start": start, "end": end}).scalar()
         db.commit()
         return {"goal_id": goal_id}
     except HTTPException:
@@ -126,7 +158,40 @@ def save_amount(goal_id: int, payload: dict, db: SessionDep = Depends()):
              WHERE goal_id = :id
         """), {"amt": amount, "id": goal_id}).rowcount
         if not done:
-            raise HTTPException(status_code=404, detail="없는 목표입니다.")
+            raise HTTPException(status_code=404, detail="없는 도전입니다.")
+        db.commit()
+        return {"ok": True}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/{goal_id}/start")
+def save_start(goal_id: int, payload: dict, db: SessionDep = Depends()):
+    """
+    언제부터 언제까지 센 도전인지를 고친다 — 금액 · 한마디와 같은 방식이다.
+
+    둘을 한 번에 담는다. 따로 보내면 "끝이 시작보다 앞설 수 없다"는 규칙에
+    먼저 닿은 쪽이 걸려, 두 칸을 함께 옮기는 일이 되지 않는다.
+    """
+    start = _start_ym(payload)
+    if start is None:
+        raise HTTPException(status_code=400, detail="시작 연월을 골라 주세요.")
+    end = _end_ym(payload)
+    if end is not None and end < start:
+        raise HTTPException(status_code=400, detail="종료 연월이 시작 연월보다 앞섭니다.")
+    try:
+        done = db.execute(text("""
+            UPDATE life_expense.category_goals
+               SET start_ym = :start
+                 , end_ym   = :end
+             WHERE goal_id = :id
+        """), {"start": start, "end": end, "id": goal_id}).rowcount
+        if not done:
+            raise HTTPException(status_code=404, detail="없는 도전입니다.")
         db.commit()
         return {"ok": True}
     except HTTPException:
@@ -148,7 +213,7 @@ def save_memo(goal_id: int, payload: dict, db: SessionDep = Depends()):
              WHERE goal_id = :id
         """), {"memo": memo, "id": goal_id}).rowcount
         if not done:
-            raise HTTPException(status_code=404, detail="없는 목표입니다.")
+            raise HTTPException(status_code=404, detail="없는 도전입니다.")
         db.commit()
         return {"ok": True}
     except HTTPException:
@@ -166,7 +231,7 @@ def remove_goal(goal_id: int, db: SessionDep = Depends()):
             DELETE FROM life_expense.category_goals WHERE goal_id = :id
         """), {"id": goal_id}).rowcount
         if not done:
-            raise HTTPException(status_code=404, detail="없는 목표입니다.")
+            raise HTTPException(status_code=404, detail="없는 도전입니다.")
         db.commit()
         return {"ok": True}
     except HTTPException:

@@ -57,7 +57,53 @@ type Loaded = {
   }[];
   /** 걸어 둔 분류별 목표 — 안쓴이 도전 */
   goals: Goal[];
+  /** 받아 둔 달들. 이 바깥 달은 그때 따로 받는다(안쓴이 도전의 달 넘기기). */
+  months: string[];
+  /** 대기 · 정기의 날것. 다른 달을 셀 때 같은 방식으로 다시 세우려고 남긴다. */
+  rawPending: Raw[];
+  rawSched: Raw[];
 };
+
+/**
+ * 한 달치 줄을 세운다.
+ *
+ * 세 갈래(지출 · 대기 · 정기)를 그 달 날짜로만 추려 한 꼴로 맞춘다.
+ * 처음 받아 두는 석 달도, 안쓴이 도전이 달을 거슬러 가며 따로 받는 달도
+ * 이 한 곳을 지난다 — 두 길로 세우면 같은 달인데 숫자가 달라진다.
+ */
+function 달줄(ym: string, expense: Raw[], pending: Raw[], sched: Raw[]): NRow[] {
+  const out: NRow[] = [];
+  const push = (src: Src, list: Raw[], dateField: string, idField: string) => {
+    list.forEach((x) => {
+      const date = String(x[dateField] ?? "").slice(0, 10);
+      if (!date || !date.startsWith(ym)) return;
+      out.push({
+        key: `${src}-${x[idField]}`,
+        src,
+        date,
+        day: Number(date.slice(8, 10)),
+        inout: (x.inout as number) ?? null,
+        net: Number(x.net_amount ?? x.amount ?? 0),
+        amount: Number(x.amount ?? 0),
+        cat1_id: x.cat1_id as number,
+        cat2_id: x.cat2_id as number,
+        cat3_id: x.cat3_id as number,
+        pay_method: x.pay_method as number,
+        memo: x.memo as string,
+        place_name: x.place_name as string,
+        /* 카드 실적에서 뺀 건인지 — 잔소리의 카드 실적만 본다. */
+        perf_exclude: (x.perf_exclude as number) ?? 0,
+        /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
+        fixed_flag: (x.fixed_flag as number | null) ?? null,
+        counterpart_ids: (x.counterpart_ids as number[]) ?? [],
+      });
+    });
+  };
+  push("expense", expense, "tx_date", "entry_id");
+  push("pending", pending, "tx_date", "entry_id");
+  push("scheduled", sched, "next_run_at", "schedule_id");
+  return out;
+}
 
 let cached: Loaded | null = null;
 let inflight: Promise<Loaded | null> | null = null;
@@ -117,37 +163,8 @@ async function load(): Promise<Loaded> {
      실제로 2026-08은 대기가 15건(600,710원), 2026-07은 2건(166,050원)이라
      지출만으로 견주면 이번 달이 61% 적게, 셋을 다 세면 33% 적게 나왔다. */
   const rows: NRow[] = [];
-  const push = (src: Src, list: Raw[], dateField: string, idField: string, ym?: string) => {
-    list.forEach((x) => {
-      const date = String(x[dateField] ?? "").slice(0, 10);
-      if (!date || (ym && !date.startsWith(ym))) return;
-      rows.push({
-        key: `${src}-${x[idField]}`,
-        src,
-        date,
-        day: Number(date.slice(8, 10)),
-        inout: (x.inout as number) ?? null,
-        net: Number(x.net_amount ?? x.amount ?? 0),
-        amount: Number(x.amount ?? 0),
-        cat1_id: x.cat1_id as number,
-        cat2_id: x.cat2_id as number,
-        cat3_id: x.cat3_id as number,
-        pay_method: x.pay_method as number,
-        memo: x.memo as string,
-        place_name: x.place_name as string,
-        /* 카드 실적에서 뺀 건인지 — 잔소리의 카드 실적만 본다. */
-        perf_exclude: (x.perf_exclude as number) ?? 0,
-        /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
-        fixed_flag: (x.fixed_flag as number | null) ?? null,
-        counterpart_ids: (x.counterpart_ids as number[]) ?? [],
-      });
-    });
-  };
-
   months.forEach((ym, i) => {
-    push("expense", res[i] as Raw[], "tx_date", "entry_id", ym);
-    push("pending", res[MONTHS] as Raw[], "tx_date", "entry_id", ym);
-    push("scheduled", res[MONTHS + 1] as Raw[], "next_run_at", "schedule_id", ym);
+    rows.push(...달줄(ym, res[i] as Raw[], res[MONTHS] as Raw[], res[MONTHS + 1] as Raw[]));
   });
 
   /* 아직 보내지 않은 것만 밀린 것으로 센다 — 보낸 뒤에도 행은 남는다. */
@@ -196,7 +213,26 @@ async function load(): Promise<Loaded> {
     cat3List: res[MONTHS + 4] as (Cat & { cat2_id: number })[],
     cards,
     goals: res[MONTHS + 6] as Goal[],
+    months,
+    rawPending: res[MONTHS] as Raw[],
+    rawSched: res[MONTHS + 1] as Raw[],
   };
+}
+
+/**
+ * 받아 둔 석 달 바깥의 한 달을 따로 받는다 — 안쓴이 도전의 달 넘기기.
+ *
+ * 대기 · 정기는 달에 매이지 않는 목록이라 이미 받아 둔 것을 그대로 쓴다.
+ * 지출만 그 달치를 새로 물어 온다.
+ */
+export async function 다른달줄(ym: string): Promise<NRow[]> {
+  const d = await ensure();
+  if (!d) return [];
+  const expense = await axios
+    .get("/entries/month", { params: { ym } })
+    .then((r) => r.data as Raw[])
+    .catch(() => [] as Raw[]);
+  return 달줄(ym, expense, d.rawPending, d.rawSched);
 }
 
 function ensure(): Promise<Loaded | null> {
@@ -228,7 +264,7 @@ export function invalidateNudges() {
  * 잔소리와 안쓴이 도전이 같은 줄을 봐야 하므로 한 곳에만 둔다 —
  * 두 곳에서 따로 거르면 같은 달인데 숫자가 다른 일이 반드시 생긴다.
  */
-function refine(data: Loaded, fixPick: FixedPick) {
+function refine(data: Loaded, fixPick: FixedPick, 다른줄?: NRow[]) {
   const { cat1List, cat2List, cat3List } = data;
   const fixSets = fixedSetsFrom(cat2List, cat3List);
   const blurSets = blurSetsFrom(cat1List, cat2List, cat3List);
@@ -239,7 +275,7 @@ function refine(data: Loaded, fixPick: FixedPick) {
   /* 수입은 두 가지로 가른다 — 줄에 붙은 표시와, 그 소분류가 수입인지.
      씀씀이가 쓰는 잣대 그대로다. */
   const income = new Set(cat2List.filter((c) => c.inout === 1).map((c) => c.id));
-  const rows = data.rows.filter(
+  const rows = (다른줄 ?? data.rows).filter(
     (r) => r.inout !== 1 && !income.has(Number(r.cat2_id)) && keep(r)
   );
   const pending = data.pending
@@ -315,7 +351,7 @@ export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]
  * 받아 오는 것도 거르는 것도 잔소리와 한 벌이라, 화면을 옷겨도 다시 받지
  * 않고 두 화면의 숫자가 어긋날 일도 없다.
  */
-export function useGoalBoard(options: NudgeOptions = {}): {
+export function useGoalBoard(options: NudgeOptions & { ym?: string } = {}): {
   goals: Goal[];
   rows: NRow[];
   /** 가려 둔 갈래에서 온 줄 — 상세에서 금액에만 테이프를 붙인다. */
@@ -324,8 +360,10 @@ export function useGoalBoard(options: NudgeOptions = {}): {
   catPath: (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) => string;
   ready: boolean;
 } {
-  const { fixPick = ALL_FIXED_PICK, reloadKey = 0 } = options;
+  const { fixPick = ALL_FIXED_PICK, reloadKey = 0, ym } = options;
   const [data, setData] = useState<Loaded | null>(cached);
+  /* 받아 둔 석 달 바깥을 볼 때만 그 달을 따로 받아 둔다. */
+  const [딴달, set딴달] = useState<{ ym: string; rows: NRow[] } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -336,6 +374,20 @@ export function useGoalBoard(options: NudgeOptions = {}): {
       alive = false;
     };
   }, [reloadKey]);
+
+  useEffect(() => {
+    if (!data || !ym || data.months.includes(ym)) {
+      set딴달(null);
+      return;
+    }
+    let alive = true;
+    다른달줄(ym).then((rows) => {
+      if (alive) set딴달({ ym, rows });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [data, ym, reloadKey]);
 
   return useMemo(() => {
     if (!data) {
@@ -348,7 +400,12 @@ export function useGoalBoard(options: NudgeOptions = {}): {
         ready: false,
       };
     }
-    const { rows, masked, name1, name2, name3 } = refine(data, fixPick);
+    /* 받아 둔 석 달 안이면 그대로 쓰고, 바깥이면 따로 받아 둔 줄을 쓴다.
+       아직 못 받았으면 빈 줄로 둔다 — 다른 달 숫자를 잠깐 보여 주느니 낫다. */
+    const 딴 = ym && !data.months.includes(ym)
+      ? (딴달 && 딴달.ym === ym ? 딴달.rows : [])
+      : undefined;
+    const { rows, masked, name1, name2, name3 } = refine(data, fixPick, 딴);
     return {
       goals: data.goals,
       rows,
@@ -360,5 +417,5 @@ export function useGoalBoard(options: NudgeOptions = {}): {
           .join(" > "),
       ready: true,
     };
-  }, [data, fixPick]);
+  }, [data, fixPick, ym, 딴달]);
 }

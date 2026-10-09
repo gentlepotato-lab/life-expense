@@ -15,7 +15,7 @@
 import type { Row } from "./calendarFilter";
 import { formatDateLabel } from "./dateGroup";
 import { manwon } from "./amount";
-import { standsOf, PRAISE_FROM_DAY, type Goal } from "./goalStand";
+import { standsOf, PRAISE_FROM_DAY, type Goal, 걸린달 } from "./goalStand";
 
 /** 잔소리 한 줄이 딸린 자리 */
 export type Level = "bad" | "watch" | "good";
@@ -397,7 +397,9 @@ export function buildNudges(src: NudgeSource): Nudge[] {
      이미 넘겼다 · 이대로면 넘긴다 · 잘 지키는 중.
      칭찬은 달 후반에만 한다. 3일차에 "목표까지 47만 원 남았습니다"는
      아무 말도 아니고, 목표를 여럿 걸어 두면 칭찬만으로 화면이 차버린다. */
-  standsOf(src.goals, rows, today).forEach((st) => {
+  /* 아직 시작하지 않은 목표는 거른다 — 다음 달부터 세기로 한 것을 이 달에
+     넘겼다고 할 수는 없다. */
+  standsOf(src.goals.filter((g) => 걸린달(g, thisYm)), rows, today).forEach((st) => {
     const items = [...st.rows]
       .sort((a, b) => b.date.localeCompare(a.date))
       .map((r) => asItem(r as NRow));

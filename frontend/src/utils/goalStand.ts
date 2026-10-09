@@ -20,7 +20,36 @@ export type Goal = {
   /** "식비 > 점심" — 서버가 붙여 준다. */
   path: string;
   emoji: string | null;
+  /** 어느 달부터 센 도전인지 — "2026-10". 그 전 달은 이 도전이 없던 달이다. */
+  start_ym: string;
+  /** 어느 달까지 센 도전인지. 비어 있으면 끝이 없다. */
+  end_ym: string | null;
 };
+
+/**
+ * 그 달에 이 도전이 걸려 있었는가.
+ *
+ * 도전은 분류마다 한 줄뿐이라 기간이 없었다. 그대로 달을 거슬러 보면 어제
+ * 건 도전이 작년에도 걸려 있던 것처럼 나와 "그때 넘겼다"는 거짓 성적이
+ * 생긴다. 시작 연월과 종료 연월이 그 경계다.
+ */
+export function 걸린달(goal: Goal, ym: string): boolean {
+  if (goal.start_ym && goal.start_ym > ym) return false;
+  if (goal.end_ym && goal.end_ym < ym) return false;
+  return true;
+}
+
+/**
+ * 그 달에 걸려 있지 않았다면 왜인지 — 아직 시작 전인가, 이미 끝났는가.
+ *
+ * 흐리게 미는 것은 같지만 할 말이 다르다. "2026년 10월부터"와 "2026년
+ * 9월까지"는 읽는 사람에게 전혀 다른 소식이다.
+ */
+export function 비낀까닭(goal: Goal, ym: string): "before" | "after" | null {
+  if (goal.start_ym && goal.start_ym > ym) return "before";
+  if (goal.end_ym && goal.end_ym < ym) return "after";
+  return null;
+}
 
 /** 셈에 쓰는 줄이 갖춰야 할 것 */
 export type GoalRow = {

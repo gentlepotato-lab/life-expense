@@ -11381,13 +11381,6 @@ html {
   font-size: var(--font-size-xs);
 }
 
-.goal-row__memo[readonly] {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-text-secondary);
-}
-
 /* ═══════════════════════════════════════════════════════════════
    86. 설정 탭의 입력칸을 한 모습으로, 안내 글씨는 더 옅게(2026-08-28)
    ─────────────────────────────────────────────────────────────
@@ -18976,6 +18969,209 @@ textarea.memo-input.memo-area {
 .cat3-row {
   margin-left: 24px;
 }
+/* ═══════════════════════════════════════════════════════════════
+   170. 안쓴이 도전 — 달마다 보기(2026-10-09)
+   ─────────────────────────────────────────────────────────────
+   목표는 달 단위로 재는 것인데 이 달밖에 볼 수 없었다. 지출 내역과 같은
+   달 막대를 올려 지난 달의 성적도 거슬러 본다.
+
+   끝난 달은 할 말이 다르다 — `이대로면`이 아니라 지켰는지 넘겼는지다.
+   그 달에 아직 걸리지 않았던 목표는 한 단 물러서서 언제부터인지만 적는다.
+   ════════════════════════════════════════════════════════════ */
+
+/* 달 막대는 줄 왼쪽 끝, 편집은 오른쪽 끝 — 분류 · 씀씀이와 같은 짜임이다. */
+.goal-month {
+  margin-right: auto;
+}
+
+.month-nav__arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* 그 달의 성적 한 줄. 묶음 메모와 같은 옷이다 — 줄이 아니라 그 달 전체를
+   말하는 자리라 띠로 한 번 묶어 둔다. */
+.goal-sum {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 9px 12px;
+  border-left: 3px solid var(--mk-memo-edge);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--mk-memo-bg);
+}
+
+.goal-sum__say {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.goal-sum__sub {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.goal-sum__n {
+  flex: 0 0 auto;
+  margin-left: auto;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-sum__n.ok {
+  background: color-mix(in srgb, var(--color-success) 14%, transparent);
+  color: var(--color-success-dark);
+}
+
+.goal-sum__n.no {
+  background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+  color: var(--color-danger-dark);
+}
+
+/* 그 달에 없던 목표 — 지웠다는 뜻이 아니라 아직 시작 전이라는 뜻이라,
+   감추지 않고 한 단 물러서게만 둔다. */
+.goal-row--wait {
+  opacity: 0.55;
+}
+
+/* 그 달에 없던 목표는 넘겼는지 지켰는지를 말할 것이 없다 — 줄의 결(붉은빛 ·
+   풀빛)을 벗기고 언제부터인지만 옅게 적는다. */
+.goal-row--wait .goal-row__left {
+  color: var(--color-text-tertiary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   171. 안쓴이 도전 — 카드 다잡기와 기간(2026-10-09)
+   ─────────────────────────────────────────────────────────────
+   · 제거 단추가 머리줄에 있어 금액이 오른쪽 끝에서 밀려났다. 기간 줄 끝으로
+     옮긴다 — 금액은 두 모드 모두 카드 끝에 붙고, 줄도 흔들리지 않는다.
+   · 한마디에 내역 카드의 메모 판과 같은 음영을 깐다.
+   · 시작만 있던 것을 "…부터 …까지"로 넓힌다. 꼬리말은 칸 바깥 오른쪽에
+     붙인다 — 칸 안에 넣으면 고른 값과 한 덩어리로 읽힌다.
+   ═════════════════════════════════════════════════════════════ */
+
+/* 줄 사이와 안쪽 여백을 한 단씩 좁힌다 — 다섯 줄이 쌓이는 카드라 한 단이
+   그대로 다섯 번 쌓인다. */
+.goal-row {
+  gap: 5px;
+  padding: 9px 12px;
+}
+
+/* ─── 한마디 ───────────────────────────────────────────────────
+   내역 카드의 메모 판(.memo-pad)과 같은 빛깔이다. 적은 것이 없을 때는
+   음영도 지워 빈 줄로 둔다 — 빈 음영 칸만 남으면 눈에 걸린다. */
+.goal-row__memo {
+  background: color-mix(in srgb, var(--color-primary) 3.5%, var(--color-surface));
+}
+
+.goal-row__memo[readonly] {
+  padding: 0 8px;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--color-primary) 3.5%, var(--color-surface));
+  color: var(--color-text-secondary);
+}
+
+.goal-row__memo[readonly]:not(.has-memo) {
+  background: none;
+}
+
+/* ─── 기간 줄 ─────────────────────────────────────────────────
+   줄 사이는 카드의 gap이 벌린다 — 여기서 또 띄우면 한마디 칸과 간격이
+   어긋난다. 높이는 한마디 칸과 같은 22px로 못 박아 두 모드가 같다. */
+.goal-row__span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+}
+
+.goal-row__ym {
+  flex: 0 0 auto;
+  width: 104px;
+}
+
+.goal-row__span .ms-display {
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  padding: 0 8px;
+}
+
+.goal-row__span .ms-value,
+.goal-row__span .ms-placeholder {
+  font-size: var(--font-size-xs);
+}
+
+/* 꼬리말은 칸에 바싹 붙인다 — 줄의 gap 6px을 거의 다 걷어 낸다. */
+.goal-row__ym-tail {
+  flex: 0 0 auto;
+  margin-left: -5px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.goal-row__ym-read {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* 제거 단추는 기간 줄 끝에 — 머리줄에서 비켜나야 금액이 카드 끝에 붙는다. */
+.goal-row__span > .set-remove {
+  margin-left: auto;
+}
+
+/* ─── 새 도전의 기간 줄 ────────────────────────────────────────
+   걸어 둔 카드와 같은 치수·같은 차례다. [추가]만 줄 끝으로 민다. */
+.goal-add__ym {
+  flex: 0 0 auto;
+  width: 104px;
+}
+
+.goal-add__row .ms-display {
+  height: var(--set-input-h);
+  min-height: var(--set-input-h);
+  max-height: var(--set-input-h);
+  padding: 0 8px;
+}
+
+.goal-add__ym .ms-value,
+.goal-add__ym .ms-placeholder {
+  font-size: var(--font-size-xs);
+}
+
+.goal-add__ym-tail {
+  flex: 0 0 auto;
+  margin-left: -5px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.goal-add__row > .goal-add__go {
+  margin-left: auto;
+}
+
+/* ─── 그 달의 형편을 적는 띠 ───────────────────────────────────
+   묶음 팝업의 메모와 같은 글씨다 — 둘 다 카드 위에 얹혀 한마디를 건네는
+   자리라, 크기가 다르면 한쪽이 제목처럼 읽힌다. */
+.goal-sum__say {
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
 /* ─── 달 막대의 연월 ──────────────────────────────────────────
    눌러서 열두 칸 달력을 펼치는 자리가 되었다 — 누를 수 있다는 것이
    보여야 한다. */
@@ -18997,5 +19193,37 @@ textarea.memo-input.memo-area {
 
 .month-nav__label.readonly:hover {
   background: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   172. 안쓴이 도전의 금액 · 설정 탭의 담기 자리(2026-10-09)
+   ═════════════════════════════════════════════════════════════ */
+
+/* 금액은 카드에서 제일 먼저 읽히는 숫자다 — 분류 이름보다 한참 커야
+   눈이 먼저 간다. 두 모드가 같은 크기여야 들어갈 때 글씨가 뛰지 않는다. */
+.goal-row__head {
+  min-height: 30px;
+}
+
+.goal-row__head > .goal-row__amount--text {
+  height: 30px;
+  font-size: var(--font-size-xl);
+}
+
+.goal-row__head > .amount-input.goal-row__amount {
+  height: 30px !important;
+  min-height: 30px !important;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+}
+
+/* 새 도전의 안내 글씨 — 한 상자 안에서 칸마다 크기가 다르면 칸의 무게가
+   제각각으로 읽힌다. 한마디 칸(11px)에 모두 맞춘다. */
+.goal-add__cat .ms-placeholder {
+  font-size: var(--font-size-xs);
+}
+
+.goal-add__row > .amount-input {
+  font-size: var(--font-size-xs);
 }
 
