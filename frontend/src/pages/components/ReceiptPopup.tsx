@@ -49,15 +49,22 @@ export default function ReceiptPopup({
      떨어진다. 그래서 팝업이 열릴 때 한 장 그려 두고 단추는 그때 깨운다. */
   const 그림 = useRef<Blob | null>(null);
 
+  /* 화면에 선 석 장을 칠한다. 내보낼 그림은 따로 둔다 — 다시 칠할 일은
+     잦아도 그림은 한 번만 뜨면 된다. */
+  const 칠하기 = useCallback(() => {
+    if (rows.length === 0) return;
+    if (head.current) drawReceipt(head.current, rows, meta, "head");
+    if (list.current) drawReceipt(list.current, rows, meta, "list");
+    if (foot.current) drawReceipt(foot.current, rows, meta, "foot");
+  }, [rows, meta]);
+
   useEffect(() => {
     if (rows.length === 0) return;
     let 살아 = true;
     /* 글꼴이 아직 안 왔으면 재는 폭이 달라져 글이 어긋난다. 기다렸다 그린다. */
     const 그리기 = () => {
       if (!살아) return;
-      if (head.current) drawReceipt(head.current, rows, meta, "head");
-      if (list.current) drawReceipt(list.current, rows, meta, "list");
-      if (foot.current) drawReceipt(foot.current, rows, meta, "foot");
+      칠하기();
       const cv = document.createElement("canvas");
       drawReceipt(cv, rows, meta, "all", 3);
       cv.toBlob((b) => {
@@ -71,7 +78,46 @@ export default function ReceiptPopup({
     return () => {
       살아 = false;
     };
-  }, [rows, meta]);
+  }, [rows, meta, 칠하기]);
+
+  /*
+   * 앱을 나갔다 들어오면 다시 칠한다.
+   *
+   * 영수증 석 장은 살아 있는 canvas다. 폰에서 앱을 내려놓으면 브라우저가
+   * 자리가 모자랄 때 canvas가 쥐고 있던 그림판을 거둬 간다 — 요소는 그대로
+   * 서 있는데 칠한 것만 사라져, 되돌아왔을 때 깨진 그림 기호가 떴다가 흰
+   * 종이로 남았다. React는 그릴 것이 안 바뀌었으니 다시 그리지 않는다.
+   *
+   * 그림판을 잃었다는 말(contextlost)을 들으면 그 자리에서 다시 칠하고,
+   * 그 말을 전하지 않는 브라우저를 위해 화면이 다시 보일 때와 뒤로 가기로
+   * 되살아날 때도 한 번씩 칠한다. 칠하는 값은 열 때 잡아 둔 것 그대로라
+   * 영수증 번호도 뽑은 때도 달라지지 않는다.
+   */
+  useEffect(() => {
+    if (rows.length === 0) return;
+    const 다시 = () => {
+      if (document.visibilityState === "visible") 칠하기();
+    };
+    /* 잃었다는 말에 기본 처리를 막아야 브라우저가 그림판을 되돌려 준다. */
+    const 잃음 = (e: Event) => e.preventDefault();
+    const 칸들 = [head.current, list.current, foot.current].filter(
+      (c): c is HTMLCanvasElement => !!c
+    );
+    칸들.forEach((c) => {
+      c.addEventListener("contextlost", 잃음);
+      c.addEventListener("contextrestored", 칠하기);
+    });
+    document.addEventListener("visibilitychange", 다시);
+    window.addEventListener("pageshow", 다시);
+    return () => {
+      칸들.forEach((c) => {
+        c.removeEventListener("contextlost", 잃음);
+        c.removeEventListener("contextrestored", 칠하기);
+      });
+      document.removeEventListener("visibilitychange", 다시);
+      window.removeEventListener("pageshow", 다시);
+    };
+  }, [rows, 칠하기]);
 
   const 복사 = useCallback(async () => {
     const blob = 그림.current;
