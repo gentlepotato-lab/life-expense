@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import useBackClose from "../hooks/useBackClose";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "../api/client";
 import DateGroupHeader from "./components/DateGroupHeader";
@@ -297,6 +298,12 @@ export default function CalendarDetail() {
      한 화면에 세 갈래가 섞여 있어 열쇠에 갈래를 붙인다. entry_id와
      schedule_id는 서로 다른 표의 번호라 그냥 쓰면 겹친다. */
   const [pickedKeys, setPickedKeys] = useState<Set<string>>(new Set());
+
+  /* 고른 것이 있으면 뒤로 가기가 화면을 떠나지 않고 고른 것만 푼다.
+     팝업과 같은 결이다 — 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 고른
+     것이 있는 동안만 서 있으므로, 풀면 막대도 함께 내려간다.
+     Backspace는 받지 않는다 — 고르는 중에 쓰는 키가 아니다. */
+  useBackClose(pickedKeys.size > 0, () => setPickedKeys(new Set()), false);
   const [receiptOpen, setReceiptOpen] = useState(false);
 
   const togglePick = useCallback((key: string) => {

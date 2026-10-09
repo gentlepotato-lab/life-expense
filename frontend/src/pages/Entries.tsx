@@ -824,6 +824,12 @@ export default function Entries() {
      고른 것은 지금 화면에 보이는 줄에서만 센다. 달을 옮기거나 걸러서
      사라진 건이 고른 채 남아 있으면, 눈에 없는 것이 영수증에 찍힌다. */
   const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
+
+  /* 고른 것이 있으면 뒤로 가기가 화면을 떠나지 않고 고른 것만 푼다.
+     팝업과 같은 결이다 — 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 고른
+     것이 있는 동안만 서 있으므로, 풀면 막대도 함께 내려간다.
+     Backspace는 받지 않는다 — 고르는 중에 쓰는 키가 아니다. */
+  useBackClose(pickedIds.size > 0, () => setPickedIds(new Set()), false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [makeOpen, setMakeOpen] = useState(false);
 

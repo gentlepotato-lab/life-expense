@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import useBackClose from "../hooks/useBackClose";
 import axios from "../api/client";
 import DateGroupHeader from "./components/DateGroupHeader";
 import GroupPopup from "./components/GroupPopup";
@@ -57,6 +58,12 @@ export default function EntryGroups() {
      훑기 쉽고, 볼 것만 펼친다. */
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [picked, setPicked] = useState<Set<number>>(new Set());
+
+  /* 고른 것이 있으면 뒤로 가기가 화면을 떠나지 않고 고른 것만 푼다.
+     팝업과 같은 결이다 — 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 고른
+     것이 있는 동안만 서 있으므로, 풀면 막대도 함께 내려간다.
+     Backspace는 받지 않는다 — 고르는 중에 쓰는 키가 아니다. */
+  useBackClose(picked.size > 0, () => setPicked(new Set()), false);
   const [openId, setOpenId] = useState<number | null>(null);
   /* 꾹 눌러 편집을 열면 손을 뗄 때 click이 뒤따라 온다. 그대로 두면 편집
      팝업이 뜨면서 뒤에서 묶음이 접힌다. 한 번만 삼킨다. */
