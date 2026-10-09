@@ -840,6 +840,12 @@ export default function Categories() {
                         </span>
                       )}
 
+                      {/* 건수는 이름 바로 오른쪽. 줄 맨 오른쪽에 두었더니 이름이
+                          짧은 줄에서는 멀찍이 떨어져 어느 분류의 수인지 한눈에
+                          이어지지 않았다. 이름 · 이모지와 한 덩어리로 묶는다. */}
+                      <span className="set-group__count">
+                        {cat2View.filter((c) => c.cat1_id === c1.cat1_id).length}
+                      </span>
                     </div>
 
                     {/* 걸어 둔 Blur는 보기 모드에서도 보인다 — 무엇이 걸려 있는지
@@ -880,10 +886,6 @@ export default function Categories() {
                       </button>
                     )}
 
-                    {/* 건수는 줄 맨 오른쪽 — 결제 수단 · 함께한 상대와 같은 자리(388~405) */}
-                    <span className="set-group__count">
-                      {cat2View.filter((c) => c.cat1_id === c1.cat1_id).length}
-                    </span>
                   </div>
                 </SortableItem>
 
@@ -967,6 +969,15 @@ export default function Categories() {
                                 >
                                   {c2.cat2_name}
                                   {!c2.is_active && <span className="set-hide-mark">감춤</span>}
+                                </span>
+                              )}
+
+                              {/* 세분류를 거느린 줄에만 건수를 단다. 중분류 머리와
+                                  같이 이름 바로 오른쪽이다 — 접힌 채로도 안에 몇
+                                  갈래가 들었는지 보인다. */}
+                              {cat3View.some((c) => c.cat2_id === c2.cat2_id) && (
+                                <span className="set-group__count">
+                                  {cat3View.filter((c) => c.cat2_id === c2.cat2_id).length}
                                 </span>
                               )}
 
