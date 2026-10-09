@@ -36,8 +36,6 @@ type Counterpart = {
   memo: string | null;
   sort_order: number;
   is_active: number;
-  /** 아직 저장 전인 행. 저장 시 PUT이 아니라 POST로 보낸다. */
-  isNew?: boolean;
 };
 
 /**
@@ -105,7 +103,6 @@ const fingerprint = (list: Counterpart[]) =>
       c.category_id,
       c.memo,
       c.is_active,
-      c.isNew ?? false,
     ])
   );
 
@@ -129,6 +126,15 @@ export default function Counterparts() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [categories, setCategories] = useState<Category[]>([]);
   const [beforeCategories, setBeforeCategories] = useState<Category[]>([]);
+
+  /* 새로 담을 항목 */
+  const [addOpen, setAddOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newMemo, setNewMemo] = useState("");
+  const [addCategoryId, setAddCategoryId] = useState<number | null>(null);
+  /* 담던 것을 뒤로 가기로 접는다 — 설정 탭 네 화면이 모두 그렇다. */
+  useBackClose(addOpen, () => setAddOpen(false));
+
 
   /* 뒤로 가기 · Backspace로 편집을 무른다.
      여기는 편집 전 목록을 지문으로만 들고 있어 되돌릴 수 없으므로
@@ -159,18 +165,10 @@ export default function Counterparts() {
    * list의 상대 순서를 그대로 유지하므로, 구분을 바꾸면 그 줄이
    * 자동으로 다른 묶음으로 옮겨 간다.
    */
-  /**
-   * 아직 저장하지 않은 행.
-   * 묶음에 섞어 두면 구분을 고를 때마다 줄이 이리저리 옮겨 다녀 정신이 없다.
-   * 저장하기 전까지는 맨 위에 붙잡아 두고, 저장한 뒤에 제자리를 찾아가게 한다.
-   */
-  const drafts = list.filter((c) => c.isNew);
-  const saved = list.filter((c) => !c.isNew);
-
   const groups = [...categories, null]
     .map((cat) => ({
       cat,
-      items: saved.filter(
+      items: list.filter(
         (c) => (c.category_id ?? null) === (cat?.category_id ?? null)
       ),
     }))
@@ -178,12 +176,7 @@ export default function Counterparts() {
     .filter((g) => g.items.length > 0 || (editMode && g.cat));
 
   /** 저장할 때 쓰는 최종 순서 — 화면에 보이는 그대로다. */
-  /**
-   * 저장할 때 쓰는 최종 순서 — 화면에 보이는 그대로다.
-   * 대기 중인 행은 묶음에 들어 있지 않으므로 여기서 뒤에 붙여 준다.
-   * 빠뜨리면 새로 만든 항목이 저장되지 않는다.
-   */
-  const orderedForSave = [...groups.flatMap((g) => g.items), ...drafts];
+  const orderedForSave = groups.flatMap((g) => g.items);
 
   /** 구분(묶음) 자체의 순서를 바꾼다. */
   const handleGroupDragEnd = (event: { active: { id: unknown }; over: { id: unknown } | null }) => {
@@ -243,38 +236,55 @@ export default function Counterparts() {
   }, [showInactive]);
 
   /**
-   * 목록 맨 아래에 빈 행을 하나 붙인다.
-   * 실제 등록은 저장할 때 한꺼번에 하므로 여기서는 서버를 부르지 않는다.
+   * 새 항목을 담는다.
+   *
+   * 예전에는 목록에 빈 줄을 붙여 두고 [저장]을 눌러야 담겼다. 설정 탭의
+   * 다른 세 화면은 모두 [추가]로 끝나는데 여기만 한 걸음이 더 있어서,
+   * 손이 같은 자리에서 다른 것을 해야 했다. 이제 넷이 같다.
    */
-  const handleAdd = () => {
-    // 한 번에 한 장만. 여러 장을 벌여 두면 무엇을 채우다 말았는지 놓치기 쉽다.
-    if (list.some((c) => c.isNew)) {
-      const el = document.querySelector<HTMLInputElement>(
-        ".cp-draft input.cp-input--name"
-      );
-      el?.focus();
-      el?.select();
+  const handleAdd = async () => {
+    const name = newName.trim();
+    if (!name) return say.warn("이름을 입력해 주세요.");
+    if (list.some((c) => c.name.trim() === name)) {
+      return say.warn("이미 있는 이름입니다.");
+    }
+
+    try {
+      await axios.post("/counterparts", {
+        name,
+        category_id: addCategoryId,
+        memo: newMemo.trim() || null,
+        /* 맨 뒤에 붙인다 — 담자마자 제 구분 묶음의 끝에 선다. */
+        sort_order: list.length + 1,
+      });
+    } catch (err) {
+      say.bad(apiErrorMessage(err));
       return;
     }
 
-    if (!editMode) {
-      // 편집 진입 기준점은 행을 붙이기 전에 잡아야 "변경됨"으로 판정된다.
-      setBeforeEdit(fingerprint(list));
-      setBeforeCategories(JSON.parse(JSON.stringify(categories)));
-      setEditMode(true);
+    setNewName("");
+    setAddCategoryId(null);
+    setNewMemo("");
+    setAddOpen(false);
+    await refresh();
+    say.ok("추가 완료-!! ;-)");
+  };
+
+  /** 추가 양식에서 구분을 새로 만든다 — 결제 수단과 같은 흐름이다. */
+  const createCategoryForAdd = async () => {
+    const name = (
+      await askText({ title: "새 구분", label: "새 구분 이름을 입력해 주세요.", go: "추가" })
+    )?.trim();
+    if (!name) return;
+    try {
+      const r = await axios.post("/counterparts/categories", { name });
+      const next = await refreshCategories();
+      setBeforeCategories(JSON.parse(JSON.stringify(next)));
+      setAddCategoryId(r.data.category_id);
+      say.ok("추가 완료-!! ;-)");
+    } catch (err) {
+      say.bad(apiErrorMessage(err));
     }
-    setList((prev) => [
-      ...prev,
-      {
-        counterpart_id: -Date.now(),   // 임시 키. 저장 시 서버가 진짜 ID를 준다.
-        name: "",
-        category_id: null,
-        memo: null,
-        sort_order: 0,
-        is_active: 1,
-        isNew: true,
-      },
-    ]);
   };
 
   const enterEdit = () => {
@@ -285,17 +295,14 @@ export default function Counterparts() {
 
   /** 편집 모드에서 바꾼 이름·구분·메모를 한 번에 반영한다. */
   const handleSave = async () => {
-    // 이름이 빈 신규 행은 그냥 버린다. 이름이 빈 기존 행은 되돌릴 수 없으니 막는다.
-    const rows = list.filter((c) => !(c.isNew && !c.name.trim()));
+    const rows = list;
 
-    // 빈 행을 걷어낸 뒤에 판정해야, [+]만 눌렀다 만 경우도 "변경 없음"으로 잡힌다.
     const categoriesChanged =
       JSON.stringify(beforeCategories.map((c) => [c.category_id, c.emoji, c.color])) !==
       JSON.stringify(categories.map((c) => [c.category_id, c.emoji, c.color]));
 
     if (fingerprint(rows) === beforeEdit && !categoriesChanged) {
       say.warn("변경된 내용이 없습니다만...?");
-      setList(rows);
       setEditMode(false);
       return;
     }
@@ -325,11 +332,7 @@ export default function Counterparts() {
           is_active: c.is_active,
           sort_order: i + 1,
         };
-        if (c.isNew) {
-          await axios.post("/counterparts", body);
-        } else {
-          await axios.put(`/counterparts/${c.counterpart_id}`, body);
-        }
+        await axios.put(`/counterparts/${c.counterpart_id}`, body);
       }
       // 구분의 이모지·색은 분류 행에 저장한다.
       await axios.post(
@@ -351,11 +354,6 @@ export default function Counterparts() {
   };
 
   const handleDelete = async (id: number) => {
-    // 아직 저장 전인 행은 화면에서 지우면 끝이다.
-    if (id < 0) {
-      setList((prev) => prev.filter((x) => x.counterpart_id !== id));
-      return;
-    }
     if (
       !(await ask({
         title: "상대 제거",
@@ -459,7 +457,7 @@ export default function Counterparts() {
           <div
             className={`cp-card ${c.is_active ? "" : "inactive"} ${
               editMode ? "editing" : ""
-            } ${c.isNew ? "is-new" : ""}`}
+            }`}
           >
             {/* 아바타는 두 모드에 공통 — 편집에 들어가도 좌우 위치가 그대로다. */}
             <span
@@ -481,8 +479,6 @@ export default function Counterparts() {
                     className="cp-input cp-input--name"
                     value={c.name}
                     placeholder="(이름)"
-                    /* 방금 붙인 빈 행이면 바로 타이핑할 수 있게 한다. */
-                    autoFocus={c.isNew}
                     onChange={(e) => patch(c.counterpart_id, "name", e.target.value)}
                   />
                   <div className="cp-input--cat">
@@ -515,21 +511,18 @@ export default function Counterparts() {
                   />
                 </div>
 
-                {/* 저장 전인 행은 감출 대상이 아니다(아직 존재하지 않으니) */}
-                {!c.isNew && (
-                  <button
-                    type="button"
-                    className={`cp-hide-btn ${c.is_active ? "" : "on"}`}
-                    title={
-                      c.is_active
-                        ? "감춘다 — 분할 편집의 Who? 목록에서 빠진다."
-                        : "다시 보이게 한다."
-                    }
-                    onClick={() => toggleHidden(c.counterpart_id)}
-                  >
-                    {c.is_active ? "감추기" : "감춤"}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className={`cp-hide-btn ${c.is_active ? "" : "on"}`}
+                  title={
+                    c.is_active
+                      ? "감춘다 — 분할 편집의 Who? 목록에서 빠진다."
+                      : "다시 보이게 한다."
+                  }
+                  onClick={() => toggleHidden(c.counterpart_id)}
+                >
+                  {c.is_active ? "감추기" : "감춤"}
+                </button>
 
                 <button
                   type="button"
@@ -577,8 +570,20 @@ export default function Counterparts() {
             }
           />
 
+          {/* 담기와 고치기는 나란히 둔다 — 손이 가는 자리가 한 군데다. */}
+          <button
+            type="button"
+            className={`set-add-btn ${addOpen ? "on" : ""}`}
+            disabled={editMode}
+            onClick={() => setAddOpen((v) => !v)}
+          >
+            <span className="set-add-btn__mark" aria-hidden="true">+</span>
+            새 항목 추가
+          </button>
+
           <button
             className="ui-btn primary"
+            disabled={addOpen}
             onClick={() => (editMode ? handleSave() : enterEdit())}
           >
             {editMode ? "저장" : "편집"}
@@ -586,31 +591,68 @@ export default function Counterparts() {
         </div>
 
         <div className="cp-list">
-          {/* 추가는 목록 맨 위에서 — 세 Settings 화면 공통 자리 */}
-          <div className="set-add-bar">
-            <button type="button" className="set-add-btn" onClick={handleAdd}>
-              <span className="set-add-btn__mark" aria-hidden="true">+</span>
-              새 항목 추가
-            </button>
-          </div>
-
-          {/* 저장 전 항목 — 구분을 바꿔도 여기서 움직이지 않는다. */}
-          {drafts.length > 0 && (
-            <section className="cp-draft">
-              <div className="cp-draft__head">
-                <span className="cp-draft__name">저장 전</span>
-                <span className="cp-draft__count">{drafts.length}</span>
-                <span className="cp-draft__hint">저장하면 고른 구분으로 옮겨집니다.</span>
+          {/* 칸 구성은 카드를 고칠 때와 같다 — 이름, 구분, 한마디. */}
+          {addOpen && (
+            <div className="set-add-form set-add-form--col set-draft">
+              <div className="set-draft__head">
+                <span className="set-draft__name">새 항목</span>
               </div>
-              {drafts.map((c) => (
-                <div key={c.counterpart_id}>{renderCard(c)}</div>
-              ))}
-            </section>
+
+              <div className="set-add-form__row cp-add__row">
+                <input
+                  className="cat-input"
+                  placeholder="(이름)"
+                  value={newName}
+                  autoFocus
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAdd();
+                  }}
+                />
+
+                {/* 만들 때 구분까지 정해 둘 수 있다. 여기서도 새 구분을 만든다. */}
+                <div className="set-add-form__cat">
+                  <SingleSelect
+                    noun="구분"
+                    options={[
+                      { value: NEW_CATEGORY, label: "[+] 새 항목 추가" },
+                      { value: "", label: "(구분 없음)" },
+                      ...categories.map((c) => ({
+                        value: String(c.category_id),
+                        label: c.emoji ? `${c.name} ${c.emoji}` : c.name,
+                      })),
+                    ]}
+                    selected={addCategoryId ? String(addCategoryId) : ""}
+                    onChange={(v) => {
+                      if (v === NEW_CATEGORY) {
+                        createCategoryForAdd();
+                        return;
+                      }
+                      setAddCategoryId(v ? Number(v) : null);
+                    }}
+                    placeholder="(구분)"
+                  />
+                </div>
+              </div>
+
+              <div className="set-add-form__row cp-add__row--tail">
+                <input
+                  className="cat-input"
+                  placeholder="(메모)"
+                  value={newMemo}
+                  onChange={(e) => setNewMemo(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAdd();
+                  }}
+                />
+                <button className="ui-btn" onClick={handleAdd}>추가</button>
+              </div>
+            </div>
           )}
 
           {!ready && <p className="page-empty">불러오는 중입니다.</p>}
 
-          {ready && saved.length === 0 && drafts.length === 0 && (
+          {ready && list.length === 0 && (
             <p className="page-empty">
               등록된 항목이 없습니다.
               <span className="page-empty__hint">
@@ -717,7 +759,7 @@ export default function Counterparts() {
             <SortableRow
               key={c.counterpart_id}
               id={c.counterpart_id}
-              dragHandle={editMode && !c.isNew}
+              dragHandle={editMode}
             >
             {renderCard(c)}
             </SortableRow>

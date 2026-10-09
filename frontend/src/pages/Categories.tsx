@@ -651,8 +651,20 @@ export default function Categories() {
               onCollapseAll={() => setCollapsed(new Set(allCollapsibleKeys()))}
             />
 
+            {/* 담기와 고치기는 나란히 둔다 — 손이 가는 자리가 한 군데다. */}
+            <button
+              type="button"
+              className={`set-add-btn ${addOpen ? "on" : ""}`}
+              disabled={editMode}
+              onClick={() => setAddOpen((v) => !v)}
+            >
+              <span className="set-add-btn__mark" aria-hidden="true">+</span>
+              새 항목 추가
+            </button>
+
             <button
               className="ui-btn primary"
+              disabled={addOpen}
               onClick={() => {
                 if (!editMode) {
                   // 편집 시작 시 원본 저장
@@ -675,17 +687,6 @@ export default function Categories() {
         {/* 추가는 목록 맨 위에서 — 세 Settings 화면 공통 자리.
             분류가 3뎁스라 기존 중분류/소분류를 고르면 그 아래에 붙는
             기존 동작을 그대로 옮겨 왔다. */}
-        <div className="set-add-bar">
-          <button
-            type="button"
-            className={`set-add-btn ${addOpen ? "on" : ""}`}
-            onClick={() => setAddOpen((v) => !v)}
-          >
-            <span className="set-add-btn__mark" aria-hidden="true">+</span>
-            새 항목 추가
-          </button>
-        </div>
-
         {addOpen && (
         <div className="set-add-form set-add-form--col set-draft">
           <div className="set-draft__head">

@@ -261,6 +261,9 @@ export default function PaymentMethods() {
   const [list, setList] = useState<any[]>([]);
   const [newName, setNewName] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  /* 담던 것을 뒤로 가기로 접는다 — 설정 탭 네 화면이 모두 그렇다. */
+  useBackClose(addOpen, () => setAddOpen(false));
+
   const [addCategoryId, setAddCategoryId] = useState<number | null>(null);
   /** 감춘 항목까지 보여 줄지. 꺼져 있으면 목록에서만 빠진다(상태에는 그대로 남는다) */
   const [showInactive, setShowInactive] = useState(false);
@@ -581,8 +584,20 @@ export default function PaymentMethods() {
             }
           />
 
+          {/* 담기와 고치기는 나란히 둔다 — 손이 가는 자리가 한 군데다. */}
+          <button
+            type="button"
+            className={`set-add-btn ${addOpen ? "on" : ""}`}
+            disabled={editMode}
+            onClick={() => setAddOpen((v) => !v)}
+          >
+            <span className="set-add-btn__mark" aria-hidden="true">+</span>
+            새 항목 추가
+          </button>
+
           <button
             className="ui-btn primary"
+            disabled={addOpen}
             onClick={() => {
               if (!editMode) {
                 setBeforeEdit(JSON.parse(JSON.stringify(list)));
@@ -599,18 +614,6 @@ export default function PaymentMethods() {
       </div>
 
       <div className="cat-card">
-        {/* 추가는 목록 맨 위에서 — 세 Settings 화면 공통 자리 */}
-        <div className="set-add-bar">
-          <button
-            type="button"
-            className={`set-add-btn ${addOpen ? "on" : ""}`}
-            onClick={() => setAddOpen((v) => !v)}
-          >
-            <span className="set-add-btn__mark" aria-hidden="true">+</span>
-            새 항목 추가
-          </button>
-        </div>
-
         {addOpen && (
           <div className="set-add-form set-add-form--col set-draft">
             <div className="set-draft__head">

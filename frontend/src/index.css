@@ -4648,16 +4648,6 @@ button {
   background: var(--color-text-secondary);
 }
 
-/* 아직 저장 전인 행 — 저장을 눌러야 반영된다는 걸 보여 준다. */
-.cp-card.is-new {
-  border-color: var(--color-primary-light);
-  background: color-mix(in srgb, var(--color-primary) 3%, transparent);
-}
-
-.cp-card.is-new .cp-avatar {
-  background: var(--color-border);
-}
-
 /* ─── 빈 목록 ──────────────────────────────────────────────── */
 .cp-empty {
   display: flex;
@@ -5293,12 +5283,6 @@ div:has(> .cat2-header-row) .drag-handle,
 }
 
 /* ─── 목록 맨 위의 추가 버튼 ──────────────────────────────── */
-.set-add-bar {
-  display: flex;
-  align-items: center;
-  padding: 0 2px 2px;
-}
-
 .set-add-btn {
   display: inline-flex;
   align-items: center;
@@ -5821,15 +5805,14 @@ div:has(> .pm-item) .drag-handle {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   28. 저장 전 항목을 맨 위에 붙잡아 두기(2026-08)
+   28. 새 항목 상자(2026-08, 2026-10-09 고침)
    ─────────────────────────────────────────────────────────────
-   새 항목을 만들면서 구분을 고르면 그 줄이 곧바로 해당 묶음으로
-   날아가 버려 눈으로 쫓기 어려웠다. 저장하기 전까지는 목록 맨 위의
-   이 자리에 머무르고, 저장한 뒤에야 제자리를 찾아간다.
+   설정 탭 네 화면이 목록 맨 위의 이 상자에서 새 항목을 담는다.
+   함께한 상대만 목록에 빈 줄을 붙여 두고 [저장]으로 담았는데, 그 갈래를
+   걷고 넷 다 [추가]로 끝내게 했다 — 같은 자리에서 손이 하는 일이 같다.
    ════════════════════════════════════════════════════════════ */
 
-.set-draft,
-.cp-draft {
+.set-draft {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -5841,23 +5824,20 @@ div:has(> .pm-item) .drag-handle {
   background: color-mix(in srgb, var(--color-primary) 4%, transparent);
 }
 
-.set-draft__head,
-.cp-draft__head {
+.set-draft__head {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 0 2px 2px;
 }
 
-.set-draft__name,
-.cp-draft__name {
+.set-draft__name {
   font-size: var(--font-size-xs);
   font-weight: 700;
   color: var(--color-primary);
 }
 
-.set-draft__count,
-.cp-draft__count {
+.set-draft__count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -5871,8 +5851,7 @@ div:has(> .pm-item) .drag-handle {
   color: var(--color-primary);
 }
 
-.set-draft__hint,
-.cp-draft__hint {
+.set-draft__hint {
   margin-left: auto;
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
@@ -5881,14 +5860,8 @@ div:has(> .pm-item) .drag-handle {
   text-overflow: ellipsis;
 }
 
-/* 대기 영역 안에서는 손잡이 자리를 잡지 않는다(순서가 의미 없다) */
-.cp-draft .cp-card {
-  width: 100%;
-}
-
 @media (max-width: 520px) {
-  .set-draft__hint,
-  .cp-draft__hint {
+  .set-draft__hint {
     display: none;
   }
 }
@@ -6824,13 +6797,6 @@ body {
   margin-bottom: calc(var(--space-3) - 8px);
 }
 
-/* 함께한 상대의 목록은 행 사이에 6px를 두는데, 그 간격이 [+ 새 항목 추가] 줄
-   뒤에도 붙어 첫 묶음이 다른 두 화면보다 6px 아래에서 시작했다.
-   추가 줄은 목록의 일부가 아니라 머리이므로 간격을 걷는다. */
-.cp-list > .set-add-bar {
-  margin-bottom: -6px;
-}
-
 /* 결제 수단만 묶음 머리말의 위아래 여백이 2px 더 있어, 첫 행이 함께한 상대보다.
    4px 아래에서 시작했다. 왼쪽 들여쓰기는 두고 위아래만 맞춘다. */
 .cat-card > .set-group > .set-group__head {
@@ -6909,6 +6875,24 @@ body {
   width: auto;
 }
 
+/* 함께한 상대는 담을 것이 이름 · 구분 · 한마디 셋이라 두 줄로 눕는다.
+   윗줄은 결제 수단과 같은 5:4로 나누고, 아랫줄은 한마디가 그 둘을 합한 폭을
+   쓰고 [추가]가 끝에 선다 — 두 줄의 오른쪽 끝이 맞는다. */
+.set-add-form__row.cp-add__row {
+  grid-template-columns: minmax(0, 5fr) minmax(0, 4fr);
+}
+
+.set-add-form__row.cp-add__row--tail {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/* 고른 값도 안내 글씨와 같은 크기로 — 한 상자 안에서 칸마다 글씨가 다르면
+   칸의 무게가 제각각으로 읽힌다. */
+.set-add-form__cat .ms-value,
+.goal-add__cat .ms-value {
+  font-size: var(--font-size-xs);
+}
+
 @media (max-width: 520px) {
   .set-add-form__cat {
     width: auto;
@@ -6918,8 +6902,7 @@ body {
 /* 새 항목 줄이 한 줄로 줄면서 머리말에 자리가 생겼다.
    좁은 화면에서 감춰 두었던 안내 문구를 다시 보인다. */
 @media (max-width: 520px) {
-  .set-draft__hint,
-  .cp-draft__hint {
+  .set-draft__hint {
     display: inline;
   }
 }
@@ -18969,6 +18952,7 @@ textarea.memo-input.memo-area {
 .cat3-row {
   margin-left: 24px;
 }
+
 /* ═══════════════════════════════════════════════════════════════
    170. 안쓴이 도전 — 달마다 보기(2026-10-09)
    ─────────────────────────────────────────────────────────────
@@ -19227,3 +19211,45 @@ textarea.memo-input.memo-area {
   font-size: var(--font-size-xs);
 }
 
+/* ─── 담기 단추를 고치기 단추 옆으로 ──────────────────────────
+   목록 맨 위에 혼자 떠 있던 것을 도구 막대로 올린다. 담기와 고치기는
+   같은 일의 두 갈래라 손이 가는 자리가 한 군데여야 한다.
+   키는 옆에 선 고치기 단추와 같은 24px 그대로 둔다 — 도구 막대에서는 그
+   단추도 24px로 줄어 있어, 늘리면 오히려 위아래가 어긋난다. */
+.cat-toolbar .set-add-btn,
+.cp-toolbar .set-add-btn,
+.pm-toolbar-row .set-add-btn {
+  flex: 0 0 auto;
+}
+
+/* 묶음 펼치기·접기가 margin-left:auto로 오른쪽 덩어리를 만든다. 담기가
+   그 덩어리의 첫 자리이므로, 그것이 없는 화면에서는 담기가 그 일을 한다. */
+.cat-toolbar-btns .btn-row > .set-add-btn {
+  margin-left: auto;
+}
+
+.cat-toolbar-btns .btn-row > .set-add-btn + .ui-btn {
+  flex: 0 0 auto;
+}
+
+/* 함께한 상대의 고치기 단추가 들고 있던 margin-left:auto는 이제 담기가
+   맡는다 — 둘 사이가 벌어지면 안 된다. */
+.cp-toolbar .set-add-btn + .ui-btn {
+  margin-left: 0;
+}
+
+/* ─── 설정 탭 네 화면의 도구 막대는 같은 키 ───────────────────
+   안쓴이 도전에만 달 막대가 있어 그 줄만 2px 높았다. 탭을 옮길 때마다
+   담기 · 고치기 단추와 목록 머리가 그만큼 들썩였다. 가장 높은 줄에 맞춰
+   넷을 못 박는다 — 가운데 정렬이라 안의 것들은 그대로다. */
+.cat-toolbar-btns > .btn-row,
+.pm-toolbar-row {
+  align-items: center;
+  min-height: 26px;
+}
+
+/* 함께한 상대는 도구 막대가 곧 그 줄이라 감싸는 상자가 하나 적다. 아래
+   여백 12px까지 더한 키로 못 박아야 나머지 셋과 같은 자리에 선다. */
+.cp-toolbar {
+  min-height: 38px;
+}
