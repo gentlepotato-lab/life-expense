@@ -18976,3 +18976,26 @@ textarea.memo-input.memo-area {
 .cat3-row {
   margin-left: 24px;
 }
+/* ─── 달 막대의 연월 ──────────────────────────────────────────
+   눌러서 열두 칸 달력을 펼치는 자리가 되었다 — 누를 수 있다는 것이
+   보여야 한다. */
+.month-nav__label {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.month-nav__label:hover {
+  background: var(--color-bg);
+}
+
+.month-nav__label.readonly {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.month-nav__label.readonly:hover {
+  background: none;
+}
+

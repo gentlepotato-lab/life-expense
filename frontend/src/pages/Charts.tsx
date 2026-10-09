@@ -21,6 +21,8 @@ import type { PieSectorShapeProps, RectangleProps } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { stash, takeStash } from "../utils/pageState";
 import axios from "../api/client";
+import MonthNav from "./components/MonthNav";
+import useMonthSpan from "../hooks/useMonthSpan";
 import useLongPress, { LONG_PRESS_DELAY } from "../hooks/useLongPress";
 import useBackClose from "../hooks/useBackClose";
 import QuickActions from "./components/QuickActions";
@@ -1130,17 +1132,9 @@ export default function Charts() {
 
 
 
-  const monthLabel = useMemo(() => {
-    const [y, m] = yearMonth.split("-").map(Number);
-    return `${y}년 ${m}월`;
-  }, [yearMonth]);
-
-  const shiftMonth = (step: number) => {
-    const [y, m] = yearMonth.split("-").map(Number);
-    const d = new Date(y, m - 1 + step, 1);
-    setYearMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-  };
-
+  /* 넘겨 볼 수 있는 끝 — 적어 둔 것이 있는 달부터 이 달 두 달 뒤까지.
+     아직 오지 않은 달이나 적은 것이 하나도 없는 달로는 넘어가지 않는다. */
+  const { min: 달바닥, max: 달천장 } = useMonthSpan();
   const daysInMonth = useMemo(() => {
     const [y, m] = yearMonth.split("-").map(Number);
     return new Date(y, m, 0).getDate();
@@ -2414,15 +2408,7 @@ export default function Charts() {
       {/* 월 넘기기 + 필터 — 달력과 같은 툴바 */}
       <div className="toolbar-wrap">
         <div className="toolbar">
-          <div className="month-nav">
-            <button type="button" className="month-nav__arrow" aria-label="지난달" onClick={() => shiftMonth(-1)}>
-              ‹
-            </button>
-            <span className="month-nav__label">{monthLabel}</span>
-            <button type="button" className="month-nav__arrow" aria-label="다음 달" onClick={() => shiftMonth(1)}>
-              ›
-            </button>
-          </div>
+          <MonthNav ym={yearMonth} onChange={setYearMonth} min={달바닥} max={달천장} />
 
           <div className="toolbar-btns">
             {/* 달력과 같은 자리 — 필터 왼쪽. 달력은 날을 골라야 나타나지만

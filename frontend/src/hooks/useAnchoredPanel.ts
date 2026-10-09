@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
  * 판은 `position: fixed` 기준으로 놓인다 — 칸이 스크롤되는 통 안에 있어도
  * 판이 잘리지 않게 하려는 것이다. 그래서 스크롤이 일어나면 다시 셈한다.
  */
+
 export default function useAnchoredPanel(
   open: boolean,
   ref: React.RefObject<HTMLElement | null>,
@@ -47,6 +48,9 @@ export default function useAnchoredPanel(
       const openUp = below < 140 && above > below;
       const maxHeight = Math.max(120, Math.min(cap, openUp ? above : below));
 
+      /* 판은 화면 기준으로 놓인다. transform · will-change 따위를 지닌 조상이
+         있으면 fixed가 그 조상에 기대어 자리가 밀리므로, 그런 자리에 서는
+         판은 부르는 쪽에서 body로 띄워 쌓임과 기준을 함께 벗어난다. */
       setStyle(
         openUp
           ? { bottom: window.innerHeight - rect.top + 4, left, width, maxHeight }

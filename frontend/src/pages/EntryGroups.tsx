@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useBackClose from "../hooks/useBackClose";
+import MonthNav from "./components/MonthNav";
+import useMonthSpan from "../hooks/useMonthSpan";
 import axios from "../api/client";
 import DateGroupHeader from "./components/DateGroupHeader";
 import GroupPopup from "./components/GroupPopup";
@@ -137,14 +139,9 @@ export default function EntryGroups() {
 
   useEffect(load, [load]);
 
-  const shiftMonth = (step: number) => {
-    const [y, m] = yearMonth.split("-").map(Number);
-    const d = new Date(y, m - 1 + step, 1);
-    setYearMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-  };
-
-  const monthLabel = `${Number(yearMonth.slice(0, 4))}년 ${Number(yearMonth.slice(5, 7))}월`;
-
+  /* 넘겨 볼 수 있는 끝 — 적어 둔 것이 있는 달부터 이 달 두 달 뒤까지.
+     아직 오지 않은 달이나 적은 것이 하나도 없는 달로는 넘어가지 않는다. */
+  const { min: 달바닥, max: 달천장 } = useMonthSpan();
   /* 걸린 기간을 적는 한 줄. 지출 내역이 적는 꼴과 같다. */
   const rangeLabel = useMemo(() => {
     const 날 = (v: string) => new Date(v).toLocaleDateString("ko-KR");
@@ -224,25 +221,7 @@ export default function EntryGroups() {
           {걸림 ? (
             <div className="filter-range-label">{rangeLabel || "전체 기간"}</div>
           ) : (
-            <div className="month-nav">
-              <button
-                type="button"
-                className="month-nav__arrow"
-                aria-label="지난달"
-                onClick={() => shiftMonth(-1)}
-              >
-                ‹
-              </button>
-              <span className="month-nav__label">{monthLabel}</span>
-              <button
-                type="button"
-                className="month-nav__arrow"
-                aria-label="다음 달"
-                onClick={() => shiftMonth(1)}
-              >
-                ›
-              </button>
-            </div>
+            <MonthNav ym={yearMonth} onChange={setYearMonth} min={달바닥} max={달천장} />
           )}
 
           <div className="toolbar-btns">

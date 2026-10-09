@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
+import MonthNav from "./components/MonthNav";
+import useMonthSpan from "../hooks/useMonthSpan";
 
 import PlacePicker from "./components/PlacePicker";
 import MultiSelect from "./components/MultiSelect";
@@ -152,18 +154,9 @@ export default function Entries() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yearMonth]);
 
-  /** 앞뒤 달로 옮긴다. 값이 바뀌면 아래 useEffect가 바로 불러온다. */
-  const shiftMonth = (step: number) => {
-    const [y, m] = yearMonth.split("-").map(Number);
-    const d = new Date(y, m - 1 + step, 1);
-    setYearMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-  };
-
-  /** "2026-08" → "2026년 8월" */
-  const monthLabel = useMemo(() => {
-    const [y, m] = yearMonth.split("-").map(Number);
-    return `${y}년 ${m}월`;
-  }, [yearMonth]);
+  /* 넘겨 볼 수 있는 끝 — 적어 둔 것이 있는 달부터 이 달 두 달 뒤까지.
+     아직 오지 않은 달이나 적은 것이 하나도 없는 달로는 넘어가지 않는다. */
+  const { min: 달바닥, max: 달천장 } = useMonthSpan();
 
   // 월별 데이터 조회
   const loadData = async () => {
@@ -886,25 +879,7 @@ export default function Entries() {
           {isFilterActive ? (
             <div className="filter-range-label">{filterRangeLabel || "전체 기간"}</div>
           ) : (
-            <div className="month-nav">
-              <button
-                type="button"
-                className="month-nav__arrow"
-                aria-label="지난달"
-                onClick={() => shiftMonth(-1)}
-              >
-                ‹
-              </button>
-              <span className="month-nav__label">{monthLabel}</span>
-              <button
-                type="button"
-                className="month-nav__arrow"
-                aria-label="다음 달"
-                onClick={() => shiftMonth(1)}
-              >
-                ›
-              </button>
-            </div>
+            <MonthNav ym={yearMonth} onChange={setYearMonth} min={달바닥} max={달천장} />
           )}
 
           <div className="toolbar-btns">
@@ -927,6 +902,8 @@ export default function Entries() {
 
       {/* 카드 리스트 — 날짜별 단으로 묶어서 표시 */}
       <div className="card-list">
+        {/* 비어 있으면 그렇다고 말한다 — 내역 탭 네 화면이 같은 꼴로 말한다. */}
+        {dateGroups.length === 0 && <p className="page-empty">지출 내역이 없습니다.</p>}
         {dateGroups.map((group) => (
           <section key={group.date || "no-date"} className="date-group">
             <DateGroupHeader

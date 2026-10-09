@@ -1068,7 +1068,7 @@ export default function ScheduledEntries() {
       {/* 등록된 스케줄 목록 */}
       {schedules.length === 0 ? (
         <p className="page-empty">
-          등록된 정기 지출이 없습니다.
+          정기 내역이 없습니다.
           <span className="page-empty__hint">위 [+] 새 정기 지출 을 눌러 등록할 수 있습니다.</span>
         </p>
       ) : (

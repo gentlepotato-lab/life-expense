@@ -410,6 +410,24 @@ def export_entries(start: date, end: date, fmt: str = Query("xlsx"), db=Depends(
         df.to_excel(w, index=False, sheet_name="Entries")
     return Response(bio.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=entries.xlsx"})
 
+@router.get("/span")
+def get_month_span(db: SessionDep = Depends()):
+    """
+    적어 둔 것이 걸쳐 있는 연월의 처음과 끝.
+
+    달을 넘겨 보는 화면들이 어디까지 거슬러 갈 수 있는지 묻는 자리다.
+    적은 것이 하나도 없는 달까지 끝없이 넘어가면 빈 화면만 지나간다.
+    한 줄짜리 셈이라 화면마다 한 번씩 물어도 무겁지 않다.
+    """
+    row = db.execute(text("""
+        SELECT to_char(MIN(tx_date), 'YYYY-MM') AS first_ym
+             , to_char(MAX(tx_date), 'YYYY-MM') AS last_ym
+          FROM life_expense.entries
+    """)).mappings().first()
+
+    return {"first_ym": row["first_ym"], "last_ym": row["last_ym"]}
+
+
 # 월별 조회(YYYY-MM 형식)
 @router.get("/month")
 def get_entries_by_month(ym: str, db: SessionDep = Depends()):

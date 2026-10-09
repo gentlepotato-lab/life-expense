@@ -215,7 +215,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
         </header>
 
         {!ready && <div className="pd-none">세어 보는 중입니다.</div>}
-        {ready && 남은 === 0 && <div className="pd-none">대기 중인 내역이 없습니다.</div>}
+        {ready && 남은 === 0 && <div className="pd-none">대기 내역이 없습니다.</div>}
 
         {ready && 지금 && (
           <>
