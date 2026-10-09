@@ -121,7 +121,17 @@ export default function usePending(reloadKey = 0): {
     const name3 = new Map(cat3List.map((c) => [c.id, c.name]));
     const payName = new Map(payList.map((p) => [p.code, p.name]));
 
-    return data.rows.map((r): PendingCardRow => {
+    /* 날짜가 빠른 것부터 넘긴다. 밀린 것을 앞에서 치우는 자리라 오래된
+       것이 먼저 와야 한다 — 받아 오는 차례는 최신이 앞이다. 같은 날이면
+       먼저 적은 것이 앞이다(entry_id). */
+    const 차례 = [...data.rows].sort((a, b) => {
+      const x = String(a.tx_date ?? "").slice(0, 10);
+      const y = String(b.tx_date ?? "").slice(0, 10);
+      if (x !== y) return x < y ? -1 : 1;
+      return Number(a.entry_id) - Number(b.entry_id);
+    });
+
+    return 차례.map((r): PendingCardRow => {
       const amount = Number(r.amount ?? 0);
       const net = Number(r.net_amount ?? amount);
       const 쪼갬 = Number(r.split_count ?? 0) > 0;
