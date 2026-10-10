@@ -39,6 +39,11 @@ node tools\palette-shots.mjs
 npm run build
 ```
 
+**다 찍었으면 `src/pages/components/PalettePopup.tsx`의 `SHOTS_V`를 그날 날짜로
+올린다.** 파일 이름이 늘 같아 다시 구워도 주소가 그대로라, 브라우저가 쥐고
+있던 옛 그림을 그냥 내준다. 한 번은 바다 벌의 로고를 채워 놓고도 폰에서는 빈
+칸 그대로였다. 이 날짜가 주소 뒤에 붙어 그때만 새로 받아 가게 한다.
+
 한 화면만 다시 찍으려면 `PAL_ONLY`를 준다. 가림 목록에 빠진 칸을 메웠을 때처럼
 한 화면만 어긋난 경우를 위한 것이다.
 
@@ -186,7 +191,6 @@ CSS로 덮기만 하면 원본이 파일에 그대로 남아, 개발자 도구�
 | `src/utils/palettes.ts` | 벌의 `key` |
 | `tools/palette-shots.mjs` | `PALETTES` 배열 |
 | `src/pages/components/PalettePopup.tsx` | `SHOTS`의 `file` |
-| `tools/palette-logos.mjs` | `ART`의 열쇠와 색 |
 | `src/utils/theme.ts` | 칸의 `key`(찍는 스크립트의 `밝기`와 같아야 한다) |
 
 ---
@@ -203,28 +207,24 @@ CSS로 덮기만 하면 원본이 파일에 그대로 남아, 개발자 도구�
 4. `tools/palette-shots.mjs`의 `PALETTES`에 열쇠를 더한다.
 5. 어두운 칸에서도 보이는지 확인한다. 단추나 그림이 바탕에 묻히면 벌의
    `dark`에 그 자리만 적어 한 단 띄운다.
-6. `tools/palette-logos.mjs`의 `ART`에 그 벌의 `art` 색 둘과 `dark`를 더한다.
-7. 다시 찍는다. 로고는 찍기 전에 함께 만들어진다.
+6. 다시 찍는다. 로고는 그 벌의 `art` 색을 그 자리에서 따라가므로 따로
+   손댈 것이 없다.
 
 ---
 
 ## 로고
 
-첫 화면 쓰기 칸의 로고도 벌을 따른다. `<img>`로 붙는 그림 파일이라 CSS가 닿지
-않으므로 벌마다 한 장씩 미리 물들여 둔다.
+첫 화면 쓰기 칸의 로고도 벌을 따른다. 그림 파일이 아니라 코드 안에 그려 둔
+것이라(`src/pages/components/LogoMark.tsx`) 색 두 자리를 `--art-ink`와
+`--art-aqua`로 꽂아 둔다. 벌과 밝기를 바꾸면 그 자리에서 함께 바뀐다.
 
-```powershell
-node tools\palette-logos.mjs
-```
+한동안은 벌마다 물들인 `logo-<벌 열쇠>[-dark].svg` 열네 장을 두고 `<img>`로
+붙였다. 열넷은 꼴이 한 톨도 다르지 않고 색 두 개만 달랐는데, 그 둘은 앱이 이미
+들고 있는 값이었다. 같은 그림을 열네 번 복사해 두고 색을 나르려고 파일을
+받아 오느라 홈에 처음 들어갈 때 로고만 한 박자 늦게 떴고, 예시를 찍을 때도
+그 경주에 져서 **바다 벌의 스물여덟 장이 로고 없이 찍힌 적이 있다.** 코드로
+들이면서 파일도 그 단계도 함께 걷었다.
 
-`public/palette/logo-<벌 열쇠>[-dark].svg` 열두 장이 나온다. 벌마다 밝은 쪽과
-어두운 쪽 한 장씩이다 — 짙은 벌은 어두운 바탕에서 로고가 묻히기 때문이다. `palette-shots.mjs`가
-그림을 찍기 전에 이것을 먼저 돌리므로 따로 부를 일은 드물다. 벌의 `art` 색을
-손봤을 때만 따로 돌리면 된다.
-
-원본 `public/logo-h.svg`는 건드리지 않는다. 첫 띄움 화면(`index.html`)이
-그대로 쓴다. 이 자리는 React가 뜨기 전이라 어느 벌인지 알 수 없어, 늘 원본
-색으로 잠깐 스쳤다가 앱이 뜨면서 제 벌로 바뀐다.
-
-`tools/palette-logos.mjs`의 `ART`는 `src/utils/palettes.ts`의 `art`, 그리고
-어두운 쪽은 `dark.artInk`와 같아야 한다. 벌의 색을 손보면 두 곳을 함께 고친다.
+첫 띄움 화면(`index.html`)의 로고는 그대로 거기에 둔다. React가 뜨기 전이라
+벌을 알 수 없어, 앱이 열릴 때마다 그때 정해진 빛깔을 담아 두었다가 다음에 열 때
+그것으로 칠한다(`src/main.tsx`의 `앞머리기억`).

@@ -22,7 +22,6 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import makeLogos from "./palette-logos.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, "..", "public", "palette");
@@ -154,8 +153,10 @@ const 쉬다 = (ms) => new Promise((r) => setTimeout(r, ms));
 
 fs.mkdirSync(OUT, { recursive: true });
 
-/* 로고를 먼저 물들여 둔다. 첫 화면을 찍을 때 이미 있어야 한다. */
-console.log(`로고 ${makeLogos()}장`);
+/* 로고를 미리 물들이던 단계는 걷었다. 이제 로고는 코드 안에서 그려지고
+   (components/LogoMark.tsx) 벌의 색을 CSS 변수로 받으므로, 찍을 때 따로
+   만들어 둘 그림 파일이 없다. 그 파일을 받아 오느라 늦어 바다 벌의 첫 화면이
+   로고 없이 찍혔던 적이 있다 — 받아 올 것이 없으니 그 경주도 없어졌다. */
 
 for (const 밝 of 밝기) {
 for (const key of PALETTES) {

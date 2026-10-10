@@ -16,6 +16,16 @@ import useBackClose from "../../hooks/useBackClose";
 import { PALETTES, paletteOf, swatchOf } from "../../utils/palettes";
 import { STEPS, type Step } from "../../utils/theme";
 
+/**
+ * 다시 구운 날. 그림을 다시 찍을 때마다 이 날짜를 올린다.
+ *
+ * 그림은 파일 이름이 늘 같아(bada_home_now.webp) 다시 구워도 주소가 그대로다.
+ * 브라우저는 쥐고 있던 옛 그림을 그냥 내주므로, 새로 구운 것이 한참 동안
+ * 보이지 않는다 — 바다 벌의 로고를 채워 놓고도 폰에서는 빈 칸 그대로였다.
+ * 주소 뒤에 이 날짜를 붙여 두면 다시 구운 그때만 새로 받아 간다.
+ */
+const SHOTS_V = "2026-10-10";
+
 /** 예시로 보여 주는 네 화면. 파일 이름과 차례가 이 줄에서 정해진다. */
 const SHOTS = [
   { file: "home", label: "홈" },
@@ -80,7 +90,7 @@ export default function PalettePopup({
     받은칸.current.add(꼬리);
     const 차례: string[] = [];
     const 담기 = (k: string, f: string) => {
-      const src = `/palette/${k}_${f}${꼬리}.webp`;
+      const src = `/palette/${k}_${f}${꼬리}.webp?v=${SHOTS_V}`;
       if (!차례.includes(src)) 차례.push(src);
     };
     SHOTS.forEach((x) => 담기(shown, x.file));
@@ -230,7 +240,7 @@ export default function PalettePopup({
             <img
               className={`pal-pop__shot${미끄러짐 ? " sliding" : ""}`}
               style={{ transform: `translateX(${민거리}px)` }}
-              src={`/palette/${p.key}_${SHOTS[at].file}${꼬리}.webp`}
+              src={`/palette/${p.key}_${SHOTS[at].file}${꼬리}.webp?v=${SHOTS_V}`}
               alt={`${p.label} 빛깔의 ${SHOTS[at].label} 화면`}
               draggable={false}
             />
