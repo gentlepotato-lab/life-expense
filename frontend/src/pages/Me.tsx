@@ -593,6 +593,11 @@ export default function Me() {
                 담기고, 담기는 그때 화면 곳곳의 색이 바뀐다.
                 눈 단추는 담기 전에 미리 보라고 둔 것이다. 여섯 벌을 머릿속에
                 그려 놓고 고르기는 어렵다. */}
+            {/* 빛깔과 밝기는 저마다 한 줄이되, 두 줄의 오른쪽 끝은 하나로
+                합쳐 눈 단추를 세운다. 미리 보는 것이 둘을 함께 보는 일이라
+                어느 한 줄에만 붙으면 그 줄만의 것으로 읽힌다. */}
+            <div className="me-pref-pair">
+              <div className="me-pref-pair__rows">
             <div className="me-pref me-pref--palette">
               {lockCover()}
               <span className="me-pref__name">빛깔</span>
@@ -618,41 +623,21 @@ export default function Me() {
                     />
                   );
                 })}
-                <button
-                  type="button"
-                  className="me-pal__eye"
-                  disabled={!editMode}
-                  aria-label="빛깔 예시 보기"
-                  title="빛깔 예시 보기"
-                  onClick={() => setPalOpen(true)}
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                </button>
               </div>
             </div>
 
-            {/* 밝기 — 여섯 칸과, 운영체제를 따라가는 자리 하나.
-                밝은 칸을 고르면 밝은 쪽 값으로, 어두운 칸을 고르면 어두운 쪽
-                값으로 담는다. 그래야 시스템으로 옮겨도 애써 고른 칸이 그대로
-                살아난다. */}
+            {/* 밝기 — 칸 일곱. 밝은 칸을 고르면 밝은 쪽 값으로, 어두운 칸을
+                고르면 어두운 쪽 값으로 담는다. 양쪽을 따로 기억해 두므로
+                밝은 칸과 어두운 칸을 오가도 애써 고른 칸이 살아 있다. */}
             <div className="me-pref me-pref--step">
               {lockCover()}
               <span className="me-pref__name">배경 밝기</span>
               <div className="me-step">
                 {STEPS.map((s) => {
+                  /* 예전에는 운영체제를 따라가는 자리가 있었다. 걷어 냈지만
+                     그때 담아 둔 값이 남아 있을 수 있어, 그런 경우에는 지금
+                     끼워진 칸을 고른 것으로 보여 준다 — 아무 칸에도 불이
+                     들어오지 않으면 고장으로 읽힌다. */
                   const 자동 = (prefs.theme_mode ?? DEFAULT_MODE) === "system";
                   const 쓰는것 = s.dark
                     ? (prefs.theme_dark ?? DEFAULT_DARK)
@@ -660,7 +645,7 @@ export default function Me() {
                   const 같은쪽 = s.dark
                     ? (prefs.theme_mode ?? DEFAULT_MODE) === "dark"
                     : (prefs.theme_mode ?? DEFAULT_MODE) === "light";
-                  const on = !자동 && 같은쪽 && 쓰는것 === s.key;
+                  const on = 자동 ? 고른칸().key === s.key : 같은쪽 && 쓰는것 === s.key;
                   return (
                     <button
                       key={s.key}
@@ -677,33 +662,36 @@ export default function Me() {
                     />
                   );
                 })}
-                <button
-                  type="button"
-                  className={`me-step__auto${
-                    (prefs.theme_mode ?? DEFAULT_MODE) === "system" ? " on" : ""
-                  }`}
-                  disabled={!editMode}
-                  aria-pressed={(prefs.theme_mode ?? DEFAULT_MODE) === "system"}
-                  aria-label="시스템 설정 따라가기"
-                  title="시스템 설정 따라가기"
-                  onClick={() => setPref("theme_mode", "system")}
-                >
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <rect x="2.8" y="4.4" width="18.4" height="12.2" rx="2" />
-                    <path d="M8.5 20.4h7" />
-                  </svg>
-                </button>
               </div>
+            </div>
+
+              </div>
+
+              {/* 편집이 아닐 때도 누름은 받는다 — disabled로 막아 두면 눌러도
+                  아무 일이 없어 고장으로 읽힌다. 왜 안 되는지 한 줄 띄운다. */}
+              <button
+                type="button"
+                className="me-pal__eye"
+                aria-disabled={!editMode || undefined}
+                aria-label="빛깔과 배경 밝기 미리 보기"
+                title="빛깔과 배경 밝기 미리 보기"
+                onClick={(e) => (editMode ? setPalOpen(true) : showLock(e))}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
             </div>
 
             <p className="me-note">앱 Refresh 후 적용됩니다.</p>
@@ -739,6 +727,7 @@ export default function Me() {
           value={prefs.palette ?? DEFAULT_PALETTE}
           step={고른칸()}
           onPick={(key) => setPref("palette", key)}
+          onPickStep={pickStep}
           onClose={() => setPalOpen(false)}
         />
       )}

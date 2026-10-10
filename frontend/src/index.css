@@ -16408,12 +16408,23 @@ textarea.memo-input.memo-area {
 .popup-panel--pal {
   --pal-room: min(90vh, 90dvh);
   max-height: var(--pal-room);
+  /* 이 팝업은 그림을 보여 주는 것이 일이다. 다른 팝업보다 조금 더 벌려
+     그만큼을 그림에 준다 — 재어 보니 그림이 키가 아니라 폭에 막혀 있었다. */
+  width: 96%;
 }
 
-/* 껴데기 240px을 빼고 남는 키에 그림 비를 곱한다. 252는 탭이 한 줄 더 접힐 때를
-   두고 조금 여유를 둔 것이다. */
+/* 화살표와 그림 사이도 좁힌다. 화살표는 그림 옆에 서는 자리만 지키면 된다 —
+   그림을 가리지 않으려고 옆에 세운 것이지 떨어뜨리려던 것이 아니다. */
+.popup-panel--pal .pal-pop__stage {
+  gap: 4px;
+}
+
+/* 껍데기를 빼고 남는 키에 그림 비를 곱한다. 껍데기는 제목 · 벌 조각 두 줄 ·
+   화면 이름 · 순서 점 · 밝기 조각 두 줄 · 아래 단추다. 그 합만큼 빼 두어야
+   팝업에 세로 스크롤이 생기지 않는다. 조각을 한 줄로 세우고 다시 재니
+   251px이고, 그림자와 반올림 몫으로 조금만 더 둔다. */
 .popup-panel--pal .pal-pop__frame {
-  max-width: calc((var(--pal-room) - 252px) * 0.5571);
+  max-width: calc((var(--pal-room) - 258px) * 0.5571);
 }
 
 /* 줄어든 때 남는 자리를 양쪽으로 나눠 창이 가운데 서게 한다. 줄지 않을 때는
@@ -19330,3 +19341,105 @@ textarea.memo-input.memo-area {
   border: 1px solid var(--color-border);
   padding: 8px 11px;
 }
+
+/* ─── 두 줄의 오른쪽 끝을 합쳐 미리 보기 단추로 ───────────────
+   빛깔과 밝기는 저마다 한 줄로 두되, 두 줄의 오른쪽 끝만 하나로 합친다.
+   미리 보는 일이 둘을 함께 보는 일이라 어느 한 줄에 붙으면 그 줄만의 것으로
+   읽힌다. 단추는 두 줄에 걸쳐 서므로 키를 못 박지 않고 늘여 둔다. */
+.me-pref-pair {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.me-pref-pair__rows {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 두 줄에 걸친 자리 가운데에 선다. 자리는 두 줄이 합친 것이되 단추까지
+   그만큼 길 까닭은 없다 — 누르는 것은 눈 하나다. 아래 줄의 margin-bottom만큼
+   함께 물러나야 가운데가 두 줄의 가운데와 맞는다. */
+.me-pref-pair > .me-pal__eye {
+  flex: 0 0 auto;
+  align-self: center;
+  margin: 0 0 4px;
+}
+
+/* 잠겼을 때도 누름을 받으므로 disabled가 아니다. 잠긴 모습은 같아야 한다. */
+.me-pal__eye[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.me-pal__eye[aria-disabled="true"]:hover {
+  color: inherit;
+  border-color: var(--color-border);
+}
+
+/* ─── 미리 보기 팝업의 고르는 자리 ────────────────────────────
+   조각은 돈쓴이의 그것과 같다 — 벌은 세 빛깔을 가로로, 밝기는 카드빛과
+   바탕빛을 위아래로. 머리말은 조각 위에 얹는다. 조각은 네 칸 바둑판이라
+   일곱이 두 줄을 넘지 않는다. */
+.pal-pop__pick {
+  margin-bottom: 6px;
+}
+
+.pal-pop__label {
+  display: block;
+  margin-bottom: 3px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* 조각은 작게, 한 줄에 다 세운다 — 바깥(돈쓴이)의 그 줄과 같다. 두 줄로
+   접으면 그만큼 예시 그림이 줄어든다. 보는 것은 조각이 아니라 그림이므로,
+   조각은 어느 것을 짚었는지만 알면 된다. */
+.pal-pop__chips {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.pal-pop__chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pal-pop__chip.on {
+  box-shadow: 0 0 0 1.5px var(--color-surface), 0 0 0 3px var(--color-primary);
+}
+
+/* 이름은 조각 위에 얹힌다. 밑에 깔린 세 빛깔이 밝을 수도 어두울 수도 있어
+   흰 글씨만으로는 묻힌다 — 글자 뒤에 옅은 그늘을 깔아 어느 빛깔 위에서도
+   읽히게 한다. */
+.pal-pop__chip-name {
+  /* 좁은 화면에서는 조각이 이름보다 좁아질 수 있다. 넘치게 두면 옆 조각을
+     덮으므로 말줄임으로 접는다. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.42);
+  color: #FFFFFF;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 15px;
+  white-space: nowrap;
+}
+
+/* 밝기 조각에는 이름을 적지 않는다. 바탕이 흰 쪽일 때 테가 없으면 조각이
+   어디서 끝나는지 보이지 않으므로 옅은 테만 두른다. */
+.pal-pop__chip--step {
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+}
+

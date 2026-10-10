@@ -18,7 +18,14 @@
 
 export type Step = {
   key: string;
-  /** 조각에 붙는 이름 */
+  /**
+   * 읽어 주는 기계에게 알릴 이름.
+   *
+   * 밝은 쪽에서 어두운 쪽으로 가는 단계일 뿐이라 그 차례를 그대로 적는다.
+   * 한동안 칸마다 이름을 붙여 두었는데(흰 종이 · 지금 · 한지 …) 무엇이
+   * 더 밝은지가 이름에서 읽히지 않았다. 눈으로는 조각의 흑백이 말해 주고,
+   * 그것을 못 보는 쪽에는 몇 번째인지를 말해 주는 편이 낫다.
+   */
   label: string;
   /** 어두운 쪽 칸인가 */
   dark: boolean;
@@ -32,20 +39,20 @@ export type Step = {
 };
 
 export const STEPS: Step[] = [
-  /* 밝은 쪽 ─ 지금 쓰던 것을 가운데 두고 위아래로 한 칸씩 */
+  /* 밝은 쪽 ─ 쓰던 자리를 가운데 두고 위아래로 한 칸씩 */
   {
-    key: "paper", label: "흰 종이", dark: false,
+    key: "paper", label: "밝기 1", dark: false,
     bg: "#FFFFFF", surface: "#FFFFFF", border: "#EDF0F3",
     t1: "#212529", t2: "#6C757D", t3: "#ADB5BD",
   },
   {
-    /* 값이 :root에 적힌 것과 한 톨도 다르지 않다. */
-    key: "now", label: "지금", dark: false,
+    /* 값이 :root에 적힌 것과 한 톨도 다르지 않다 — 오래 쓰던 자리다. */
+    key: "now", label: "밝기 2", dark: false,
     bg: "#F8F9FA", surface: "#FFFFFF", border: "#E9ECEF",
     t1: "#212529", t2: "#6C757D", t3: "#ADB5BD",
   },
   {
-    key: "hanji", label: "한지", dark: false,
+    key: "hanji", label: "밝기 3", dark: false,
     bg: "#EBEEF2", surface: "#F7F8FA", border: "#DCE1E7",
     t1: "#1F242B", t2: "#646C77", t3: "#A3ABB6",
   },
@@ -56,24 +63,24 @@ export const STEPS: Step[] = [
        낮았다. 숫자가 견디는 데까지만 내려와 멈춘 자리다.
 
        글씨는 어두운 쪽을 쓴다. 바탕이 회색이어도 아직 밝은 무리다. */
-    key: "mist", label: "안개", dark: false,
+    key: "mist", label: "밝기 4", dark: false,
     bg: "#C2C7CE", surface: "#CDD2D8", border: "#AEB5BE",
     t1: "#1A1E24", t2: "#464D57", t3: "#636B76",
   },
 
-  /* 어두운 쪽 ─ 검정이 아니라 달빛 아래 종이빛이다 */
+  /* 어두운 쪽 ─ 검정까지 내려가지 않는다. 종이빛이 남아 있는 데까지다. */
   {
-    key: "dawn", label: "새벽빛", dark: true,
+    key: "dawn", label: "밝기 5", dark: true,
     bg: "#444B59", surface: "#4E5666", border: "#5C6476",
     t1: "#F2F4F8", t2: "#C3CAD8", t3: "#939CAE",
   },
   {
-    key: "moon", label: "달빛", dark: true,
+    key: "moon", label: "밝기 6", dark: true,
     bg: "#363C49", surface: "#404755", border: "#4E5666",
     t1: "#EFF1F7", t2: "#B8C0D0", t3: "#8A93A6",
   },
   {
-    key: "dusk", label: "그믐빛", dark: true,
+    key: "dusk", label: "밝기 7", dark: true,
     bg: "#282D38", surface: "#323844", border: "#3F4653",
     t1: "#EBEEF4", t2: "#ACB5C5", t3: "#7C859A",
   },
