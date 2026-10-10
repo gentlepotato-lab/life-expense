@@ -34,6 +34,42 @@ function 글풀기(el: HTMLElement | null): void {
 }
 
 /**
+ * 팝업이 뜬 뒤, 손을 뗄 때까지만 화면 전체의 글을 잠근다.
+ *
+ * 꾹 누르기가 터지는 순간 손은 아직 닿아 있는데 그 자리에 팝업이 뜬다.
+ * 마침 누른 자리에 팝업 글이 걸리면, 이어지는 누름이 그 글을 바로 집어
+ * 선택 손잡이가 떠 버렸다. 누른 요소만 잠가 두었던 것으로는 막을 수 없다 —
+ * 팝업은 그 요소 밖에 그려지기 때문이다.
+ *
+ * 그래서 잠깐 body에 건다. 손을 떼면 곧바로 푸므로, 팝업 안의 글을 나중에
+ * 긁어 가는 길은 그대로다. 떼는 신호가 끝내 오지 않는 일(요소가 사라지며
+ * 누름이 끊기는 경우 등)에 대비해 시계도 함께 걸어 둔다.
+ */
+const 늦게풀기 = 3000;
+
+function 손뗄때까지잠그기(): void {
+  const b = document.body;
+  /* 누가 이미 적어 둔 값이 있으면 그대로 되돌려 준다. */
+  const 전 = { us: b.style.userSelect, wk: b.style.webkitUserSelect };
+  b.style.userSelect = "none";
+  b.style.webkitUserSelect = "none";
+
+  let 시계: number | null = null;
+  const 풀기 = () => {
+    b.style.userSelect = 전.us;
+    b.style.webkitUserSelect = 전.wk;
+    if (시계 !== null) window.clearTimeout(시계);
+    window.removeEventListener("pointerup", 풀기);
+    window.removeEventListener("pointercancel", 풀기);
+    window.removeEventListener("touchend", 풀기);
+  };
+  시계 = window.setTimeout(풀기, 늦게풀기);
+  window.addEventListener("pointerup", 풀기);
+  window.addEventListener("pointercancel", 풀기);
+  window.addEventListener("touchend", 풀기);
+}
+
+/**
  * 길게 누르기 제스처. 마우스와 터치를 Pointer Event로 함께 처리한다.
  *
  * - 버튼·입력·링크, 그리고 [data-no-longpress]가 붙은 요소에서 시작한 누름은 무시한다.
@@ -94,10 +130,12 @@ export default function useLongPress(
         timerRef.current = null;
         originRef.current = null;
         firedRef.current = true;
-        /* 팝업이 뜨기 전에 푼다 — 팝업 안의 글은 그대로 긁을 수 있어야 한다. */
+        /* 누른 요소의 잠금은 여기서 푼다 — 팝업 안의 글은 그대로 긁을 수
+           있어야 하므로, 손을 뗄 때까지만 따로 잠근다(손뗄때까지잠그기). */
         글풀기(잠근것.current);
         잠근것.current = null;
         setPressing(false);
+        손뗄때까지잠그기();
         onLongPress();
       }, delay);
     },
