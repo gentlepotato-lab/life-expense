@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import useBackClose from "../../hooks/useBackClose";
 import { createPortal } from "react-dom";
 import useAnchoredPanel from "../../hooks/useAnchoredPanel";
 import MonthGrid from "./MonthGrid";
@@ -36,6 +37,10 @@ export default function MonthNav({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+
+  /* 뒤로 가기는 떠 있는 이 판만 닫는다 — 화면을 떠나면 안 된다.
+     Backspace는 받지 않는다. 이 판 옆에는 글자를 지우는 칸이 흔하다. */
+  useBackClose(open, () => setOpen(false), false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   /* 판은 연월 글씨 바로 아래에 붙인다 — 막대 왼쪽 끝(‹)에 맞추면 누른 자리와

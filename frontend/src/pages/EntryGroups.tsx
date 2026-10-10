@@ -26,6 +26,7 @@ import { EntryCard } from "./Entries";
 import type { GroupMeta } from "./components/GroupItemList";
 import { groupByDate } from "../utils/dateGroup";
 import { type EntryGroup, type GroupItem, type GroupKind } from "../utils/groups";
+import { formatDateLabel } from "../utils/dateGroup";
 import { say } from "../utils/notify";
 import { apiErrorMessage } from "../utils/apiError";
 
@@ -50,6 +51,18 @@ function ymNow(): string {
  * 보인다. 그래서 날이 걸쳐 있는 여행은 시작한 달과 끝난 달 모두에서 보인다.
  * 정기 묶음은 날짜가 없어 달과 상관없이 늘 보인다.
  */
+/**
+ * 묶음이 걸친 기간. 하루면 그 날, 여러 날이면 첫날부터 끝날까지.
+ *
+ * 두 끝을 같은 꼴로 적는다. 끝날의 해와 요일을 떼어 보았더니 한 줄 안에서
+ * 두 날짜가 서로 다른 꼴이 되어, 같은 기간의 두 끝으로 읽히지 않았다.
+ */
+function 걸친기간(group: EntryGroup): string {
+  if (!group.date_from) return "날짜 없음";
+  if (group.date_from === group.date_to) return formatDateLabel(group.date_from);
+  return `${formatDateLabel(group.date_from)} ~ ${formatDateLabel(group.date_to!)}`;
+}
+
 export default function EntryGroups() {
   const [yearMonth, setYearMonth] = useState(ymNow);
   const [groups, setGroups] = useState<EntryGroup[]>([]);
@@ -266,6 +279,20 @@ export default function EntryGroups() {
                 picked={picked.has(group.group_id)}
                 onTogglePick={() => togglePick(group.group_id)}
               />
+
+              {/* 묶음이 걸친 기간 — 이름 바로 아래에 딱지로 선다. 겹 카드는
+                  내역 한 건을 적는 자리라 거기에 기간까지 얹으면 그 한 건이
+                  기간 전체를 가리키는 것처럼 읽힌다. */}
+              {group.date_from && (
+                <GroupTap
+                  className="mk-span"
+                  label={open ? `묶음 ${group.name} 접기` : `묶음 ${group.name} 펼치기`}
+                  onToggle={() => toggleGroup(group.group_id)}
+                  onOpen={() => setOpenId(group.group_id)}
+                >
+                  <span className="ws-tag ws-tag--now mk-span__tag">{걸친기간(group)}</span>
+                </GroupTap>
+              )}
 
               {/* 메모도 묶음을 가리키는 자리다 — 머리말과 같게 눌린다. */}
               <GroupTap

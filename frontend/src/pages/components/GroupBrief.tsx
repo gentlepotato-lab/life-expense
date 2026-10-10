@@ -17,6 +17,17 @@ function 겹칠장(건: number): number {
 }
 
 /**
+ * 겹의 맨 위 장이 가리킬 한 건.
+ *
+ * 담긴 것은 최신순으로 온다(tx_date DESC). 겹을 펼치면 맨 위에 서는 그 건이
+ * 곧 맨 위 장이 보여야 할 것이다 — 접었다 펴도 같은 줄이 같은 자리에 있어야
+ * 무엇을 집어 둔 것인지가 이어진다.
+ */
+function 마지막(group: EntryGroup): GroupItem | undefined {
+  return group.items[0];
+}
+
+/**
  * 맨 위 장에 적을 분류.
  *
  * 카드 머리 줄과 같은 차례, 같은 빗금이다 — 접힌 자리라고 다른 꼴로 적으면
@@ -38,9 +49,10 @@ function 첫줄(it: GroupItem | undefined): string {
 /**
  * 접어 둔 묶음이 보이는 자리.
  *
- * 집어 둔 종이 더미로 그린다. 기간 한 줄만 적어 두었더니 안에 무엇이
- * 들었는지 짐작할 거리가 없어, 펼쳐 볼 생각이 들지 않았다. 아래로 삐져나온
- * 가장자리가 "여러 장이 집혀 있다"를 글자 없이 말한다.
+ * 집어 둔 종이 더미로 그린다. 맨 위 장에는 가장 나중에 적은 한 건을 그대로
+ * 적는다 — 무엇이 들었는지 짐작할 거리가 되고, 펼쳤을 때 맨 위에 서는 줄과
+ * 같아 접고 펴는 사이가 이어진다. 아래로 삐져나온 가장자리가 "여러 장이
+ * 집혀 있다"를 글자 없이 말한다.
  *
  * 카드 목록으로 세우지는 않는다. 그러면 펼쳤을 때와 생김새가 겹쳐 접은
  * 것인지 펼친 것인지가 흐려진다. 여기 겹은 테와 모서리만 카드에서 빌려 올
@@ -57,18 +69,15 @@ export default function GroupBrief({
   onToggle: () => void;
   onOpen: () => void;
 }) {
-  /* 기간 — 하루면 그 날, 여러 날이면 첫날부터 끝날까지. 두 끝을 같은 꼴로
-     적는다. 끝날의 해와 요일을 떼어 보았더니 한 줄 안에서 두 날짜가 서로
-     다른 꼴이 되어, 같은 기간의 두 끝으로 읽히지 않았다. */
-  const 기간 = !group.date_from
-    ? "날짜 없음"
-    : group.date_from === group.date_to
-      ? formatDateLabel(group.date_from)
-      : `${formatDateLabel(group.date_from)} ~ ${formatDateLabel(group.date_to!)}`;
+  /* 맨 위 장은 한 건을 그대로 적는다. 묶음이 걸친 기간은 이름 아래 딱지가
+     맡는다 — 한 장 안에 기간과 한 건의 내용이 섞이면, 적힌 분류와 장소가
+     그 기간 전체를 가리키는 것처럼 읽힌다. */
+  const 끝 = 마지막(group);
+  const 날 = 끝?.tx_date ? formatDateLabel(끝.tx_date) : "날짜 없음";
 
   const 장 = 겹칠장(group.count);
-  const 갈래 = 분류(group.items[0], meta);
-  const 한마디 = 첫줄(group.items[0]);
+  const 갈래 = 분류(끝, meta);
+  const 한마디 = 첫줄(끝);
 
   return (
     <GroupTap
@@ -81,7 +90,7 @@ export default function GroupBrief({
         {장 >= 3 && <span className="mk-stack__leaf mk-stack__leaf--back" aria-hidden="true" />}
         {장 >= 2 && <span className="mk-stack__leaf mk-stack__leaf--mid" aria-hidden="true" />}
         <span className="mk-stack__leaf mk-stack__leaf--top">
-          <span className="mk-stack__when">{기간}</span>
+          <span className="mk-stack__when">{날}</span>
           {갈래 && <span className="mk-stack__cat">{갈래}</span>}
           {한마디 && <span className="mk-stack__what">{한마디}</span>}
         </span>

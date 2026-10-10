@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import useBackClose from "../../hooks/useBackClose";
 import { EMOJI_ALL, EMOJI_GROUPS, searchEmoji } from "../../utils/emojiData";
 import type { EmojiEntry } from "../../utils/emojiData";
 
@@ -26,6 +27,10 @@ export default function EmojiPicker({
   title?: string;
 }) {
   const [open, setOpen] = useState(false);
+
+  /* 뒤로 가기는 떠 있는 이 판만 닫는다 — 화면을 떠나면 안 된다.
+     Backspace는 받지 않는다. 이 판 옆에는 글자를 지우는 칸이 흔하다. */
+  useBackClose(open, () => setOpen(false), false);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<string>("all");
   const [style, setStyle] = useState<React.CSSProperties>({});

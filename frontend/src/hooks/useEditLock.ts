@@ -14,8 +14,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
  * 화면마다 따로 만들면 같은 말이 화면마다 다르게 뜬다.
  */
 
-/** 안내가 떠 있는 자리. n은 다시 띄울 때마다 오르는 번호다. */
-export type LockAt = { x: number; y: number; n: number } | null;
+/**
+ * 안내가 떠 있는 자리. n은 다시 띄울 때마다 오르는 번호다.
+ *
+ * say를 주면 그 말을 대신 띄운다 — 잠긴 까닭이 "편집이 아니라서"만은
+ * 아니기 때문이다(담는 중이라 못 고치는 자리도 있다).
+ */
+export type LockAt = { x: number; y: number; n: number; say?: string } | null;
 
 /** 안내가 떠 있는 시간(ms). 꾸밈의 animation과 같은 값을 써야 한다. */
 const 머무는시간 = 2200;
@@ -26,7 +31,7 @@ export default function useEditLock(editMode: boolean) {
   const seq = useRef(0);
   const tipRef = useRef<HTMLSpanElement>(null);
 
-  const showLock = useCallback((e: React.MouseEvent<HTMLElement>) => {
+  const showLock = useCallback((e: React.MouseEvent<HTMLElement>, say?: string) => {
     /* 키보드로 눌렀을 때는 좌표가 0으로 오므로 단추 한가운데를 쓴다. */
     const r = e.currentTarget.getBoundingClientRect();
     /* 누를 때마다 번호를 올려 key로 쓴다. 같은 요소를 다시 쓰면 뜨고 지는
@@ -37,6 +42,7 @@ export default function useEditLock(editMode: boolean) {
       x: e.clientX || r.left + r.width / 2,
       y: e.clientY || r.top + r.height / 2,
       n: seq.current,
+      say,
     });
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setLockAt(null), 머무는시간);

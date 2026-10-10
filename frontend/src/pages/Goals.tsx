@@ -576,8 +576,10 @@ export default function Goals() {
               <button
                 type="button"
                 className={`set-add-btn ${addOpen ? "on" : ""}`}
-                disabled={editMode}
-                onClick={() => setAddOpen((v) => !v)}
+                aria-disabled={editMode || undefined}
+                onClick={(e) =>
+                  editMode ? showLock(e, "편집을 마친 후 추가하세요.") : setAddOpen((v) => !v)
+                }
               >
                 <span className="set-add-btn__mark" aria-hidden="true">+</span>
                 새 도전 추가
@@ -587,8 +589,14 @@ export default function Goals() {
             {지금달 && (
               <button
                 className="ui-btn primary"
-                disabled={addOpen}
-                onClick={() => (editMode ? saveAll() : setEditMode(true))}
+                aria-disabled={addOpen || undefined}
+                onClick={(e) =>
+                  addOpen
+                    ? showLock(e, "추가를 마친 후 편집하세요.")
+                    : editMode
+                      ? saveAll()
+                      : setEditMode(true)
+                }
               >
                 {editMode ? "저장" : "편집"}
               </button>

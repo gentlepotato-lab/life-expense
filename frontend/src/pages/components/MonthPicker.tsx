@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import useBackClose from "../../hooks/useBackClose";
 import useAnchoredPanel from "../../hooks/useAnchoredPanel";
 import { ymLong } from "../../utils/schedule";
 import MonthGrid from "./MonthGrid";
@@ -42,6 +43,10 @@ export default function MonthPicker({
   onLocked?: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
   const [open, setOpen] = useState(false);
+
+  /* 뒤로 가기는 떠 있는 이 판만 닫는다 — 화면을 떠나면 안 된다.
+     Backspace는 받지 않는다. 이 판 옆에는 글자를 지우는 칸이 흔하다. */
+  useBackClose(open, () => setOpen(false), false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const style = useAnchoredPanel(open, wrapRef, { minWidth: 232, maxHeight: 300 });
 

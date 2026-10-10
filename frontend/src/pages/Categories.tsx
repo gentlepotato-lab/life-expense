@@ -655,8 +655,10 @@ export default function Categories() {
             <button
               type="button"
               className={`set-add-btn ${addOpen ? "on" : ""}`}
-              disabled={editMode}
-              onClick={() => setAddOpen((v) => !v)}
+              aria-disabled={editMode || undefined}
+              onClick={(e) =>
+                editMode ? showLock(e, "편집을 마친 후 추가하세요.") : setAddOpen((v) => !v)
+              }
             >
               <span className="set-add-btn__mark" aria-hidden="true">+</span>
               새 항목 추가
@@ -664,8 +666,12 @@ export default function Categories() {
 
             <button
               className="ui-btn primary"
-              disabled={addOpen}
-              onClick={() => {
+              aria-disabled={addOpen || undefined}
+              onClick={(e) => {
+                if (addOpen) {
+                  showLock(e, "추가를 마친 후 편집하세요.");
+                  return;
+                }
                 if (!editMode) {
                   // 편집 시작 시 원본 저장
                   setBeforeEditCat1(JSON.parse(JSON.stringify(cat1)));

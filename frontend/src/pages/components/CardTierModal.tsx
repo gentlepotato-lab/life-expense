@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import useBackClose from "../../hooks/useBackClose";
 import CardEditModal from "./CardEditModal";
 import GrowArea from "./GrowArea";
 
@@ -123,6 +124,10 @@ export default function CardTierModal({
      화면에 붙이고(position: fixed) 자리만 칸에서 받아 온다 —
      결제 수단 고르기(SingleSelect)가 쓰는 방식 그대로다. */
   const [hintFor, setHintFor] = useState<string | null>(null);
+
+  /* 떠 있는 추천 목록도 뒤로 가기로는 그것만 닫는다 — 뒤에 깔린 편집 팝업이
+     함께 닫히면 적던 것을 잃는다. Backspace는 글자를 지우는 데 쓴다. */
+  useBackClose(hintFor !== null, () => setHintFor(null), false);
   const [hintBox, setHintBox] = useState<{ top: number; left: number; width: number }>({
     top: 0,
     left: 0,

@@ -47,7 +47,7 @@ export function EditLockTip({
   if (!lockAt) return null;
   return (
     <span key={lockAt.n} className="edit-lock__tip" role="status" ref={tipRef}>
-      편집 버튼을 누른 후 선택하세요.
+      {lockAt.say ?? "편집 버튼을 누른 후 선택하세요."}
     </span>
   );
 }
