@@ -2,18 +2,16 @@
  * 첫 화면의 칸마다 들어가는 그림.
  *
  * 아직 속이 비어 있는 화면들이라, 무엇이 들어올 자리인지 그림으로 미리 보여 준다.
- * 바깥에서 불러오는 것 없이 전부 여기에 그린다 — 로고만 브랜드 파일을 그대로 쓴다.
+ * 바깥에서 불러오는 것 없이 전부 여기에 그린다 — 로고도 그렇다(LogoMark).
  *
  * 색은 로고와 같은 두 가지다. 값은 고른 빛깔 벌이 CSS 변수로 내려 준다
  * (utils/palettes.ts). 그림 속성에 var()를 그대로 쓸 수 있어 여기서는
- * 변수만 가리키고, 벌이 바뀌면 다시 그릴 것 없이 따라 바뀐다.
- * 로고도 벌과 밝기를 따른다. `<img>`로 붙는 그림 파일이라 CSS가 닿지 않으므로
- * 벌마다 밝은 쪽과 어두운 쪽 한 장씩 미리 물들여 둔다(tools/palette-logos.mjs).
- * 짙은 벌은 어두운 바탕에서 로고가 묻히기 때문이다.
+ * 변수만 가리키고, 벌이 바뀌면 다시 그릴 것 없이 따라 바뀐다. 로고도 같은
+ * 두 변수를 쓰므로 밝기까지 따라온다 — 어두운 쪽의 --art-ink는 벌이 제
+ * 어두운 값으로 바꿔 내려 준다.
  */
 
-import { currentPalette } from "../../utils/palettes";
-import { currentStep } from "../../utils/theme";
+import LogoMark from "./LogoMark";
 
 const INK = "var(--art-ink)";
 const AQUA = "var(--art-aqua)";
@@ -21,14 +19,7 @@ const TINT = "var(--art-tint)";
 
 /** 쓰기 — 서비스 로고(펜에서 동전으로 흐르는 가로형) */
 export function ArtWrite() {
-  return (
-    <img
-      className="home-art home-art--logo"
-      src={`/palette/logo-${currentPalette().key}${currentStep().dark ? "-dark" : ""}.svg`}
-      alt=""
-      aria-hidden="true"
-    />
-  );
+  return <LogoMark className="home-art home-art--logo" />;
 }
 
 /** 돈쓴이 — 프로필 */
