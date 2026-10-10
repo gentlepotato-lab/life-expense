@@ -19303,3 +19303,30 @@ textarea.memo-input.memo-area {
   text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
+
+/* ─── 설정 탭 네 화면의 카드에 같은 테 ─────────────────────────
+   함께한 상대(.cp-card)만 테를 두르고 있었다. 나머지 셋은 그림자도 모서리도
+   같은데 테만 없어, 같은 탭 안에서 카드가 두 가지로 보였다.
+
+   테가 안쪽을 2px 먹는다. 키를 못 박아 둔 줄(36px)은 테두리 셈이라 겉이
+   그대로지만, 글이 1px 안으로 밀리므로 가로 여백에서 그만큼 덜어 낸다.
+   키가 속에 따라 정해지는 줄(.goal-row)은 위아래까지 덜어 겉도 지킨다. */
+.cat2-header-row {
+  border: 1px solid var(--color-border);
+  padding: 6px 7px;
+}
+
+/* 줄 구분선 시절의 자취로 마지막 줄만 아래 테가 없다(.pm-item:last-child).
+   줄마다 제 통에 담겨 모두 막내라 아래가 다 비어 있었다 — 카드가 된 지금은
+   네 변이 고루 있어야 한다. 이 줄만 속이 꽉 차 있어 위아래에서도 1px씩
+   덜어야 36px을 지킨다. */
+.pm-item,
+.pm-item:last-child {
+  border: 1px solid var(--color-border);
+  padding: 1px 9px 1px 7px;
+}
+
+.goal-row {
+  border: 1px solid var(--color-border);
+  padding: 8px 11px;
+}
