@@ -19,6 +19,7 @@ import { standsOf, 걸린달, 비낀까닭, type GoalStand } from "../utils/goal
 import { manwon } from "../utils/amount";
 import { visible } from "../utils/visible";
 import { say, ask } from "../utils/notify";
+import Waiting from "./components/Waiting";
 /**
  * 안쓴이 도전 — 분류에 도전 금액을 걸고 그 달을 견준다.
  *
@@ -721,7 +722,7 @@ export default function Goals() {
           </div>
         )}
 
-        {!ready && <div className="page-empty">세어 보는 중입니다.</div>}
+        {!ready && <Waiting />}
         {ready && stands.length === 0 && (
           <div className="page-empty">아직 설정한 도전이 없습니다.</div>
         )}

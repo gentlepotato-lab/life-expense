@@ -5,6 +5,7 @@ import PlaceMapPopup from "./components/PlaceMapPopup";
 import PlacePeriodPopup from "./components/PlacePeriodPopup";
 import CollapseToggle, { CollapseAllButtons } from "./components/CollapseToggle";
 import Collapse from "./components/Collapse";
+import Waiting from "./components/Waiting";
 import {
   allKeys,
   board,
@@ -309,7 +310,7 @@ export default function Places() {
         <Sum node={all} />
       </div>
 
-      {!ready && <div className="page-empty">불러오는 중입니다.</div>}
+      {!ready && <Waiting />}
       {ready && found === 0 && <div className="page-empty">찾는 곳이 없습니다.</div>}
 
       {/* 잣대나 정렬을 바꾸면 목록이 통째로 다시 선다. 열쇠를 바꿔 새로 그리게

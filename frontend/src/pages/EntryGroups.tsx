@@ -29,6 +29,7 @@ import { type EntryGroup, type GroupItem, type GroupKind } from "../utils/groups
 import { formatDateLabel } from "../utils/dateGroup";
 import { say } from "../utils/notify";
 import { apiErrorMessage } from "../utils/apiError";
+import Waiting from "./components/Waiting";
 
 /** 이번 달 'YYYY-MM' */
 function ymNow(): string {
@@ -266,7 +267,7 @@ export default function EntryGroups() {
       </div>
 
       <div className="card-list">
-        {!ready && <p className="page-empty">불러오는 중입니다.</p>}
+        {!ready && <Waiting />}
         {ready && groups.length === 0 && (
           <p className="page-empty">묶은 내역이 없습니다.</p>
         )}

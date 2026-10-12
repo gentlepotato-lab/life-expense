@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, memo } from "react";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
 import MonthNav from "./components/MonthNav";
@@ -22,6 +22,7 @@ import type { ReceiptRow } from "../utils/receipt";
 import MemoPad from "./components/MemoPad";
 import ClipMark from "./components/ClipMark";
 import GroupMakePopup from "./components/GroupMakePopup";
+import Waiting from "./components/Waiting";
 import PerfExcludeButton from "./components/PerfExcludeButton";
 import FixedMark from "./components/FixedMark";
 import useLongPress from "../hooks/useLongPress";
@@ -91,6 +92,8 @@ export default function Entries() {
   const [placePickerOpen, setPlacePickerOpen] = useState(false);
 
   const [filterOpen, setFilterOpen] = useState(false);
+  /* 거르는 동안 덮어 두는 판. 300ms가 지나야 나타난다(Waiting). */
+  const [찾는중, set찾는중] = useState(false);
 
   /* 뒤로 가기 · Backspace로 지금 열린 것만 닫는다.
      카드 편집 팝업은 CardEditModal이 스스로 처리한다. */
@@ -320,7 +323,7 @@ export default function Entries() {
      목록을 다시 읽지 않고 그 줄만 갈아 끼운다. 한 칸만 바뀌는 일에
      한 달치를 다시 받아 오면 훑던 자리가 흔들린다. 담기지 않으면
      되돌려 손이 헛놀지 않게 한다. */
-  const togglePerfExclude = async (row: PerfRow, next: boolean) => {
+  const togglePerfExclude = useCallback(async (row: PerfRow, next: boolean) => {
     /* 고정 · 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
        그쪽과 같이 한 번 묻는다. */
     if (
@@ -344,14 +347,14 @@ export default function Entries() {
       stamp(before);
       say.bad("실적 제외를 담지 못했습니다.");
     }
-  };
+  }, []);
 
   /* 고정인지 변동인지 — 카드 실적 제외와 같은 방식이다. 기호를 누르는 즉시
      담고, 그 줄만 갈아 끼운다. 담기지 않으면 되돌린다.
 
      여기서 누르면 그 건에 손으로 정한 것이 되어, 뒤에 분류 설정을 바꿔도
      이 건은 그대로다. */
-  const toggleFixed = async (row: FixedRow, next: boolean) => {
+  const toggleFixed = useCallback(async (row: FixedRow, next: boolean) => {
     /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
        곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
     if (
@@ -375,10 +378,10 @@ export default function Entries() {
       stamp(before);
       say.bad("고정/변동을 담지 못했습니다.");
     }
-  };
+  }, []);
 
   // 드래그 제스처 핸들러(금액 마스킹 해제)
-  const handleRevealDrag = (id: number, startX: number) => {
+  const handleRevealDrag = useCallback((id: number, startX: number) => {
     const onMove = (e: MouseEvent | TouchEvent) => {
       const currentX = ('touches' in e)
         ? e.touches[0].clientX
@@ -413,12 +416,12 @@ export default function Entries() {
     window.addEventListener("touchmove", onMove);
     window.addEventListener("mouseup", onEnd);
     window.addEventListener("touchend", onEnd);
-  };
+  }, []);
 
-  const startReveal = (id: number, e: any) => {
+  const startReveal = useCallback((id: number, e: any) => {
     const startX = e.clientX ?? e.touches?.[0]?.clientX;
     handleRevealDrag(id, startX);
-  };
+  }, [handleRevealDrag]);
 
   /* [적용]을 누르지 않고 닫으면 고치던 값은 버린다.
      다시 열었을 때 지금 걸려 있는 조건이 그대로 보여야 한다. */
@@ -427,18 +430,41 @@ export default function Entries() {
     setFilterOpen(false);
   };
 
+  /* 'YYYY-MM-DD' 둘로 도구 줄에 세울 기간 글을 짓는다. */
+  const 기간글 = (from: string, to: string) => {
+    const 날 = (v: string) => new Date(v).toLocaleDateString("ko-KR");
+    if (from && to) return `${날(from)} ~ ${날(to)}`;
+    if (from) return `${날(from)} ~ `;
+    if (to) return ` ~ ${날(to)}`;
+    return "";
+  };
+
+  /**
+   * 필터를 건다.
+   *
+   * 바꾸는 것은 모두 조회가 끝난 뒤에 몰아서 한다. 먼저 바꿔 두면 팝업이
+   * 아직 떠 있는 동안 뒤쪽 도구 줄만 바뀌어, 팝업이 반 박자 늦게 닫히는
+   * 것처럼 보인다. 한 판에 같이 바꾸면 닫히는 순간에 함께 바뀐다.
+   */
   const applyFilter = async () => {
+    set찾는중(true);
+    try {
+      await 거르기();
+    } finally {
+      set찾는중(false);
+    }
+  };
+
+  const 거르기 = async () => {
     /* 조건을 모두 비운 채로 적용했다면 필터를 끄겠다는 뜻이다.
        그대로 서버에 물으면 조건 없는 조회가 되어 전 기간이 쏟아진다.
        보고 있던 달로 돌아간다. */
-    /* 초안을 그대로 확정한다 — 여기부터 화면에 반영된다. */
-    setAppliedFilter(filter);
-
     if (!hasCondition(filter)) {
+      const back = await axios.get("/entries/month", { params: { ym: yearMonth } });
+      setAppliedFilter(filter);
+      setRows(back.data.map((r: any) => ({ ...r, reveal_amount: false })));
       setFilterRangeLabel("");
       setFilterOpen(false);
-      const back = await axios.get("/entries/month", { params: { ym: yearMonth } });
-      setRows(back.data.map((r: any) => ({ ...r, reveal_amount: false })));
       return;
     }
 
@@ -459,21 +485,10 @@ export default function Entries() {
       }
     });
 
+    setAppliedFilter(filter);
     setRows(res.data.map((r: any)=>({...r, reveal_amount:false})));
+    setFilterRangeLabel(기간글(filter.dateFrom, filter.dateTo));
     setFilterOpen(false);
-
-    // 필터 적용 시 날짜 레이블 생성
-    if (filter.dateFrom && filter.dateTo) {
-      setFilterRangeLabel(
-        `${new Date(filter.dateFrom).toLocaleDateString("ko-KR")} ~ ${new Date(filter.dateTo).toLocaleDateString("ko-KR")}`
-      );
-    } else if (filter.dateFrom) {
-      setFilterRangeLabel(`${new Date(filter.dateFrom).toLocaleDateString("ko-KR")} ~ `);
-    } else if (filter.dateTo) {
-      setFilterRangeLabel(` ~ ${new Date(filter.dateTo).toLocaleDateString("ko-KR")}`);
-    } else {
-      setFilterRangeLabel("");
-    }
   };
 
   // ------------------------------------
@@ -790,6 +805,8 @@ export default function Entries() {
   // 소분류에 blur가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
   /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+
+
   const toggleDay = (d: string) =>
     setCollapsedDays((prev) => {
       const next = new Set(prev);
@@ -812,6 +829,65 @@ export default function Entries() {
     () => groupByDate(rows),
     [rows]
   );
+
+  /* 한 번에 다 그리면 수천 건일 때 한참 멈춰 있다가 통째로 튀어나온다.
+     3천 건이면 DOM 마디가 10만에 가까워 그리는 데만 8초가 걸렸다.
+
+     그래서 눈에 닿는 데까지만 그리고, 바닥 가까이 내려가면 그때 더 잇는다.
+     판마다 저절로 이어 붙이는 쪽도 해 봤는데, 이을 때마다 앞의 단을 다시
+     훑느라 다 채우는 데 20초가 걸려 더 나빴다.
+
+     단이 적으면(한판) 지금까지처럼 통째로 그린다 — 보통 한 달은 열몇 단이라
+     이 길로 가므로 달라지는 것이 없다. */
+  const 한판 = 40;
+  const 첫판 = 12;
+  const 덧판 = 12;
+  const [보인단, set보인단] = useState(0);
+  /* 목록이 통째로 바뀐 때만 다시 잇는다 — 카드 하나를 건드릴 때마다 처음부터
+     이으면 보던 자리가 맨 위로 튄다. 줄 수와 양 끝 열쇠로 가린다. 실적 제외나
+     고정 뒤집기는 셋 다 그대로라 다시 잇지 않고, 조회나 달 넘기기는 바뀐다.
+     부르는 자리를 하나라도 빠뜨리면 멈추므로 손으로 올리지 않는다. */
+  const 목록판 = useMemo(
+    () => `${rows.length}:${rows[0]?.entry_id ?? 0}:${rows[rows.length - 1]?.entry_id ?? 0}`,
+    [rows]
+  );
+
+  useEffect(() => {
+    const 끝 = dateGroups.length;
+    set보인단(끝 <= 한판 ? 끝 : 첫판);
+    // dateGroups는 카드 하나만 건드려도 새것이 되므로 판 번호로만 다시 돈다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [목록판]);
+
+  /* 바닥에서 한 화면 안으로 들어오면 그때 더 잇는다. 첫 판이 화면을 다 못
+     채웠으면 곧바로 한 번 더 이어, 굴릴 거리가 생길 때까지 따라붙는다. */
+  useEffect(() => {
+    if (보인단 >= dateGroups.length) return;
+    const 더 = () => {
+      const 남은키 =
+        document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+      if (남은키 < window.innerHeight) {
+        set보인단((v) => Math.min(v + 덧판, dateGroups.length));
+      }
+    };
+    window.addEventListener("scroll", 더, { passive: true });
+    더();
+    return () => window.removeEventListener("scroll", 더);
+  }, [보인단, dateGroups.length]);
+
+  /* 모두 펼치기와 모두 접기 — 단이 많으면 한 판이 길다. 덮개를 먼저 띄워
+     한 번 그려진 뒤에 손대야 기다리는 줄 안다(Waiting은 300ms 뒤에 뜬다). */
+  const 모두 = useCallback((다음: Set<string>, 단수: number) => {
+    if (단수 <= 60) {
+      setCollapsedDays(다음);
+      return;
+    }
+    set찾는중(true);
+    window.setTimeout(() => {
+      setCollapsedDays(다음);
+      set찾는중(false);
+    }, 360);
+  }, []);
 
   /* ── 영수증으로 뽑을 것 고르기 ──────────────────────────────
      고른 것은 지금 화면에 보이는 줄에서만 센다. 달을 옮기거나 걸러서
@@ -884,8 +960,10 @@ export default function Entries() {
 
           <div className="toolbar-btns">
             <CollapseAllButtons
-              onExpandAll={() => setCollapsedDays(new Set())}
-              onCollapseAll={() => setCollapsedDays(new Set(dateGroups.map((g) => g.date)))}
+              onExpandAll={() => 모두(new Set(), dateGroups.length)}
+              onCollapseAll={() =>
+                모두(new Set(dateGroups.map((g) => g.date)), dateGroups.length)
+              }
             />
             <button
               type="button"
@@ -913,7 +991,7 @@ export default function Entries() {
       <div className="card-list">
         {/* 비어 있으면 그렇다고 말한다 — 내역 탭 네 화면이 같은 꼴로 말한다. */}
         {dateGroups.length === 0 && <p className="page-empty">지출 내역이 없습니다.</p>}
-        {dateGroups.map((group) => (
+        {dateGroups.slice(0, 보인단).map((group) => (
           <section key={group.date || "no-date"} className="date-group">
             <DateGroupHeader
               label={group.label}
@@ -943,6 +1021,7 @@ export default function Entries() {
             </Collapse>
           </section>
         ))}
+        {보인단 < dateGroups.length && <Waiting />}
       </div>
 
       <PickBar
@@ -965,6 +1044,8 @@ export default function Entries() {
       {receiptOpen && (
         <ReceiptPopup rows={receiptRows} onClose={() => setReceiptOpen(false)} />
       )}
+
+      {찾는중 && <Waiting overlay />}
 
       {makeOpen && (
         <GroupMakePopup
@@ -1281,7 +1362,7 @@ export default function Entries() {
 // ------------------------------------
 // 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다.
 // ------------------------------------
-export function EntryCard({
+export const EntryCard = memo(function EntryCard({
   row,
   cat1List,
   cat2List,
@@ -1498,4 +1579,4 @@ export function EntryCard({
       )}
     </article>
   );
-}
+});

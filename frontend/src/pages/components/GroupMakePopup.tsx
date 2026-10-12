@@ -7,6 +7,7 @@ import { say } from "../../utils/notify";
 import { apiErrorMessage } from "../../utils/apiError";
 import { formatDateLabel } from "../../utils/dateGroup";
 import type { EntryGroup, GroupItem, GroupKind } from "../../utils/groups";
+import Waiting from "./Waiting";
 
 /** 목록이 보고 있는 기간. 기존 묶음을 이 기간으로 거른다. */
 export type GroupSpan = { ym?: string; from?: string; to?: string };
@@ -248,7 +249,7 @@ export default function GroupMakePopup({
 
             <div className="mk-picklist">
               {!ready ? (
-                <p className="page-empty">불러오는 중입니다.</p>
+                <Waiting />
               ) : groups.length === 0 ? (
                 <p className="page-empty">조회된 묶음이 없습니다.</p>
               ) : (

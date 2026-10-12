@@ -19653,3 +19653,124 @@ textarea.memo-input.memo-area {
   background: var(--color-primary);
   color: #fff;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   175. 기다림 — 만년필이 줄을 긋는다(2026-10-12)
+   ═════════════════════════════════════════════════════════════ */
+
+.wait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px var(--space-3);
+}
+
+/* 화면을 덮는 꼴 — 누르는 것을 막아야 하는 일에 쓴다. */
+/* 팝업(9999)과 떠 있는 단추(10500) 위에 선다. 묻는 창(12500)과
+   알림(13000) 아래다 — 기다리는 중에도 그 둘은 보여야 한다.
+   판이 누름을 먹으므로 [적용]을 두 번 누르는 일도 막힌다.
+
+   바탕은 팝업이 뜰 때와 같은 반투명이다(.popup-overlay). 뒤가 비쳐 보던
+   자리를 잃지 않으면서, 글자가 카드 글과 엉키지도 않는다. 아무것도 깔지
+   않으면 멘트가 카드 글 위에 겹쳐 읽히지 않았다. */
+.wait--over {
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* 어두운 막 위에 서므로 멘트는 밝은 쪽으로 둔다 — 빛깔을 밝게 쓰면
+   회색 글씨가 막에 묻힌다. */
+.wait--over .wait__say {
+  color: #fff;
+}
+
+.wait__art {
+  width: min(240px, 80%);
+  height: auto;
+  overflow: visible;
+}
+
+/* 줄은 제자리에서 늘어난다. 왼쪽 끝이 축이라 그어 나가는 것으로 보인다. */
+.wait__line {
+  fill: none;
+  stroke: var(--art-aqua);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: wait-line 2.4s ease-in-out infinite;
+}
+
+/* 펜과 줄이 같은 박자를 타야 펜 끝과 줄 끝이 붙어 간다. */
+.wait__pen {
+  animation: wait-pen 2.4s ease-in-out infinite;
+}
+
+.wait__nib {
+  fill: var(--color-surface);
+  stroke: var(--art-ink);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.wait__slit {
+  stroke: var(--art-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.wait__hole {
+  fill: none;
+  stroke: var(--art-ink);
+  stroke-width: 2.6;
+}
+
+.wait__barrel {
+  stroke: var(--art-aqua);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+@keyframes wait-pen {
+  0%   { transform: translateX(0);     opacity: 0; }
+  7%   { transform: translateX(13px);  opacity: 1; }
+  78%  { transform: translateX(190px); opacity: 1; }
+  92%  { transform: translateX(190px); opacity: 0; }
+  100% { transform: translateX(0);     opacity: 0; }
+}
+
+@keyframes wait-line {
+  0%   { transform: scaleX(0);    opacity: 1; }
+  7%   { transform: scaleX(0.07); opacity: 1; }
+  78%  { transform: scaleX(1);    opacity: 1; }
+  92%  { transform: scaleX(1);    opacity: 0; }
+  100% { transform: scaleX(0);    opacity: 0; }
+}
+
+/* 멘트는 빈 화면 안내와 같은 결로 둔다. */
+.wait__say {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-tertiary);
+}
+
+/* 움직임을 줄여 달라고 해 두었으면 세워 둔다. 다 긋고 펜을 줄 끝에 놓은
+   모습이라야 멈춰 있어도 말이 된다 — 펜만 왼쪽에 두면 줄을 누가 그었는지
+   알 수 없는 그림이 된다. */
+@media (prefers-reduced-motion: reduce) {
+  .wait__pen,
+  .wait__line {
+    animation: none;
+  }
+  .wait__line {
+    transform: scaleX(1);
+  }
+  .wait__pen {
+    transform: translateX(190px);
+  }
+}

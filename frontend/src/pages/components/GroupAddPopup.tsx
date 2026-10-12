@@ -5,6 +5,7 @@ import GroupItemList, { type GroupMeta } from "./GroupItemList";
 import { say } from "../../utils/notify";
 import { apiErrorMessage } from "../../utils/apiError";
 import { KIND_NAME, type GroupItem, type GroupKind } from "../../utils/groups";
+import Waiting from "./Waiting";
 
 /** 'YYYY-MM'을 달만큼 옮긴다. */
 function shiftYm(ym: string, step: number): string {
@@ -162,7 +163,7 @@ export default function GroupAddPopup({
 
           <div className="mk-list">
             {!ready ? (
-              <p className="page-empty">불러오는 중입니다.</p>
+              <Waiting />
             ) : rows.length === 0 ? (
               <p className="page-empty">추가할 수 있는 내역이 없습니다.</p>
             ) : (

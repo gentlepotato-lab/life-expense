@@ -26,6 +26,7 @@ import useEditLock from "../hooks/useEditLock";
 import { EditLockTip } from "./components/EditLock";
 import { say, ask } from "../utils/notify";
 import Collapse from "./components/Collapse";
+import Waiting from "./components/Waiting";
 /**
  * 고정 · 변동 고르개가 입을 빛깔 — 그 갈래가 나가는 돈인지 들어오는 돈인지를
  * 따른다. 이름 앞의 +/− 점(.cat2-inout)이 이미 그 빛깔이라, 한 줄 안에서
@@ -787,7 +788,7 @@ export default function Categories() {
         </div>
         )}
 
-        {!ready && <p className="page-empty">불러오는 중입니다.</p>}
+        {!ready && <Waiting />}
         {ready && cat1View.length === 0 && (
           <p className="page-empty">등록된 분류가 없습니다.</p>
         )}

@@ -4,6 +4,7 @@ import useBackClose from "../../hooks/useBackClose";
 import NudgeGroup from "./NudgeGroup";
 import { PAGE_ICON } from "./MenuIcons";
 import type { Nudge } from "../../utils/nudges";
+import Waiting from "./Waiting";
 
 /**
  * 종 단추를 눌렀을 때 뜨는 잔소리.
@@ -60,7 +61,7 @@ export default function NudgePopup({
         </header>
 
         <div className="popup-body nudge-popup">
-          {!ready && <div className="nudge-none">세어 보는 중입니다.</div>}
+          {!ready && <Waiting />}
           {ready && mind.length === 0 && well.length === 0 && (
             <div className="nudge-none">잔소리할 게 없습니다.</div>
           )}

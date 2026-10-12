@@ -29,6 +29,7 @@ import useEditLock from "../hooks/useEditLock";
 import { EditLockTip } from "./components/EditLock";
 import { say, ask, askText } from "../utils/notify";
 import Collapse from "./components/Collapse";
+import Waiting from "./components/Waiting";
 type Counterpart = {
   counterpart_id: number;
   name: string;
@@ -654,7 +655,7 @@ export default function Counterparts() {
             </div>
           )}
 
-          {!ready && <p className="page-empty">불러오는 중입니다.</p>}
+          {!ready && <Waiting />}
 
           {ready && list.length === 0 && (
             <p className="page-empty">

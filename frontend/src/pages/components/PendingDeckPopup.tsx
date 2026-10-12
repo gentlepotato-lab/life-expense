@@ -6,6 +6,7 @@ import usePending, { invalidatePending, type PendingCardRow } from "../../hooks/
 import { invalidateNudges } from "../../hooks/useNudges";
 import { say } from "../../utils/notify";
 import { PAGE_ICON } from "./MenuIcons";
+import Waiting from "./Waiting";
 
 /**
  * 대기 내역을 한 장씩 넘겨 보며 보내는 팝업.
@@ -214,7 +215,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
           )}
         </header>
 
-        {!ready && <div className="pd-none">세어 보는 중입니다.</div>}
+        {!ready && <Waiting />}
         {ready && 남은 === 0 && <div className="pd-none">대기 내역이 없습니다.</div>}
 
         {ready && 지금 && (

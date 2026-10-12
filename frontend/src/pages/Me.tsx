@@ -21,6 +21,7 @@ import useEditLock from "../hooks/useEditLock";
 import { EditLockCover, EditLockTip } from "./components/EditLock";
 import { BulbOnIcon, BulbOffIcon } from "./components/SkipIcons";
 import { say } from "../utils/notify";
+import Waiting from "./components/Waiting";
 /**
  * 돈쓴이 — 쓰는 사람과 앱 자신.
  *
@@ -310,7 +311,7 @@ export default function Me() {
         </div>
       </div>
 
-      {!ready && <div className="page-empty">불러오는 중입니다.</div>}
+      {!ready && <Waiting />}
 
       {ready && (
         <div className="chart-grid">
