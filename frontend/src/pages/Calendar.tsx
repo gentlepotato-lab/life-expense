@@ -6,6 +6,8 @@ import axios from "../api/client";
 import { say } from "../utils/notify";
 import EntryFilterPopup from "./components/EntryFilterPopup";
 import QuickActions from "./components/QuickActions";
+import MonthNav from "./components/MonthNav";
+import useMonthSpan from "../hooks/useMonthSpan";
 import {
   EMPTY_FILTER,
   fixedSetsFrom,
@@ -219,17 +221,14 @@ export default function Calendar() {
     });
   }, [yearMonth]);
 
-  const monthLabel = useMemo(() => {
-    const [y, m] = yearMonth.split("-").map(Number);
-    return `${y}년 ${m}월`;
-  }, [yearMonth]);
+  /* 넘겨 볼 수 있는 끝 — 적어 둔 것이 있는 달부터 이 달 두 달 뒤까지.
+     내역 세 화면과 씀씀이가 쓰는 그 잣대를 그대로 쓴다. */
+  const { min: 달바닥, max: 달천장 } = useMonthSpan();
 
-  const shiftMonth = (step: number) => {
-    const [y, m] = yearMonth.split("-").map(Number);
-    const d = new Date(y, m - 1 + step, 1);
+  const 달옮기기 = (v: string) => {
     /* 고른 날은 그 달의 날이다. 달을 넘기면 뜻을 잃으므로 접는다. */
     setPick([]);
-    setYearMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    setYearMonth(v);
   };
 
   const today = useMemo(() => {
@@ -355,15 +354,7 @@ export default function Calendar() {
       {/* 월 넘기기 + 필터 — 내역 세 화면과 같은 툴바 */}
       <div className="toolbar-wrap">
         <div className="toolbar">
-          <div className="month-nav">
-            <button type="button" className="month-nav__arrow" aria-label="지난달" onClick={() => shiftMonth(-1)}>
-              ‹
-            </button>
-            <span className="month-nav__label">{monthLabel}</span>
-            <button type="button" className="month-nav__arrow" aria-label="다음 달" onClick={() => shiftMonth(1)}>
-              ›
-            </button>
-          </div>
+          <MonthNav ym={yearMonth} onChange={달옮기기} min={달바닥} max={달천장} />
 
           <div className="toolbar-btns">
             {/* 날짜를 고르면 필터 왼쪽에 둘이 나타난다 — 고른 것을 무르는
