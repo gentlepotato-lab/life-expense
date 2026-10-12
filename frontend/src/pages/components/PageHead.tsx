@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PAGE_TITLE, PAGE_NOTE, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
 import useHeadPin from "../../hooks/useHeadPin";
+import PenMark from "./PenMark";
 
 /**
  * 모든 화면의 머리말.
@@ -76,7 +77,14 @@ export default function PageHead() {
         </h1>
       </div>
 
-      {note && <p className="page-note">{noteParts(note)}</p>}
+      {/* 안내 줄 오른쪽 끝의 만년필 자국. 띄워서 얹으므로 머리말 높이는
+          그대로다. */}
+      {note && (
+        <p className="page-note">
+          {noteParts(note)}
+          <PenMark />
+        </p>
+      )}
 
       {subs && (
         <div
