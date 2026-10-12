@@ -15,7 +15,7 @@ function shiftYm(ym: string, step: number): string {
 }
 
 /**
- * 내역 추가 — 이미 적어 둔 내역 가운데 골라 묶음에 담는다.
+ * 내역 추가 — 이미 적힌 내역 가운데 선택해 묶음에 추가한다.
  *
  * 새로 적는 자리가 아니다. 그래서 달을 옮겨 가며 훑고, 분류나 장소나 결제
  * 수단이나 메모로 찾는다. 보이는 것은 같은 갈래이면서 아직 어느 묶음에도
@@ -80,16 +80,16 @@ export default function GroupAddPopup({
   const save = async () => {
     if (saving) return;
     if (picked.size === 0) {
-      say.warn("담을 내역을 선택해 주세요.");
+      say.warn("추가할 내역을 선택해 주세요.");
       return;
     }
     setSaving(true);
     try {
       await axios.post(`/entry-groups/${groupId}/items`, { ids: [...picked] });
-      say.ok(`${picked.size}건을 담았습니다.`);
+      say.ok(`${picked.size}건을 추가했습니다.`);
       onDone();
     } catch (err: unknown) {
-      say.bad(apiErrorMessage(err, "담지 못했습니다."));
+      say.bad(apiErrorMessage(err, "추가하지 못했습니다."));
     } finally {
       setSaving(false);
     }
@@ -142,7 +142,7 @@ export default function GroupAddPopup({
             <input
               className="ui-input"
               value={typed}
-              placeholder="(찾기 — 분류, 장소, 결제 수단, 메모)"
+              placeholder="(분류, 장소, 결제 수단, 메모)"
               onChange={(e) => setTyped(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -164,7 +164,7 @@ export default function GroupAddPopup({
             {!ready ? (
               <p className="page-empty">불러오는 중입니다.</p>
             ) : rows.length === 0 ? (
-              <p className="page-empty">담을 수 있는 내역이 없습니다.</p>
+              <p className="page-empty">추가할 수 있는 내역이 없습니다.</p>
             ) : (
               <GroupItemList items={rows} meta={meta} kind={kind} picked={picked} onTogglePick={togglePick} />
             )}

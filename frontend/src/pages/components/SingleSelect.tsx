@@ -112,7 +112,7 @@ export default function SingleSelect<T>({
               type="text"
               className="ms-find"
               value={query}
-              placeholder="(찾기)"
+              placeholder="(이름)"
               onChange={(e) => setQuery(e.target.value)}
               onClick={(e) => e.stopPropagation()}
             />

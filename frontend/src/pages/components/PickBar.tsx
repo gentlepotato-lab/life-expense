@@ -35,7 +35,7 @@ export default function PickBar({
   if (count === 0) return null;
 
   return (
-    <div className="pick-bar" role="toolbar" aria-label="고른 내역">
+    <div className="pick-bar" role="toolbar" aria-label="선택한 내역">
       <span className="pick-bar__n">
         {count}
         {unit} 선택

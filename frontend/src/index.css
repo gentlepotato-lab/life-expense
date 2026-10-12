@@ -19443,3 +19443,213 @@ textarea.memo-input.memo-area {
   border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   173. 묶기 — 새 묶음과 기존 묶음(2026-10-12)
+   ═════════════════════════════════════════════════════════════ */
+
+/* 갈래는 제목 줄 오른쪽 끝에 둔다. popup-head 가 이미 space-between 이라
+   자리가 그냥 있다. 아래 막대에 단추를 더 두는 쪽은 360px 에서 막대가
+   잘렸다 — 지출이 329 → 335, 대기는 370 이었다.
+
+   전역 button 이 키를 32px 로 못 박으므로 여기서 풀어야 작아진다.
+   두 칸은 1fr 둘로 나눠 글자 수가 달라도 같은 너비로 선다. */
+.mk-switch {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  flex: 0 0 auto;
+  align-self: center;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+}
+
+.mk-switch__b {
+  height: 24px;
+  min-height: 24px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mk-switch__b.on {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* ─── 기존 묶음 고르기 ────────────────────────────────────────
+   묶음 목록과 내역 목록을 함께 두면 360px 에서 둘 다 손가락 두 마디다.
+   그래서 이쪽에서는 내역 목록 대신 건수 한 줄로 적는다. */
+.mk-picklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: min(300px, calc(100dvh - 340px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 1px 2px;
+}
+
+/* 줄도 button 이라 전역 키를 풀어 줘야 두 줄이 눌리지 않는다. */
+.mk-pickrow {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 4px 9px;
+  width: 100%;
+  padding: 8px 10px 9px;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.mk-pickrow.is-on {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.mk-pickrow__mark {
+  grid-area: 1 / 1 / 3 / 2;
+  align-self: center;
+  width: 17px;
+  height: 17px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  color: transparent;
+}
+
+.mk-pickrow.is-on .mk-pickrow__mark {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.mk-pickrow__name {
+  grid-area: 1 / 2 / 2 / 3;
+  line-height: 1.3;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mk-pickrow__meta {
+  grid-area: 1 / 3 / 2 / 4;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+/* 줄 높이를 좁게 두면 overflow: hidden 에 마침표 아래가 잘린다. */
+.mk-pickrow__when {
+  grid-area: 2 / 2 / 3 / 4;
+  font-size: var(--font-size-xs);
+  line-height: 1.45;
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mk-note--tail {
+  margin-top: 12px;
+}
+
+.mk-warn {
+  margin: 5px 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.mk-warn b {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   174. 묶기 판의 키를 못 박음 · 고르는 중의 필터(2026-10-12)
+   ═════════════════════════════════════════════════════════════ */
+
+/* 갈래를 바꿀 때마다 판이 늘었다 줄면 스위치가 흔들려 누르기 어렵다.
+   키를 못 박고 안쪽 목록이 남는 자리를 먹게 둔다 — 그래서 목록 키를 재던
+   useListFit 은 이 팝업에서 걷었다. */
+.popup-panel--mk {
+  display: flex;
+  flex-direction: column;
+  height: min(600px, calc(100dvh - 40px));
+  max-height: none;
+  overflow: hidden;
+}
+
+.popup-panel--mk > .popup-head,
+.popup-panel--mk > .popup-foot,
+.popup-panel--mk > .popup-body {
+  flex: 0 0 auto;
+}
+
+.popup-panel--mk > .mk-fill {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 찾기 칸의 이름표 아래 사이는 새 묶음의 칸 사이와 같게 둔다. */
+.popup-panel--mk .mk-fill > .edit-field {
+  margin-bottom: var(--space-3);
+}
+
+.popup-panel--mk .mk-fill > .edit-field .mk-find {
+  margin-bottom: 0;
+}
+
+/* 늘지는 않고 줄기만 한다. 담긴 것이 적으면 목록이 그만큼만 쓰고 남는 자리는
+   맨 아래에 모인다 — 늘게 두면 목록과 아래 안내 사이가 휑하게 벌어진다. */
+.popup-panel--mk .mk-list,
+.popup-panel--mk .mk-picklist {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: none;
+  height: auto;
+}
+
+/* ─── 고르는 중에는 필터가 잠긴다 ─────────────────────────────
+   필터를 걸면 목록이 통째로 바뀌어 고른 것이 가리키던 줄이 사라진다.
+   누름은 받아 까닭을 알린다 — 173단 위의 잠긴 단추와 같은 손버릇이다. */
+.filter-pill[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.filter-pill[aria-disabled="true"]:hover {
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.filter-pill.on[aria-disabled="true"]:hover {
+  background: var(--color-primary);
+  color: #fff;
+}

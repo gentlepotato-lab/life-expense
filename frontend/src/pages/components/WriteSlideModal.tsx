@@ -511,7 +511,7 @@ export default function WriteSlideModal({
               <div className="ws-lab">장소/가게</div>
               <input
                 className="ui-input ws-keyword"
-                placeholder="(검색어)"
+                placeholder="(장소/가게)"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={(e) => {
@@ -548,7 +548,7 @@ export default function WriteSlideModal({
               <div className="place-picker__list ws-plist">
                 {(source === "db" ? dbRows : kakaoRows).length === 0 ? (
                   <div className="popup-empty">
-                    {searched ? "검색 결과가 없습니다." : "검색어를 입력하고 위 버튼을 누르세요."}
+                    {searched ? "찾는 곳이 없습니다." : "장소/가게를 입력하고 위 버튼을 누르세요."}
                   </div>
                 ) : source === "db" ? (
                   dbRows.map((r) => (

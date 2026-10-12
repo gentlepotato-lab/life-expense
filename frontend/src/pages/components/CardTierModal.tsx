@@ -310,7 +310,7 @@ export default function CardTierModal({
                       전기요금`처럼 그 영역에서 무엇이 걸리는지를 적는다. */}
                   <GrowArea
                     className="target__detail"
-                    placeholder="(가맹점 · 상세)"
+                    placeholder="(가맹점, 상세)"
                     maxLength={400}
                     value={tg.detail}
                     onChange={(v) =>

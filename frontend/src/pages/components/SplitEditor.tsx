@@ -177,7 +177,7 @@ export default function SplitEditor({
                       }
                       patch(i, "counterpart_id", v ? Number(v) : null);
                     }}
-                    placeholder="(Who?)"
+                    placeholder="(함께한 상대)"
                   />
                 )}
               </div>

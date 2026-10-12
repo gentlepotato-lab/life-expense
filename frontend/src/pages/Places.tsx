@@ -275,7 +275,7 @@ export default function Places() {
         <input
           className="ui-input"
           value={typed}
-          placeholder="(찾기 — 가게 이름, 동네, 업종)"
+          placeholder="(장소/가게, 동네, 업종)"
           onChange={(e) => setTyped(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {

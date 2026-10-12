@@ -138,7 +138,7 @@ export default function EmojiPicker({
             type="text"
             value={query}
             autoFocus
-            placeholder="(검색 — 밥, 커피, 지하철, coffee)"
+            placeholder="(이모지)"
             onChange={(e) => setQuery(e.target.value)}
           />
 

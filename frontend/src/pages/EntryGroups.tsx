@@ -244,12 +244,19 @@ export default function EntryGroups() {
             />
             <button
               type="button"
+              /* 고르는 중에는 필터를 열지 않는다. 필터를 걸면 목록이 통째로
+                 바뀌어 고른 것이 가리키던 줄이 사라진다. */
               onClick={() => {
+                if (picked.size > 0) {
+                  say.warn("선택한 묶음이 있습니다. 해제한 후 필터를 열어 주세요.");
+                  return;
+                }
                 setFilter(applied);
                 setFilterOpen(true);
               }}
               className={`filter-pill${걸림 ? " on" : ""}`}
               aria-pressed={걸림}
+              aria-disabled={picked.size > 0 || undefined}
               title={걸림 ? "필터가 걸려 있다. 눌러서 고친다." : "필터"}
             >
               필터

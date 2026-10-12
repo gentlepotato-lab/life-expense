@@ -1005,9 +1005,18 @@ export default function PendingEntries() {
             />
             <button
               type="button"
-              onClick={() => setFilterOpen(true)}
+              /* 고르는 중에는 필터를 열지 않는다. 필터를 걸면 목록이 통째로
+                 바뀌어 고른 것이 가리키던 줄이 사라진다. */
+              onClick={() => {
+                if (picked.length > 0) {
+                  say.warn("선택한 내역이 있습니다. 해제한 후 필터를 열어 주세요.");
+                  return;
+                }
+                setFilterOpen(true);
+              }}
               className={`filter-pill${isFilterActive ? " on" : ""}`}
               aria-pressed={!!isFilterActive}
+              aria-disabled={picked.length > 0 || undefined}
               title={isFilterActive ? "필터가 걸려 있다. 눌러서 고친다." : "필터"}
             >
               필터
@@ -1099,6 +1108,15 @@ export default function PendingEntries() {
           kind="pending"
           items={picked}
           meta={{ cat1List, cat2List, payList }}
+          /* 대기는 달 넘기기가 없어 필터가 걸렸을 때만 기간이 생긴다. */
+          span={
+            isFilterActive
+              ? {
+                  from: appliedFilter.dateFrom || undefined,
+                  to: appliedFilter.dateTo || undefined,
+                }
+              : undefined
+          }
           onDone={() => {
             setMakeOpen(false);
             setPickedIds(new Set());

@@ -377,7 +377,7 @@ export default function Calendar() {
                 title={
                   pick.length === 1
                     ? `${pick[0]}일을 뺀다.`
-                    : `고른 ${pick.length}일을 모두 뺀다.`
+                    : `선택한 ${pick.length}일을 모두 뺀다.`
                 }
               >
                 초기화
@@ -392,7 +392,7 @@ export default function Calendar() {
                 title={
                   pick.length === 1
                     ? `${pick[0]}일 내역을 본다.`
-                    : `고른 ${pick.length}일의 내역을 본다.`
+                    : `선택한 ${pick.length}일의 내역을 본다.`
                 }
               >
                 상세

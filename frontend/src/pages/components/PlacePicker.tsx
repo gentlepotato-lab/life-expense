@@ -195,7 +195,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
         {/* 검색어 */}
         <input
           className="ui-input place-picker__keyword"
-          placeholder="(검색어)"
+          placeholder="(장소/가게)"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           onKeyDown={(e) => {
@@ -237,8 +237,8 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
           {results.length === 0 ? (
             <div className="popup-empty">
               {searched
-                ? `${listTitle} 검색 결과가 없습니다.`
-                : "검색어를 입력하고 위 버튼을 누르세요."}
+                ? `${listTitle}가 없습니다.`
+                : "장소/가게를 입력하고 위 버튼을 누르세요."}
             </div>
           ) : source === "db" ? (
             dbResults.map((r) => (

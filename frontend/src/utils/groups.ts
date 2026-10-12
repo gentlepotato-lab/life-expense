@@ -28,6 +28,9 @@ export type GroupItem = {
   perf_exclude: number;
   fixed_flag: number | null;
   group_id: number | null;
+  /** 든 묶음의 이름. 서버가 내역 줄에 실어 보낸다 — 이미 묶인 것을
+      가릴 때 따로 물어볼 것이 없다. */
+  group_name?: string | null;
   split_amount?: number;
   net_amount?: number;
   split_count?: number;

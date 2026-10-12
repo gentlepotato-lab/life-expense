@@ -63,7 +63,7 @@ export default function GroupFilterPopup({
             <input
               type="text"
               value={filter.name}
-              placeholder="(묶음 이름)"
+              placeholder="(묶음)"
               onChange={(e) => setFilter({ ...filter, name: e.target.value })}
             />
           </EditField>
