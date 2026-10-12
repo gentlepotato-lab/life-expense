@@ -47,10 +47,10 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
     place_id: ""
   });
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; inout: number | null; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
-  const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
+  const [payList, setPayList] = useState<{ code: string; name: string; emoji?: string | null; is_active?: number }[]>([]);
 
   /* 아직 없는 건의 몫. 건이 생겨 entry_id를 받아야 붙일 수 있어
      그때까지 화면이 들고 있는다. */
@@ -126,6 +126,9 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
             code: String(p.method_id),
             name: p.method_name,
             is_active: p.is_active,
+            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다.
+               같은 구분에 든 수단끼리는 같은 이모지가 선다. */
+            emoji: p.category_emoji ?? null,
           }))
         )
       )
@@ -298,7 +301,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           <SingleSelect
             noun="중분류"
             options={visible(cat1List, (c) => String(c.id) === form.cat1_id)
-              .map(c => ({ value: String(c.id), label: c.name }))}
+              .map(c => ({ value: String(c.id), label: c.name, icon: c.emoji }))}
             selected={form.cat1_id}
             onChange={(value) => {
               setForm({ ...form, cat1_id: value });
@@ -347,7 +350,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           <SingleSelect
             noun="결제 수단"
             options={visible(payList, (p) => p.code === form.pay_method)
-              .map(p => ({ value: p.code, label: p.name }))}
+              .map(p => ({ value: p.code, label: p.name, icon: p.emoji }))}
             selected={form.pay_method}
             onChange={(value) => {
               setForm({ ...form, pay_method: value });

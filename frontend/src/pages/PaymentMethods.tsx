@@ -647,7 +647,8 @@ export default function PaymentMethods() {
                     { value: "", label: "(구분 없음)" },
                     ...categories.map((c) => ({
                       value: String(c.category_id),
-                      label: c.emoji ? `${c.name} ${c.emoji}` : c.name,
+                      label: c.name,
+                      icon: c.emoji,
                     })),
                   ]}
                   selected={addCategoryId ? String(addCategoryId) : ""}
@@ -811,7 +812,8 @@ export default function PaymentMethods() {
                               { value: "", label: "(구분 없음)" },
                               ...categories.map((c) => ({
                                 value: String(c.category_id),
-                                label: c.emoji ? `${c.name} ${c.emoji}` : c.name,
+                                label: c.name,
+                                icon: c.emoji,
                               })),
                             ]}
                             selected={m.category_id ? String(m.category_id) : ""}

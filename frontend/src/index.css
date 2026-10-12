@@ -19883,3 +19883,32 @@ textarea.memo-input.memo-area {
 :root[data-motion="off"] .page-doodle__pen {
   offset-distance: 100%;
 }
+
+/* ─────────────────────────────────────────────
+   177. 고르는 목록에 선 이모지(2026-10-13)
+
+   분류 화면과 쓰기 팝업에서는 중분류·결제 수단 이름 앞에 이모지가 서 있다.
+   드롭다운 목록에서도 같은 차례로 세운다 — 이름 앞이다.
+
+   이모지가 없는 줄도 자리는 그대로 비워 둔다. 지정해 둔 것이 있는 줄만
+   오른쪽으로 밀리면 이름의 왼쪽 선이 한 줄로 맞지 않는다.
+────────────────────────────────────────────── */
+/* 자리는 px로 못 박는다. em으로 두면 이모지 글자가 그 폭을 넘겨 밀고 나와,
+   이모지가 있는 줄의 이름만 1px쯤 오른쪽으로 밀린다. */
+.ms-option__emoji {
+  flex: 0 0 20px;
+  min-width: 0;
+  overflow: hidden;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* 이름은 남는 자리를 다 쓰고, 넘치면 꼬리를 자른다. 자르는 일을 줄
+   (.ms-option)에 맡기면 이모지까지 한 덩이로 보아 자리가 어긋난다. */
+.ms-option__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

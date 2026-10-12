@@ -59,10 +59,10 @@ export default function EntryEditFields({
 }: {
   draft: EditDraft;
   setField: (field: string, value: unknown) => void;
-  cat1List: { id: number; name: string; is_active?: number }[];
+  cat1List: { id: number; name: string; emoji?: string | null; is_active?: number }[];
   cat2List: { id: number; name: string; cat1_id: number; is_active?: number }[];
   cat3List: { id: number; name: string; cat2_id: number; is_active?: number }[];
-  payList: { code: string; name: string; is_active?: number }[];
+  payList: { code: string; name: string; emoji?: string | null; is_active?: number }[];
   splits: SplitDraft[];
   setSplits: (next: SplitDraft[]) => void;
   /** 장소 고르개를 연다. 고른 뒤 무엇을 할지는 부르는 쪽이 정한다. */
@@ -76,7 +76,7 @@ export default function EntryEditFields({
           <SingleSelect
             noun="중분류"
             options={visible(cat1List, (c) => c.id === draft.cat1_id)
-              .map(c => ({ value: String(c.id), label: c.name }))}
+              .map(c => ({ value: String(c.id), label: c.name, icon: c.emoji }))}
             selected={draft.cat1_id ? String(draft.cat1_id) : ""}
             onChange={(value) => setField("cat1_id", value ? Number(value) : null)}
             placeholder="(중분류)"
@@ -121,7 +121,7 @@ export default function EntryEditFields({
           <SingleSelect
             noun="결제 수단"
             options={visible(payList, (p) => String(p.code) === String(draft.pay_method))
-              .map(p => ({ value: String(p.code), label: p.name }))}
+              .map(p => ({ value: String(p.code), label: p.name, icon: p.emoji }))}
             selected={draft.pay_method == null || draft.pay_method === "" ? "" : String(draft.pay_method)}
             onChange={(value) => setField("pay_method", value === "" ? null : Number(value))}
             placeholder="(결제 수단)"

@@ -18,10 +18,10 @@ type Draft = EditDraft;
  * 기존 동작을 건드리게 되므로 여기서 넉넉히 받고 칸에 넘길 때 맞춘다.
  */
 export type EditMeta = {
-  cat1List: { id: number; name: string; is_active?: number }[];
+  cat1List: { id: number; name: string; emoji?: string | null; is_active?: number }[];
   cat2List: { id: number; name: string; cat1_id?: number; inout?: number | null; is_active?: number }[];
   cat3List: { id: number; name: string; cat2_id?: number; is_active?: number }[];
-  payList: { code: string; name: string; is_active?: number }[];
+  payList: { code: string; name: string; emoji?: string | null; is_active?: number }[];
 };
 
 /** 갈래마다 자리와 열쇠 칸이 다르다. 분기를 여기 한 곳에만 둔다. */

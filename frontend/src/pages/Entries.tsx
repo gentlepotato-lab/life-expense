@@ -78,12 +78,12 @@ export default function Entries() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null; blur?: number; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout: number | null; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; is_active?: number }[]>([]);
 
   const [payList, setPayList] = useState<
-    { code: string; name: string; is_active?: number; category?: string }[]
+    { code: string; name: string; emoji?: string | null; is_active?: number; category?: string }[]
   >([]);
 
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다.
@@ -131,6 +131,9 @@ export default function Entries() {
             is_active: p.is_active,
             /* 카드인 줄에만 실적 제외 기호가 선다. */
             category: p.category,
+            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다.
+               같은 구분에 든 수단끼리는 같은 이모지가 선다. */
+            emoji: p.category_emoji ?? null,
           }))
         )
       )
@@ -498,7 +501,7 @@ export default function Entries() {
   const cat1Options = useMemo(
     () => [
       { value: -1, label: "[전체]" },
-      ...cat1List.map(c => ({ value: c.id, label: c.name }))
+      ...cat1List.map(c => ({ value: c.id, label: c.name, icon: c.emoji }))
     ],
     [cat1List]
   );
@@ -735,7 +738,7 @@ export default function Entries() {
   const payOptions = useMemo(
     () => [
       { value: "__ALL__", label: "(전체 결제 수단)" },
-      ...payList.map(p => ({ value: p.code, label: p.name }))
+      ...payList.map(p => ({ value: p.code, label: p.name, icon: p.emoji }))
     ],
     [payList]
   );

@@ -490,7 +490,8 @@ export default function Counterparts() {
                         { value: "", label: "(구분 없음)" },
                         ...categories.map((x) => ({
                           value: String(x.category_id),
-                          label: x.emoji ? `${x.name} ${x.emoji}` : x.name,
+                          label: x.name,
+                          icon: x.emoji,
                         })),
                       ]}
                       selected={c.category_id ? String(c.category_id) : ""}
@@ -624,7 +625,8 @@ export default function Counterparts() {
                       { value: "", label: "(구분 없음)" },
                       ...categories.map((c) => ({
                         value: String(c.category_id),
-                        label: c.emoji ? `${c.name} ${c.emoji}` : c.name,
+                        label: c.name,
+                        icon: c.emoji,
                       })),
                     ]}
                     selected={addCategoryId ? String(addCategoryId) : ""}

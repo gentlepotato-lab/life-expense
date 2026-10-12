@@ -933,10 +933,10 @@ export default function Charts() {
   const wide = useWide();
 
   /* 고르는 목록들 — 그림에 이름을 붙이는 데도 쓴다. */
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout?: number | null; fixed?: number; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; fixed?: number; is_active?: number }[]>([]);
-  const [payList, setPayList] = useState<{ code: string; name: string; category?: string; is_active?: number }[]>([]);
+  const [payList, setPayList] = useState<{ code: string; name: string; emoji?: string | null; category?: string; is_active?: number }[]>([]);
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
 
   const isFilterActive = useMemo(() => hasCondition(appliedFilter), [appliedFilter]);
@@ -1036,6 +1036,7 @@ export default function Charts() {
               method_id: number;
               method_name: string;
               category?: string;
+              category_emoji?: string | null;
               is_active?: number;
             }) => ({
               code: String(p.method_id),
@@ -1043,6 +1044,8 @@ export default function Charts() {
               /* 카드 실적은 구분이 `카드` 인 것만 센다. */
               category: p.category,
               is_active: p.is_active,
+              /* 이모지는 결제 수단이 아니라 그 구분에 붙는다. */
+              emoji: p.category_emoji ?? null,
             })
           )
         )

@@ -158,13 +158,13 @@ export default function ScheduledEntries() {
   const [showHidden, setShowHidden] = useState(false);
   const [form, setForm] = useState(() => emptyForm());
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null; blur?: number; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; inout: number | null; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
   const [cat2All, setCat2All] = useState<CategoryL2Meta[]>([]);
   const [cat3All, setCat3All] = useState<CategoryL3Meta[]>([]);
   const [payList, setPayList] = useState<
-    { code: string; name: string; is_active?: number; category?: string }[]
+    { code: string; name: string; emoji?: string | null; is_active?: number; category?: string }[]
   >([]);
   const [cat2Map, setCat2Map] = useState<Record<number, CategoryL2Meta>>({});
   const [cat3Map, setCat3Map] = useState<Record<number, CategoryL3Meta>>({});
@@ -264,6 +264,9 @@ export default function ScheduledEntries() {
             is_active: p.is_active,
             /* 카드인 줄에만 실적 제외 기호가 선다. */
             category: p.category,
+            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다.
+               같은 구분에 든 수단끼리는 같은 이모지가 선다. */
+            emoji: p.category_emoji ?? null,
           }))
         );
       })
@@ -939,7 +942,7 @@ export default function ScheduledEntries() {
                   <SingleSelect
                     noun="중분류"
                     options={visible(cat1List, (c) => String(c.id) === form.cat1_id)
-                      .map((c) => ({ value: String(c.id), label: c.name }))}
+                      .map((c) => ({ value: String(c.id), label: c.name, icon: c.emoji }))}
                     selected={form.cat1_id}
                     onChange={(value) => setForm({ ...form, cat1_id: value })}
                     placeholder="(중분류)"
@@ -982,7 +985,7 @@ export default function ScheduledEntries() {
                   <SingleSelect
                     noun="결제 수단"
                     options={visible(payList, (p) => p.code === form.pay_method)
-                      .map((p) => ({ value: p.code, label: p.name }))}
+                      .map((p) => ({ value: p.code, label: p.name, icon: p.emoji }))}
                     selected={form.pay_method}
                     onChange={(value) => setForm({ ...form, pay_method: value })}
                     placeholder="(결제 수단)"
@@ -1243,7 +1246,7 @@ export default function ScheduledEntries() {
               <SingleSelect
                 noun="중분류"
                 options={visible(cat1List, (c) => c.id === draft.cat1_id)
-                  .map((c) => ({ value: String(c.id), label: c.name }))}
+                  .map((c) => ({ value: String(c.id), label: c.name, icon: c.emoji }))}
                 selected={String(draft.cat1_id ?? "")}
                 onChange={(value) => setField("cat1_id", value ? Number(value) : null)}
                 placeholder="(중분류)"
@@ -1288,7 +1291,7 @@ export default function ScheduledEntries() {
               <SingleSelect
                 noun="결제 수단"
                 options={visible(payList, (p) => String(p.code) === String(draft.pay_method))
-                  .map((p) => ({ value: p.code, label: p.name }))}
+                  .map((p) => ({ value: p.code, label: p.name, icon: p.emoji }))}
                 selected={
                   draft.pay_method === null || draft.pay_method === undefined
                     ? ""

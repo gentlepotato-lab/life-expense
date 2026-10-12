@@ -717,7 +717,7 @@ export default function Categories() {
                   options={[
                     { value: "NEW", label: "[+] 새 항목 추가" },
                     { value: "", label: "(중분류)" },
-                    ...cat1.map(c => ({ value: String(c.cat1_id), label: c.cat1_name })),
+                    ...cat1.map(c => ({ value: String(c.cat1_id), label: c.cat1_name, icon: c.emoji })),
                   ]}
                   selected={selectedCat1ForAdd ? String(selectedCat1ForAdd) : ""}
                   onChange={(value) => {

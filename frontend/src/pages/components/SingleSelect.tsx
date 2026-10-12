@@ -6,6 +6,8 @@ import useAnchoredPanel from "../../hooks/useAnchoredPanel";
 export interface SingleSelectOption<T> {
   value: T;
   label: string;
+  /** 이름 앞에 세울 이모지. 지정해 둔 것이 없으면 비운다. */
+  icon?: string | null;
 }
 
 interface SingleSelectProps<T> {
@@ -37,8 +39,13 @@ export default function SingleSelect<T>({
 
   /* 드롭다운 자리 셈 — 화면 밖으로 나가지 않도록 가둔다. 연월 고르개도 같은
      셈을 쓰므로 훅으로 뽑아 두었다(hooks/useAnchoredPanel). */
+  /* 이모지 자리 — 한 줄이라도 이모지가 있으면 모든 줄에 같은 폭으로 낸다.
+     없는 줄만 왼쪽으로 붙으면 이름의 선이 들쭉날쭉해진다. */
+  const 이모지칸 = options.some(o => o.icon);
+
+  /* 이모지 자리만큼 판을 넓힌다. 그러지 않으면 긴 이름이 그만큼 더 잘린다. */
   const dropdownStyle = useAnchoredPanel(open, wrapRef, {
-    minWidth: 200,
+    minWidth: 이모지칸 ? 226 : 200,
     maxHeight: 260,
   });
 
@@ -129,7 +136,8 @@ export default function SingleSelect<T>({
                 checked={opt.value === selected}
                 onChange={() => handleSelect(opt.value)}
               />
-              {opt.label}
+              {이모지칸 && <span className="ms-option__emoji">{opt.icon ?? ""}</span>}
+              <span className="ms-option__name">{opt.label}</span>
             </label>
           ))}
         </div>

@@ -129,7 +129,7 @@ export default function CalendarDetail() {
   /* 고르는 목록 — 카드가 이름을 찾는 데 쓴다.
      결제 수단은 화면마다 코드를 숫자로도 문자로도 쓰고 있어 두 벌을 만든다.
      카드 안의 비교 방식을 건드리지 않으려면 이쪽에서 맞춰 주는 편이 낫다. */
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null; blur?: number }[]>([]);
   const [cat2List, setCat2List] = useState<CategoryL2Meta[]>([]);
   const [cat3List, setCat3List] = useState<CategoryL3Meta[]>([]);
   /* 구분(`카드`인지)도 함께 든다 — 카드로 그은 줄에만 실적 제외 기호가
@@ -137,7 +137,7 @@ export default function CalendarDetail() {
   /* 결제 수단 목록은 하나면 된다. 한때 숫자로 담은 것과 글자로 담은 것을
      따로 들고 있었는데, 받는 쪽이 저마다 다른 꼴로 견줬기 때문이다. 이제
      견주는 자리가 모두 글자로 맞추므로 한 벌로 족하다. */
-  const [payList, setPayList] = useState<{ code: string; name: string; category?: string }[]>([]);
+  const [payList, setPayList] = useState<{ code: string; name: string; emoji?: string | null; category?: string }[]>([]);
 
   const cat2Map = useMemo(() => {
     const m: Record<number, CategoryL2Meta> = {};
@@ -158,10 +158,16 @@ export default function CalendarDetail() {
     axios
       .get("/payment-methods")
       .then((r) => {
-        type Pay = { method_id: number; method_name: string; category?: string };
+        type Pay = { method_id: number; method_name: string; category?: string; category_emoji?: string | null };
         const list: Pay[] = Array.isArray(r.data) ? r.data : [];
         setPayList(
-          list.map((p) => ({ code: String(p.method_id), name: p.method_name, category: p.category }))
+          /* 이모지는 결제 수단이 아니라 그 구분에 붙는다. */
+          list.map((p) => ({
+            code: String(p.method_id),
+            name: p.method_name,
+            category: p.category,
+            emoji: p.category_emoji ?? null,
+          }))
         );
       })
       .catch(() => setPayList([]));

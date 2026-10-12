@@ -93,12 +93,12 @@ export default function EntryGroups() {
   /* 꾹 눌러 고치는 중인 한 건. 어느 갈래인지는 담긴 묶음이 안다. */
   const [editing, setEditing] = useState<{ kind: GroupKind; row: GroupItem } | null>(null);
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null }[]>([]);
   const [cat2List, setCat2List] = useState<
     { id: number; name: string; cat1_id: number; blur?: number; inout: number | null }[]
   >([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number }[]>([]);
-  const [payList, setPayList] = useState<{ code: string; name: string; category?: string }[]>([]);
+  const [payList, setPayList] = useState<{ code: string; name: string; emoji?: string | null; category?: string }[]>([]);
 
   /* 기준 자료 — 카드가 분류와 결제 수단 이름을 적는 데 쓴다. */
   useEffect(() => {
@@ -114,10 +114,12 @@ export default function EntryGroups() {
         setCat2List(c2.data);
         setCat3List(c3.data);
         setPayList(
-          pm.data.map((p: { method_id: number; method_name: string; category?: string }) => ({
+          pm.data.map((p: { method_id: number; method_name: string; category?: string; category_emoji?: string | null }) => ({
             code: String(p.method_id),
             name: p.method_name,
             category: p.category,
+            /* 이모지는 결제 수단이 아니라 그 구분에 붙는다. */
+            emoji: p.category_emoji ?? null,
           }))
         );
       })

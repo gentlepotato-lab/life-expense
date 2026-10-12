@@ -24,10 +24,10 @@ const ALL = -1;
 const parentAll = (id: number) => -(1000 + id);
 const parentOf = (v: number) => -(v + 1000);
 
-type Cat1 = { id: number; name: string; is_active?: number };
+type Cat1 = { id: number; name: string; emoji?: string | null; is_active?: number };
 type Cat2 = { id: number; name: string; cat1_id: number; blur?: number; is_active?: number };
 type Cat3 = { id: number; name: string; cat2_id: number; is_active?: number };
-type Pay = { code: string; name: string; is_active?: number };
+type Pay = { code: string; name: string; emoji?: string | null; is_active?: number };
 type Cp = { counterpart_id: number; name: string };
 
 export default function EntryFilterPopup({
@@ -104,7 +104,7 @@ export default function EntryFilterPopup({
   }
 
   const cat1Options = useMemo(
-    () => [{ value: ALL, label: "[전체]" }, ...cat1Pool.map((c) => ({ value: c.id, label: c.name }))],
+    () => [{ value: ALL, label: "[전체]" }, ...cat1Pool.map((c) => ({ value: c.id, label: c.name, icon: c.emoji }))],
     [cat1Pool]
   );
   const cat2Options = useMemo(
@@ -122,7 +122,7 @@ export default function EntryFilterPopup({
     [filter.cat2, cat2List, cat3List]
   );
   const payOptions = useMemo(
-    () => [{ value: "__ALL__", label: "[전체]" }, ...payPool.map((p) => ({ value: p.code, label: p.name }))],
+    () => [{ value: "__ALL__", label: "[전체]" }, ...payPool.map((p) => ({ value: p.code, label: p.name, icon: p.emoji }))],
     [payPool]
   );
   const cpOptions = useMemo(

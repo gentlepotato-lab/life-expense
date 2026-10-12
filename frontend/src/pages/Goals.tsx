@@ -30,7 +30,7 @@ import Waiting from "./components/Waiting";
  * 같은 달을 두고 다른 숫자를 말하면 그게 제일 나쁘다.
  */
 
-type Cat = { id: number; name: string; is_active?: number };
+type Cat = { id: number; name: string; emoji?: string | null; is_active?: number };
 type Cat2 = Cat & { cat1_id: number };
 type Cat3 = Cat & { cat2_id: number };
 
@@ -632,7 +632,7 @@ export default function Goals() {
                 <SingleSelect
                   noun="중분류"
                   placeholder="(중분류)"
-                  options={visible(cat1List).map((c) => ({ value: String(c.id), label: c.name }))}
+                  options={visible(cat1List).map((c) => ({ value: String(c.id), label: c.name, icon: c.emoji }))}
                   selected={cat1}
                   onChange={(v) => {
                     setCat1(v);
