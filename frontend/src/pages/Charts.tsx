@@ -26,6 +26,8 @@ import useMonthSpan from "../hooks/useMonthSpan";
 import useLongPress, { LONG_PRESS_DELAY } from "../hooks/useLongPress";
 import useBackClose from "../hooks/useBackClose";
 import QuickActions from "./components/QuickActions";
+import ExportButton from "./components/ExportButton";
+import { 내보낼조건 } from "../utils/exportParams";
 import EntryFilterPopup from "./components/EntryFilterPopup";
 import CardPerkPopup, { type PerkTier } from "./components/CardPerkPopup";
 import FixedFilter from "./components/FixedFilter";
@@ -2629,6 +2631,12 @@ export default function Charts() {
       )}
 
       <QuickActions />
+
+      <ExportButton
+        길="charts"
+        이름="씀씀이"
+        params={{ ym: yearMonth, ...내보낼조건(appliedFilter) }}
+      />
     </div>
     </PopContext.Provider>
   );

@@ -16,6 +16,7 @@ import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calend
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import Collapse from "./components/Collapse";
 import QuickActions from "./components/QuickActions";
+import ExportButton from "./components/ExportButton";
 import PickBar from "./components/PickBar";
 import ReceiptPopup from "./components/ReceiptPopup";
 import ClipMark from "./components/ClipMark";
@@ -1417,6 +1418,9 @@ export default function ScheduledEntries() {
         </CardEditModal>
       )}
       <QuickActions />
+
+      {/* 정기 내역은 되풀이 규칙이라 기간이 없다. 통째로 내보낸다. */}
+      <ExportButton 길="scheduled" 이름="정기 내역" 빔={schedules.length === 0} 영수증={false} />
 
       {/* 장소 선택 — 편집 팝업과 신규 등록 폼이 함께 쓴다. */}
       {placePickerFor && (

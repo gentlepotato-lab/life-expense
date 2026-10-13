@@ -10,6 +10,7 @@ from app.routers import (
     counterparts,
     entries,
     entry_groups,
+    exports,
     goals,
     holidays,
     payment_methods,
@@ -146,6 +147,8 @@ app.include_router(pending_entries.router, prefix=f"{API}/pending-entries", tags
 app.include_router(scheduled_entries.router, prefix=f"{API}/scheduled-entries", tags=["scheduled_entries"])
 app.include_router(places.router, prefix=f"{API}/places", tags=["places"])
 app.include_router(holidays.router, prefix=f"{API}/holidays", tags=["holidays"])
+# 화면마다 걸린 조건 그대로 엑셀로 내보낸다.
+app.include_router(exports.router, prefix=f"{API}/export", tags=["export"])
 
 # 금액 쪼개기 — 세 자원에 똑같이 /{id}/splits로 붙는다.
 app.include_router(splits.router, prefix=f"{API}/entries", tags=["splits"])

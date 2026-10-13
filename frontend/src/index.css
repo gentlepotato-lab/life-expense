@@ -19935,3 +19935,90 @@ html,
 body {
   overflow-x: clip;
 }
+
+/* ─────────────────────────────────────────────
+   179. 내보내기 — 떠 있는 단추(2026-10-13)
+
+   도구 줄에 자리가 없다. 가장 좁은 360px에서 알약 하나를 더 끼우면
+   .toolbar가 flex-wrap: wrap이라 두 줄이 되고, 아래 내용이 통째로 32px
+   밀린다. 재어 보니 지출 내역·묶음 내역·씀씀이가 그랬다.
+
+   그래서 맨 위로(.scroll-top) 바로 위에 띄운다. 떠 있는 것은 내용 위에
+   겹쳐 뜨므로 한 칸도 밀지 않는다. 생김새와 크기는 맨 위로와 같은 값을
+   쓴다 — 한 자리에 선 두 단추가 다르게 생기면 둘로 보인다.
+
+   맨 위로와 달리 늘 떠 있다. 화면 어디에 있든 내보낼 수 있어야 한다.
+────────────────────────────────────────────── */
+.export-btn {
+  position: fixed;
+  right: var(--space-2);
+  /* 맨 위로(76px + 34px)의 바로 위. 둘 사이는 8px를 띄운다. */
+  bottom: calc(118px + env(safe-area-inset-bottom, 0px));
+  z-index: 10500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 80ms var(--ease);
+}
+
+.export-btn:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--color-primary);
+}
+
+.export-btn:active {
+  transform: scale(0.92);
+}
+
+/* 받는 동안 — 한 번 더 누르는 것을 막고, 돌아가는 티를 낸다. */
+.export-btn.is-busy {
+  color: var(--color-primary);
+  cursor: progress;
+}
+
+.export-btn.is-busy > svg {
+  animation: export-wait 1.2s linear infinite;
+}
+
+@keyframes export-wait {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.35; }
+  100% { opacity: 1; }
+}
+
+/* 팝업이 떠 있는 동안에는 비킨다 — 맨 위로와 같은 규칙이다. */
+html.modal-open .export-btn {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (min-width: 769px) {
+  .export-btn {
+    right: max(var(--space-3), calc(50% - 380px));
+  }
+}
+
+/* 좁은 화면에서는 맨 위로와 같이 한 치수 줄인다. */
+@media (max-width: 400px) {
+  .export-btn {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    bottom: calc(114px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+:root[data-motion="off"] .export-btn.is-busy > svg {
+  animation: none;
+  opacity: 0.5;
+}

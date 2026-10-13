@@ -12,9 +12,10 @@ uvicorn = {extras = ["standard"], version = "^0.30.0"}
 sqlalchemy = "^2.0.35"
 psycopg = {extras = ["binary"], version = "^3.2.1"}
 alembic = "^1.13.2"
-pandas = "^2.2.2"
 openpyxl = "^3.1.4"
 python-multipart = "^0.0.9"
+# 내보내는 엑셀에 그림을 그려 얹는다(app/xlsxchart.py, app/xlsxreceipt.py).
+pillow = "^11.0"
 
 [build-system]
 requires = ["poetry-core"]

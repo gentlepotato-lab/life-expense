@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import axios from "../api/client";
 import QuickActions from "./components/QuickActions";
+import ExportButton from "./components/ExportButton";
 import PlaceMapPopup from "./components/PlaceMapPopup";
 import PlacePeriodPopup from "./components/PlacePeriodPopup";
 import CollapseToggle, { CollapseAllButtons } from "./components/CollapseToggle";
@@ -358,6 +359,12 @@ export default function Places() {
       {picked && <PlaceMapPopup place={picked} onClose={() => setPicked(null)} />}
 
       <QuickActions />
+
+      <ExportButton
+        길="places"
+        이름="어디 쓰나"
+        params={{ date_from: period.since, date_to: period.until }}
+      />
     </div>
   );
 }

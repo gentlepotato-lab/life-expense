@@ -15,6 +15,7 @@ import EntryEditHost, { type EditMeta } from "./components/EntryEditHost";
 import MemoPad from "./components/MemoPad";
 import PickBar from "./components/PickBar";
 import QuickActions from "./components/QuickActions";
+import ExportButton from "./components/ExportButton";
 import GroupBrief from "./components/GroupBrief";
 import GroupTap from "./components/GroupTap";
 import GroupHead from "./components/GroupHead";
@@ -421,6 +422,8 @@ export default function EntryGroups() {
       )}
 
       <QuickActions onSaved={load} />
+
+      <ExportButton 길="groups" 이름="묶음 내역" params={{ ym: yearMonth }} />
     </div>
   );
 }

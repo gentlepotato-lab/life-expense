@@ -16,6 +16,8 @@ import { CollapseAllButtons } from "./components/CollapseToggle";
 import Collapse from "./components/Collapse";
 import SplitRows from "./components/SplitRows";
 import QuickActions from "./components/QuickActions";
+import ExportButton from "./components/ExportButton";
+import { 내보낼조건 } from "../utils/exportParams";
 import PickBar from "./components/PickBar";
 import ReceiptPopup from "./components/ReceiptPopup";
 import type { ReceiptRow } from "../utils/receipt";
@@ -1358,6 +1360,18 @@ export default function Entries() {
         />
       )}
       <QuickActions onSaved={reload} />
+
+      {/* 지금 걸린 조건 그대로 내보낸다. 필터가 안 걸렸으면 보고 있는 달이다. */}
+      <ExportButton
+        길="entries"
+        이름="지출 내역"
+        빔={rows.length === 0}
+        params={
+          isFilterActive
+            ? 내보낼조건(appliedFilter)
+            : { ym: yearMonth }
+        }
+      />
     </div>
   );
 }

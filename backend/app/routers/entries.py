@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import select, text
 from datetime import date
-import pandas as pd
 from io import BytesIO
 from app.models import Entry, Place
 from app.schemas import EntryIn, EntryOut, EntryUpdate
@@ -397,18 +396,6 @@ def update_entries_bulk(rows: list[dict], db: SessionDep = Depends()):
     db.commit()
 
     return {"updated": updated}
-
-@router.get("/export")
-def export_entries(start: date, end: date, fmt: str = Query("xlsx"), db=Depends(get_db)):
-    rows = db.scalars(select(Entry).where(Entry.tx_date.between(start, end))).all()
-    df = pd.DataFrame([r.to_dict() for r in rows])
-    bio = BytesIO()
-    if fmt == "csv":
-        csv = df.to_csv(index=False).encode()
-        return Response(csv, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=entries.csv"})
-    with pd.ExcelWriter(bio, engine="openpyxl") as w:
-        df.to_excel(w, index=False, sheet_name="Entries")
-    return Response(bio.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=entries.xlsx"})
 
 @router.get("/span")
 def get_month_span(db: SessionDep = Depends()):

@@ -13,6 +13,7 @@ import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import Collapse from "./components/Collapse";
 import QuickActions from "./components/QuickActions";
+import ExportButton from "./components/ExportButton";
 import PickBar from "./components/PickBar";
 import ReceiptPopup from "./components/ReceiptPopup";
 import ClipMark from "./components/ClipMark";
@@ -427,38 +428,6 @@ export default function PendingEntries() {
 
   /* Excel 내보내기 — 뒤에 보완하기로 하고 자리만 만들어 둔다.
      조용히 아무 일도 없으면 눌린 건지 알 수 없으므로 한마디 남긴다. */
-  const exportExcel = () => {
-    say.warn("Excel 내보내기는 아직 준비 중입니다.");
-  };
-
-  // Excel Import
-  const importExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const fd = new FormData();
-    fd.append("file", file);
-
-    try {
-      const res = await api.post("/pending-entries/import", fd, {
-        baseURL: "/api",
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      say.ok(`${res.data.inserted ?? 0}건 적재 완료-!! ;-)`);
-      await loadData();
-      
-      // 필터가 활성화되어 있으면 다시 적용
-      if (isFilterActive) {
-        applyFilter();
-      }
-    } catch (err) {
-      console.error(err);
-      say.bad("Excel을 불러오지 못했습니다. 다시 시도해 주세요.");
-    } finally {
-      e.target.value = ""; // 같은 파일 다시 올릴 수 있게 리셋
-    }
-  };
-
   // Send 단일 카드: (1) pending 업데이트 → (2) send API → (3) 목록에서 제거
   // 보내는 동안 잠근다. 확인을 누른 뒤 응답이 늦을 때 다시 누르면 같은 건이
   // 두 번 나간다.
@@ -990,17 +959,6 @@ export default function PendingEntries() {
       {/* 상단 툴바: Excel Import + Filter + Reload */}
       <div className="toolbar-wrap">
         <div className="toolbar">
-          <div className="toolbar-left excel-btns">
-            <label className="ui-btn small">
-              불러오기
-              <input type="file" accept=".xlsx" onChange={importExcel} style={{ display: "none" }} />
-            </label>
-            {/* 내보내기는 자리만 잡아 둔다. 실제 동작은 뒤에 붙인다. */}
-            <button type="button" className="ui-btn small" onClick={exportExcel}>
-              내보내기
-            </button>
-          </div>
-
           <div className="toolbar-btns">
             <CollapseAllButtons
               onExpandAll={() => setCollapsedDays(new Set())}
@@ -1503,6 +1461,9 @@ export default function PendingEntries() {
         />
       )}
       <QuickActions />
+
+      {/* 대기 내역은 통째로 내보낸다. 보내기 전의 것이 전부다. */}
+      <ExportButton 길="pending" 이름="대기 내역" 빔={rows.length === 0} />
     </div>
   );
 }

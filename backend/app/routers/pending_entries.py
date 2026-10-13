@@ -1,9 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, Depends, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 from app.deps import get_db, SessionDep
 from app.models import PendingEntry, CategoryL1, CategoryL2, CategoryL3, PaymentMethod, Place
-import pandas as pd
-from io import BytesIO
 
 router = APIRouter()
 
@@ -72,68 +70,6 @@ def load_meta_maps(db):
     pay_map = {r.method_name: r.method_id for r in db.query(PaymentMethod).all()}
 
     return cat1_map, cat2_map, cat3_map, pay_map
-
-@router.post("/import")
-async def import_pending_entries(
-    file: UploadFile = File(...),
-    db: SessionDep = Depends()
-):
-
-    # 1) 엑셀 읽기
-    file_bytes = await file.read()
-    df = pd.read_excel(BytesIO(file_bytes))
-
-    required_cols = ["날짜", "중분류", "소분류", "세분류", "IN/OUT", "결제 수단", "금액", "메모"]
-    for col in required_cols:
-        if col not in df.columns:
-            return {"error": f"Excel에 '{col}' 컬럼이 없습니다."}
-
-    # 2) 메타 매핑 로딩
-    cat1_map, cat2_map, cat3_map, pay_map = load_meta_maps(db)
-
-    # 3) 변환된 row 리스트
-    inserted = 0
-
-    for _, row in df.iterrows():
-        # 중분류 → cat1_id
-        c1 = cat1_map.get(str(row["중분류"]).strip())
-        c2 = None
-        c3 = None
-
-        if c1:
-            # 소분류 → cat2_id
-            c2 = cat2_map.get((c1, str(row["소분류"]).strip()))
-
-            if c2:
-                # 세분류 → cat3_id
-                c3 = cat3_map.get((c2, str(row["세분류"]).strip()))
-
-        # IN/OUT 변환
-        inout = 1 if str(row["IN/OUT"]).upper() == "IN" else -1
-
-        # 결제 수단 이름 → method_id
-        pay = pay_map.get(str(row["결제 수단"]).strip())
-
-        # 메모 NaN 처리
-        memo_value = row.get("메모")
-        memo = None if pd.isna(memo_value) else str(memo_value)
-        
-        new_item = PendingEntry(
-            tx_date=row["날짜"],
-            cat1_id=c1,
-            cat2_id=c2,
-            cat3_id=c3,
-            inout=inout,
-            amount=row["금액"],
-            pay_method=pay,
-            memo=memo
-        )
-
-        db.add(new_item)
-        inserted += 1
-
-    db.commit()
-    return {"status": "ok", "inserted": inserted}
 
 @router.put("/{entry_id}/perf-exclude")
 def set_perf_exclude(entry_id: int, value: int = Query(...), db: SessionDep = Depends()):

@@ -26,6 +26,8 @@ import type { ReceiptRow } from "../utils/receipt";
 import { PendingCard } from "./PendingEntries";
 import { ScheduleCard, type CategoryL2Meta, type CategoryL3Meta } from "./ScheduledEntries";
 import QuickActions from "./components/QuickActions";
+import ExportButton from "./components/ExportButton";
+import { 내보낼조건 } from "../utils/exportParams";
 import EntryEditHost, { type EditMeta } from "./components/EntryEditHost";
 import type { GroupKind } from "../utils/groups";
 
@@ -119,6 +121,10 @@ export default function CalendarDetail() {
      이름만 그 화면 것으로 적는다.
      실려 오지 않았으면(주소만으로 들어왔거나 새로 고쳤으면) 이 화면이 딸린
      자리의 이름을 쓴다 — 같은 화면이 두 주소를 섬기고 있어서다. */
+  /* 이 화면은 두 주소를 섬긴다. 내보낸 파일의 이름도 들어온 쪽을 따른다. */
+  const 어디서 = location.pathname.startsWith("/charts") ? "charts" : "calendar";
+  const 화면이름 = 어디서 === "charts" ? "씀씀이" : "달력";
+
   const backName = useMemo(
     () =>
       (location.state as { back?: string } | null)?.back ??
@@ -536,6 +542,20 @@ export default function CalendarDetail() {
       )}
 
       <QuickActions onSaved={() => setReloadKey((k) => k + 1)} />
+
+      {/* 달력 상세와 씀씀이 상세가 같은 화면이라 한 번만 붙이면 둘 다 된다.
+          고른 날을 그대로 넘긴다 — 기간으로 펴면 안 고른 날이 섞인다. */}
+      <ExportButton
+        길="detail"
+        이름={화면이름}
+        빔={items.length === 0}
+        params={{
+          page: 어디서,
+          days: days.join(","),
+          sources: [...srcOn].join(","),
+          ...내보낼조건(filter),
+        }}
+      />
     </div>
   );
 }

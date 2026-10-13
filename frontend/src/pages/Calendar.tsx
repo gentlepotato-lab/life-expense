@@ -6,6 +6,8 @@ import axios from "../api/client";
 import { say } from "../utils/notify";
 import EntryFilterPopup from "./components/EntryFilterPopup";
 import QuickActions from "./components/QuickActions";
+import ExportButton from "./components/ExportButton";
+import { 내보낼조건 } from "../utils/exportParams";
 import MonthNav from "./components/MonthNav";
 import useMonthSpan from "../hooks/useMonthSpan";
 import {
@@ -538,6 +540,12 @@ export default function Calendar() {
       )}
 
       <QuickActions onSaved={() => setReloadKey((k) => k + 1)} />
+
+      <ExportButton
+        길="calendar"
+        이름="달력"
+        params={{ ym: yearMonth, ...내보낼조건(appliedFilter) }}
+      />
     </div>
   );
 }
