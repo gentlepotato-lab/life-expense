@@ -19812,7 +19812,10 @@ textarea.memo-input.memo-area {
   position: absolute;
   right: 0;
   top: calc(50% - 6px);
-  height: 26px;
+  /* 상자는 가운데를 잡고 늘어난다(translateY(-50%)). 26에서 36으로 키워도
+     줄이 놓이는 자리(PenMark의 YB)가 가운데에서 같은 만큼 아래라 자리는
+     그대로다 — 23/26과 28/36이 둘 다 가운데에서 10px 아래다. */
+  height: 36px;
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -19828,7 +19831,7 @@ textarea.memo-input.memo-area {
 .page-doodle__line {
   fill: none;
   stroke: var(--art-aqua);
-  stroke-width: 1.9;
+  stroke-width: 2.3;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 100;

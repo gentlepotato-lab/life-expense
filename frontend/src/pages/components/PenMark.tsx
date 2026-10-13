@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * 안내 한 줄 오른쪽 끝에 서는 만년필 자국.
@@ -12,8 +12,8 @@ import { useEffect, useState } from "react";
  * 42px, 390px에서 72px, 412px에서 94px이 남았다. 한 값으로 못 박으면 가장
  * 좁은 쪽에 맞춰야 해서 넓은 화면에서 쓸데없이 짧다.
  *
- * 늘어나는 것은 줄뿐이고 별은 크기가 그대로다. viewBox를 픽셀과 1:1로 두어
- * 늘려도 별이 찌그러지지 않는다.
+ * 늘어나는 것은 줄뿐이고 끝의 그림은 크기가 그대로다. viewBox를 픽셀과
+ * 1:1로 두어 늘려도 찌그러지지 않는다.
  *
  * 머리말 높이에는 손대지 않는다. 띄워서 얹으므로 이것이 있어도 없어도 아래
  * 내용이 서는 자리가 같다.
@@ -32,37 +32,191 @@ function 자국폭(화면: number): number {
   return Math.max(32, Math.min(112, Math.round(화면 - 328)));
 }
 
-/** 별의 반지름과 줄이 놓이는 높이. */
-const R = 7;
-const YB = 23;
+/** 자국이 그려지는 상자. 줄은 YB에 놓이고 끝 그림은 그 위 S칸을 꽉 채운다. */
+const 높이 = 36;
+const YB = 28;
+const 여백 = 1.5;
+/** 끝 그림이 쓰는 네모. 여덟 가지가 모두 이 한 칸을 같게 채운다. */
+const S = 15;
+
+const 꼴들 = ["별", "동그라미", "네모", "세모", "다이아", "하트", "초승달", "돼지꼬리"] as const;
+export type 자국꼴 = (typeof 꼴들)[number];
 
 /**
- * 쭉 그은 줄에 오각별을 이어 붙인 한 획.
+ * 하트 곡선.
  *
- * 별은 꼭짓점을 하나 건너뛰며 돌면 다섯 선으로 제자리에 돌아온다. 그래서
- * 펜을 떼지 않고 줄에서 별까지 이어 그을 수 있다. 줄이 끝나는 자리를 별의
- * 왼쪽 아래 꼭짓점으로 잡아 별이 줄 위로 솟게 둔다.
+ * x = 16sin³t, y = 17cos t − 4cos2t − 3cos3t − cos4t. 아래 끝(t=π)과 가운데
+ * 패인 데(t=2π)에서 x와 y의 기울기가 함께 0이 되어 저절로 뾰족해지고, 나머지
+ * 자리는 끊긴 데가 없어 매끄럽다.
+ *
+ * y의 네 수는 흔히 쓰는 13·5·2·1이 아니다. 그 꼴은 아래가 길고 가늘어 15px에
+ * 2.3 굵기로 그으면 뭉개진다. 손으로 잇던 하트의 비례를 재서(패인 데 0.82,
+ * 가장 넓은 자리 0.65, 키의 1/4 높이에서 반폭 0.28) 그 값에 가장 가까운 네
+ * 수를 골랐다 — 0.819 / 0.643 / 0.290으로 거의 그대로다.
+ *
+ * 틀이 정해진 꼴이라 테두리는 한 번만 재 둔다.
  */
-function 한획(폭: number): string {
-  const 끝 = 폭 - 1.5 - 1.5389 * R;
-  const cx = 끝 + 0.5878 * R;
-  const cy = YB - 0.809 * R;
-  const 점 = (x: number, y: number) => `L${x.toFixed(1)} ${y.toFixed(1)}`;
+const 하트X = (t: number) => 16 * Math.sin(t) ** 3;
+const 하트Y = (t: number) =>
+  17 * Math.cos(t) - 4 * Math.cos(2 * t) - 3 * Math.cos(3 * t) - Math.cos(4 * t);
+const 하트기울X = (t: number) => 48 * Math.sin(t) ** 2 * Math.cos(t);
+const 하트기울Y = (t: number) =>
+  -17 * Math.sin(t) + 8 * Math.sin(2 * t) + 9 * Math.sin(3 * t) + 4 * Math.sin(4 * t);
+const 하트끝 = (() => {
+  let 아래 = Infinity;
+  let 위 = -Infinity;
+  for (let i = 0; i <= 720; i += 1) {
+    const v = 하트Y((i * Math.PI) / 360);
+    if (v < 아래) 아래 = v;
+    if (v > 위) 위 = v;
+  }
+  return { 아래, 위 };
+})();
+
+/* 소수 한 자리면 15px짜리 꼴에서 0.1px씩 끊겨 둥근 데가 울퉁불퉁해 보인다. */
+const 쪽 = (v: number) => v.toFixed(2);
+const 점 = (x: number, y: number) => `L${쪽(x)} ${쪽(y)}`;
+const 굽이 = (p: number[]) => `C${p.map(쪽).join(" ")}`;
+const 호 = (r: number, 큰: number, 돎: number, x: number, y: number) =>
+  `A${쪽(r)} ${쪽(r)} 0 ${큰} ${돎} ${쪽(x)} ${쪽(y)}`;
+
+/**
+ * 쭉 그은 줄에 그림 하나를 이어 붙인 한 획.
+ *
+ * 여덟 가지 모두 펜을 떼지 않고 한 번에 그린다 — 줄이 끝나는 자리에서
+ * 그대로 이어진다. 그래야 줄과 그림이 한 path가 되어 그어지는 시늉
+ * (stroke-dashoffset)과 펜의 길(offset-path)을 하나로 쓴다.
+ *
+ * 모두 같은 네모(S×S)를 채운다. 꼴마다 크기가 들쭉날쭉하면 7초마다 그림이
+ * 커졌다 작아졌다 해서 눈에 걸린다.
+ */
+function 한획(폭: number, 꼴: 자국꼴): string {
+  const 머리 = `M2 ${YB}`;
+  const 끝 = 폭 - 여백 - S;
+  const 위 = YB - S;
+  const cx = 끝 + S / 2;
+
+  /* 하트와 초승달은 24칸 상자에 그린 꼴을 그대로 줄여 옮긴다. */
+  const 옮김 = () => {
+    const k = S / 18;
+    return {
+      X: (x: number) => 끝 + (x - 3) * k,
+      Y: (y: number) => YB - (21 - y) * k,
+      k,
+    };
+  };
+
+  if (꼴 === "네모") {
+    return [머리, 점(끝, YB), 점(끝, 위), 점(끝 + S, 위), 점(끝 + S, YB), 점(끝, YB)].join(" ");
+  }
+
+  if (꼴 === "세모") {
+    return [머리, 점(끝, YB), 점(cx, 위), 점(끝 + S, YB), 점(끝, YB)].join(" ");
+  }
+
+  if (꼴 === "다이아") {
+    return [머리, 점(cx, YB), 점(끝 + S, YB - S / 2), 점(cx, 위), 점(끝, YB - S / 2), 점(cx, YB)].join(" ");
+  }
+
+  if (꼴 === "동그라미") {
+    const r = S / 2;
+    /* 호 둘로 한 바퀴. 한 호로는 시작과 끝이 같은 점이라 그려지지 않는다. */
+    return [머리, 점(cx, YB), 호(r, 1, 1, cx, 위), 호(r, 1, 1, cx, YB)].join(" ");
+  }
+
+  if (꼴 === "별") {
+    /* 꼭짓점을 하나 건너뛰며 돌면 다섯 선으로 제자리에 돌아온다. 그래서
+       펜을 떼지 않고 줄에서 별까지 이어 그을 수 있다.
+
+       정오각별은 폭보다 키가 작다(1.902r 대 1.809r). 다른 일곱이 S칸을 꽉
+       채우는데 혼자 2px 낮으면 7초마다 그림이 주저앉아 보여, 세로만 살짝
+       늘려 같은 칸을 채운다. */
+    const rx = S / 1.902;
+    const ry = S / 1.809;
+    const cy = YB - (0.809 / 1.809) * S;
+    const 꼭 = (k: number) => {
+      const a = ((90 + 72 * k) * Math.PI) / 180;
+      return [cx + rx * Math.cos(a), cy - ry * Math.sin(a)] as const;
+    };
+    return [머리, ...[2, 4, 1, 3, 0, 2].map((k) => 점(...꼭(k)))].join(" ");
+  }
+
+  if (꼴 === "하트") {
+    /* 굽이를 손으로 이어 붙이면 이은 자리마다 휘는 정도가 턱턱 바뀌어
+       울퉁불퉁해 보인다. 기울기는 맞췄는데도 그렇다 — 눈에 걸리는 것은
+       기울기가 아니라 휘는 정도다.
+
+       그래서 손으로 잡지 않고 하트 곡선을 그대로 따라 그린다. 끊긴 데가
+       없는 한 가닥이라 울퉁불퉁할 자리가 아예 없고, 아래 뾰족한 끝과
+       가운데 패인 데에서만 저절로 뾰족해진다 — 하트에 있어야 할 꼭 두
+       군데다. 굽이 열여섯 토막은 곡선을 베껴 뜬 것일 뿐 꼴을 정하지
+       않는다. 각 토막의 잡는 점은 그 자리의 기울기에서 바로 나온다. */
+    const 사이 = (Math.PI * 2) / 16;
+    const 가로 = S / 32;
+    const 세로 = S / (하트끝.위 - 하트끝.아래);
+    const 자리 = (t: number) =>
+      [cx + 하트X(t) * 가로, YB - (하트Y(t) - 하트끝.아래) * 세로] as const;
+    /* 화면은 아래가 커지는 쪽이라 세로 기울기만 뒤집는다. */
+    const 기울 = (t: number) =>
+      [하트기울X(t) * 가로, -하트기울Y(t) * 세로] as const;
+    const 토막: string[] = [];
+    for (let i = 0; i < 16; i += 1) {
+      const t0 = Math.PI + i * 사이;
+      const t1 = t0 + 사이;
+      const [x0, y0] = 자리(t0);
+      const [x1, y1] = 자리(t1);
+      const [dx0, dy0] = 기울(t0);
+      const [dx1, dy1] = 기울(t1);
+      토막.push(
+        굽이([
+          x0 + (dx0 * 사이) / 3,
+          y0 + (dy0 * 사이) / 3,
+          x1 - (dx1 * 사이) / 3,
+          y1 - (dy1 * 사이) / 3,
+          x1,
+          y1,
+        ])
+      );
+    }
+    return [머리, 점(cx, YB), ...토막].join(" ");
+  }
+
+  if (꼴 === "초승달") {
+    /* 큰 원을 한 바퀴 돌아 작은 원으로 살을 파낸다. 두 원이 만나는 두 점이
+       달의 뿔이다. 바닥 점에서 시작해 제자리로 돌아온다. */
+    const { X, Y, k } = 옮김();
+    return [
+      머리,
+      점(X(12), Y(21)),
+      호(9 * k, 1, 1, X(11.21), Y(3)),
+      호(7 * k, 0, 0, X(21), Y(12.79)),
+      호(9 * k, 0, 1, X(12), Y(21)),
+    ].join(" ");
+  }
+
+  /* 돼지꼬리 — 한 바퀴 크게 돌고 안으로 말려 든다. 여덟 가운데 제자리로
+     돌아오지 않는 하나인데, 꼬리란 본디 어딘가에서 멎는 것이라 그 편이 맞다. */
   return [
-    `M2 ${YB}`,
+    머리,
     점(끝, YB),
-    점(cx, cy - R),
-    점(cx + 0.5878 * R, YB),
-    점(cx - 0.9511 * R, cy - 0.309 * R),
-    점(cx + 0.9511 * R, cy - 0.309 * R),
-    점(끝, YB),
+    굽이([끝 - S * 0.06, YB - S * 1.22, 끝 + S * 1.14, YB - S * 1.2, 끝 + S * 0.92, YB - S * 0.55]),
+    굽이([끝 + S * 0.72, YB - S * 0.1, 끝 + S * 0.12, YB - S * 0.3, 끝 + S * 0.34, YB - S * 0.66]),
+    굽이([끝 + S * 0.5, YB - S * 0.9, 끝 + S * 0.8, YB - S * 0.8, 끝 + S * 0.72, YB - S * 0.62]),
   ].join(" ");
+}
+
+/** 방금 그린 것과 다른 것으로 고른다. 같은 것이 잇달아 나오면 안 바뀐 줄 안다. */
+function 다음꼴(이전: 자국꼴): 자국꼴 {
+  const 남은 = 꼴들.filter((k) => k !== 이전);
+  return 남은[Math.floor(Math.random() * 남은.length)];
 }
 
 export default function PenMark() {
   const [폭, set폭] = useState(() =>
     자국폭(typeof document === "undefined" ? 360 : document.documentElement.clientWidth)
   );
+  const [꼴, set꼴] = useState<자국꼴>(() => 꼴들[Math.floor(Math.random() * 꼴들.length)]);
+  const 줄ref = useRef<SVGPathElement | null>(null);
 
   /* 안내 글이 비워 둘 자리도 여기서 정한다. CSS가 100vw로 따로 셈하면
      굴림대가 있는 화면에서 둘이 어긋나, 글이 자국 밑으로 깔린다. */
@@ -77,14 +231,24 @@ export default function PenMark() {
     return () => window.removeEventListener("resize", 재기);
   }, []);
 
-  const 길 = 한획(폭);
+  /* 한 바퀴가 끝날 때마다 다음 그림을 고른다. 7초 가운데 4초 남짓은 아무것도
+     보이지 않는 쉬는 참이라, 그때 길이 바뀌어도 눈에 걸리지 않는다. */
+  useEffect(() => {
+    const el = 줄ref.current;
+    if (!el) return;
+    const 한바퀴 = () => set꼴((전) => 다음꼴(전));
+    el.addEventListener("animationiteration", 한바퀴);
+    return () => el.removeEventListener("animationiteration", 한바퀴);
+  }, []);
+
+  const 길 = 한획(폭, 꼴);
 
   return (
     <span className="page-doodle" aria-hidden="true" style={{ width: `${폭}px` }}>
-      <svg viewBox={`0 0 ${폭} 26`} focusable="false">
-        <path className="page-doodle__line" pathLength={100} d={길} />
+      <svg viewBox={`0 0 ${폭} ${높이}`} focusable="false">
+        <path ref={줄ref} className="page-doodle__line" pathLength={100} d={길} />
         <g className="page-doodle__pen" style={{ offsetPath: `path("${길}")` }}>
-          <g transform="rotate(26) scale(0.52)">
+          <g transform="rotate(26) scale(0.66)">
             {/* 펜대 — 아래가 굵고 위로 좁아지는 몸통. 잉크와 같은 빛깔이면
                 그은 줄과 구분이 안 되므로 닙과 같은 빛깔로 채운다. */}
             <path className="page-doodle__body" d="M-2.6 -14 L-2.2 -29 Q0 -31.5 2.2 -29 L2.6 -14 Z" />
