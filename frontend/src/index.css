@@ -19948,7 +19948,9 @@ body {
 
    그래서 맨 위로(.scroll-top) 바로 위에 띄운다. 떠 있는 것은 내용 위에
    겹쳐 뜨므로 한 칸도 밀지 않는다. 생김새와 크기는 맨 위로와 같은 값을
-   쓴다 — 한 자리에 선 두 단추가 다르게 생기면 둘로 보인다.
+   쓴다 — 한 자리에 선 두 단추가 다르게 생기면 둘로 보인다. 기호 빛깔, 그늘,
+   뒤 흐림까지 맞춘다. 흐림이 빠지면 같은 바탕값을 줘도 뒤가 날것으로 비쳐
+   혼자 더 투명해 보인다.
 
    맨 위로와 달리 늘 떠 있다. 화면 어디에 있든 내보낼 수 있어야 한다.
 ────────────────────────────────────────────── */
@@ -19968,24 +19970,25 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.6);
-  color: var(--color-text-secondary);
-  box-shadow: var(--shadow-sm);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-md);
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, transform 80ms var(--ease);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: background 0.2s ease, transform 80ms var(--ease);
 }
 
 .export-btn:hover {
   background: rgba(255, 255, 255, 0.8);
-  color: var(--color-primary);
 }
 
 .export-btn:active {
   transform: scale(0.92);
 }
 
-/* 받는 동안 — 한 번 더 누르는 것을 막고, 돌아가는 티를 낸다. */
+/* 받는 동안 — 한 번 더 누르는 것을 막고, 돌아가는 티를 낸다. 빛깔은 쉴 때와
+   같고 깜빡이는 것만으로 알린다. */
 .export-btn.is-busy {
-  color: var(--color-primary);
   cursor: progress;
 }
 
