@@ -29,6 +29,7 @@ import usePeel from "../hooks/usePeel";
 import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
 import DayPicker from "./components/DayPicker";
 import { say, ask } from "../utils/notify";
+import { 골라제거 } from "../utils/bulkDelete";
 /* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
    카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
 type PerfRow = { entry_id: number; perf_exclude?: number | null };
@@ -1039,6 +1040,27 @@ export default function PendingEntries() {
         onAll={() => setPickedIds(new Set(rows.map((r) => r.entry_id)))}
         onClear={() => setPickedIds(new Set())}
         onReceipt={() => setReceiptOpen(true)}
+        onDelete={async () => {
+          /* 한 건 지울 때와 같은 말을 쓴다. 같은 일을 묻는 자리가 둘인데
+             말이 다르면 어느 쪽이 더 무거운 일인지 헷갈린다. */
+          const 예 = await ask({
+            title: "내역 제거",
+            body: `선택한 ${picked.length}건을 제거할까요?`,
+            warn: "되돌릴 수 없습니다.",
+            go: "제거",
+            danger: true,
+          });
+          if (!예) return;
+          const { 성공, 실패 } = await 골라제거(
+            "/pending-entries",
+            picked.map((r) => r.entry_id)
+          );
+          setPickedIds(new Set());
+          await loadData();
+          if (실패 === 0) say.ok(`${성공}건을 제거했습니다.`);
+          else if (성공 === 0) say.bad("제거하지 못했습니다. 다시 시도해 주세요.");
+          else say.warn(`${성공}건을 제거했습니다. ${실패}건은 제거하지 못했습니다.`);
+        }}
         more={
           <>
             <button
@@ -1054,7 +1076,11 @@ export default function PendingEntries() {
               onClick={sendMany}
               disabled={sending}
             >
-              선택 전송
+              {/* 아주 좁은 화면에서는 앞말을 접는다. 이 쪽은 막대에 조각이
+                  일곱이라 360px에서 한 줄에 다 들어가지 않는다. 카드의
+                  단추도 [전송]이라 접어도 같은 말이다. */}
+              <span className="pick-bar__more-long">선택 전송</span>
+              <span className="pick-bar__more-short">전송</span>
             </button>
           </>
         }

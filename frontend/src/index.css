@@ -12262,7 +12262,8 @@ html.pin-off .cp-page > .is-pinned {
 
 /* 팝업이 떠 있는 동안은 뒤 화면이 굴러가지 않는다. 갈 곳이 없으므로 물러선다 —
    오른쪽 위 네 단추는 화면을 건너다니는 길이라 그대로 두는 것과 다르다. */
-html.modal-open .scroll-top {
+html.modal-open .scroll-top,
+html.picking .scroll-top {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -18160,6 +18161,8 @@ textarea.memo-input.memo-area {
   z-index: 940;
   display: flex;
   align-items: center;
+  /* 한 줄로만 선다. 두 줄이 되면 그만큼 올라와 카드를 더 가린다. */
+  flex-wrap: nowrap;
   gap: var(--space-2);
   padding: 8px 10px 8px 14px;
   border-radius: 14px;
@@ -18178,8 +18181,15 @@ textarea.memo-input.memo-area {
   to   { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
+/* 고른 수가 늘어도 단추가 밀리지 않게 자리를 못 박는다.
+
+   1건에서 1000건으로 가면 글자가 26px 길어져 오른쪽 단추가 통째로 밀렸다.
+   네 자리까지 들어갈 자리를 처음부터 비워 두면, 세는 동안 단추는 제자리에
+   선다. 숫자는 폭이 같은 꼴(tabular-nums)이라 자리를 바꿔도 안 흔들린다. */
 .pick-bar__n {
   flex: 0 0 auto;
+  min-width: 5.7em;
+  white-space: nowrap;
   font-size: var(--font-size-sm);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -18189,6 +18199,7 @@ textarea.memo-input.memo-area {
    보여 어느 것이 본일인지 흐려진다. */
 .pick-bar__sub {
   flex: 0 0 auto;
+  white-space: nowrap;
   height: 30px;
   min-height: 30px;
   padding: 0 12px;
@@ -18223,13 +18234,27 @@ textarea.memo-input.memo-area {
 
 /* 해제는 왼쪽 무리의 끝이다. 그 오른쪽은 본일 단추 자리로 민다. */
 .pick-bar__sub + .pick-bar__go,
-.pick-bar__sub + .pick-bar__more {
+.pick-bar__sub + .pick-bar__more,
+.pick-bar__sub + .pick-bar__del {
   margin-left: auto;
 }
 
+/* 좁은 화면에서 줄여 쓰는 말은 통째로 갈아 끼운다.
+
+   앞말만 접으려고 <span>선택 </span>전송처럼 두면 띄어쓰기가 사라진다 —
+   단추가 flex라 자식 사이의 공백이 통째로 버려지기 때문이다. 두 말을 각각
+   적어 두고 폭에 따라 하나만 보인다. */
+.pick-bar__more-short {
+  display: none;
+}
+
+/* 글자가 두 줄로 접히면 안 된다. 좁은 자리에서 접히면서 [선택 전송]이
+   [선택]과 [전송] 두 줄로 갈라져, 띄어쓰기가 사라진 것처럼 보였다. */
 .pick-bar__go,
-.pick-bar__more {
+.pick-bar__more,
+.pick-bar__del {
   flex: 0 0 auto;
+  white-space: nowrap;
   height: 30px;
   min-height: 30px;
   padding: 0 14px;
@@ -18248,12 +18273,65 @@ textarea.memo-input.memo-area {
   color: var(--color-text-primary);
 }
 
+/* 묶기처럼 그 쪽에만 있는 할 일은 빛깔로 세운다. 옅은 흰 알약으로 두면
+   [모두 선택]·[해제]와 같은 무게로 보여, 할 일인지 곁단추인지 흐려진다. */
 .pick-bar__more,
 .pick-bar__more:hover,
 .pick-bar__more:focus,
 .pick-bar__more:active {
-  background: color-mix(in srgb, var(--color-surface) 22%, transparent);
-  color: var(--color-surface);
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* 지우기는 되돌릴 수 없다. 곁단추들과 같은 결로 두면 묶기와 나란히 선
+   또 하나의 할 일로 보여, 손가락이 스치듯 닿는다. 붉은 결로 갈라 둔다. */
+.pick-bar__del,
+.pick-bar__del:hover,
+.pick-bar__del:focus,
+.pick-bar__del:active {
+  background: color-mix(in srgb, var(--color-danger) 82%, transparent);
+  color: #fff;
+}
+
+/* 아주 좁은 화면에서는 사이와 안여백을 한 단 줄인다. 한 줄에 담기는 만큼
+   담고, 그래도 모자라면 위의 줄바꿈이 받는다. */
+/* 아주 좁은 화면에서 한 줄에 담는 법.
+
+   360px에서 대기 내역은 일곱 조각(수, 모두 선택, 해제, 묶기, 선택 전송,
+   삭제, 영수증)이 서는데 그대로 두면 80px이 모자랐다. 넷을 조금씩 덜어
+   메운다 — 수의 꼬리말(선택), 조각 사이, 단추 안여백, 막대 안여백. 어느
+   하나를 크게 깎지 않아야 알약이 알약으로 남는다. */
+@media (max-width: 400px) {
+  .pick-bar {
+    /* 좌우로 한 뼘 더 넓게 선다. 이 폭에서는 1px이 아쉽다. */
+    width: calc(100% - 8px);
+    gap: 3px;
+    padding: 8px 5px 8px 9px;
+  }
+
+  .pick-bar__n {
+    /* 네 자리까지 들어갈 자리. 자릿수가 늘어도 단추가 안 밀린다. */
+    min-width: 3.7em;
+  }
+
+  .pick-bar__n-tail,
+  .pick-bar__more-long {
+    display: none;
+  }
+
+  .pick-bar__more-short {
+    display: inline;
+  }
+
+  .pick-bar__sub {
+    padding: 0 7px;
+  }
+
+  .pick-bar__go,
+  .pick-bar__more,
+  .pick-bar__del {
+    padding: 0 8px;
+  }
 }
 
 /* 마우스가 있는 기기에서는 머무름이 손에서 떨어지므로 결을 그대로 둔다 —
@@ -18265,11 +18343,15 @@ textarea.memo-input.memo-area {
   }
 
   .pick-bar__more:hover {
-    background: color-mix(in srgb, var(--color-surface) 32%, transparent);
+    background: var(--color-primary-dark, var(--color-primary));
   }
 
   .pick-bar__go:hover {
     background: color-mix(in srgb, var(--color-surface) 88%, var(--color-text-primary));
+  }
+
+  .pick-bar__del:hover {
+    background: var(--color-danger);
   }
 }
 

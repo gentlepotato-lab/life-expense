@@ -32,6 +32,7 @@ import GrowArea from "./components/GrowArea";
 import { groupByDate } from "../utils/dateGroup";
 import { apiErrorMessage } from "../utils/apiError";
 import { say, ask } from "../utils/notify";
+import { 골라제거 } from "../utils/bulkDelete";
 import {
   INTERVAL_OPTIONS,
   HOLIDAY_OPTIONS,
@@ -1123,6 +1124,27 @@ export default function ScheduledEntries() {
         onAll={() => setPickedIds(new Set(sortedSchedules.map((x) => x.schedule_id)))}
         onClear={() => setPickedIds(new Set())}
         onReceipt={() => setReceiptOpen(true)}
+        onDelete={async () => {
+          /* 한 건 지울 때와 같은 말을 쓴다. 같은 일을 묻는 자리가 둘인데
+             말이 다르면 어느 쪽이 더 무거운 일인지 헷갈린다. */
+          const 예 = await ask({
+            title: "내역 제거",
+            body: `선택한 ${picked.length}건을 제거할까요?`,
+            warn: "되돌릴 수 없습니다.",
+            go: "제거",
+            danger: true,
+          });
+          if (!예) return;
+          const { 성공, 실패 } = await 골라제거(
+            "/scheduled-entries",
+            picked.map((x) => x.schedule_id)
+          );
+          setPickedIds(new Set());
+          await loadSchedules();
+          if (실패 === 0) say.ok(`${성공}건을 제거했습니다.`);
+          else if (성공 === 0) say.bad("제거하지 못했습니다. 다시 시도해 주세요.");
+          else say.warn(`${성공}건을 제거했습니다. ${실패}건은 제거하지 못했습니다.`);
+        }}
         more={
           <button
             type="button"
