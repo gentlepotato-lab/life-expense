@@ -449,7 +449,7 @@ export default function Me() {
                 <RankRow key={p.name} rank={i + 1} name={p.name} right={`${p.count}번`} />
               ))
             ) : (
-              <div className="page-empty">최근 3개월에 적어 둔 장소가 없습니다.</div>
+              <div className="page-empty">최근 3개월에 작성한 장소가 없습니다.</div>
             )}
           </section>
 
@@ -463,7 +463,7 @@ export default function Me() {
                 <RankRow key={p.name} rank={i + 1} name={p.name} right={won(p.total)} />
               ))
             ) : (
-              <div className="page-empty">최근 3개월에 적어 둔 장소가 없습니다.</div>
+              <div className="page-empty">최근 3개월에 작성한 장소가 없습니다.</div>
             )}
           </section>
 
@@ -477,7 +477,7 @@ export default function Me() {
                 <RankRow key={m.name} rank={i + 1} name={m.name} right={`${m.count}건`} />
               ))
             ) : (
-              <div className="page-empty">최근 3개월에 적어 둔 결제 수단이 없습니다.</div>
+              <div className="page-empty">최근 3개월에 작성한 결제 수단이 없습니다.</div>
             )}
           </section>
 

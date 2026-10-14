@@ -66,7 +66,7 @@ export default function CardPerkPopup({
                 </header>
 
                 {t.benefits.length === 0 ? (
-                  <p className="perk-empty">적어 둔 혜택이 없다.</p>
+                  <p className="perk-empty">작성한 혜택이 없다.</p>
                 ) : (
                   <ul className="perk-list">
                     {t.benefits.map((b, j) => (
