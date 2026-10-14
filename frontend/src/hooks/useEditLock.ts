@@ -31,22 +31,30 @@ export default function useEditLock(editMode: boolean) {
   const seq = useRef(0);
   const tipRef = useRef<HTMLSpanElement>(null);
 
-  const showLock = useCallback((e: React.MouseEvent<HTMLElement>, say?: string) => {
-    /* 키보드로 눌렀을 때는 좌표가 0으로 오므로 단추 한가운데를 쓴다. */
-    const r = e.currentTarget.getBoundingClientRect();
-    /* 누를 때마다 번호를 올려 key로 쓴다. 같은 요소를 다시 쓰면 뜨고 지는
-       움직임이 처음부터 돌지 않아, 한 번 다 돈 뒤로는 투명한 채로 남는다.
-       그 사이에 또 누르면 사라지는 시계마저 미뤄져 영영 안 보이게 된다. */
-    seq.current += 1;
-    setLockAt({
-      x: e.clientX || r.left + r.width / 2,
-      y: e.clientY || r.top + r.height / 2,
-      n: seq.current,
-      say,
-    });
-    if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setLockAt(null), 머무는시간);
-  }, []);
+  /* 누름뿐 아니라 입력에서도 부른다 — 글자 수가 넘칠 때 그 칸에 띄운다.
+     쓰는 것은 누른 자리와 칸의 네모뿐이라, 그 둘만 있으면 받는다. */
+  const showLock = useCallback(
+    (
+      e: { currentTarget: HTMLElement; clientX?: number; clientY?: number },
+      say?: string
+    ) => {
+      /* 키보드로 눌렀을 때는 좌표가 0으로 오므로 단추 한가운데를 쓴다. */
+      const r = e.currentTarget.getBoundingClientRect();
+      /* 누를 때마다 번호를 올려 key로 쓴다. 같은 요소를 다시 쓰면 뜨고 지는
+         움직임이 처음부터 돌지 않아, 한 번 다 돈 뒤로는 투명한 채로 남는다.
+         그 사이에 또 누르면 사라지는 시계마저 미뤄져 영영 안 보이게 된다. */
+      seq.current += 1;
+      setLockAt({
+        x: e.clientX || r.left + r.width / 2,
+        y: e.clientY || r.top + r.height / 2,
+        n: seq.current,
+        say,
+      });
+      if (timer.current) window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setLockAt(null), 머무는시간);
+    },
+    []
+  );
 
   useEffect(
     () => () => {

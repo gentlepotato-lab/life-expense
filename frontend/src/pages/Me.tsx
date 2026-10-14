@@ -68,6 +68,9 @@ const EMPTY: Profile = {
   provider: null, emoji: null, bio: null, joined_on: null,
 };
 
+/** 이름에 넣을 수 있는 글자 수 — 공백도 한 자로 센다. */
+const 이름길이 = 7;
+
 const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
 
 /** 어디로 들어왔는지 — 로그인을 붙이면 여기 이름이 찍힌다. */
@@ -142,7 +145,7 @@ export default function Me() {
   /* [편집]을 누른 순간의 모습 — 바뀐 것이 없으면 그렇게 알린다. */
   const [before, setBefore] = useState("");
 
-  /* 빛깔 예시 팝업을 열어 두었는지 */
+  /* 빛깔 예시 팝업을 열었는지 */
   const [palOpen, setPalOpen] = useState(false);
 
   /* 편집이 아닐 때 고칠 자리를 누르면 왜 안 되는지 알려 준다.
@@ -236,7 +239,7 @@ export default function Me() {
     );
 
   /* 칸을 고르면 그 칸이 선 쪽에 담고, 보는 쪽도 그쪽으로 옮긴다. 밝은 칸과
-     어두운 칸을 따로 기억해 두어야 시스템으로 옮겨도 살아남는다. */
+     어두운 칸을 따로 기억해야 시스템으로 옮겨도 살아남는다. */
   const pickStep = (s: Step) =>
     setPrefs((prev) => ({
       ...prev,
@@ -347,7 +350,20 @@ export default function Me() {
                         className="cat-input"
                         placeholder="(이름)"
                         value={profile.display_name ?? ""}
-                        onChange={(e) => set("display_name", e.target.value)}
+                        onChange={(e) => {
+                          /* 이름은 공백까지 세어 일곱 자다. 넘겨 치면 받지 않고
+                             왜 안 들어가는지 그 칸에 한 줄 띄운다 — 아무 일도
+                             일어나지 않으면 고장으로 읽힌다.
+                             줄이는 쪽은 막지 않는다. 일곱 자보다 긴 이름이 이미
+                             적혀 있으면 한 글자도 지울 수 없게 된다. */
+                          const 친것 = [...e.target.value];
+                          const 있던것 = [...(profile.display_name ?? "")];
+                          if (친것.length > 이름길이 && 친것.length > 있던것.length) {
+                            showLock(e, "설정 가능한 글자 수를 초과했습니다.");
+                            return;
+                          }
+                          set("display_name", e.target.value);
+                        }}
                       />
                       <input
                         className="cat-input"

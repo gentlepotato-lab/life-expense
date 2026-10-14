@@ -36,7 +36,7 @@ function 걸릴시간(키: number) {
  * 일은 그대로다(160절).
  */
 export default function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
-  /* 안쪽을 그릴지. 접는 동안에는 남겨 두어야 키가 줄어드는 것이 보인다. */
+  /* 안쪽을 그릴지. 접는 동안에는 남겨야 키가 줄어드는 것이 보인다. */
   const [mounted, setMounted] = useState(open);
   /* 움직이는 중인지. 이때만 상자가 생긴다. */
   const [moving, setMoving] = useState(false);
