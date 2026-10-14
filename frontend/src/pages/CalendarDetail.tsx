@@ -179,7 +179,7 @@ export default function CalendarDetail() {
       .catch(() => setPayList([]));
   }, []);
 
-  /* 세 자료. 가려 둔 금액을 끌어서 볼 때 그 줄만 바꾸므로 따로 담는다.
+  /* 세 자료. 가린 금액을 끌어서 볼 때 그 줄만 바꾸므로 따로 담는다.
      지출과 대기는 entry_id가 서로 겹칠 수 있어 한 통에 담을 수 없다. */
   const [exRows, setExRows] = useState<Record<string, unknown>[]>([]);
   const [peRows, setPeRows] = useState<Record<string, unknown>[]>([]);
@@ -255,7 +255,7 @@ export default function CalendarDetail() {
         pay_method: x.pay_method as number,
         memo: x.memo as string,
         place_name: x.place_name as string,
-        /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
+        /* 손으로 정한 고정 · 변동. 비면 분류에 정한 것을 따른다. */
         fixed_flag: (x.fixed_flag as number | null) ?? null,
         counterpart_ids: (x.counterpart_ids as number[]) ?? [],
       };
@@ -353,7 +353,7 @@ export default function CalendarDetail() {
     });
   }, [picked, cat1List, cat2Map, cat3Map, payList]);
 
-  /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다 — 내역 세 화면과 같다. */
+  /* 접은 날짜. 비어 있으면 전부 펼쳐진 상태다 — 내역 세 화면과 같다. */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const toggleDay = (d: string) =>
     setCollapsedDays((prev) => {
@@ -363,7 +363,7 @@ export default function CalendarDetail() {
       return next;
     });
 
-  /* 가려 둔 금액을 끌어서 잠깐 보기 — 자료별로 그 줄만 바꾼다. */
+  /* 가린 금액을 끌어서 잠깐 보기 — 자료별로 그 줄만 바꾼다. */
   const reveal = useCallback(
     (
       setter: React.Dispatch<React.SetStateAction<Record<string, unknown>[]>>,

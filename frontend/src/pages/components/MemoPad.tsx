@@ -51,7 +51,7 @@ export default function MemoPad({ memo }: { memo: string | null | undefined }) {
   const cut = long && !open;
 
   return (
-    /* 손잡이가 붙는 판은 오른쪽에 그만큼 자리를 비워 둔다 — 글과 손잡이가
+    /* 손잡이가 붙는 판은 오른쪽에 그만큼 자리를 비운다 — 글과 손잡이가
        겹치지 않게. 손잡이가 없는 판은 폭을 한 치도 내주지 않는다. */
     <div className={`memo-pad${long ? " has-more" : ""}`}>
       <div className="memo-cut">

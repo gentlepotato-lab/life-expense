@@ -87,7 +87,7 @@ export default function EntryGroups() {
   const 방금편집 = useRef(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  /* 팝업에서 고치는 중인 값과 실제로 걸려 있는 값을 나눠 둔다. 하나로 두면
+  /* 팝업에서 고치는 중인 값과 실제로 걸려 있는 값을 나눈다. 하나로 두면
      [적용]을 누르기도 전에 뒤 화면이 먼저 바뀐다 — 지출 내역과 같은 짜임이다. */
   const [filter, setFilter] = useState<GroupFilter>(EMPTY_GROUP_FILTER);
   const [applied, setApplied] = useState<GroupFilter>(EMPTY_GROUP_FILTER);
@@ -156,7 +156,7 @@ export default function EntryGroups() {
 
   useEffect(load, [load]);
 
-  /* 넘겨 볼 수 있는 끝 — 적어 둔 것이 있는 달부터 이 달 두 달 뒤까지.
+  /* 넘겨 볼 수 있는 끝 — 적은 것이 있는 달부터 이 달 두 달 뒤까지.
      아직 오지 않은 달이나 적은 것이 하나도 없는 달로는 넘어가지 않는다. */
   const { min: 달바닥, max: 달천장 } = useMonthSpan();
   /* 걸린 기간을 적는 한 줄. 지출 내역이 적는 꼴과 같다. */

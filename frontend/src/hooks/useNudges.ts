@@ -16,7 +16,7 @@ import type { Goal } from "../utils/goalStand";
  * 잔소리에 쓸 자료를 한 벌만 받아 나눠 쓴다.
  *
  * 종 단추는 어느 화면에나 떠 있으므로, 화면을 옮길 때마다 세 달치를 다시
- * 받아 오면 안 된다. 받아 온 것을 이 모듈에 얹어 두고 화면을 옮겨도 그대로
+ * 받아 오면 안 된다. 받아 온 것을 이 모듈에 얹고 화면을 옮겨도 그대로
  * 쓴다 — 계산기가 계산 기록을 들고 있는 방식과 같다. 새로 고침을 누르면
  * 페이지가 다시 뜨면서 함께 비워진다.
  *
@@ -45,7 +45,7 @@ type Loaded = {
   cat1List: Cat[];
   cat2List: (Cat & { cat1_id: number; inout?: number | null })[];
   cat3List: (Cat & { cat2_id: number })[];
-  /** 실적 구간을 적어 둔 카드 */
+  /** 실적 구간을 적은 카드 */
   cards: {
     key: string;
     name: string;
@@ -55,9 +55,9 @@ type Loaded = {
       benefits: { content: string; memo: string; limit: number | null }[];
     }[];
   }[];
-  /** 걸어 둔 분류별 목표 — 안쓴이 도전 */
+  /** 건 분류별 목표 — 안쓴이 도전 */
   goals: Goal[];
-  /** 받아 둔 달들. 이 바깥 달은 그때 따로 받는다(안쓴이 도전의 달 넘기기). */
+  /** 받은 달들. 이 바깥 달은 그때 따로 받는다(안쓴이 도전의 달 넘기기). */
   months: string[];
   /** 대기 · 정기의 날것. 다른 달을 셀 때 같은 방식으로 다시 세우려고 남긴다. */
   rawPending: Raw[];
@@ -68,7 +68,7 @@ type Loaded = {
  * 한 달치 줄을 세운다.
  *
  * 세 갈래(지출 · 대기 · 정기)를 그 달 날짜로만 추려 한 꼴로 맞춘다.
- * 처음 받아 두는 석 달도, 안쓴이 도전이 달을 거슬러 가며 따로 받는 달도
+ * 처음 받는 석 달도, 안쓴이 도전이 달을 거슬러 가며 따로 받는 달도
  * 이 한 곳을 지난다 — 두 길로 세우면 같은 달인데 숫자가 달라진다.
  */
 function 달줄(ym: string, expense: Raw[], pending: Raw[], sched: Raw[]): NRow[] {
@@ -93,7 +93,7 @@ function 달줄(ym: string, expense: Raw[], pending: Raw[], sched: Raw[]): NRow[
         place_name: x.place_name as string,
         /* 카드 실적에서 뺀 건인지 — 잔소리의 카드 실적만 본다. */
         perf_exclude: (x.perf_exclude as number) ?? 0,
-        /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
+        /* 손으로 정한 고정 · 변동. 비면 분류에 정한 것을 따른다. */
         fixed_flag: (x.fixed_flag as number | null) ?? null,
         counterpart_ids: (x.counterpart_ids as number[]) ?? [],
       });
@@ -220,9 +220,9 @@ async function load(): Promise<Loaded> {
 }
 
 /**
- * 받아 둔 석 달 바깥의 한 달을 따로 받는다 — 안쓴이 도전의 달 넘기기.
+ * 받은 석 달 바깥의 한 달을 따로 받는다 — 안쓴이 도전의 달 넘기기.
  *
- * 대기 · 정기는 달에 매이지 않는 목록이라 이미 받아 둔 것을 그대로 쓴다.
+ * 대기 · 정기는 달에 매이지 않는 목록이라 이미 받은 것을 그대로 쓴다.
  * 지출만 그 달치를 새로 물어 온다.
  */
 export async function 다른달줄(ym: string): Promise<NRow[]> {
@@ -300,9 +300,9 @@ function refine(data: Loaded, fixPick: FixedPick, 다른줄?: NRow[]) {
 }
 
 export type NudgeOptions = {
-  /** 가려 둔 갈래를 셈에 넣을지. 넣되 화면에서는 테이프로 덮는다. */
+  /** 가린 갈래를 셈에 넣을지. 넣되 화면에서는 테이프로 덮는다. */
   fixPick?: FixedPick;
-  /** 집계에서 빼 둔 갈래를 뺄지 */
+  /** 집계에서 뺀 갈래를 뺄지 */
   /** 값을 바꾸면 다시 받는다(비운 뒤에 쓴다) */
   reloadKey?: number;
 };
@@ -354,7 +354,7 @@ export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]
 export function useGoalBoard(options: NudgeOptions & { ym?: string } = {}): {
   goals: Goal[];
   rows: NRow[];
-  /** 가려 둔 갈래에서 온 줄 — 상세에서 금액에만 테이프를 붙인다. */
+  /** 가린 갈래에서 온 줄 — 상세에서 금액에만 테이프를 붙인다. */
   masked: Set<string>;
   today: string;
   catPath: (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) => string;
@@ -362,7 +362,7 @@ export function useGoalBoard(options: NudgeOptions & { ym?: string } = {}): {
 } {
   const { fixPick = ALL_FIXED_PICK, reloadKey = 0, ym } = options;
   const [data, setData] = useState<Loaded | null>(cached);
-  /* 받아 둔 석 달 바깥을 볼 때만 그 달을 따로 받아 둔다. */
+  /* 받은 석 달 바깥을 볼 때만 그 달을 따로 받는다. */
   const [딴달, set딴달] = useState<{ ym: string; rows: NRow[] } | null>(null);
 
   useEffect(() => {
@@ -400,7 +400,7 @@ export function useGoalBoard(options: NudgeOptions & { ym?: string } = {}): {
         ready: false,
       };
     }
-    /* 받아 둔 석 달 안이면 그대로 쓰고, 바깥이면 따로 받아 둔 줄을 쓴다.
+    /* 받은 석 달 안이면 그대로 쓰고, 바깥이면 따로 받은 줄을 쓴다.
        아직 못 받았으면 빈 줄로 둔다 — 다른 달 숫자를 잠깐 보여 주느니 낫다. */
     const 딴 = ym && !data.months.includes(ym)
       ? (딴달 && 딴달.ym === ym ? 딴달.rows : [])

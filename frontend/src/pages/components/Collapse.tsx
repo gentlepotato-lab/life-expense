@@ -29,14 +29,14 @@ function 걸릴시간(키: number) {
  * 동안에만 생겼다가 끝나면 도로 사라진다. 겹 자체는 늘 같은 자리에 있어
  * 안쪽이 다시 그려지지 않는다.
  *
- * 접은 뒤에는 안쪽을 떼어 낸다. 접어 둔 것까지 계속 그려 두면 긴 목록에서
+ * 접은 뒤에는 안쪽을 떼어 낸다. 접은 것까지 계속 그리면 긴 목록에서
  * 그만큼 값을 치른다 — 지금까지와 같다.
  *
  * 움직임을 끄면(돈쓴이) 곧바로 접히고 펴진다. 끄는 것은 움직임뿐이고 하는
  * 일은 그대로다(160절).
  */
 export default function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
-  /* 안쪽을 그려 둘지. 접는 동안에는 남겨 두어야 키가 줄어드는 것이 보인다. */
+  /* 안쪽을 그릴지. 접는 동안에는 남겨 두어야 키가 줄어드는 것이 보인다. */
   const [mounted, setMounted] = useState(open);
   /* 움직이는 중인지. 이때만 상자가 생긴다. */
   const [moving, setMoving] = useState(false);
@@ -98,7 +98,7 @@ export default function Collapse({ open, children }: { open: boolean; children: 
     el.style.height = 끝키;
 
     타이머.current = window.setTimeout(() => {
-      /* 끝나면 키를 놓아 준다. 못 박아 두면 안쪽이 자란 만큼(메모 펼치기)
+      /* 끝나면 키를 놓아 준다. 못 박으면 안쪽이 자란 만큼(메모 펼치기)
          잘려 보인다. */
       if (ref.current) ref.current.style.height = "";
       setMoving(false);

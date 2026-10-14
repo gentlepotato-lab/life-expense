@@ -43,10 +43,10 @@ export default function ReceiptPopup({
   const foot = useRef<HTMLCanvasElement>(null);
   const [그렸나, set그렸나] = useState(false);
 
-  /* 내보낼 그림을 미리 만들어 둔다.
+  /* 내보낼 그림을 미리 만든다.
      공유도 클립보드도 "손가락이 아직 떨어지지 않은 동안"에만 열린다. 단추를
      누르고 나서 그리면 그 사이에 그 자격이 식어, 모바일에서 NotAllowedError로
-     떨어진다. 그래서 팝업이 열릴 때 한 장 그려 두고 단추는 그때 깨운다. */
+     떨어진다. 그래서 팝업이 열릴 때 한 장 그린 뒤 단추는 그때 깨운다. */
   const 그림 = useRef<Blob | null>(null);
 
   /* 화면에 선 석 장을 칠한다. 내보낼 그림은 따로 둔다 — 다시 칠할 일은
@@ -90,7 +90,7 @@ export default function ReceiptPopup({
    *
    * 그림판을 잃었다는 말(contextlost)을 들으면 그 자리에서 다시 칠하고,
    * 그 말을 전하지 않는 브라우저를 위해 화면이 다시 보일 때와 뒤로 가기로
-   * 되살아날 때도 한 번씩 칠한다. 칠하는 값은 열 때 잡아 둔 것 그대로라
+   * 되살아날 때도 한 번씩 칠한다. 칠하는 값은 열 때 잡은 것 그대로라
    * 영수증 번호도 뽑은 때도 달라지지 않는다.
    */
   useEffect(() => {

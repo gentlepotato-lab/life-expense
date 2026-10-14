@@ -97,7 +97,7 @@ export default function PageHead() {
           {/* 켜진 갈래를 덮는 알약 하나. 자리만 옮기므로 미끄러진다. */}
           <span
             className="subtabs__thumb"
-            /* 3D로 적어 두면 어느 기기에서나 합성기가 맡는다 — 본줄기가 막혀도 미끄러진다. */
+            /* 3D로 적으면 어느 기기에서나 합성기가 맡는다 — 본줄기가 막혀도 미끄러진다. */
             style={{ transform: `translate3d(${index * 100}%, 0, 0)` }}
             aria-hidden="true"
           />

@@ -21,7 +21,7 @@ export type BoardPlace = {
   used_count: number;
   total: number;
   last_used: string | null;
-  /** 가려 둔 갈래가 한 건이라도 섞여 있는지. 서버가 함께 보내 주는 값이다.
+  /** 가린 갈래가 한 건이라도 섞여 있는지. 서버가 함께 보내 주는 값이다.
       이 판의 금액은 모두 여러 건을 모은 집계라 테이프를 붙이지 않는다 —
       덮는 곳은 개별 내역 카드뿐이다. */
   has_blur: boolean;
@@ -32,7 +32,7 @@ export type BoardSpan = { from: string | null; to: string | null };
 
 export type BoardData = { span: BoardSpan; places: BoardPlace[] };
 
-/** 걸어 둔 기간 — 달 단위(`YYYY-MM`)다. 빈 글자는 안 건 것이다. */
+/** 건 기간 — 달 단위(`YYYY-MM`)다. 빈 글자는 안 건 것이다. */
 export type Period = { since: string; until: string };
 
 export const NO_PERIOD: Period = { since: "", until: "" };
@@ -53,7 +53,7 @@ export function recentMonths(n: number = DEFAULT_MONTHS): Period {
    이제 기간 고르개가 연월 달력(MonthPicker)을 쓰므로, 앞뒤 끝만 넘겨 주면
    그쪽이 가둔다. 서른 줄짜리 목록을 만들 까닭이 없어졌다. */
 
-/** 걸어 둔 기간을 단추에 적을 말로 */
+/** 건 기간을 단추에 적을 말로 */
 export function periodLabel(p: Period): string {
   const say = (v: string) => {
     const [y, m] = v.split("-");

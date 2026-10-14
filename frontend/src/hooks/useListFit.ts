@@ -10,7 +10,7 @@ const 끝 = 352;
 /**
  * 담긴 만큼만 자리를 쓰되, 한 번 정한 키는 더 자라지 않게 못 박는다.
  *
- * 키를 아예 못 박아 두면 한 건짜리 묶음에서도 판이 그만큼 길어 아래가
+ * 키를 아예 못 박으면 한 건짜리 묶음에서도 판이 그만큼 길어 아래가
  * 휑하다. 그렇다고 담긴 만큼 늘어나게 두면, 안에서 메모를 펼칠 때마다
  * 판이 들썩인다. 열 때 한 번 재서 그 키로 굳히면 둘 다 풀린다 — 뒤에
  * 자라는 것은 목록 안에서 굴러간다.
@@ -32,7 +32,7 @@ export default function useListFit(ref: RefObject<HTMLDivElement | null>, 다시
        닫히는 모습을 보여 줄 자리도 아니다. */
     const 틀 = requestAnimationFrame(() => {
       el.classList.add("is-measuring");
-      /* 먼저 풀어 두고 재야 담긴 만큼이 나온다. */
+      /* 먼저 풀고 재야 담긴 만큼이 나온다. */
       el.style.height = "auto";
       const 한계 = Math.min(끝, window.innerHeight - 겉);
       el.style.height = `${Math.min(el.scrollHeight, Math.max(한계, 0))}px`;

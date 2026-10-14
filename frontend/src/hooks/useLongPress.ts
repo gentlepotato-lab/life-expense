@@ -43,13 +43,13 @@ function 글풀기(el: HTMLElement | null): void {
  *
  * 그래서 잠깐 body에 건다. 손을 떼면 곧바로 푸므로, 팝업 안의 글을 나중에
  * 긁어 가는 길은 그대로다. 떼는 신호가 끝내 오지 않는 일(요소가 사라지며
- * 누름이 끊기는 경우 등)에 대비해 시계도 함께 걸어 둔다.
+ * 누름이 끊기는 경우 등)에 대비해 시계도 함께 건다.
  */
 const 늦게풀기 = 3000;
 
 function 손뗄때까지잠그기(): void {
   const b = document.body;
-  /* 누가 이미 적어 둔 값이 있으면 그대로 되돌려 준다. */
+  /* 누가 이미 적은 값이 있으면 그대로 되돌려 준다. */
   const 전 = { us: b.style.userSelect, wk: b.style.webkitUserSelect };
   b.style.userSelect = "none";
   b.style.webkitUserSelect = "none";

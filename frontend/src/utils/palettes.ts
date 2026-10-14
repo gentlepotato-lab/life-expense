@@ -6,7 +6,7 @@
  * 모아 두어야 한다. 여기가 그 한자리다.
  *
  * 색을 새로 쓸 일이 생기면 값을 코드에 박지 말고 여기에 칸을 늘린 뒤 CSS
- * 변수로 꺼내 쓴다. 한 자리라도 박아 두면 그 자리만 안 바뀌어 벌이 깨진다.
+ * 변수로 꺼내 쓴다. 한 자리라도 박으면 그 자리만 안 바뀌어 벌이 깨진다.
  *
  * 구분 열 가지의 열쇠(indigo 등)는 DB에 담기는 이름이라 절대 바꾸지 않는다.
  * 벌마다 달라지는 것은 그 열쇠가 가리키는 색과 화면에 보이는 이름뿐이다.
@@ -322,7 +322,7 @@ function 어둡게(p: Palette): Palette {
 export function applyPalette(key: string, dark = false): void {
   const p = dark ? 어둡게(paletteOf(key)) : paletteOf(key);
   쓰는것 = p;
-  /* 어느 벌이 끼워졌는지 겉에 적어 둔다. 예시 그림을 찍는 스크립트가 이것을
+  /* 어느 벌이 끼워졌는지 겉에 적는다. 예시 그림을 찍는 스크립트가 이것을
      보고 제 벌로 떴는지 확인한다. 조용히 옛 색으로 찍히는 것이 제일 나쁘다. */
   document.documentElement.dataset.palette = p.key;
   const s = document.documentElement.style;

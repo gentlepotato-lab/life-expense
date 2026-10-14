@@ -8,7 +8,7 @@
  * N빵 뒤 내 몫(net)을 센다. 수입과 Exclude는 부르는 쪽에서 이미 걸러 낸 뒤다.
  */
 
-/** 걸어 둔 목표 하나 */
+/** 건 목표 하나 */
 export type Goal = {
   goal_id: number;
   cat1_id: number;
@@ -131,7 +131,7 @@ export function standOf(goal: Goal, rows: GoalRow[], today: string): GoalStand {
   };
 }
 
-/** 걸어 둔 차례 그대로 형편을 낸다. */
+/** 건 차례 그대로 형편을 낸다. */
 export function standsOf(goals: Goal[], rows: GoalRow[], today: string): GoalStand[] {
   return goals.map((g) => standOf(g, rows, today));
 }

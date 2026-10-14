@@ -20,7 +20,7 @@ export default function PlacePeriodPopup({
   onApply,
   onClose,
 }: {
-  /** 고를 수 있는 앞뒤 달 — 적어 둔 것이 있는 만큼만 */
+  /** 고를 수 있는 앞뒤 달 — 적은 것이 있는 만큼만 */
   span: { from: string | null; to: string | null };
   period: Period;
   onApply: (next: Period) => void;
@@ -35,8 +35,8 @@ export default function PlacePeriodPopup({
   const 붙이기 = (v: string) => v.replace("-", "");
   const 떼기 = (v: string) => (v ? `${v.slice(0, 4)}-${v.slice(4)}` : "");
 
-  /* 고를 수 있는 앞뒤 끝 — 적어 둔 것이 있는 만큼만.
-     다만 뒤끝은 이번 달까지 열어 둔다. 적어 둔 마지막 달이 지난달이면
+  /* 고를 수 있는 앞뒤 끝 — 적은 것이 있는 만큼만.
+     다만 뒤끝은 이번 달까지 연다. 적은 마지막 달이 지난달이면
      처음 보이는 기간(최근 석 달)의 끝달이 잠겨, 칸에는 "2026년 10월"이
      적혀 있는데 그 10월을 다시 고를 수 없는 꼴이 된다. */
   const 이번달 = ymNow();

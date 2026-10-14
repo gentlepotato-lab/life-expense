@@ -93,7 +93,7 @@ export default function EmojiPicker({
     };
   }, [open]);
 
-  // 열 때마다 검색어는 비워 둔다.
+  // 열 때마다 검색어는 비운다.
   useEffect(() => {
     if (open) {
       setQuery("");

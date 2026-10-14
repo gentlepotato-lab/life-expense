@@ -85,7 +85,7 @@ export default function Calendar() {
   const [rows, setRows] = useState<Row[]>([]);
 
   /* 어떤 갈래를 볼지 — 고정 · 변동 곱하기 지출 · 수입 넷.
-     들어올 때는 넷 다 켜져 있고 담아 두지 않는다. */
+     들어올 때는 넷 다 켜져 있고 담지 않는다. */
   /* 상세로 갔다 되돌아오면 고른 갈래도 그대로다 — 저장된 것을 되살린다.
      달과 고른 날과 걸린 조건이 그대로인데 이것만 풀리면 보던 자리가 달라진다. */
   const [fixPick, setFixPick] = useState<FixedPick>(() => kept?.fixPick ?? ALL_FIXED_PICK);
@@ -171,7 +171,7 @@ export default function Calendar() {
             pay_method: x.pay_method as number,
             memo: x.memo as string,
             place_name: x.place_name as string,
-            /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
+            /* 손으로 정한 고정 · 변동. 비면 분류에 정한 것을 따른다. */
             fixed_flag: (x.fixed_flag as number | null) ?? null,
             counterpart_ids: (x.counterpart_ids as number[]) ?? [],
           });
@@ -225,7 +225,7 @@ export default function Calendar() {
     });
   }, [yearMonth]);
 
-  /* 넘겨 볼 수 있는 끝 — 적어 둔 것이 있는 달부터 이 달 두 달 뒤까지.
+  /* 넘겨 볼 수 있는 끝 — 적은 것이 있는 달부터 이 달 두 달 뒤까지.
      내역 세 화면과 씀씀이가 쓰는 그 잣대를 그대로 쓴다. */
   const { min: 달바닥, max: 달천장 } = useMonthSpan();
 
@@ -282,7 +282,7 @@ export default function Calendar() {
   };
 
   const onCellDown = (day: number) => (e: React.PointerEvent<HTMLDivElement>) => {
-    /* 가려 둔 갈래가 섞인 날의 금액은 제 손짓(끌어서 잠깐 보기)이 있으므로
+    /* 가린 갈래가 섞인 날의 금액은 제 손짓(끌어서 잠깐 보기)이 있으므로
        비켜 준다. 가릴 것이 없는 날의 금액에는 그 손짓이 붙지 않으므로 비켜
        주면 안 된다 — 그러면 그 글자를 누른 손짓이 아무 데도 가지 않아, 칸의
        가로폭을 통째로 차지하는 금액 줄을 누를 때마다 하루가 담기지도 빠지지도
@@ -363,7 +363,7 @@ export default function Calendar() {
           <div className="toolbar-btns">
             {/* 날짜를 고르면 필터 왼쪽에 둘이 나타난다 — 고른 것을 무르는
                 [초기화]가 왼쪽, 보러 가는 [상세]가 오른쪽. 불은 하려던 일
-                하나에만 켜 둔다. */}
+                하나에만 켠다. */}
             {pick.length > 0 && (
               <button
                 type="button"
@@ -421,7 +421,7 @@ export default function Calendar() {
         ))}
 
         {/* 고정 · 변동 가운데 무엇을 셈에 넣을지. 넷을 알약으로 늘어놓으면
-            손전화 가로를 넘어 하나로 접어 둔다. */}
+            손전화 가로를 넘어 하나로 접는다. */}
         <FixedFilter value={fixPick} onChange={setFixPick} />
 
         <span className="cal-sum">

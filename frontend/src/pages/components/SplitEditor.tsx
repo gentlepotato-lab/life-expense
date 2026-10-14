@@ -60,9 +60,9 @@ export default function SplitEditor({
 
      그릴 때 ref를 바로 읽으면 안 된다. 그 값은 지난번에 그린 결과라 처음
      그릴 때는 비어 있고, ref가 채워져도 다시 그리지 않는다. 붙은 뒤에 한 번
-     찾아 두고 그 값으로 그린다. */
+     찾고 그 값으로 그린다. */
   const 뿌리ref = useRef<HTMLDivElement | null>(null);
-  /* 등록 판을 걸 자리와, 그동안 치워 둘 원래 판. */
+  /* 등록 판을 걸 자리와, 그동안 치울 원래 판. */
   const [걸자리, set걸자리] = useState<HTMLElement | null>(null);
   const [치울판, set치울판] = useState<HTMLElement | null>(null);
 
@@ -250,7 +250,7 @@ export default function SplitEditor({
                 />
               </div>
 
-              {/* 비어 있는 동안에는 넣을 수 있는 나머지를 힌트로 덮어 둔다.
+              {/* 비어 있는 동안에는 넣을 수 있는 나머지를 힌트로 덮는다.
                   누르면 그 값이 들어가면서 선택되므로, 다른 금액이면 그냥 타이핑하면 된다.
                   따로 채우기 버튼을 두지 않아 금액 칸을 넓게 쓴다. */}
               <div className="split-cell split-cell--amount">
@@ -395,7 +395,7 @@ export default function SplitEditor({
 
                 <div className="edit-divider" aria-hidden="true" />
 
-                {/* 2행 — 한마디. 누구인지와는 성격이 달라 갈라 둔다. */}
+                {/* 2행 — 한마디. 누구인지와는 성격이 달라 가른다. */}
                 <div className="edit-field edit-field--span-12">
                   <label className="edit-field__label">메모</label>
                   <div className="edit-field__control">

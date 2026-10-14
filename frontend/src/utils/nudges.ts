@@ -2,7 +2,7 @@
  * 잔소리 — 지금 있는 자료만 보고 한마디 한다.
  *
  * 규칙을 따로 저장하지 않는다. 볼 때마다 내역을 다시 세므로, 지난 내역을
- * 고쳐도 잔소리가 어긋날 일이 없다. 사람이 미리 정해 둬야 하는 것(분류별
+ * 고쳐도 잔소리가 어긋날 일이 없다. 사람이 미리 정해야 하는 것(분류별
  * 한도 · 카드 실적 목표)은 규칙 표를 둔 뒤에 여기에 덧붙인다.
  *
  * 말투는 이 파일 한 곳에서만 정한다. 모두 "…습니다."로 끝낸다 —
@@ -32,7 +32,7 @@ export type NudgeItem = {
   cat?: string;
   memo?: string;
   amount?: number;
-  /** 가려 둔 갈래 — 금액에만 테이프를 붙인다. */
+  /** 가린 갈래 — 금액에만 테이프를 붙인다. */
   blur?: boolean;
 };
 
@@ -43,7 +43,7 @@ export type Nudge = {
   say: string;
   /** 그 아래 작게 붙는 근거 */
   meta?: string;
-  /** 가려 둔 갈래가 섞여 있다 — 테이프를 붙인다. */
+  /** 가린 갈래가 섞여 있다 — 테이프를 붙인다. */
   blur?: boolean;
   /** 상세 팝업에 펼칠 것 */
   items?: NudgeItem[];
@@ -62,7 +62,7 @@ export type NudgeSource = {
   today: string;
   /** 최근 세 달치 지출. 수입 · Exclude는 이미 걸러 낸 뒤다. */
   rows: NRow[];
-  /** 가려 둔 갈래에서 온 줄 — 셈에는 넣고 화면에서만 테이프로 덮는다. */
+  /** 가린 갈래에서 온 줄 — 셈에는 넣고 화면에서만 테이프로 덮는다. */
   masked: Set<string>;
   cat2Name: Map<number, string>;
   /** "중 > 소 > 세" — 비어 있는 단은 건너뛴다. */
@@ -71,9 +71,9 @@ export type NudgeSource = {
   pending: (Cats & { key: string; date: string; name: string; amount: number; memo?: string; blur?: boolean })[];
   /** 앞으로 일주일 안에 빠져나갈 정기 지출 */
   upcoming: (Cats & { key: string; name: string; amount: number; date: string; memo?: string })[];
-  /** 걸어 둔 분류별 목표 — 안쓴이 도전 */
+  /** 건 분류별 목표 — 안쓴이 도전 */
   goals: Goal[];
-  /** 실적 구간을 적어 둔 카드 */
+  /** 실적 구간을 적은 카드 */
   cards: {
     key: string;
     name: string;
@@ -396,7 +396,7 @@ export function buildNudges(src: NudgeSource): Nudge[] {
      달이 끝나야 이겼는지 알 수 있으니, 달 중에는 세 갈래로 말한다 —
      이미 넘겼다 · 이대로면 넘긴다 · 잘 지키는 중.
      칭찬은 달 후반에만 한다. 3일차에 "목표까지 47만 원 남았습니다"는
-     아무 말도 아니고, 목표를 여럿 걸어 두면 칭찬만으로 화면이 차버린다. */
+     아무 말도 아니고, 목표를 여럿 걸면 칭찬만으로 화면이 차버린다. */
   /* 아직 시작하지 않은 목표는 거른다 — 다음 달부터 세기로 한 것을 이 달에
      넘겼다고 할 수는 없다. */
   standsOf(src.goals.filter((g) => 걸린달(g, thisYm)), rows, today).forEach((st) => {

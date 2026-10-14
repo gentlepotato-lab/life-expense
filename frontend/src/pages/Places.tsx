@@ -26,9 +26,9 @@ import {
 } from "../utils/placeBoard";
 
 /**
- * 어디 쓰나 — 적어 둔 장소와 가게.
+ * 어디 쓰나 — 적은 장소와 가게.
  *
- * 쓰기에서 장소를 고를 때마다 카카오에서 받아 적어 둔 것들이 쌓여 있는데,
+ * 쓰기에서 장소를 고를 때마다 카카오에서 받아 적은 것들이 쌓여 있는데,
  * 그동안은 고를 때 말고는 볼 자리가 없었다. 어디를 자주 가는지 · 어디에
  * 많이 쓰는지 · 어느 동네에 · 어떤 업종에 다니는지를 한 화면에서 돌려 본다.
  *
@@ -153,7 +153,7 @@ export default function Places() {
   const [sort, setSort] = useState<BoardSort>("money");
   const [period, setPeriod] = useState<Period>(recentMonths);
   const [periodOpen, setPeriodOpen] = useState(false);
-  /* 친 글자와 걸어 둔 글자를 따로 든다 — 누를 때만 걸린다. */
+  /* 친 글자와 건 글자를 따로 든다 — 누를 때만 걸린다. */
   const [typed, setTyped] = useState("");
   const [find, setFind] = useState("");
   const [picked, setPicked] = useState<BoardPlace | null>(null);
@@ -179,7 +179,7 @@ export default function Places() {
   }, [period]);
 
   /* 처음에는 모두 펼쳐 둔다. 잣대를 옮기거나 새로 받아 오면 다시 펼친다 —
-     찾는 글자만 바뀔 때는 건드리지 않는다. 접어 둔 것이 되살아나면 어디를
+     찾는 글자만 바뀔 때는 건드리지 않는다. 접은 것이 되살아나면 어디를
      보고 있었는지 놓친다. */
   useEffect(() => {
     setOpen(new Set(allKeys(board(rows, view))));

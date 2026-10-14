@@ -49,7 +49,7 @@ const SPLASH_FADE_MS = 320;
 
 /**
  * 앞머리 화면을 걷어 낸다.
- * index.html에 인라인으로 박아 둔 것이라, React가 붙은 뒤 여기서 치운다.
+ * index.html에 인라인으로 박은 것이라, React가 붙은 뒤 여기서 치운다.
  *
  * 기다리는 시간은 "React가 붙은 때"가 아니라 "화면이 열린 때"부터 센다.
  * performance.now()가 곧 그 시각부터 흐른 밀리초라, 붙는 데 오래 걸린 날에도
@@ -141,7 +141,7 @@ function App() {
         <Route path="/goals" element={<Goals />} />
         {/* 돈쓴이 — 쓰는 사람과 앱 자신 */}
         <Route path="/me" element={<Me />} />
-        {/* 어디 쓰나 — 적어 둔 장소와 가게 */}
+        {/* 어디 쓰나 — 적은 장소와 가게 */}
         <Route path="/places" element={<Places />} />
         <Route
           path="/charts"

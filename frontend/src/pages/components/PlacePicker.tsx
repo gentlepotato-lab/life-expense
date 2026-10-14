@@ -5,9 +5,9 @@ import { loadKakaoMap } from "../../utils/kakaoMap";
 /**
  * 장소 고르기 팝업.
  *
- * 저장해 둔 장소를 먼저 찾고, 없으면 카카오에서 찾아 새로 적는다.
+ * 저장한 장소를 먼저 찾고, 없으면 카카오에서 찾아 새로 적는다.
  * 쓰기 · 쓴 내역 · 쓰다 만 내역 · 쓸 내역 네 화면이 함께 쓰기 때문에
- * 어느 한 화면에 얹어 두지 않고 여기 따로 둔다.
+ * 어느 한 화면에 얹지 않고 여기 따로 둔다.
  */
 const overlayStyle: React.CSSProperties = {
   position: "fixed" as const,
@@ -273,7 +273,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
           )}
         </div>
 
-        {/* 지도 — 영역은 항상 잡아 두고, 선택 전에는 안내를 띄운다. */}
+        {/* 지도 — 영역은 항상 잡고, 선택 전에는 안내를 띄운다. */}
         <div className="place-picker__mapwrap">
           <div id="popup-map" className="place-picker__map"></div>
           {!selected && (

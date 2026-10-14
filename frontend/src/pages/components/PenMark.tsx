@@ -26,7 +26,7 @@ import { useEffect, useRef, useState } from "react";
  *
  * 설정 첫 화면의 안내를 두고 재니 한 줄을 지키면서 내줄 수 있는 자리가
  * 360px에서 42px, 390px에서 72px, 412px에서 94px이었다 — 화면 폭에서 318을
- * 뺀 값이다. 2px을 더 접어 두고, 자국과 글 사이 틈 8px을 뺀다.
+ * 뺀 값이다. 2px을 더 접고, 자국과 글 사이 틈 8px을 뺀다.
  */
 function 자국폭(화면: number): number {
   return Math.max(32, Math.min(112, Math.round(화면 - 328)));
@@ -54,7 +54,7 @@ export type 자국꼴 = (typeof 꼴들)[number];
  * 가장 넓은 자리 0.65, 키의 1/4 높이에서 반폭 0.28) 그 값에 가장 가까운 네
  * 수를 골랐다 — 0.819 / 0.643 / 0.290으로 거의 그대로다.
  *
- * 틀이 정해진 꼴이라 테두리는 한 번만 재 둔다.
+ * 틀이 정해진 꼴이라 테두리는 한 번만 잰다.
  */
 const 하트X = (t: number) => 16 * Math.sin(t) ** 3;
 const 하트Y = (t: number) =>
@@ -218,7 +218,7 @@ export default function PenMark() {
   const [꼴, set꼴] = useState<자국꼴>(() => 꼴들[Math.floor(Math.random() * 꼴들.length)]);
   const 줄ref = useRef<SVGPathElement | null>(null);
 
-  /* 안내 글이 비워 둘 자리도 여기서 정한다. CSS가 100vw로 따로 셈하면
+  /* 안내 글이 비울 자리도 여기서 정한다. CSS가 100vw로 따로 셈하면
      굴림대가 있는 화면에서 둘이 어긋나, 글이 자국 밑으로 깔린다. */
   useEffect(() => {
     const 재기 = () => {

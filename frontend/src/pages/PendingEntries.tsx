@@ -131,13 +131,13 @@ export default function PendingEntries() {
 
   const [filterOpen, setFilterOpen] = useState(false);
 
-  /* 팝업에서 고치는 중인 값(초안)과 실제로 걸려 있는 값을 나눠 둔다.
+  /* 팝업에서 고치는 중인 값(초안)과 실제로 걸려 있는 값을 나눈다.
      하나로 두면 팝업에서 값을 바꾸는 순간 뒤 화면의 버튼과 기간 표시가
      먼저 바뀌어, [적용]을 누르기도 전에 적용된 것처럼 보였다. */
   const [filter, setFilter] = useState(EMPTY_FILTER);
   const [appliedFilter, setAppliedFilter] = useState(EMPTY_FILTER);
 
-  /* 함께한 상대 목록 — 필터에서 고르기 위해 받아 둔다. */
+  /* 함께한 상대 목록 — 필터에서 고르기 위해 받는다. */
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
 
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다.
@@ -427,7 +427,7 @@ export default function PendingEntries() {
     }
   };
 
-  /* Excel 내보내기 — 뒤에 보완하기로 하고 자리만 만들어 둔다.
+  /* Excel 내보내기 — 뒤에 보완하기로 하고 자리만 만든다.
      조용히 아무 일도 없으면 눌린 건지 알 수 없으므로 한마디 남긴다. */
   // Send 단일 카드: (1) pending 업데이트 → (2) send API → (3) 목록에서 제거
   // 보내는 동안 잠근다. 확인을 누른 뒤 응답이 늦을 때 다시 누르면 같은 건이
@@ -829,7 +829,7 @@ export default function PendingEntries() {
 
   // 날짜별 단 — 들어온 순서를 그대로 보존한다.
   // 소분류에 blur가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
-  /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
+  /* 접은 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const toggleDay = (d: string) =>
     setCollapsedDays((prev) => {
@@ -845,7 +845,7 @@ export default function PendingEntries() {
     [cat1List, cat2List, cat3List]
   );
 
-  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정해 둔 것이 있으면 그것이 먼저다. */
+  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정한 것이 있으면 그것이 먼저다. */
   const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
 
   const dateGroups = useMemo(
@@ -1524,7 +1524,7 @@ export function PendingCard({
   onTogglePick?: (id: number) => void;
   /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onTogglePerfExclude?: (row: PerfRow, next: boolean) => void;
-  /* 이 건이 고정인지 — 건에 정해 둔 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
+  /* 이 건이 고정인지 — 건에 정한 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
   fixed?: boolean;
   /* 고정 · 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onToggleFixed?: (row: FixedRow, next: boolean) => void;
@@ -1583,7 +1583,7 @@ export function PendingCard({
         <span className="peel-flap__face" />
       </span>
       <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
-      {/* 뜯는 동안만 뜨는 한 줄. 늘 그려 두고 보이고 숨기는 일은 CSS가 맡는다 —
+      {/* 뜯는 동안만 뜨는 한 줄. 늘 그린 채로 보이고 숨기는 일은 CSS가 맡는다 —
           끄는 중에 React가 다시 그리면 뜯는 겹이 쥐고 있던 class가 지워진다. */}
       {안내 && (
         <span className="peel-tip" aria-hidden="true">
@@ -1646,7 +1646,7 @@ export function PendingCard({
           말줄임된다. 메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
       <div className="entry-ln entry-ln--send">
         {/* 선택해서 함께 보내는 상자. 카드를 꾹 누르면 편집 팝업이 열리므로
-            이 상자는 꾹 누르기에서 빼 둔다(data-no-longpress). */}
+            이 상자는 꾹 누르기에서 뺀다(data-no-longpress). */}
         {onTogglePick && (
           <button
             type="button"

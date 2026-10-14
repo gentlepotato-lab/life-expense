@@ -5,7 +5,7 @@ import { narrowOptions, nothingFound, FIND_FROM } from "../../utils/narrowOption
 export interface MultiSelectOption<T> {
   value: T;
   label: string;
-  /** 이름 앞에 세울 이모지. 지정해 둔 것이 없으면 비운다. */
+  /** 이름 앞에 세울 이모지. 지정한 것이 없으면 비운다. */
   icon?: string | null;
 }
 

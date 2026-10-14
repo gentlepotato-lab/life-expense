@@ -239,7 +239,7 @@ export default function WriteSlideModal({
           pay_method: pay.code,
           memo: memo || null,
           place_id: place?.db?.place_id ?? null,
-          /* 카카오에서 새로 고른 장소는 서버가 적어 둔다 — 기존 쓰기와 같다. */
+          /* 카카오에서 새로 고른 장소는 서버가 적는다 — 기존 쓰기와 같다. */
           place_name: place?.kakao?.place_name ?? null,
           place_lat: place?.kakao ? Number(place.kakao.y) : null,
           place_lng: place?.kakao ? Number(place.kakao.x) : null,
@@ -280,7 +280,7 @@ export default function WriteSlideModal({
   const 다음켬 = 골랐나 || 건너뛸수있나;
   /* 건너뛸 수 있는 장에서 아직 안 골랐을 때만 [건너뛰기]다. 못 건너뛰는
      장에서는 꺼진 채로 [다음]이라 적어야 — 꺼진 [건너뛰기]는 넘어갈 수
-     있는데 막아 둔 것처럼 읽힌다. */
+     있는데 막은 것처럼 읽힌다. */
   const 다음말 = 마지막
     ? "전송"
     : 건너뛸수있나 && !골랐나
@@ -577,7 +577,7 @@ export default function WriteSlideModal({
                 )}
               </div>
 
-              {/* 지도 — 자리는 늘 잡아 두고, 고르기 전에는 안내를 띄운다.
+              {/* 지도 — 자리는 늘 잡고, 고르기 전에는 안내를 띄운다.
                   자리가 생겼다 없어졌다 하면 목록이 밀려 눌리던 줄이 바뀐다. */}
               <div className="ws-mapwrap">
                 <div id="ws-map" className="ws-map" />

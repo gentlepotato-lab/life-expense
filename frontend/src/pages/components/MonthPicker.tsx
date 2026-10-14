@@ -55,7 +55,7 @@ export default function MonthPicker({
     value ? Number(value.slice(0, 4)) : new Date().getFullYear()
   );
 
-  /* 열 때마다 고른 값의 해로 되돌린다 — 지난번에 넘겨 둔 해가 남아 있으면
+  /* 열 때마다 고른 값의 해로 되돌린다 — 지난번에 넘긴 해가 남아 있으면
      엉뚱한 해가 펼쳐진다. */
   useEffect(() => {
     if (open) {

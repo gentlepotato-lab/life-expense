@@ -43,7 +43,7 @@ type Counterpart = {
 
 /**
  * 구분(분류).
- * 코드에 박아 두지 않고 counterpart_categories 표에서 읽어 온다.
+ * 코드에 박지 않고 counterpart_categories 표에서 읽어 온다.
  * 사용자가 늘릴 수 있고, 이모지와 색도 그 행에 함께 담긴다.
  */
 type Category = {
@@ -125,7 +125,7 @@ export default function Counterparts() {
   const [showInactive, setShowInactive] = useState(false);
   // 편집 진입 시점의 상태 — 변경 여부 판단에만 쓴다.
   const [beforeEdit, setBeforeEdit] = useState("");
-  /** 접어 둔 묶음. 비어 있으면 전부 펼쳐진 상태다(기존과 같은 모습) */
+  /** 접은 묶음. 비어 있으면 전부 펼쳐진 상태다(기존과 같은 모습) */
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [categories, setCategories] = useState<Category[]>([]);
   const [beforeCategories, setBeforeCategories] = useState<Category[]>([]);
@@ -248,7 +248,7 @@ export default function Counterparts() {
   /**
    * 새 항목을 담는다.
    *
-   * 예전에는 목록에 빈 줄을 붙여 두고 [저장]을 눌러야 담겼다. 설정 탭의
+   * 예전에는 목록에 빈 줄을 붙이고 [저장]을 눌러야 담겼다. 설정 탭의
    * 다른 세 화면은 모두 [추가]로 끝나는데 여기만 한 걸음이 더 있어서,
    * 손이 같은 자리에서 다른 것을 해야 했다. 이제 넷이 같다.
    */
@@ -746,7 +746,7 @@ export default function Counterparts() {
             />
             </EditField>
 
-            {/* 만들 때 구분까지 정해 둘 수 있다. 여기서도 새 구분을 만든다. */}
+            {/* 만들 때 구분까지 정할 수 있다. 여기서도 새 구분을 만든다. */}
             <EditField label="구분" span={6}>
             <SingleSelect
               noun="구분"
@@ -773,7 +773,7 @@ export default function Counterparts() {
 
             <EditDivider />
 
-            {/* 2행 — 한마디. 누구인지와는 성격이 달라 갈라 둔다. */}
+            {/* 2행 — 한마디. 누구인지와는 성격이 달라 가른다. */}
             <EditField label="메모" span={12}>
               <input
                 className="cat-input"

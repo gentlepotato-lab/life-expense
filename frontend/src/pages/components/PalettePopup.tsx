@@ -6,9 +6,9 @@
  * 색을 못 본다. 화면은 좌우로 밀거나 화살표로 넘기고, 벌과 밝기는 위 두
  * 줄에서 바꾼다. 누르면 그 자리에서 그림이 바뀐다.
  *
- * 그림은 public/palette에 미리 찍어 둔 것이다. 금액과 이름은 그림을 굽는
+ * 그림은 public/palette에 미리 찍은 것이다. 금액과 이름은 그림을 굽는
  * 단계에서 이미 흐려 놓았다 — CSS로 흐리면 원본이 파일에 그대로 남아 한 줄만
- * 지우면 드러난다. 다시 찍는 법은 docs/palette-shots.md에 적어 두었다.
+ * 지우면 드러난다. 다시 찍는 법은 docs/palette-shots.md에 적었다.
  */
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
@@ -22,7 +22,7 @@ import { STEPS, type Step } from "../../utils/theme";
  * 그림은 파일 이름이 늘 같아(bada_home_now.webp) 다시 구워도 주소가 그대로다.
  * 브라우저는 쥐고 있던 옛 그림을 그냥 내주므로, 새로 구운 것이 한참 동안
  * 보이지 않는다 — 바다 벌의 로고를 채워 놓고도 폰에서는 빈 칸 그대로였다.
- * 주소 뒤에 이 날짜를 붙여 두면 다시 구운 그때만 새로 받아 간다.
+ * 주소 뒤에 이 날짜를 붙이면 다시 구운 그때만 새로 받아 간다.
  */
 const SHOTS_V = "2026-10-10";
 
@@ -73,11 +73,11 @@ export default function PalettePopup({
   const 꼬리 = `_${shownStep.key}`;
 
   /**
-   * 그림을 미리 받아 둔다.
+   * 그림을 미리 받는다.
    *
    * 벌 여섯에 화면 넷이라 스물네 장이다. 누른 뒤에 받아 오면 다 받을 때까지
    * 옛 그림이 그대로 있어, 누른 사람에게는 "안 눌렸다"로 읽힌다 — 재어 보니
-   * 옆으로 넘긴 뒤 알약을 누를 때 872ms였다. 한 번 받아 둔 뒤에는 2ms다.
+   * 옆으로 넘긴 뒤 알약을 누를 때 872ms였다. 한 번 받은 뒤에는 2ms다.
    *
    * 한 손짓에 닿는 곳부터 받는다. 지금 벌의 네 화면(밀어서 가는 곳)과 지금
    * 화면의 여섯 벌(알약으로 가는 곳)이 먼저고, 나머지는 그 뒤에 따라온다.
@@ -96,7 +96,7 @@ export default function PalettePopup({
     SHOTS.forEach((x) => 담기(shown, x.file));
     PALETTES.forEach((x) => 담기(x.key, SHOTS[at].file));
     PALETTES.forEach((x) => SHOTS.forEach((y) => 담기(x.key, y.file)));
-    /* 받아 둔 것을 잡고 있어야 한다. 놓으면 다 받기 전에 치워질 수 있다. */
+    /* 받은 것을 잡고 있어야 한다. 놓으면 다 받기 전에 치워질 수 있다. */
     받아둔것.current = [
       ...받아둔것.current,
       ...차례.map((src) => {
@@ -116,7 +116,7 @@ export default function PalettePopup({
   /**
    * 한 장 넘긴다.
    *
-   * 새 그림을 반대쪽 바깥에 세워 두었다가 제자리로 미끄러뜨린다. 그래야
+   * 새 그림을 반대쪽 바깥에 세웠다가 제자리로 미끄러뜨린다. 그래야
    * 화살표로 넘기든 손가락으로 밀든 같은 모습으로 넘어간다.
    */
   const 넘기기 = (걸음: number) => {

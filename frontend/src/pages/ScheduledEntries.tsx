@@ -66,7 +66,7 @@ export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?
  * `말일`을 가리키는 day_of_month 값. 서버의 LAST_DAY와 같은 값이다.
  *
  * 달마다 끝 날이 달라 하나의 숫자로는 적을 수 없어, 1~31 바깥의 값을 하나
- * 정해 두고 서버가 셈할 때 그 달의 끝 날로 바꿔 쓴다.
+ * 정하고 서버가 셈할 때 그 달의 끝 날로 바꿔 쓴다.
  */
 const LAST_DAY = 32;
 
@@ -157,7 +157,7 @@ export default function ScheduledEntries() {
   const [isSaving, setIsSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);  // 폼 표시 여부
   /* 감춘 항목까지 볼지. 분류 · 결제 수단과 같은 자리 · 같은 말이다.
-     화면에만 두고 담아 두지 않는다 — 그 화면들과 같은 짜임이다. */
+     화면에만 두고 담지 않는다 — 그 화면들과 같은 짜임이다. */
   const [showHidden, setShowHidden] = useState(false);
   const [form, setForm] = useState(() => emptyForm());
 
@@ -244,7 +244,7 @@ export default function ScheduledEntries() {
   };
 
   /* 휴일 표를 내려받던 자리. 화면이 예정일시를 스스로 셈할 때만 필요했다.
-     지금은 서버가 계산해 next_run_at에 담아 주므로 받아 둘 이유가 없다. */
+     지금은 서버가 계산해 next_run_at에 담아 주므로 받을 이유가 없다. */
 
   // 메타데이터 로드
   useEffect(() => {
@@ -384,7 +384,7 @@ export default function ScheduledEntries() {
     __dirty: false,
   });
 
-  /* 카드 실적에서 뺄지 — 기호를 누르는 즉시 담는다. 여기서 켜 두면 이
+  /* 카드 실적에서 뺄지 — 기호를 누르는 즉시 담는다. 여기서 켜면 이
      스케줄이 대기 내역으로 나갈 때마다 표가 따라간다. 목록을 다시 읽지 않고
      그 줄만 갈아 끼우고, 담기지 않으면 되돌린다. */
   const togglePerfExclude = async (row: PerfRow, next: boolean) => {
@@ -415,7 +415,7 @@ export default function ScheduledEntries() {
     }
   };
 
-  /* 고정인지 변동인지 — 카드 실적 제외와 같은 방식이다. 여기서 켜 두면 이
+  /* 고정인지 변동인지 — 카드 실적 제외와 같은 방식이다. 여기서 켜면 이
      스케줄이 대기 내역으로 나갈 때마다 표가 따라간다. */
   const toggleFixed = async (row: FixedRow, next: boolean) => {
     /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
@@ -460,7 +460,7 @@ export default function ScheduledEntries() {
       setSchedules([]);
     }
     /* decorateSchedule은 이 컴포넌트가 다시 그려질 때마다 새로 만들어지지만
-       하는 일이 값에만 달려 있어 묶어 둘 것이 없다. */
+       하는 일이 값에만 달려 있어 묶을 것이 없다. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showHidden]);
 
@@ -550,7 +550,7 @@ export default function ScheduledEntries() {
   }, [schedules]);
 
   /** 예정일시의 날짜로 묶는다. 지출 내역·대기 내역과 같은 모양이 된다. */
-  /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
+  /* 접은 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const toggleDay = (d: string) =>
     setCollapsedDays((prev) => {
@@ -566,7 +566,7 @@ export default function ScheduledEntries() {
     [cat1List, cat2All, cat3All]
   );
 
-  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정해 둔 것이 있으면 그것이 먼저다. */
+  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정한 것이 있으면 그것이 먼저다. */
   const fixSets = useMemo(() => fixedSetsFrom(cat2All, cat3All), [cat2All, cat3All]);
 
   const dateGroups = useMemo(
@@ -642,7 +642,7 @@ export default function ScheduledEntries() {
       anchor_ym: Number(schedule.interval_months ?? 1) === 1 ? null : schedule.anchor_ym || null,
       end_ym: schedule.end_ym || null,
       skip_ym: schedule.skip_ym || null,
-      /* 감췄는지도 함께 담는다. 팝업에서 뒤집어 둔 것이 [저장]으로 먹는다. */
+      /* 감췄는지도 함께 담는다. 팝업에서 뒤집은 것이 [저장]으로 먹는다. */
       is_active: schedule.is_active === 0 ? 0 : 1,
       cat1_id: Number(schedule.cat1_id),
       cat2_id: Number(schedule.cat2_id),
@@ -1002,7 +1002,7 @@ export default function ScheduledEntries() {
 
                 {/* 휴일 처리 · 끝 — 편집 팝업과 같은 칸에 둔다. 거기서는 이 줄
                     셋째 자리에 [한 번 건너뛰기]가 서는데, 새로 만드는 스케줄에는
-                    건너뛸 회차가 없어 그 자리를 비워 둔다. 자리를 당겨 채우면
+                    건너뛸 회차가 없어 그 자리를 비운다. 자리를 당겨 채우면
                     두 팝업에서 같은 칸이 다른 x에 서게 된다. */}
                 <EditField label="휴일 처리" span={4} required>
                   <SingleSelect
@@ -1013,7 +1013,7 @@ export default function ScheduledEntries() {
                   />
                 </EditField>
 
-                {/* 끝은 연월 하나다. 비워 두면 끝이 없다. */}
+                {/* 끝은 연월 하나다. 비우면 끝이 없다. */}
                 <EditField label="끝" span={4}>
                   <MonthPicker
                     value={form.end_ym}
@@ -1420,7 +1420,7 @@ export default function ScheduledEntries() {
           </div>
 
           {/* 금액 쪼개기 — 지출일 때만 의미가 있다.
-              여기에 걸어 둔 분할은 스케줄이 돌 때마다 Pending으로 따라간다. */}
+              여기에 건 분할은 스케줄이 돌 때마다 Pending으로 따라간다. */}
           {Number(draft.inout) === -1 && (
             <>
               <EditDivider />
@@ -1502,7 +1502,7 @@ export function ScheduleCard({
   onTogglePick?: (id: number) => void;
   /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onTogglePerfExclude?: (schedule: PerfRow, next: boolean) => void;
-  /* 이 건이 고정인지 — 건에 정해 둔 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
+  /* 이 건이 고정인지 — 건에 정한 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
   fixed?: boolean;
   /* 고정 · 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onToggleFixed?: (schedule: FixedRow, next: boolean) => void;
@@ -1606,7 +1606,7 @@ export function ScheduleCard({
         <span className="peel-flap__face" />
       </span>
       <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
-      {/* 뜯는 동안만 뜨는 한 줄. 늘 그려 두고 보이고 숨기는 일은 CSS가 맡는다 —
+      {/* 뜯는 동안만 뜨는 한 줄. 늘 그린 채로 보이고 숨기는 일은 CSS가 맡는다 —
           끄는 중에 React가 다시 그리면 뜯는 겹이 쥐고 있던 class가 지워진다. */}
       {안내 && (
         <span className="peel-tip" aria-hidden="true">
@@ -1667,7 +1667,7 @@ export function ScheduleCard({
             메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
         <div className="entry-ln">
           {/* 고르기 상자. 지출과 대기와 같은 자리다 — 결제 수단이 선 줄의
-              왼쪽 끝. 꾹 누르면 편집 팝업이 열리므로 빼 둔다. */}
+              왼쪽 끝. 꾹 누르면 편집 팝업이 열리므로 뺀다. */}
           {onTogglePick && (
             <button
               type="button"

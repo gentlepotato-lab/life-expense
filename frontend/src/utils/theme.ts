@@ -117,7 +117,7 @@ export const currentStep = (): Step => 쓰는칸;
 /**
  * 화면 전체에 칸을 끼운다.
  *
- * 어두운 칸인지를 `<html>`에 적어 둔다. 어두운 쪽에서만 뒤집히는 자리를
+ * 어두운 칸인지를 `<html>`에 적는다. 어두운 쪽에서만 뒤집히는 자리를
  * 147절이 그 표시를 보고 덮는다.
  */
 export function applyTheme(mode: string, light: string, dark: string): void {

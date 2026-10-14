@@ -4,10 +4,10 @@ import { useEffect, useRef } from "react";
  * 뒤로 가기(또는 Backspace · Esc)로 "지금 열린 것"만 닫는다.
  *
  * 그동안은 팝업이 떠 있어도 뒤로 가기를 누르면 화면 자체를 떠났다.
- * 열려 있는 동안 방문 기록에 한 칸을 끼워 두고, 뒤로 가기가 그 칸을 무르면
+ * 열려 있는 동안 방문 기록에 한 칸을 끼우고, 뒤로 가기가 그 칸을 무르면
  * 화면은 그대로 둔 채 닫기만 부른다.
  *
- * 끼워 둔 칸은 팝업이 닫힐 때 우리가 도로 걷어 낸다. 그래야 팝업을 여닫은
+ * 끼운 칸은 팝업이 닫힐 때 우리가 도로 걷어 낸다. 그래야 팝업을 여닫은
  * 횟수만큼 뒤로 가기를 눌러야 하는 일이 생기지 않는다.
  *
  * Esc는 늘 닫는다. Backspace는 계산기처럼 그 키를 따로 쓰는 화면이 있어
@@ -44,7 +44,7 @@ export function closeOverlays(): Promise<void> {
   if (waiting === 0) return Promise.resolve();
 
   /* 다 걷힐 때까지 기다렸다가 알린다.
-     닫히는 쪽은 끼워 둔 칸을 history.back()으로 걷는데 그게 늦게 오고,
+     닫히는 쪽은 끼운 칸을 history.back()으로 걷는데 그게 늦게 오고,
      여는 쪽의 pushState는 먼저 간다. 그대로 두면 늦게 온 back이 새로 끼운
      칸을 도로 걷어 버려, 새 팝업이 떠 있는데 뒤로 가기로는 닫을 수 없게 된다.
      걷는 만큼 popstate가 울리니 그 수를 세고 나서 다음 것을 연다. */
@@ -56,7 +56,7 @@ export function closeOverlays(): Promise<void> {
       done();
     };
     const onPop = () => {
-      /* 닫힌 쪽은 이미 귀를 닫았다 — 삼키려고 올려 둔 수를 여기서 내린다.
+      /* 닫힌 쪽은 이미 귀를 닫았다 — 삼키려고 올린 수를 여기서 내린다.
          그대로 두면 다음에 열린 팝업이 진짜 뒤로 가기 한 번을 삼켜버린다. */
       if (unwinding > 0) unwinding -= 1;
       seen += 1;
@@ -71,7 +71,7 @@ export function closeOverlays(): Promise<void> {
 /**
  * 우리가 스스로 걷어 내는 중인 칸의 수.
  *
- * 단추로 닫으면 끼워 둔 칸을 history.back()으로 도로 걷는데, 그 back도
+ * 단추로 닫으면 끼운 칸을 history.back()으로 도로 걷는데, 그 back도
  * popstate를 울린다. 그 울림은 "뒤로 가기를 눌렀다"는 뜻이 아니므로
  * 한 번 삼키고 아무것도 닫지 않는다.
  */
@@ -141,7 +141,7 @@ export default function useBackClose(
       const at = openStack.lastIndexOf(token);
       if (at >= 0) openStack.splice(at, 1);
 
-      /* 뒤로 가기가 아니라 버튼으로 닫은 경우 — 끼워 둔 칸을 걷어 낸다.
+      /* 뒤로 가기가 아니라 버튼으로 닫은 경우 — 끼운 칸을 걷어 낸다.
          이때 울리는 popstate는 삼켜야 아래 깔린 팝업이 함께 닫히지 않는다. */
       if (!popped) {
         const state = window.history.state as { __overlay?: boolean } | null;

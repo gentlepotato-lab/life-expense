@@ -92,7 +92,7 @@ export default function Categories() {
   /** 감춘 항목까지 보여 줄지. 꺼져 있으면 목록에서만 빠진다(상태에는 그대로 남는다) */
   const [showInactive, setShowInactive] = useState(false);
 
-  /** 접어 둔 묶음. 비어 있으면 전부 펼쳐진 상태다(기존과 같은 모습).
+  /** 접은 묶음. 비어 있으면 전부 펼쳐진 상태다(기존과 같은 모습).
       중분류와 소분류를 한 곳에 담되 접두사로 구분한다. */
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
@@ -137,7 +137,7 @@ export default function Categories() {
   const [beforeEditCat3, setBeforeEditCat3] = useState<any[]>([]);
 
   /* 뒤로 가기 · Backspace로 편집을 무른다.
-     편집에 들어올 때 떠 둔 원본으로 되돌리므로 손댄 내용은 버려진다.
+     편집에 들어올 때 뜬 원본으로 되돌리므로 손댄 내용은 버려진다.
      추가 칸이 열려 있으면 그것부터 닫는다(나중에 연 것이 먼저 닫힌다). */
   useBackClose(editMode, () => {
     setCat1(beforeEditCat1);
@@ -755,7 +755,7 @@ export default function Categories() {
                       </span>
                     </div>
 
-                    {/* 걸어 둔 Blur는 보기 모드에서도 보인다 — 무엇이 걸려 있는지
+                    {/* 건 Blur는 보기 모드에서도 보인다 — 무엇이 걸려 있는지
                         알려고 편집을 켰다 끄게 하지 않는다. 누르는 것만 막는다. */}
                     <button
                       type="button"

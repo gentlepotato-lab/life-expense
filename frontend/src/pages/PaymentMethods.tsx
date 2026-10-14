@@ -37,7 +37,7 @@ import Collapse from "./components/Collapse";
 /**
  * 카드 줄 — 꾹 누르면 그 카드의 혜택이 펼쳐진다.
  *
- * 줄마다 hook을 걸어야 해서 따로 떼어 둔다. 고치는 중에는 걸지 않는다 —
+ * 줄마다 hook을 걸어야 해서 따로 뗀다. 고치는 중에는 걸지 않는다 —
  * 그때는 이름을 누르면 고쳐 쓰는 칸이 되고 끌어 옮기기도 열려 있다.
  */
 function PmRow({
@@ -83,7 +83,7 @@ function SortableItem({ id, children, dragHandle = false }: any) {
 
 /**
  * 구분(분류).
- * 코드에 박아 두지 않고 payment_method_categories 표에서 읽어 온다.
+ * 코드에 박지 않고 payment_method_categories 표에서 읽어 온다.
  * 이모지도 그 행에 들어 있어, 나중에 구분별로 집계할 때 그대로 조인된다.
  */
 type Category = {
@@ -190,7 +190,7 @@ export default function PaymentMethods() {
     }));
 
   /* 구간은 줄을 펼칠 때 받아 온다. 접힌 채로 꾹 눌러 들어올 수도 있어,
-     아직 없으면 먼저 받아 둔다. 적어 둔 구간이 없으면 펼칠 것이 없다 —
+     아직 없으면 먼저 받는다. 적은 구간이 없으면 펼칠 것이 없다 —
      빈 팝업을 띄우는 대신 아무 일도 하지 않는다. */
   const openPerks = async (m: { method_id: number; method_name: string }) => {
     const drafts = tiers[m.method_id] ?? (await loadTiers(m.method_id));
@@ -275,7 +275,7 @@ export default function PaymentMethods() {
   const [addCategoryId, setAddCategoryId] = useState<number | null>(null);
   /** 감춘 항목까지 보여 줄지. 꺼져 있으면 목록에서만 빠진다(상태에는 그대로 남는다) */
   const [showInactive, setShowInactive] = useState(false);
-  /** 접어 둔 묶음. 비어 있으면 전부 펼쳐진 상태다(기존과 같은 모습) */
+  /** 접은 묶음. 비어 있으면 전부 펼쳐진 상태다(기존과 같은 모습) */
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const toggleGroup = (key: string) =>
@@ -725,7 +725,7 @@ export default function PaymentMethods() {
                         alignItems: "center",
                         width: "100%",
                         /* 이 칸이 줄어들 수 있어야 긴 이름이 말줄임된다.
-                           flex 칸의 기본 최소 너비는 글 너비라, 풀어 두지
+                           flex 칸의 기본 최소 너비는 글 너비라, 풀지
                            않으면 이름이 오른쪽 것들을 화면 밖으로 밀어낸다. */
                         minWidth: 0
                       }}
@@ -854,7 +854,7 @@ export default function PaymentMethods() {
                     ))}
 
                     {/* 테두리 없는 글자 단추 — "모두 펼치기|접기"와 같은 결이다.
-                        [혜택]은 같은 줄 오른쪽 끝에 — 적어 둔 것이 있을 때만. */}
+                        [혜택]은 같은 줄 오른쪽 끝에 — 적은 것이 있을 때만. */}
                     {!editMode && (
                       <div className="pm-tier-foot">
                         <button
@@ -943,7 +943,7 @@ export default function PaymentMethods() {
             />
             </EditField>
 
-            {/* 만들 때 구분까지 정해 둘 수 있다. 여기서도 새 구분을 만들 수 있다. */}
+            {/* 만들 때 구분까지 정할 수 있다. 여기서도 새 구분을 만들 수 있다. */}
             <EditField label="구분" span={6}>
             <SingleSelect
               noun="구분"

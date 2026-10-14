@@ -19,10 +19,10 @@ export type PerkTier = { threshold: number; benefits: PerkBenefit[] };
  * 돌아오는지는 결제 수단 화면까지 가야 알 수 있었다 — 정작 견주어 보고
  * 싶은 순간은 실적을 보고 있는 지금이다. 그래서 여기서 바로 펼친다.
  *
- * 고치지는 않는다. 적어 두는 자리는 결제 수단 화면 하나로 남긴다.
+ * 고치지는 않는다. 적는 자리는 결제 수단 화면 하나로 남긴다.
  *
  * 결제 수단 화면에서도 같은 부품을 쓴다. 다만 그 화면은 이 달에 얼마를
- * 그었는지를 모르므로(카드를 적어 두는 자리이지 셈하는 자리가 아니다)
+ * 그었는지를 모르므로(카드를 적는 자리이지 셈하는 자리가 아니다)
  * charged를 싣지 않는다. 그때는 어느 구간을 넘겼는지 표시하지 않는다 —
  * 모르는 것을 "못 넘겼다"고 적으면 거짓이 된다.
  */
@@ -84,7 +84,7 @@ export default function CardPerkPopup({
                         {b.description && (
                           <span className="perk__desc">{b.description}</span>
                         )}
-                        {/* 대상은 줄로 세운다 — 가게 이름을 여럿 적어 둔 것이 많아
+                        {/* 대상은 줄로 세운다 — 가게 이름을 여럿 적은 것이 많아
                             알약에 담으면 알약 하나가 서너 줄로 부푼다. */}
                         {b.targets.map((g, k) => (
                           <span key={k} className="perk__target">

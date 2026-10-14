@@ -59,7 +59,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
      다음 장이 올라온다 — 마지막 장이었으면 그 앞 장이 올라온다. */
   const [at, setAt] = useState(0);
   const [sending, setSending] = useState(false);
-  /* 가려 둔 금액을 끄는 동안만 드러낸다. 손을 떼면 다시 덮인다. */
+  /* 가린 금액을 끄는 동안만 드러낸다. 손을 떼면 다시 덮인다. */
   const [reveal, setReveal] = useState(false);
   /* 어느 쪽으로 넘겼는지. 들어오는 장이 그 반대쪽에서 밀려 들어온다. */
   const [dir, setDir] = useState<1 | -1>(1);
@@ -69,7 +69,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
   const 남은 = rows.length;
   const 지금: PendingCardRow | undefined = rows[Math.min(at, 남은 - 1)];
 
-  /* 다 보내고 나면 닫는다. 빈 팝업을 남겨 둘 까닭이 없다. */
+  /* 다 보내고 나면 닫는다. 빈 팝업을 남길 까닭이 없다. */
   useEffect(() => {
     if (ready && 남은 === 0 && reloadKey > 0) onClose();
   }, [ready, 남은, reloadKey, onClose]);
@@ -100,7 +100,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
       say.ok("전송 완료-!! ;-)");
       invalidatePending();
       invalidateNudges();
-      /* 보낸 장이 빠지면 뒤가 당겨 온다. 자리가 끝을 넘지 않게 당겨 둔다 —
+      /* 보낸 장이 빠지면 뒤가 당겨 온다. 자리가 끝을 넘지 않게 당긴다 —
          마지막 장을 보냈으면 그 앞 장으로 간다. 처음으로 되돌리지 않는다. */
       setAt((i) => Math.max(0, Math.min(i, 남은 - 2)));
       setReloadKey((k) => k + 1);
@@ -125,7 +125,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
   /* 메모는 세로로 굴리는 자리다. 거기서 시작한 끌기까지 카드를 끌면 두
      몸짓이 한 자리에서 다툰다 — 굴리려다 장이 밀리고, 밀려다 글이 굴러간다.
 
-     다만 굴릴 것이 없는 메모(짧거나 비어 있는 것)까지 비켜 두면 카드의 절반이
+     다만 굴릴 것이 없는 메모(짧거나 비어 있는 것)까지 비켜면 카드의 절반이
      밀리지 않는 죽은 자리가 된다. 지금 이 메모가 실제로 굴러가는지를 보고
      그때만 비켜 준다. */
   const 메모누름 = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -141,7 +141,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
       끌기.current = { x: e.clientX, 금액: true, id: e.pointerId };
       return;
     }
-    /* 손가락을 이 자리에 묶어 둔다. 끄는 동안 카드가 다시 그려져도 뗀 것을
+    /* 손가락을 이 자리에 묶는다. 끄는 동안 카드가 다시 그려져도 뗀 것을
        놓치지 않는다 — 놓치면 한 번 민 것이 두 번으로 세어진다. */
     e.currentTarget.setPointerCapture(e.pointerId);
     끌기.current = { x: e.clientX, 금액: false, id: e.pointerId };
@@ -236,7 +236,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
                     aria-hidden="true"
                     /* 오른쪽으로 비껴 쌓는다 — 옆으로 넘기는 몸짓과 같은
                        방향이라, 다음 장이 그쪽에 있다는 것이 그림으로 읽힌다.
-                       카드가 오른쪽에 18px을 비워 두고 그 안에서 겹친다. */
+                       카드가 오른쪽에 18px을 비우고 그 안에서 겹친다. */
                     style={{
                       top: i * 3,
                       bottom: i * 3,

@@ -6,7 +6,7 @@ import { EMPTY_GROUP_FILTER, type GroupFilter } from "../../utils/groupFilter";
 /**
  * 묶음 내역의 걸러 내기.
  *
- * 거는 조건은 utils/groupFilter.ts에 적어 두었다.
+ * 거는 조건은 utils/groupFilter.ts에 적었다.
  * 머리, 본문, 바닥의 짜임은 내역 세 화면의 필터 팝업과 같다.
  */
 export default function GroupFilterPopup({

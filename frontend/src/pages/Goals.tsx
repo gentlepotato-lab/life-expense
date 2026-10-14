@@ -97,7 +97,7 @@ function detailOf(
   };
 }
 
-/** 도전 한 줄. 꾹 누르기를 걸어야 해서 따로 떼어 둔다. */
+/** 도전 한 줄. 꾹 누르기를 걸어야 해서 따로 뗀다. */
 function GoalRowView({
   st,
   editMode,
@@ -190,7 +190,7 @@ function GoalRowView({
       />
 
       {/* 언제부터 언제까지 센 도전인지. 이 둘이 그 달에 이 도전이 걸려
-          있었는지를 가른다 — 비워 두면 어제 건 도전이 작년에도 있던 것처럼
+          있었는지를 가른다 — 비우면 어제 건 도전이 작년에도 있던 것처럼
           읽히고, 그만둔 도전이 영영 끼어든다. */}
       <div className="goal-row__span">
         {editMode ? (
@@ -284,7 +284,7 @@ export default function Goals() {
   const 지금달 = 볼달 === 이번달;
   const 때: 달때 = 볼달 < 이번달 ? "지난" : 볼달 > 이번달 ? "올" : "이번";
 
-  /* 넘겨 볼 수 있는 끝 — 적어 둔 것이 있는 달부터 이 달 두 달 뒤까지. */
+  /* 넘겨 볼 수 있는 끝 — 적은 것이 있는 달부터 이 달 두 달 뒤까지. */
   const { min: 달바닥, max: 달천장 } = useMonthSpan();
 
   const { goals, rows, masked, today, catPath, ready } = useGoalBoard({
@@ -296,7 +296,7 @@ export default function Goals() {
   const [picked, setPicked] = useState<Nudge | null>(null);
   const navigate = useNavigate();
 
-  /* 팝업이 뒤로 가기용 자리를 하나 밀어 두고 있다. 그냥 옮기면 그 자리를
+  /* 팝업이 뒤로 가기용 자리를 하나 밀고 있다. 그냥 옮기면 그 자리를
      되감으면서 방금 연 화면에서 튕겨 나온다 — 잔소리 화면과 같은 처리다. */
   const goAfterClose = (path: string) => {
     const onPop = () => {
@@ -330,7 +330,7 @@ export default function Goals() {
   const [memo, setMemo] = useState("");
   /* 새로 거는 도전은 이 달부터 센다 — 지난 달에 없던 것을 있었다고 할 수 없다. */
   const [start, setStart] = useState("");
-  /* 끝은 비워 두는 것이 예사다 — 그만둘 때 와서 적으면 된다. */
+  /* 끝은 비우는 것이 예사다 — 그만둘 때 와서 적으면 된다. */
   const [end, setEnd] = useState("");
 
   /* 고르는 목록 — 분류 세 벌 */
@@ -390,7 +390,7 @@ export default function Goals() {
   /**
    * 줄 차례 — 그 달에 걸려 있던 것이 위, 비낀 것이 아래다.
    *
-   * 걸린 것은 걸어 둔 차례 그대로다. 비낀 것은 오래 전에 끝난 것부터 놓고,
+   * 걸린 것은 건 차례 그대로다. 비낀 것은 오래 전에 끝난 것부터 놓고,
    * 끝이 없는 것(아직 시작 전)은 그 뒤에 시작이 가까운 것부터 놓는다 —
    * 아래로 갈수록 지금과 먼 이야기가 되게 한다.
    */
@@ -657,7 +657,7 @@ export default function Goals() {
 
       {/* 담기 — 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다.
           일곱 칸이 세 줄에 끼어 있던 것을 네 줄로 편다. 칸 차례(금액 →
-          메모 → 시작)는 걸어 둔 카드를 고칠 때와 같다 — 두 자리에서 차례가
+          메모 → 시작)는 건 카드를 고칠 때와 같다 — 두 자리에서 차례가
           다르면 손이 헷갈린다. */}
       {addOpen && 지금달 && (
         <CardEditModal
@@ -715,7 +715,7 @@ export default function Goals() {
 
             <EditDivider />
 
-            {/* 2행 — 얼마를 걸고 뭐라고 적어 둘지. 거는 것과는 성격이 다르다. */}
+            {/* 2행 — 얼마를 걸고 뭐라고 적을지. 거는 것과는 성격이 다르다. */}
             <EditField label="금액" span={6} required>
             <div className="goal-add__row">
               <input
@@ -741,7 +741,7 @@ export default function Goals() {
 
             <EditDivider />
 
-            {/* 3행 — 언제부터 언제까지. 끝은 비워 두는 것이 예사다 —
+            {/* 3행 — 언제부터 언제까지. 끝은 비우는 것이 예사다 —
                 그만둘 때 와서 적으면 된다. */}
             <EditField label="시작월" span={6} required>
             <div className="goal-add__row">

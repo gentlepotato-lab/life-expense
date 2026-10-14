@@ -136,7 +136,7 @@ export function EditField({
   label: string;
   children: ReactNode;
   span?: 3 | 4 | 6 | 8 | 12;
-  /** 비워 두면 저장이 안 되는 칸. 이름표 옆에 붉은 별을 단다. */
+  /** 비우면 저장이 안 되는 칸. 이름표 옆에 붉은 별을 단다. */
   required?: boolean;
 }) {
   return (

@@ -95,20 +95,20 @@ export default function Entries() {
   const [placePickerOpen, setPlacePickerOpen] = useState(false);
 
   const [filterOpen, setFilterOpen] = useState(false);
-  /* 거르는 동안 덮어 두는 판. 300ms가 지나야 나타난다(Waiting). */
+  /* 거르는 동안 덮는 판. 300ms가 지나야 나타난다(Waiting). */
   const [찾는중, set찾는중] = useState(false);
 
   /* 뒤로 가기 · Backspace로 지금 열린 것만 닫는다.
      카드 편집 팝업은 CardEditModal이 스스로 처리한다. */
   useBackClose(filterOpen, () => closeFilter());
   useBackClose(placePickerOpen, () => setPlacePickerOpen(false));
-  /* 팝업에서 고치는 중인 값(초안)과 실제로 걸려 있는 값을 나눠 둔다.
+  /* 팝업에서 고치는 중인 값(초안)과 실제로 걸려 있는 값을 나눈다.
      하나로 두면 팝업에서 값을 바꾸는 순간 뒤 화면의 버튼과 기간 표시가
      먼저 바뀌어, [적용]을 누르기도 전에 적용된 것처럼 보였다. */
   const [filter, setFilter] = useState(EMPTY_FILTER);
   const [appliedFilter, setAppliedFilter] = useState(EMPTY_FILTER);
 
-  /* 함께한 상대 목록 — 필터에서 고르기 위해 받아 둔다. */
+  /* 함께한 상대 목록 — 필터에서 고르기 위해 받는다. */
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
   const [filterRangeLabel, setFilterRangeLabel] = useState("");
 
@@ -163,7 +163,7 @@ export default function Entries() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yearMonth]);
 
-  /* 넘겨 볼 수 있는 끝 — 적어 둔 것이 있는 달부터 이 달 두 달 뒤까지.
+  /* 넘겨 볼 수 있는 끝 — 적은 것이 있는 달부터 이 달 두 달 뒤까지.
      아직 오지 않은 달이나 적은 것이 하나도 없는 달로는 넘어가지 않는다. */
   const { min: 달바닥, max: 달천장 } = useMonthSpan();
 
@@ -809,7 +809,7 @@ export default function Entries() {
 
   // 날짜별 단 — 서버 정렬(tx_date DESC)을 그대로 보존한다.
   // 소분류에 blur가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
-  /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
+  /* 접은 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
 
 
@@ -827,7 +827,7 @@ export default function Entries() {
     [cat1List, cat2List, cat3List]
   );
 
-  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정해 둔 것이 있으면 그것이 먼저다. */
+  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정한 것이 있으면 그것이 먼저다. */
   const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
 
   const dateGroups = useMemo(
@@ -1431,7 +1431,7 @@ export const EntryCard = memo(function EntryCard({
   readOnly?: boolean;
   /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onTogglePerfExclude?: (row: PerfRow, next: boolean) => void;
-  /* 이 건이 고정인지 — 건에 정해 둔 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
+  /* 이 건이 고정인지 — 건에 정한 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
   fixed?: boolean;
   /* 고정 · 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onToggleFixed?: (row: FixedRow, next: boolean) => void;
@@ -1494,7 +1494,7 @@ export const EntryCard = memo(function EntryCard({
         <span className="peel-flap__face" />
       </span>
       <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
-      {/* 뜯는 동안만 뜨는 한 줄. 늘 그려 두고 보이고 숨기는 일은 CSS가 맡는다 —
+      {/* 뜯는 동안만 뜨는 한 줄. 늘 그린 채로 보이고 숨기는 일은 CSS가 맡는다 —
           끄는 중에 React가 다시 그리면 뜯는 겹이 쥐고 있던 class가 지워진다. */}
       {안내 && (
         <span className="peel-tip" aria-hidden="true">
@@ -1560,7 +1560,7 @@ export const EntryCard = memo(function EntryCard({
       <div className="entry-ln">
         {/* 고르기 상자. 대기 내역과 같은 자리다 — 장소와 결제 수단이 선 줄의
             왼쪽 끝. 분류 줄에 넣으면 분류 글이 통째로 밀려 쪽마다 자리가
-            달라진다. 카드를 꾹 누르면 편집 팝업이 열리므로 빼 둔다. */}
+            달라진다. 카드를 꾹 누르면 편집 팝업이 열리므로 뺀다. */}
         {onTogglePick && (
           <button
             type="button"

@@ -55,7 +55,7 @@ export default function useEditLock(editMode: boolean) {
     []
   );
 
-  /* 편집으로 들어가면 안내는 할 말을 잃는다 — 띄워 둔 채 들어가면 이제 고칠
+  /* 편집으로 들어가면 안내는 할 말을 잃는다 — 띄운 채 들어가면 이제 고칠
      수 있는데도 못 고친다는 말이 남는다. */
   useEffect(() => {
     if (editMode) setLockAt(null);

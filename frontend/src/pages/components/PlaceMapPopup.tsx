@@ -71,7 +71,7 @@ export default function PlaceMapPopup({
         </header>
 
         <div className="popup-body wh-detail">
-          {/* 지도는 자리를 늘 잡아 둔다 — 좌표가 없으면 그 자리에 까닭을 적는다. */}
+          {/* 지도는 자리를 늘 잡는다 — 좌표가 없으면 그 자리에 까닭을 적는다. */}
           <div className="wh-map">
             {place.lat !== null && place.lng !== null ? (
               <div className="wh-map__box" ref={box} />

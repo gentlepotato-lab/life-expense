@@ -108,7 +108,7 @@ const TREND_MAX = 18;
    내역 카드를 눌렀을 때와 같은 결의 되먹임이다. 잡고 있는 동안이 아니라
    한 번 부풀었다 제자리로 돌아온다 — 그림은 옆으로 넘겨 보는 자리라
    누른 상태를 붙들면 넘기기와 엉킨다.
-   부푸는 방향은 항목이 붙어 있는 자리를 붙박아 둔다. 세로 막대는 바닥,
+   부푸는 방향은 항목이 붙어 있는 자리를 붙박는다. 세로 막대는 바닥,
    가로 막대는 왼쪽 끝, 부채꼴은 도넛 한가운데다 — 축에서 떨어지면
    그만큼 값이 달라 보인다. */
 const POP_MS = 260;
@@ -120,11 +120,11 @@ const POP_EASE = `transform ${POP_MS}ms cubic-bezier(.34, 1.3, .64, 1)`;
  * 그림에 넘기는 모양 그리개를 Recharts는 부품으로 삼아 부른다. 그릴 때마다
  * 새 함수를 넘기면 React에게는 매번 다른 부품이라 항목을 통째로 버리고 새로
  * 만든다 — 누르는 사이에 갈아치워지니 클릭이 성립하지 않고, 도넛의 갈래
- * 고르기까지 함께 놓친다. 그래서 그리개는 이 파일에 한 번만 만들어 두고,
+ * 고르기까지 함께 놓친다. 그래서 그리개는 이 파일에 한 번만 만들고,
  * 눌린 것이 무엇인지는 맥락에서 읽는다. 신원이 고정되니 항목이 살아남는다.
  *
  * 값을 낱개의 속성으로 넘기지 않는 까닭도 있다. Recharts는 넘겨받은 낱개를
- * 제 곳간에 담아 두는데, 그 곳간이 안에 든 것을 통째로 얼려 버린다.
+ * 제 곳간에 담는데, 그 곳간이 안에 든 것을 통째로 얼려 버린다.
  */
 type PopApi = { hit: string; pop: (key: string) => void };
 
@@ -142,14 +142,14 @@ function usePop(): PopApi {
   return useMemo(() => ({ hit, pop }), [hit, pop]);
 }
 
-/** 부푼 만큼을 담는 껍데기. 눌린 자리를 붙박아 두고 그 둘레로만 커진다. */
+/** 부푼 만큼을 담는 껍데기. 눌린 자리를 붙박고 그 둘레로만 커진다. */
 function Pop({
   on,
   at,
   children,
 }: {
   on: boolean;
-  /** 붙박아 둘 자리(그림 좌표계) */
+  /** 붙박을 자리(그림 좌표계) */
   at: [number, number];
   children: React.ReactNode;
 }) {
@@ -533,7 +533,7 @@ function Tip({
 }
 
 /**
- * 지난달을 겹쳐 보는 단추. 그림마다 따로 켜고 끄며, 기억해 두지 않는다.
+ * 지난달을 겹쳐 보는 단추. 그림마다 따로 켜고 끄며, 기억하지 않는다.
  * 꾹 누르면 숫자로 견줘 보는 팝업이 뜬다.
  *
  * 꾹 누르기를 useLongPress로 넣지 못한 까닭은 그 훅이 단추에서 시작한 누름을
@@ -613,7 +613,7 @@ function PrevBtn({
 }
 
 /**
- * 가려 둔 갈래가 섞인 금액.
+ * 가린 갈래가 섞인 금액.
  *
 /** 카드 실적 한 장 — 꾹 누르면 그 카드로 그은 내역을 상세로 펼친다. */
 /** 상세로 갔다 되돌아왔을 때 되살릴 것 */
@@ -652,7 +652,7 @@ function CardPerfItem({
 
   /* 실적 구간이 있으면 띠는 자가 된다 — 0에서 맨 위 구간까지 늘어놓고
      그은 돈이 어디까지 왔는지 채운다. 구간과 구간 사이는 띠를 끊어 가른다.
-     구간을 적어 두지 않은 카드는 잴 자가 없으므로 예전처럼
+     구간을 적지 않은 카드는 잴 자가 없으므로 예전처럼
      그은 돈 가운데 내 몫이 얼마인지를 보인다. */
   const top = tiers.length ? tiers[tiers.length - 1].threshold : 0;
   const ruler = top > 0;
@@ -678,7 +678,7 @@ function CardPerfItem({
         </span>
       </div>
 
-      {/* 넓은 줄을 숫자 하나로 비워 두지 않고, 이 판이 말하려는 바로 그것을 담는다. */}
+      {/* 넓은 줄을 숫자 하나로 비우지 않고, 이 판이 말하려는 바로 그것을 담는다. */}
       {/* 채움은 띠 전체에 깔린 그라데이션을 왼쪽부터 드러내는 것이다. 폭을
           줄이면 그라데이션까지 눌려 같은 자리의 빛깔이 달마다 달라진다. */}
       <div className="card-perf__ruler" aria-hidden="true">
@@ -784,7 +784,7 @@ function CardPerfItem({
  * 금액에 붙은 테이프를 끼어서 보려면 말풍선이 그동안 서 있어야 하기 때문이다.
  * 내려놓는 것은 그림 바깥을 한 번 누를 때다(Charts의 tipAt).
  *
- * 붙들어 두는 힘은 active={true}에서 나온다. Recharts는 손이 그림 밖으로
+ * 붙드는 힘은 active={true}에서 나온다. Recharts는 손이 그림 밖으로
  * 나가거나 말풍선 위로 옮겨 올 때마다 닿은 자리를 다시 재는데, active가 참이면
  * 한 번이라도 눌렸던 자리를 그대로 붙잡고 있는다. 거짓이면 아예 안 뜨므로,
  * 그림마다 눈금을 하나 두고 눌린 그림에만 참을 준다.
@@ -912,7 +912,7 @@ export default function Charts() {
 
   const [rows, setRows] = useState<Row[]>([]);
 
-  /* 어떤 갈래를 셈에 넣을지 — 고정 지출 · 변동 지출. 들어올 때는 둘 다 켜 둔다.
+  /* 어떤 갈래를 셈에 넣을지 — 고정 지출 · 변동 지출. 들어올 때는 둘 다 켠다.
      이 화면은 나간 돈만 세므로 수입 두 칸은 목록에 없다. */
   /* 상세로 갔다 되돌아오면 고른 갈래도 그대로다 — 저장된 것을 되살린다. */
   const [fixPick, setFixPick] = useState<FixedPick>(() => kept?.fixPick ?? ALL_FIXED_PICK);
@@ -925,7 +925,7 @@ export default function Charts() {
   const [cardSaving, setCardSaving] = useState(false);
   const [cardOrder, setCardOrder] = useState<string[]>([]);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  /* 한 줄을 다 쓰는 카드. 처음 값은 코드가 적어 둔 것을 따른다. */
+  /* 한 줄을 다 쓰는 카드. 처음 값은 코드가 적은 것을 따른다. */
   const [wideSet, setWideSet] = useState<Set<string>>(new Set());
   /* [편집]을 누른 순간의 모습 — 바뀐 것이 없으면 그렇게 알린다. */
   const [beforeEdit, setBeforeEdit] = useState("");
@@ -951,8 +951,8 @@ export default function Charts() {
      더한다. 그래야 실적이 센 것과 상세에 보이는 것이 어긋나지 않는다. */
   /* 카드마다의 실적 구간과 그 구간의 혜택. 실적 띠가 칸을 가르는 데도,
      [혜택] 팝업이 펼치는 데도 같은 자료를 쓴다.
-     구간은 결제 수단 화면에서 적어 두는 값이라 자주 바뀌지 않는다 —
-     화면에 들어올 때 카드 갈래만 한 번 받아 둔다. */
+     구간은 결제 수단 화면에서 적는 값이라 자주 바뀌지 않는다 —
+     화면에 들어올 때 카드 갈래만 한 번 받는다. */
   const [tiers, setTiers] = useState<Record<string, PerkTier[]>>({});
 
   useEffect(() => {
@@ -1001,7 +1001,7 @@ export default function Charts() {
       const pad = (n: number) => String(n).padStart(2, "0");
       const last = new Date(y, m, 0).getDate();
       const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
-      /* 되돌아왔을 때 이 자리가 그대로이도록 저장한다 — 보던 달 · 켜 둔 것 ·
+      /* 되돌아왔을 때 이 자리가 그대로이도록 저장한다 — 보던 달 · 켠 것 ·
          걸린 조건, 그리고 카드 실적을 펼친 채 몇째 장을 보고 있었는지. */
       stash("charts", {
         yearMonth,
@@ -1090,7 +1090,7 @@ export default function Charts() {
             place_name: x.place_name as string,
             /* 씀씀이의 카드 실적만 본다. 다른 그림은 이 표를 보지 않는다. */
             perf_exclude: (x.perf_exclude as number) ?? 0,
-            /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
+            /* 손으로 정한 고정 · 변동. 비면 분류에 정한 것을 따른다. */
             fixed_flag: (x.fixed_flag as number | null) ?? null,
             counterpart_ids: (x.counterpart_ids as number[]) ?? [],
           });
@@ -1137,7 +1137,7 @@ export default function Charts() {
 
 
 
-  /* 넘겨 볼 수 있는 끝 — 적어 둔 것이 있는 달부터 이 달 두 달 뒤까지.
+  /* 넘겨 볼 수 있는 끝 — 적은 것이 있는 달부터 이 달 두 달 뒤까지.
      아직 오지 않은 달이나 적은 것이 하나도 없는 달로는 넘어가지 않는다. */
   const { min: 달바닥, max: 달천장 } = useMonthSpan();
   const daysInMonth = useMemo(() => {
@@ -1262,7 +1262,7 @@ export default function Charts() {
             place_name: x.place_name as string,
             /* 씀씀이의 카드 실적만 본다. 다른 그림은 이 표를 보지 않는다. */
             perf_exclude: (x.perf_exclude as number) ?? 0,
-            /* 손으로 정해 둔 고정 · 변동. 비면 분류에 정해 둔 것을 따른다. */
+            /* 손으로 정한 고정 · 변동. 비면 분류에 정한 것을 따른다. */
             fixed_flag: (x.fixed_flag as number | null) ?? null,
             counterpart_ids: (x.counterpart_ids as number[]) ?? [],
           });
@@ -1364,7 +1364,7 @@ export default function Charts() {
       sums[d.dow] += d.지출;
     });
     /* 주말만 색을 달리해 한 주의 마디가 보이게 한다.
-       빛깔을 자료에 실어 두면 막대 · 말풍선이 한 값을 본다. */
+       빛깔을 자료에 실으면 막대 · 말풍선이 한 값을 본다. */
     return WEEKDAYS.map((w, i) => ({
       요일: w,
       지출: Math.round(sums[i]),
@@ -1376,9 +1376,9 @@ export default function Charts() {
 
   /* ─── 전월 대비 ───────────────────────────────────────────────
      그림마다 머리말의 단추로 켜면 지난달이 제 빛깔로 연하게 뒤에 깔린다.
-     들어올 때는 늘 꺼진 채이고, 켠 것을 담아 두지 않는다.
+     들어올 때는 늘 꺼진 채이고, 켠 것을 담지 않는다.
 
-     지난달 값은 추이가 이미 받아 둔 열여덟 달에서 꺼내 쓴다. 따로 물어 오면
+     지난달 값은 추이가 이미 받은 열여덟 달에서 꺼내 쓴다. 따로 물어 오면
      걸러 내기와 Exclude, Blur 규칙을 두 벌로 두게 되고, 언젠가 한쪽만 고쳐져
      겹쳐 놓은 두 달이 서로 다른 잣대로 그려진다.
 
@@ -1423,7 +1423,7 @@ export default function Charts() {
     });
   }, [byDay, prevByDay]);
 
-  /* 요일만은 일자를 옮겨 붙이지 않는다. 말일에 몰아 둔 값을 이 달 요일로 세면
+  /* 요일만은 일자를 옮겨 붙이지 않는다. 말일에 몰아넣은 값을 이 달 요일로 세면
      지난달 목요일에 쓴 돈이 이 달 토요일 자리에 가서 앉는다. 지난달은 제
      달력으로 센다. 보는 창은 이 달 그림과 같게 맞춘다 — 이 달이 20일까지
      그려져 있으면 지난달도 20일까지만 센다. */
@@ -1477,7 +1477,7 @@ export default function Charts() {
     return byCatPrev.filter((c) => c.name !== "기타" && !쓴것.has(c.name));
   }, [shown, cat1List, byCatPrev]);
 
-  /* 도넛 조각마다 지난달 몫을 실어 둔다. 고리는 손이 닿지 않게 두고, 이 달
+  /* 도넛 조각마다 지난달 몫을 싣는다. 고리는 손이 닿지 않게 두고, 이 달
      조각 하나만 눌러도 두 달이 함께 보이게 하려는 것이다. 결제 수단별과 같은
      셈법으로 "기타"에 묶인 몫도 그 줄이 받는다. */
   const catRows = useMemo(() => {
@@ -1535,12 +1535,12 @@ export default function Charts() {
      끌어서 보려면 말풍선이 그동안 서 있어야 한다. */
   const [tipAt, setTipAt] = useState<{ key: string; i?: number } | null>(null);
   /* 말풍선을 붙이는 손. 그림 몸통을 누르면 그 그림으로, 항목을 누르면
-     몇째 항목인지까지 적어 둔다. 자리를 적어 두면 Recharts가 손길을 다시 재다가
+     몇째 항목인지까지 적는다. 자리를 적으면 Recharts가 손길을 다시 재다가
      놓치더라도 defaultIndex로 그 자리를 되살릴 수 있다. */
   const 붙이기 = useCallback(
     (key: string, i?: number) =>
       setTipAt((p) => {
-        /* 몸통을 누른 것(i 없음)은 적어 둔 자리를 지우지 않는다. 지우면
+        /* 몸통을 누른 것(i 없음)은 적은 자리를 지우지 않는다. 지우면
            말풍선을 누를 때마다 자리가 날아가 제자리로 되살릴 수 없다. */
         if (p?.key === key && (i === undefined || p.i === i)) return p;
         return { key, i: i ?? (p?.key === key ? p.i : undefined) };
@@ -1683,7 +1683,7 @@ export default function Charts() {
       const code = String(r.pay_method);
       if (!cards.some((c) => c.code === code)) return;
       const cur = seen.get(code) ?? empty();
-      /* 실적에서 빼 둔 건(상품권 · 세금 등)은 그은 돈 · 건수 · 내 몫 어디에도
+      /* 실적에서 뺀 건(상품권 · 세금 등)은 그은 돈 · 건수 · 내 몫 어디에도
          넣지 않는다. 얼마를 뺐는지만 따로 모아 딱지로 알린다. 쓴 돈은 쓴
          돈이므로 다른 그림은 그대로 센다. */
       if (r.perf_exclude) {
@@ -1704,7 +1704,7 @@ export default function Charts() {
   }, [shown, payList]);
 
   /* 카드 실적은 펼친 채로 연다. 구간을 채웠는지는 달이 가는 내내 궁금한
-     것이라, 볼 때마다 접힌 것을 한 번씩 펴게 할 일이 아니다. 접어 두면
+     것이라, 볼 때마다 접힌 것을 한 번씩 펴게 할 일이 아니다. 접으면
      그대로 남는 것이 아니라 들어올 때마다 다시 접히기 때문이다. */
   const [cardOpen, setCardOpen] = useState(() => kept?.cardOpen ?? true);
 
@@ -1735,7 +1735,7 @@ export default function Charts() {
     cardAtRef.current = cardAt;
   }, [cardAt]);
 
-  /* 되돌아왔다면 보던 장으로 굴려 둔다. 카드가 다 실린 뒤라야 굴릴 자리가 있다. */
+  /* 되돌아왔다면 보던 장으로 굴린다. 카드가 다 실린 뒤라야 굴릴 자리가 있다. */
   const restoreAt = useRef(kept?.cardOpen ? kept.cardAt : 0);
   useEffect(() => {
     const el = cardStripRef.current;
@@ -1774,11 +1774,11 @@ export default function Charts() {
     return () => ro.disconnect();
   }, [cardOpen, byCard.length]);
 
-  /* 지금 보고 있는 그대로 — 이 달 · 켜 둔 자료 갈래 · 걸린 조건 — 를 상세로
+  /* 지금 보고 있는 그대로 — 이 달 · 켠 자료 갈래 · 걸린 조건 — 를 상세로
      펼친다. 카드 실적을
      꾹 눌러 가는 길(openCardDetail)과 한 가지만 다르다: 거기서는 그 카드
      하나로 좁히지만, 여기서는 좁히지 않는다.
-     맡겨 두는 자리에는 카드 실적을 펼쳐 두었는지를 지금 값 그대로 담는다 —
+     맡기는 자리에는 카드 실적을 펼쳐 두었는지를 지금 값 그대로 담는다 —
      꾹 누르는 길과 달리 접힌 채로도 누를 수 있는 단추다. */
   const openDetail = useCallback(() => {
     const [y, m] = yearMonth.split("-").map(Number);
@@ -1808,8 +1808,8 @@ export default function Charts() {
   );
   const empty = shown.length === 0;
 
-  /* 그림 카드 여섯. 코드가 적어 둔 이 차례가 기본값이고, 사람이 바꾼 차례는
-     서버에 담아 두었다가 덮어쓴다. 껍데기(카드 틀·손잡이)는 ChartCardBox가
+  /* 그림 카드 여섯. 코드가 적은 이 차례가 기본값이고, 사람이 바꾼 차례는
+     서버에 담았다가 덮어쓴다. 껍데기(카드 틀·손잡이)는 ChartCardBox가
      맡으므로 여기에는 안쪽 그림만 든다. */
   const CARD_DEFS: CardDef[] = [
     {
@@ -1971,7 +1971,7 @@ export default function Charts() {
                     <Line
                       type="linear"
                       dataKey="지출"
-                      /* 열두 달을 훑는 그림이라 이 달을 말하는 그림들과 톤을 갈라 둔다.
+                      /* 열두 달을 훑는 그림이라 이 달을 말하는 그림들과 톤을 가른다.
                          팔레트의 회색은 갈래 색이 아니라 눈에 덜 띄어야 하는 자리의 것이다. */
                       stroke={ETC_COLOR()}
                       strokeWidth={3}
@@ -1993,7 +1993,7 @@ export default function Charts() {
         <>
               <header className="chart-card__head chart-card__head--drill">
                 <h3 className="chart-card__title">중분류별</h3>
-                {/* 고른 것이 없어도 자리는 늘 잡아 둔다 — 단추가 나타났다 사라질 때마다.
+                {/* 고른 것이 없어도 자리는 늘 잡는다 — 단추가 나타났다 사라질 때마다.
                     머리말 높이가 달라지면 아래 그림이 그만큼 들썩인다. */}
                 <button
                   type="button"
@@ -2282,7 +2282,7 @@ export default function Charts() {
     useSensor(TouchSensor, { activationConstraint: { delay: 160, tolerance: 6 } })
   );
 
-  /* 저장된 차례와 감춤을 받아 온다. 표에 없는 카드는 코드가 적어 둔
+  /* 저장된 차례와 감춤을 받아 온다. 표에 없는 카드는 코드가 적은
      차례 그대로 맨 뒤에 선다 — 그림을 새로 만들어도 저절로 따라온다. */
   useEffect(() => {
     axios
@@ -2292,7 +2292,7 @@ export default function Charts() {
         const saved = rows.map((x) => x.card_key).filter((k) => CARD_KEYS.includes(k));
         setCardOrder([...saved, ...CARD_KEYS.filter((k) => !saved.includes(k))]);
         setHidden(new Set(rows.filter((x) => !x.is_active).map((x) => x.card_key)));
-        /* 저장된 것이 있으면 그것을, 없으면 코드가 적어 둔 넓이를 쓴다. */
+        /* 저장된 것이 있으면 그것을, 없으면 코드가 적은 넓이를 쓴다. */
         setWideSet(
           new Set(
             CARD_KEYS.filter((k) => {
@@ -2309,7 +2309,7 @@ export default function Charts() {
   }, []);
 
   /* 그릴 카드 — 평소에는 감춘 것을 빼고, 편집 모드에서는 되살릴 수 있도록 남긴다.
-     여섯 장뿐이라 따로 기억해 둘 것 없이 그때그때 고른다. */
+     여섯 장뿐이라 따로 기억할 것 없이 그때그때 고른다. */
   const byKey = new Map(CARD_DEFS.map((c) => [c.key, c]));
   const shownCards = (cardOrder.map((k) => byKey.get(k)).filter(Boolean) as CardDef[])
     .filter((c) => editMode || !hidden.has(c.key));
@@ -2347,7 +2347,7 @@ export default function Charts() {
     JSON.stringify(order.map((k) => [k, off.has(k) ? 0 : 1, big.has(k) ? 2 : 1]));
 
   /* 뒤로 가기 · Esc로 편집을 무른다. 화면을 떠나는 대신 편집만 닫는다 —
-     다른 설정 화면이 모두 그렇다. 들어올 때 떠 둔 지문에서 차례 · 감춤 ·
+     다른 설정 화면이 모두 그렇다. 들어올 때 뜬 지문에서 차례 · 감춤 ·
      넓이를 되살려 손댄 내용을 버린다.
      Backspace는 받지 않는다. 카드를 끌어 옮기던 손이 그 키를 스치면 편집이
      닫혀 옮기던 것이 사라진다. */
@@ -2360,7 +2360,7 @@ export default function Charts() {
         setHidden(new Set(떠둔것.filter(([, on]) => !on).map(([k]) => k)));
         setWideSet(new Set(떠둔것.filter(([, , span]) => span >= 2).map(([k]) => k)));
       } catch {
-        /* 떠 둔 것이 없으면 보이는 그대로 둔다 — 편집만 닫는다. */
+        /* 뜬 것이 없으면 보이는 그대로 둔다 — 편집만 닫는다. */
       }
       setEditMode(false);
     },
@@ -2592,7 +2592,7 @@ export default function Charts() {
           cat3List={cat3List}
           payList={payList}
           cpList={cpList}
-          /* 이 화면은 나가는 돈만 다룬다 — 고를 것이 없어 칸을 빼 둔다. */
+          /* 이 화면은 나가는 돈만 다룬다 — 고를 것이 없어 칸을 뺀다. */
           showInout={false}
           onClose={closeFilter}
           onApply={() => {
@@ -2834,7 +2834,7 @@ function CatDrillPopup({
 
           {/* 넘어가는 단추와 돌아오는 단추가 한자리를 나눠 쓴다.
               이름은 늘 갈 곳을 적는다 — 들어갈 때는 그 소분류, 나올 때는 중분류다.
-              고른 것이 없을 때도 자리는 남겨 둬야 머리말이 들썩이지 않는다. */}
+              고른 것이 없을 때도 자리는 남겨야 머리말이 들썩이지 않는다. */}
           <button
             type="button"
             className={`chart-drill-btn${picked ? "" : " is-empty"}`}

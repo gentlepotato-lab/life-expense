@@ -20,7 +20,7 @@ import { prefOn } from "../../utils/prefs";
  * 어느 화면에서나 오른쪽 위에 떠 있는 단추 넷 —
  * 새로 고침 · 만년필(쓰기) · 계산기 · 종(잔소리).
  *
- * 자리 · 생김새 · 여는 팝업이 화면마다 어긋나면 안 되므로 한자리에 모아 두고
+ * 자리 · 생김새 · 여는 팝업이 화면마다 어긋나면 안 되므로 한자리에 모으고
  * 화면들은 이것만 부른다. 넷을 한 줄(flex)에 세워 사이 간격을 CSS 한 곳에서
  * 정한다 — 각자 오른쪽 끝에서 몇 픽셀인지 따로 세면 창 폭이 바뀔 때마다.
  * 어긋난다.
@@ -76,7 +76,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
   };
 
   /* 팝업이 떠 있는 동안 뒤 화면이 밀리지 않게 한다.
-     열려 있을 때만 손을 대므로, 이 화면의 다른 팝업이 걸어 둔 것을
+     열려 있을 때만 손을 대므로, 이 화면의 다른 팝업이 건 것을
      지우고 나가는 일이 없다. */
   useEffect(() => {
     if (!writeOpen && !slideOpen && !calculatorOpen && !deckOpen && !nudgeOpen) return;

@@ -41,7 +41,7 @@ export default function NudgeGroup({
 
 /** 한 줄. 왼쪽 색 막대는 내역 카드가 쓰던 어법 그대로다. */
 function NudgeLine({ nudge, onPick }: { nudge: Nudge; onPick?: (n: Nudge) => void }) {
-  /* 가려 둔 갈래가 섞이면 테이프를 붙인다. 옆으로 끌면 잠깐 걷힌다 —
+  /* 가린 갈래가 섞이면 테이프를 붙인다. 옆으로 끌면 잠깐 걷힌다 —
      내역 카드의 금액과 같은 손놀림이다. */
   const [revealed, setRevealed] = useState(false);
   const onDrag = useRevealDrag(setRevealed);

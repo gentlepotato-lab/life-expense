@@ -75,7 +75,7 @@ const VARS = ["--peel", "--peel-cut", "--peel-flap", "--peel-grad", "--peel-shad
  */
 const FOLD_DEG = (Math.acos(-CURL) * 180) / Math.PI;
 
-/** 끌 때 책갈피 · 클립이 함께 잡혀 넘어가도록 재어 두는 것 */
+/** 끌 때 책갈피 · 클립이 함께 잡혀 넘어가도록 재는 것 */
 type Mark = {
   /** 쉴 때 걸려 있는 제 변형 — 뒤에 그대로 붙여 쓴다. */
   base: string;
@@ -87,7 +87,7 @@ type Mark = {
 };
 
 /**
- * 카드에 걸린 표(책갈피 · 클립)를 재 둔다. 끌기 시작할 때 한 번만 부른다 —
+ * 카드에 걸린 표(책갈피 · 클립)를 잰다. 끌기 시작할 때 한 번만 부른다 —
  * 매 틀마다 재면 그만큼 셈이 는다.
  */
 function markOf(card: HTMLElement, nx: number, ny: number): Mark | null {
@@ -189,7 +189,7 @@ function paint(card: HTMLElement, p: number, w: number, h: number, full: number,
   const g = shape(w, h, p * full);
   if (!g) {
     VARS.forEach((v) => card.style.removeProperty(v));
-    /* 표는 쉴 때 걸려 있던 제 변형으로 돌려 둔다. 지워 버리면 끌던 겹이
+    /* 표는 쉴 때 걸려 있던 제 변형으로 돌린다. 지워 버리면 끌던 겹이
        아직 붙어 있는 동안 표가 제자리에서 홱 돌아간다. */
     if (mark) card.style.setProperty("--peel-mark", mark.base);
     return;
