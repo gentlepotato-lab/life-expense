@@ -2285,6 +2285,7 @@ html.modal-open .calculator-trigger-button {
 }
 
 .popup-panel {
+  position: relative;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-modal);
   animation: panel-in 180ms var(--ease);
@@ -2297,6 +2298,7 @@ html.modal-open .calculator-trigger-button {
 
 /* ─── 편집 팝업 ─────────────────────────────────────────────── */
 .edit-modal {
+  position: relative;
   width: 100%;
   max-width: 560px;
   max-height: 88vh;
@@ -4214,12 +4216,42 @@ button {
   flex: 0 0 auto;
 }
 
+/* 두 사람 자리를 늘 비워 두고, 넘치면 이 안에서만 구른다.
+
+   사람을 더할 때마다 팝업이 커졌다 작아졌다 하면 손이 가는 자리가 매번
+   달라진다. 줄이 없든 넷이든 이 칸의 키는 같다 — 그래서 팝업 크기도 같다.
+
+   라벨 줄은 붙여 둔다. 구를 때 Who?·금액·메모가 함께 올라가 버리면 무슨
+   칸인지 알 수 없다. */
 .split-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   column-gap: 7px;
   row-gap: 5px;
   align-items: center;
+  /* 비워 둔 자리를 위에서부터 채운다. 가운데로 모으면 한 사람만 있을 때
+     그 줄이 빈 칸 한가운데에 떠 보인다. */
+  align-content: start;
+  /* 380px 이하에서는 한 사람이 두 줄을 쓴다(6:6:12). */
+  height: calc(var(--control-h) * 4 + 5px * 4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* 이름표 줄 — 구르는 칸 밖에 있지만 칸은 같이 나눠 쓴다. */
+.split-labels {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: 7px;
+  row-gap: 5px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+@media (min-width: 381px) {
+  .split-grid {
+    height: calc(var(--control-h) * 2 + 5px * 2);
+  }
 }
 
 /* 라벨은 한 번만 — 줄마다 반복하면 눈이 어지럽다. */
@@ -4243,19 +4275,7 @@ button {
 }
 
 .split-cell > input,
-.split-cell > .ms-wrap,
-.split-cell__new {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.split-cell__new {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.split-cell__new > input {
+.split-cell > .ms-wrap {
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -20038,6 +20058,33 @@ html.modal-open .add-btn {
 :root[data-motion="off"] .export-btn.is-busy > svg {
   animation: none;
   opacity: 0.5;
+}
+
+/* ─────────────────────────────────────────────
+   181. N빵 — 함께한 상대를 그 자리에서 등록(2026-10-14)
+
+   전에는 Who? 칸 안에서 이름을 적었다. 그 칸은 12칸 그리드의 4칸뿐이라
+   360px에서 이름에 남는 자리가 60px도 되지 않았고, 거기에 ✓와 × 단추가
+   또 끼어 적을 수가 없었다.
+
+   팝업 위에 팝업을 또 띄우지는 않는다. 담긴 팝업을 그대로 덮는다 — 띄우는
+   것이 아니라 덮는 것이라 아래 칸이 한 칸도 밀리지 않는다. 머리말과 바닥은
+   팝업의 것(.edit-modal__head, __body, __foot)을 그대로 써서 그 팝업이
+   잠깐 다른 화면이 된 것처럼 보인다.
+
+   쓰기처럼 팝업이 아닌 데서도 쓰이므로, 덮을 팝업이 없으면 편집기 제 몸을
+   덮는다(SplitEditor가 고른다).
+────────────────────────────────────────────── */
+/* 등록 판은 제 크기로 선다 — 함께한 상대 화면의 [새 항목]과 같은 판이다.
+   담긴 팝업을 그대로 늘여 쓰면 적을 것 셋뿐인데 판만 커다랗게 남는다. */
+.split-new {
+  z-index: 5;
+}
+
+/* 등록 판이 떠 있는 동안 원래 판은 치운다. 한 자리에 하나만 선다 — 팝업이
+   겹쳐 뜨는 것처럼 보이면 안 된다. */
+.split-hidden {
+  display: none !important;
 }
 
 /* ─────────────────────────────────────────────
