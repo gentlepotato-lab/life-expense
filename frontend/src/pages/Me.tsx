@@ -197,7 +197,7 @@ export default function Me() {
     Promise.all([
       axios.get("/profile").then((r) => r.data).catch(() => EMPTY),
       // 설정은 실패를 빈 값과 구분한다. 빈 값으로 받으면 아래에서 그것으로
-      // 브라우저에 담아 둔 사본까지 덮어, 빛깔과 밝기가 기본값으로 돌아간다.
+      // 브라우저에 남은 사본까지 덮어, 빛깔과 밝기가 기본값으로 돌아간다.
       axios.get("/profile/prefs").then((r) => r.data).catch(() => null),
       axios.get("/profile/summary").then((r) => r.data).catch(() => null),
     ]).then(([p, f, s]) => {
@@ -206,7 +206,7 @@ export default function Me() {
         setPrefs(f);
         putPrefs(f);
       } else {
-        say.warn("설정을 불러오지 못했습니다. 담아 둔 값으로 보여 드립니다.");
+        say.warn("설정을 불러오지 못했습니다.");
       }
       setSummary(s);
       setReady(true);
@@ -636,7 +636,7 @@ export default function Me() {
               <div className="me-step">
                 {STEPS.map((s) => {
                   /* 예전에는 운영체제를 따라가는 자리가 있었다. 걷어 냈지만
-                     그때 담아 둔 값이 남아 있을 수 있어, 그런 경우에는 지금
+                     그때 저장된 값이 남아 있을 수 있어, 그런 경우에는 지금
                      끼워진 칸을 고른 것으로 보여 준다 — 아무 칸에도 불이
                      들어오지 않으면 고장으로 읽힌다. */
                   const 자동 = (prefs.theme_mode ?? DEFAULT_MODE) === "system";

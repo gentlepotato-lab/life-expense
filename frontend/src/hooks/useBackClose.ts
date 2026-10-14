@@ -82,7 +82,7 @@ export default function useBackClose(
   close: () => void,
   backspace: boolean = true
 ) {
-  /* close가 매번 새 함수로 와도 효과를 다시 걸지 않도록 담아 둔다. */
+  /* close가 매번 새 함수로 와도 효과를 다시 걸지 않도록 쥐고 있는다. */
   const closeRef = useRef(close);
   closeRef.current = close;
 

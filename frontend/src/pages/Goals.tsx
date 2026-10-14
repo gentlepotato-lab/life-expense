@@ -359,7 +359,7 @@ export default function Goals() {
 
   /* 뒤로 가기 · Esc로 편집을 무른다. 화면을 떠나는 대신 편집만 닫는다 —
      다른 설정 화면이 모두 그렇다(Categories · Counterparts · PaymentMethods).
-     고치던 칸은 담아 둔 도전으로 되돌려 손댄 내용을 버린다.
+     고치던 칸은 저장된 도전으로 되돌려 손댄 내용을 버린다.
      Backspace는 받지 않는다. 금액 칸에서 지우다 한 글자가 비면 그 키가
      편집을 닫아 버린다. */
   useBackClose(

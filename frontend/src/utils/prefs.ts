@@ -12,7 +12,7 @@ import axios from "../api/client";
 
 export type Prefs = Record<string, string>;
 
-/** 담아 둔 것이 없을 때의 값 — 서버의 PREF_KEYS와 같아야 한다. */
+/** 저장된 것이 없을 때의 값 — 서버의 PREF_KEYS와 같아야 한다. */
 const FALLBACK: Prefs = {
   blur_default: "1",
   home_path: "/",
@@ -42,7 +42,7 @@ const readStore = (): Prefs => {
 
 let cache: Prefs = { ...FALLBACK, ...readStore() };
 
-/** 담아 둔 값 하나 */
+/** 저장된 값 하나 */
 export function pref(key: string): string {
   return cache[key] ?? FALLBACK[key] ?? "";
 }
@@ -68,7 +68,7 @@ export async function loadPrefs(): Promise<void> {
     const res = await axios.get<Prefs>("/profile/prefs");
     putPrefs(res.data);
   } catch {
-    /* 못 받아 오면 지난번에 담아 둔 것으로 돈다. */
+    /* 못 받아 오면 지난번에 저장된 것으로 돈다. */
   }
 }
 

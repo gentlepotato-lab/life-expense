@@ -1075,7 +1075,7 @@ export default function ScheduledEntries() {
         <div className="scheduled-card-list">
           {dateGroups.map((group) => (
           <section key={group.date || "no-date"} className="date-group">
-            {/* 예정일이 없는 단은 날짜 대신 무엇을 모아 둔 단인지 적는다.
+            {/* 예정일이 없는 단은 날짜 대신 무엇을 모은 단인지 적는다.
                 대개 감춘 것만 모이지만, 끝난 것을 다시 보이게 하면 감춤이
                 아니면서 예정일도 없는 줄이 섞인다 — 그때는 이름을 바꿔
                 단다. 어느 쪽이든 안 나갈 돈이라 합계는 접는다. */}

@@ -3,7 +3,7 @@
  *
  * 달력에서 날을 고르고, 씀씀이에서 카드 실적을 펼쳐 둔 채 상세로 건너뛰면
  * 되돌아왔을 때 그 화면은 새로 그려진다 — 고른 날도 펼친 것도 사라진다.
- * 그래서 건너뛰기 전에 그 화면이 제 상태를 여기에 맡겨 둔다.
+ * 그래서 건너뛰기 전에 그 화면이 제 상태를 여기에 맡긴다.
  *
  * 되돌아온 것인지는 브라우저가 들고 있는 **자리 번호**로 가린다. 라우터가
  * 오갈 때마다 history.state.idx에 한 칸씩 번호를 매겨 두는데, 뒤로 가면 맡길
@@ -31,7 +31,7 @@ export function stash(key: string, snap: unknown): void {
   bag.set(key, { idx, snap });
 }
 
-/** 맡겨 둔 것을 꺼낸다. 맡길 때의 그 자리로 되돌아온 것이 아니면 주지 않는다. */
+/** 맡긴 것을 꺼낸다. 맡길 때의 그 자리로 되돌아온 것이 아니면 주지 않는다. */
 export function takeStash<T>(key: string): T | null {
   const kept = bag.get(key);
   if (!kept) return null;

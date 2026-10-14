@@ -914,7 +914,7 @@ export default function Charts() {
 
   /* 어떤 갈래를 셈에 넣을지 — 고정 지출 · 변동 지출. 들어올 때는 둘 다 켜 둔다.
      이 화면은 나간 돈만 세므로 수입 두 칸은 목록에 없다. */
-  /* 상세로 갔다 되돌아오면 고른 갈래도 그대로다 — 맡겨 둔 것을 되살린다. */
+  /* 상세로 갔다 되돌아오면 고른 갈래도 그대로다 — 저장된 것을 되살린다. */
   const [fixPick, setFixPick] = useState<FixedPick>(() => kept?.fixPick ?? ALL_FIXED_PICK);
 
   const [filterOpen, setFilterOpen] = useState(false);
@@ -1001,7 +1001,7 @@ export default function Charts() {
       const pad = (n: number) => String(n).padStart(2, "0");
       const last = new Date(y, m, 0).getDate();
       const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
-      /* 되돌아왔을 때 이 자리가 그대로이도록 맡겨 둔다 — 보던 달 · 켜 둔 것 ·
+      /* 되돌아왔을 때 이 자리가 그대로이도록 저장한다 — 보던 달 · 켜 둔 것 ·
          걸린 조건, 그리고 카드 실적을 펼친 채 몇째 장을 보고 있었는지. */
       stash("charts", {
         yearMonth,
@@ -1322,7 +1322,7 @@ export default function Charts() {
   /* 소분류 하나를 더 파고들었을 때 쓸 세분류 묶음 — 소분류 이름으로 찾는다.
      세분류를 아예 안 쓰는 소분류는 여기에 담지 않는다. 그래야 팝업에서
      "펼칠 것이 있는 줄"과 없는 줄을 가릴 수 있다.
-     하나라도 세분류가 붙어 있으면 나머지는 "세분류 없음"으로 모아 둔다 —
+     하나라도 세분류가 붙어 있으면 나머지는 "세분류 없음"으로 모은다 —
      그러지 않으면 펼친 쪽 합이 왼쪽 막대보다 작아 보인다. */
   const byCat3 = useMemo(() => {
     const out = new Map<string, { name: string; value: number; color: string }[]>();
@@ -2282,7 +2282,7 @@ export default function Charts() {
     useSensor(TouchSensor, { activationConstraint: { delay: 160, tolerance: 6 } })
   );
 
-  /* 담아 둔 차례와 감춤을 받아 온다. 표에 없는 카드는 코드가 적어 둔
+  /* 저장된 차례와 감춤을 받아 온다. 표에 없는 카드는 코드가 적어 둔
      차례 그대로 맨 뒤에 선다 — 그림을 새로 만들어도 저절로 따라온다. */
   useEffect(() => {
     axios
@@ -2292,7 +2292,7 @@ export default function Charts() {
         const saved = rows.map((x) => x.card_key).filter((k) => CARD_KEYS.includes(k));
         setCardOrder([...saved, ...CARD_KEYS.filter((k) => !saved.includes(k))]);
         setHidden(new Set(rows.filter((x) => !x.is_active).map((x) => x.card_key)));
-        /* 담아 둔 것이 있으면 그것을, 없으면 코드가 적어 둔 넓이를 쓴다. */
+        /* 저장된 것이 있으면 그것을, 없으면 코드가 적어 둔 넓이를 쓴다. */
         setWideSet(
           new Set(
             CARD_KEYS.filter((k) => {
