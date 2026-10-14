@@ -1182,7 +1182,6 @@ export default function ScheduledEntries() {
           onClose={closeEditor}
           onSave={saveDraft}
           onDelete={() => handleDelete(draft.schedule_id)}
-          deleteLabel="제거"
           /* 제거 바로 옆에 감추기를 둔다. 둘은 성격이 다르다 —
              제거는 되돌릴 수 없고, 감추기는 언제든 풀 수 있다. */
           footerAfterDelete={

@@ -444,9 +444,9 @@ export default function PendingEntries() {
 
     if (
       !(await ask({
-        title: "지출 내역으로 보내기",
-        body: "이 항목을 지출 내역으로 보낼까요?",
-        go: "보내기",
+        title: "지출 내역으로 전송",
+        body: "이 항목을 지출 내역으로 전송할까요?",
+        go: "전송",
       }))
     )
       return;
@@ -511,11 +511,11 @@ export default function PendingEntries() {
 
     if (
       !(await ask({
-        title: 선택함 ? "선택한 항목 지출 내역으로 보내기" : "모두 지출 내역으로 보내기",
+        title: 선택함 ? "선택한 항목 지출 내역으로 전송" : "모두 지출 내역으로 전송",
         body: 선택함
-          ? `선택한 ${보낼것.length}건을 지출 내역으로 보낼까요?`
-          : "모두 지출 내역으로 보낼까요?",
-        go: 선택함 ? "선택 보내기" : "모두 보내기",
+          ? `선택한 ${보낼것.length}건을 지출 내역으로 전송할까요?`
+          : "모두 지출 내역으로 전송할까요?",
+        go: 선택함 ? "선택 전송" : "모두 전송",
       }))
     )
       return;

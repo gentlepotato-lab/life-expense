@@ -47,7 +47,7 @@ export default function CardEditModal({
   onDelete,
   saveDisabled = false,
   saveLabel = "저장",
-  deleteLabel = "삭제",
+  deleteLabel = "제거",
   footerExtra,
   footerLead,
   footerAfterDelete,
