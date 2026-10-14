@@ -161,7 +161,9 @@ export default function GroupAddPopup({
             아직 어느 묶음에도 들지 않은 {KIND_NAME[kind]}만 보입니다.
           </p>
 
-          <div className="mk-list">
+          {/* 찾은 수와 상관없이 두 칸 반 자리다 — 달을 넘기거나 찾을 때마다
+              판이 들썩이면 안 된다. 묶음 팝업과 같은 자리를 쓴다. */}
+          <div className="mk-list mk-list--fixed">
             {!ready ? (
               <Waiting />
             ) : rows.length === 0 ? (

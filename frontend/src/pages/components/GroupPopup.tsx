@@ -1,7 +1,6 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import axios from "../../api/client";
 import useBackClose from "../../hooks/useBackClose";
-import useListFit from "../../hooks/useListFit";
 import GroupAddPopup from "./GroupAddPopup";
 import GroupItemList, { type GroupMeta } from "./GroupItemList";
 import { EditField } from "./CardEditModal";
@@ -56,8 +55,6 @@ export default function GroupPopup({
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [addOpen, setAddOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const 목록 = useRef<HTMLDivElement | null>(null);
-  useListFit(목록, group.items.length);
 
   /* 고쳐 놓고 아직 담지 않은 것이 있는지. 담긴 것과 글자만 견준다. */
   const 고친것 =
@@ -170,7 +167,13 @@ export default function GroupPopup({
 
   return (
     <>
-      <div className="popup-overlay" onClick={닫기}>
+      {/* 내역 추가가 떠 있는 동안에는 치운다. 추가도 제 겹을 깔아, 그대로 두면
+          겹이 둘로 겹쳐 보인다 — 팝업을 포개지 않고 갈아 끼운다. 지우지 않고
+          감추기만 하므로 고치던 이름과 메모, 목록을 내린 자리가 그대로 있다. */}
+      <div
+        className={`popup-overlay${addOpen ? " popup-overlay--swapped" : ""}`}
+        onClick={닫기}
+      >
         <div
           className="popup-panel popup-panel--framed"
           onClick={(e) => e.stopPropagation()}
@@ -240,7 +243,9 @@ export default function GroupPopup({
           </div>
 
           <div className="popup-body" style={{ paddingTop: 0 }}>
-            <div className="mk-list" ref={목록}>
+            {/* 담긴 수와 상관없이 두 칸 반 자리다 — 한 건짜리든 서른 건짜리든
+                판의 키가 같다. 넘치는 것은 이 안에서만 굴러간다. */}
+            <div className="mk-list mk-list--fixed">
               {group.items.length === 0 ? (
                 <p className="page-empty">담긴 내역이 없습니다.</p>
               ) : (
