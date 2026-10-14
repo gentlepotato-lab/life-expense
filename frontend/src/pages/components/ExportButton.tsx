@@ -1,6 +1,6 @@
 import { useState } from "react";
 import api from "../../api/client";
-import { say } from "../../utils/notify";
+import { ask, say } from "../../utils/notify";
 import { 조사 } from "../../utils/josa";
 import ExportIcon from "./ExportIcon";
 import { drawReceipt, receiptMeta, type ReceiptRow } from "../../utils/receipt";
@@ -71,6 +71,17 @@ export default function ExportButton({ 길, params, 이름, 빔, 영수증 = tru
       say.warn("내보낼 내역이 없습니다.");
       return;
     }
+
+    /* 되묻고 간다. 떠 있는 단추라 굴리다 스치기 쉬운 자리인데, 세 해치를
+       한 번에 담으면 4초가 걸린다. 무엇이 담기는지도 함께 적는다 — 화면에
+       걸린 조건 그대로 나가므로 지금 보고 있는 것이 곧 파일이다. */
+    const 예 = await ask({
+      title: "Excel로 내려받기",
+      body: `지금 화면에 걸린 조건 그대로 ${이름}${조사(이름, "을", "를")} 내려받습니다.`,
+      go: "내려받기",
+    });
+    if (!예) return;
+
     set받는중(true);
     try {
       /* 영수증은 canvas로만 그린다(utils/receipt.ts). 서버에서 한 벌 더

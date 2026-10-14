@@ -2547,6 +2547,15 @@ html.modal-open .calculator-trigger-button {
   --control-h-sm: 28px;     /* 카드 안 보조 버튼 */
   --control-px: 10px;       /* 좌우 안쪽 여백 */
 
+  /* 떠 있는 동그란 단추 셋 — 맨 위로 · 담기 · 내보내기.
+     44는 손가락으로 눌러 빗나가지 않는 가장 작은 치수다. 좁은 화면에서도
+     줄이지 않는다 — 떠 있는 것이라 자리를 다투지 않고, 손가락 크기는 화면
+     폭을 따라 줄지 않는다.
+     테두리는 점선이고 기호와 같은 빛깔을 옅게 쓴다 — 빛깔을 갈아도 함께
+     간다. 셋이 같은 값을 쓰는데 따로 적어 두면 반드시 어긋난다. */
+  --fab-size: 44px;
+  --fab-edge: color-mix(in srgb, var(--color-primary) 35%, transparent);
+
   /* 카드 밀도 */
   --card-py: 9px;
   --card-px: 12px;
@@ -12199,11 +12208,11 @@ html.pin-off .cp-page > .is-pinned {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  min-width: 34px;
-  height: 34px;
+  width: var(--fab-size);
+  min-width: var(--fab-size);
+  height: var(--fab-size);
   padding: 0;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px dashed var(--fab-edge);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.6);
   box-shadow: var(--shadow-md);
@@ -12253,13 +12262,8 @@ html.modal-open .scroll-top {
   }
 }
 
-@media (max-width: 400px) {
-  .scroll-top {
-    width: 30px;
-    min-width: 30px;
-    height: 30px;
-  }
-}
+/* 좁은 화면에서도 줄이지 않는다. 떠 있는 것이라 자리를 다투지 않고,
+   손가락 크기는 화면 폭을 따라 줄지 않는다. */
 
 /* ─── 계산기도 다른 팝업처럼 뜬다 ─────────────────────────────
    쓰기 · 잔소리는 덮개가 스며들고 판이 살짝 올라오며 뜨는데 계산기만
@@ -19954,20 +19958,21 @@ body {
 
    맨 위로와 달리 늘 떠 있다. 화면 어디에 있든 내보낼 수 있어야 한다.
 ────────────────────────────────────────────── */
-.export-btn {
+.export-btn,
+.add-btn {
   position: fixed;
   right: var(--space-2);
-  /* 맨 위로(76px + 34px)의 바로 위. 둘 사이는 8px를 띄운다. */
-  bottom: calc(118px + env(safe-area-inset-bottom, 0px));
+  /* 맨 위로(76px + 44px)의 바로 위. 둘 사이는 8px를 띄운다. */
+  bottom: calc(128px + env(safe-area-inset-bottom, 0px));
   z-index: 10500;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  min-width: 34px;
-  height: 34px;
+  width: var(--fab-size);
+  min-width: var(--fab-size);
+  height: var(--fab-size);
   padding: 0;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px dashed var(--fab-edge);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.6);
   color: var(--color-primary);
@@ -19978,11 +19983,13 @@ body {
   transition: background 0.2s ease, transform 80ms var(--ease);
 }
 
-.export-btn:hover {
+.export-btn:hover,
+.add-btn:hover {
   background: rgba(255, 255, 255, 0.8);
 }
 
-.export-btn:active {
+.export-btn:active,
+.add-btn:active {
   transform: scale(0.92);
 }
 
@@ -20003,28 +20010,102 @@ body {
 }
 
 /* 팝업이 떠 있는 동안에는 비킨다 — 맨 위로와 같은 규칙이다. */
-html.modal-open .export-btn {
+html.modal-open .export-btn,
+html.modal-open .add-btn {
   opacity: 0;
   pointer-events: none;
 }
 
 @media (min-width: 769px) {
-  .export-btn {
+  .export-btn,
+  .add-btn {
     right: max(var(--space-3), calc(50% - 380px));
   }
 }
 
-/* 좁은 화면에서는 맨 위로와 같이 한 치수 줄인다. */
-@media (max-width: 400px) {
-  .export-btn {
-    width: 30px;
-    min-width: 30px;
-    height: 30px;
-    bottom: calc(114px + env(safe-area-inset-bottom, 0px));
-  }
-}
+
 
 :root[data-motion="off"] .export-btn.is-busy > svg {
   animation: none;
   opacity: 0.5;
+}
+
+/* ─────────────────────────────────────────────
+   180. 담기 — 떠 있는 단추(2026-10-14)
+
+   분류·결제 수단·돈쓴이·도전은 도구 줄의 점선 알약을 누르면 목록 위에 입력
+   칸이 펼쳐졌다. 넷이 저마다 다른 높이(67·95·95·123px)로 펼쳐지고 목록이
+   77~112px 내려가, 적고 나면 보던 줄을 다시 찾아 내려가야 했다. 정기 내역만
+   혼자 팝업이라 끝내는 자리도 둘로 갈렸다.
+
+   다섯을 한 꼴로 모은다. 여는 자리는 내보내기와 같은 칸이고, 값도 위에서
+   함께 적는다 — 둘로 나눠 적어 두면 한쪽만 고치는 날이 온다.
+
+   오른쪽 기둥의 규칙은 하나다. 맨 아래 칸(76px)은 맨 위로가 늘 예약한다 —
+   보이지 않을 때도 자리를 비워 둬야 굴리는 동안 위 단추가 움직이지 않는다.
+   그 위로는 할 일 단추가 바닥부터 채우고, 차례는 담기 · 내보내기다. 담기가
+   그 화면에서 할 일이라 손에 가까운 칸을 가진다.
+
+   그래서 담기가 없는 화면에서는 내보내기가 아래 칸에 선다 — 가장 손에 가까운
+   칸을 비워 두지 않는다. 둘이 함께 선 화면(지금은 정기 내역 하나)에서만
+   내보내기가 한 칸 비킨다.
+
+   어느 화면이 둘 다 갖는지는 적어 두지 않는다. 담기가 떠 있으면
+   AddButton이 html에 표를 남기고, 비키는 셈은 여기서만 한다. 화면이 늘어도
+   손댈 데가 없다.
+────────────────────────────────────────────── */
+html.has-add-btn .export-btn {
+  bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+}
+
+/* 좁은 화면에서는 단추가 한 치수 작아지므로 올리는 높이도 그만큼 줄인다.
+   179절의 좁은 화면 규칙보다 뒤에 둬야 한다 — 앞에 두면 그쪽 기본값이 덮는다. */
+
+
+/* 도전 담기 팝업 — 한 칸 안에 입력과 꼬리말이 함께 선다.
+
+   goal-add__row는 본디 펼치던 폼의 치수다(--set-input-h 22px, 금액 108px·
+   연월 104px 못 박음). 그대로 팝업에 들어오면 금액·시작월·종료월만 22px이
+   되어 옆 칸(32px)과 어긋나고, 칸을 다 채우지도 않는다.
+
+   금액 구간 두 칸(.filter-range)이 이미 같은 일을 한다 — 한 칸 안에 둘을
+   세우고 칸 폭을 나눠 쓴다. 그 셈을 그대로 가져온다. */
+.popup-panel .edit-field__control > .goal-add__row {
+  width: 100%;
+  min-width: 0;
+}
+
+.popup-panel .goal-add__row > .amount-input,
+.popup-panel .goal-add__row > .goal-add__memo,
+.popup-panel .goal-add__row > .goal-add__ym {
+  flex: 1 1 0;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+}
+
+.popup-panel .goal-add__row > .amount-input,
+.popup-panel .goal-add__row > .goal-add__memo,
+.popup-panel .goal-add__row .ms-display {
+  height: var(--control-h);
+  min-height: var(--control-h);
+  max-height: var(--control-h);
+}
+
+/* 글자 크기도 옆 칸을 따른다 — 설정 화면에서만 한 치수 작게 쓰던 값이다. */
+.popup-panel .goal-add__row > .amount-input,
+.popup-panel .goal-add__row > .goal-add__memo,
+.popup-panel .goal-add__ym .ms-value,
+.popup-panel .goal-add__ym .ms-placeholder {
+  font-size: var(--font-size-sm);
+}
+
+/* 편집 중에는 옅어진다. 눌림은 그대로 받아 왜 안 되는지 알린다 —
+   점선 알약이 하던 그대로다(.set-add-btn[aria-disabled]). */
+.add-btn[aria-disabled="true"] {
+  opacity: 0.45;
+}
+
+.add-btn[aria-disabled="true"]:hover {
+  background: rgba(255, 255, 255, 0.6);
 }

@@ -4,7 +4,7 @@
  * 맨 위로(ArrowUpIcon)와 한 식구라 값을 맞춘다. 24 상자에 선 두께 2,
  * 끝은 둥글게. 빛깔은 currentColor라 부르는 쪽 글자색을 따라간다.
  */
-export default function ExportIcon({ size = 18 }: { size?: number }) {
+export default function ExportIcon({ size = 24 }: { size?: number }) {
   return (
     <svg
       viewBox="0 0 24 24"

@@ -2,6 +2,8 @@ import { Fragment, useEffect, useState } from "react";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
 import SingleSelect from "./components/SingleSelect";
+import AddButton from "./components/AddButton";
+import CardEditModal, { EditField } from "./components/CardEditModal";
 import { apiErrorMessage } from "../utils/apiError";
 import EmojiPicker from "./components/EmojiPicker";
 import CollapseToggle, { CollapseAllButtons } from "./components/CollapseToggle";
@@ -261,8 +263,14 @@ export default function PaymentMethods() {
   const [list, setList] = useState<any[]>([]);
   const [newName, setNewName] = useState("");
   const [addOpen, setAddOpen] = useState(false);
-  /* 담던 것을 뒤로 가기로 접는다 — 설정 탭 네 화면이 모두 그렇다. */
-  useBackClose(addOpen, () => setAddOpen(false));
+
+  /* 담는 팝업이 떠 있는 동안은 뒤 화면이 굴러가지 않는다. 떠 있는 단추들도
+     이 표를 보고 비킨다 — 다른 화면의 팝업과 같은 규칙이다. */
+  useEffect(() => {
+    if (!addOpen) return;
+    document.documentElement.classList.add("modal-open");
+    return () => document.documentElement.classList.remove("modal-open");
+  }, [addOpen]);
 
   const [addCategoryId, setAddCategoryId] = useState<number | null>(null);
   /** 감춘 항목까지 보여 줄지. 꺼져 있으면 목록에서만 빠진다(상태에는 그대로 남는다) */
@@ -584,19 +592,6 @@ export default function PaymentMethods() {
             }
           />
 
-          {/* 담기와 고치기는 나란히 둔다 — 손이 가는 자리가 한 군데다. */}
-          <button
-            type="button"
-            className={`set-add-btn ${addOpen ? "on" : ""}`}
-            aria-disabled={editMode || undefined}
-            onClick={(e) =>
-              editMode ? showLock(e, "편집을 마친 후 추가하세요.") : setAddOpen((v) => !v)
-            }
-          >
-            <span className="set-add-btn__mark" aria-hidden="true">+</span>
-            새 항목 추가
-          </button>
-
           <button
             className="ui-btn primary"
             aria-disabled={addOpen || undefined}
@@ -620,56 +615,6 @@ export default function PaymentMethods() {
       </div>
 
       <div className="cat-card">
-        {addOpen && (
-          <div className="set-add-form set-add-form--col set-draft">
-            <div className="set-draft__head">
-              <span className="set-draft__name">새 항목</span>
-            </div>
-
-            <div className="set-add-form__row">
-              <input
-                className="cat-input"
-                placeholder="(결제 수단)"
-                value={newName}
-                autoFocus
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAdd();
-                }}
-              />
-
-              {/* 만들 때 구분까지 정해 둘 수 있다. 여기서도 새 구분을 만들 수 있다. */}
-              <div className="set-add-form__cat">
-                <SingleSelect
-                  noun="구분"
-                  options={[
-                    { value: NEW_CATEGORY, label: "[+] 새 항목 추가" },
-                    { value: "", label: "(구분 없음)" },
-                    ...categories.map((c) => ({
-                      value: String(c.category_id),
-                      label: c.name,
-                      icon: c.emoji,
-                    })),
-                  ]}
-                  selected={addCategoryId ? String(addCategoryId) : ""}
-                  onChange={(v) => {
-                    if (v === NEW_CATEGORY) {
-                      createCategoryForAdd();
-                      return;
-                    }
-                    setAddCategoryId(v ? Number(v) : null);
-                  }}
-                  placeholder="(구분)"
-                />
-              </div>
-
-              <button className="ui-btn" onClick={handleAdd}>
-                추가
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* 구분 자체의 순서 바꾸기. 안쪽에는 줄 순서용 DndContext가 따로 있다. */}
         <DndContext
           sensors={sensors}
@@ -974,6 +919,65 @@ export default function PaymentMethods() {
           onSave={saveTier}
         />
       )}
+
+      {/* 담기 — 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다. */}
+      {addOpen && (
+        <CardEditModal
+          title="새 항목"
+          onClose={() => setAddOpen(false)}
+          onSave={handleAdd}
+          saveLabel="추가"
+        >
+          <div className="edit-grid">
+            {/* 1행 — 이름과 그 묶음. 성격이 하나라 가르지 않는다. */}
+            <EditField label="결제 수단" span={6} required>
+            <input
+              className="cat-input"
+              placeholder="(결제 수단)"
+              value={newName}
+              autoFocus
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAdd();
+              }}
+            />
+            </EditField>
+
+            {/* 만들 때 구분까지 정해 둘 수 있다. 여기서도 새 구분을 만들 수 있다. */}
+            <EditField label="구분" span={6}>
+            <SingleSelect
+              noun="구분"
+              options={[
+                { value: NEW_CATEGORY, label: "[+] 새 항목 추가" },
+                { value: "", label: "(구분 없음)" },
+                ...categories.map((c) => ({
+                  value: String(c.category_id),
+                  label: c.name,
+                  icon: c.emoji,
+                })),
+              ]}
+              selected={addCategoryId ? String(addCategoryId) : ""}
+              onChange={(v) => {
+                if (v === NEW_CATEGORY) {
+                  createCategoryForAdd();
+                  return;
+                }
+                setAddCategoryId(v ? Number(v) : null);
+              }}
+                placeholder="(구분)"
+              />
+            </EditField>
+          </div>
+        </CardEditModal>
+      )}
+
+      <AddButton
+        이름="새 항목"
+        잠김={editMode}
+        onClick={(e) =>
+          editMode ? showLock(e, "편집을 마친 후 추가하세요.") : setAddOpen(true)
+        }
+      />
 
       <EditLockTip lockAt={lockAt} tipRef={tipRef} />
 

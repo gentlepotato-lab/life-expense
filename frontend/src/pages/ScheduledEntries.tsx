@@ -23,6 +23,7 @@ import ClipMark from "./components/ClipMark";
 import GroupMakePopup from "./components/GroupMakePopup";
 import type { ReceiptRow } from "../utils/receipt";
 import MemoPad from "./components/MemoPad";
+import AddButton from "./components/AddButton";
 import PerfExcludeButton from "./components/PerfExcludeButton";
 import FixedMark from "./components/FixedMark";
 import { BulbOnIcon, BulbOffIcon } from "./components/SkipIcons";
@@ -863,12 +864,6 @@ export default function ScheduledEntries() {
               onExpandAll={() => setCollapsedDays(new Set())}
               onCollapseAll={() => setCollapsedDays(new Set(dateGroups.map((g) => g.date)))}
             />
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="ui-btn primary scheduled-toolbar__btn scheduled-toolbar__btn--new"
-            >
-              [+] 새 정기 지출
-            </button>
           </div>
         </div>
       </div>
@@ -1073,7 +1068,7 @@ export default function ScheduledEntries() {
       {schedules.length === 0 ? (
         <p className="page-empty">
           정기 내역이 없습니다.
-          <span className="page-empty__hint">위 [+] 새 정기 지출 을 눌러 등록할 수 있습니다.</span>
+          <span className="page-empty__hint">오른쪽 아래 [+] 를 눌러 등록할 수 있습니다.</span>
         </p>
       ) : (
         <div className="scheduled-card-list">
@@ -1421,6 +1416,10 @@ export default function ScheduledEntries() {
 
       {/* 정기 내역은 되풀이 규칙이라 기간이 없다. 통째로 내보낸다. */}
       <ExportButton 길="scheduled" 이름="정기 내역" 빔={schedules.length === 0} 영수증={false} />
+
+      {/* 담기 — 뜨는 팝업은 그대로다. 바뀐 것은 여는 자리뿐이다. 설정 탭 네
+          화면과 같은 단추, 같은 칸에 선다. */}
+      <AddButton 이름="새 정기 지출" onClick={() => setShowForm(true)} />
 
       {/* 장소 선택 — 편집 팝업과 신규 등록 폼이 함께 쓴다. */}
       {placePickerFor && (

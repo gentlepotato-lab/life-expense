@@ -5,7 +5,7 @@
  * 두께 2(18px에서 1.5px), 끝은 둥글게 — 그 넷과 같은 값이다.
  * 빛깔은 currentColor라 부르는 쪽 글자색을 따라간다.
  */
-export default function ArrowUpIcon({ size = 18 }: { size?: number }) {
+export default function ArrowUpIcon({ size = 24 }: { size?: number }) {
   return (
     <svg
       viewBox="0 0 24 24"

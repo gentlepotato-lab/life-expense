@@ -3,6 +3,8 @@ import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
 import { apiErrorMessage } from "../utils/apiError";
 import SingleSelect from "./components/SingleSelect";
+import AddButton from "./components/AddButton";
+import CardEditModal, { EditField, EditDivider } from "./components/CardEditModal";
 import CollapseToggle, { CollapseAllButtons } from "./components/CollapseToggle";
 import SortableGroup from "./components/SortableGroup";
 import EmojiPicker from "./components/EmojiPicker";
@@ -130,11 +132,18 @@ export default function Counterparts() {
 
   /* 새로 담을 항목 */
   const [addOpen, setAddOpen] = useState(false);
+
+  /* 담는 팝업이 떠 있는 동안은 뒤 화면이 굴러가지 않는다. 떠 있는 단추들도
+     이 표를 보고 비킨다 — 다른 화면의 팝업과 같은 규칙이다. */
+  useEffect(() => {
+    if (!addOpen) return;
+    document.documentElement.classList.add("modal-open");
+    return () => document.documentElement.classList.remove("modal-open");
+  }, [addOpen]);
   const [newName, setNewName] = useState("");
   const [newMemo, setNewMemo] = useState("");
   const [addCategoryId, setAddCategoryId] = useState<number | null>(null);
   /* 담던 것을 뒤로 가기로 접는다 — 설정 탭 네 화면이 모두 그렇다. */
-  useBackClose(addOpen, () => setAddOpen(false));
 
 
   /* 뒤로 가기 · Backspace로 편집을 무른다.
@@ -572,19 +581,6 @@ export default function Counterparts() {
             }
           />
 
-          {/* 담기와 고치기는 나란히 둔다 — 손이 가는 자리가 한 군데다. */}
-          <button
-            type="button"
-            className={`set-add-btn ${addOpen ? "on" : ""}`}
-            aria-disabled={editMode || undefined}
-            onClick={(e) =>
-              editMode ? showLock(e, "편집을 마친 후 추가하세요.") : setAddOpen((v) => !v)
-            }
-          >
-            <span className="set-add-btn__mark" aria-hidden="true">+</span>
-            새 항목 추가
-          </button>
-
           <button
             className="ui-btn primary"
             aria-disabled={addOpen || undefined}
@@ -598,72 +594,13 @@ export default function Counterparts() {
 
         <div className="cp-list">
           {/* 칸 구성은 카드를 고칠 때와 같다 — 이름, 구분, 한마디. */}
-          {addOpen && (
-            <div className="set-add-form set-add-form--col set-draft">
-              <div className="set-draft__head">
-                <span className="set-draft__name">새 항목</span>
-              </div>
-
-              <div className="set-add-form__row cp-add__row">
-                <input
-                  className="cat-input"
-                  placeholder="(이름)"
-                  value={newName}
-                  autoFocus
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAdd();
-                  }}
-                />
-
-                {/* 만들 때 구분까지 정해 둘 수 있다. 여기서도 새 구분을 만든다. */}
-                <div className="set-add-form__cat">
-                  <SingleSelect
-                    noun="구분"
-                    options={[
-                      { value: NEW_CATEGORY, label: "[+] 새 항목 추가" },
-                      { value: "", label: "(구분 없음)" },
-                      ...categories.map((c) => ({
-                        value: String(c.category_id),
-                        label: c.name,
-                        icon: c.emoji,
-                      })),
-                    ]}
-                    selected={addCategoryId ? String(addCategoryId) : ""}
-                    onChange={(v) => {
-                      if (v === NEW_CATEGORY) {
-                        createCategoryForAdd();
-                        return;
-                      }
-                      setAddCategoryId(v ? Number(v) : null);
-                    }}
-                    placeholder="(구분)"
-                  />
-                </div>
-              </div>
-
-              <div className="set-add-form__row cp-add__row--tail">
-                <input
-                  className="cat-input"
-                  placeholder="(메모)"
-                  value={newMemo}
-                  onChange={(e) => setNewMemo(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAdd();
-                  }}
-                />
-                <button className="ui-btn" onClick={handleAdd}>추가</button>
-              </div>
-            </div>
-          )}
-
           {!ready && <Waiting />}
 
           {ready && list.length === 0 && (
             <p className="page-empty">
               등록된 항목이 없습니다.
               <span className="page-empty__hint">
-                위 [+] 새 항목 추가 를 누르거나, 분할을 편집할 때 바로 등록할 수 있습니다.
+                오른쪽 아래 [+] 를 누르거나, 분할을 편집할 때 바로 등록할 수 있습니다.
               </span>
             </p>
           )}
@@ -784,6 +721,81 @@ export default function Counterparts() {
 
         </div>
       </div>
+
+      {/* 담기 — 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다.
+          결제 수단과 차례가 같다 — 이름이 먼저, 구분이 그 옆, 메모가 아래. */}
+      {addOpen && (
+        <CardEditModal
+          title="새 항목"
+          onClose={() => setAddOpen(false)}
+          onSave={handleAdd}
+          saveLabel="추가"
+        >
+          <div className="edit-grid">
+            {/* 1행 — 이름과 그 묶음. 결제 수단과 같은 차례·같은 칸 수다. */}
+            <EditField label="이름" span={6} required>
+            <input
+              className="cat-input"
+              placeholder="(이름)"
+              value={newName}
+              autoFocus
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAdd();
+              }}
+            />
+            </EditField>
+
+            {/* 만들 때 구분까지 정해 둘 수 있다. 여기서도 새 구분을 만든다. */}
+            <EditField label="구분" span={6}>
+            <SingleSelect
+              noun="구분"
+              options={[
+                { value: NEW_CATEGORY, label: "[+] 새 항목 추가" },
+                { value: "", label: "(구분 없음)" },
+                ...categories.map((c) => ({
+                  value: String(c.category_id),
+                  label: c.name,
+                  icon: c.emoji,
+                })),
+              ]}
+              selected={addCategoryId ? String(addCategoryId) : ""}
+              onChange={(v) => {
+                if (v === NEW_CATEGORY) {
+                  createCategoryForAdd();
+                  return;
+                }
+                setAddCategoryId(v ? Number(v) : null);
+              }}
+                placeholder="(구분)"
+              />
+            </EditField>
+
+            <EditDivider />
+
+            {/* 2행 — 한마디. 누구인지와는 성격이 달라 갈라 둔다. */}
+            <EditField label="메모" span={12}>
+              <input
+                className="cat-input"
+                placeholder="(메모)"
+                value={newMemo}
+                onChange={(e) => setNewMemo(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAdd();
+                }}
+              />
+            </EditField>
+          </div>
+        </CardEditModal>
+      )}
+
+      <AddButton
+        이름="새 항목"
+        잠김={editMode}
+        onClick={(e) =>
+          editMode ? showLock(e, "편집을 마친 후 추가하세요.") : setAddOpen(true)
+        }
+      />
 
       <EditLockTip lockAt={lockAt} tipRef={tipRef} />
 

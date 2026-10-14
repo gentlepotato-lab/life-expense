@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
 import SingleSelect from "./components/SingleSelect";
+import AddButton from "./components/AddButton";
+import CardEditModal, { EditField } from "./components/CardEditModal";
 import EmojiPicker from "./components/EmojiPicker";
 import CollapseToggle, { CollapseAllButtons } from "./components/CollapseToggle";
 import {
@@ -78,6 +80,14 @@ export default function Categories() {
 
   const [addCat1Mode, setAddCat1Mode] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+
+  /* 담는 팝업이 떠 있는 동안은 뒤 화면이 굴러가지 않는다. 떠 있는 단추들도
+     이 표를 보고 비킨다 — 다른 화면의 팝업과 같은 규칙이다. */
+  useEffect(() => {
+    if (!addOpen) return;
+    document.documentElement.classList.add("modal-open");
+    return () => document.documentElement.classList.remove("modal-open");
+  }, [addOpen]);
   const [addCat2Mode, setAddCat2Mode] = useState(false);
   /** 감춘 항목까지 보여 줄지. 꺼져 있으면 목록에서만 빠진다(상태에는 그대로 남는다) */
   const [showInactive, setShowInactive] = useState(false);
@@ -135,7 +145,6 @@ export default function Categories() {
     setCat3(beforeEditCat3);
     setEditMode(false);
   });
-  useBackClose(addOpen, () => setAddOpen(false));
 
   /* 편집이 아닐 때 고정 · 변동과 Blur를 누르면 왜 안 되는지 알린다.
      조각이 옅어진 것만으로는 "지금은 못 고친다"가 읽히지 않는다. */
@@ -652,19 +661,6 @@ export default function Categories() {
               onCollapseAll={() => setCollapsed(new Set(allCollapsibleKeys()))}
             />
 
-            {/* 담기와 고치기는 나란히 둔다 — 손이 가는 자리가 한 군데다. */}
-            <button
-              type="button"
-              className={`set-add-btn ${addOpen ? "on" : ""}`}
-              aria-disabled={editMode || undefined}
-              onClick={(e) =>
-                editMode ? showLock(e, "편집을 마친 후 추가하세요.") : setAddOpen((v) => !v)
-              }
-            >
-              <span className="set-add-btn__mark" aria-hidden="true">+</span>
-              새 항목 추가
-            </button>
-
             <button
               className="ui-btn primary"
               aria-disabled={addOpen || undefined}
@@ -691,103 +687,6 @@ export default function Categories() {
       </div>
 
       <div className="cat-card">
-        {/* 추가는 목록 맨 위에서 — 세 Settings 화면 공통 자리.
-            분류가 3뎁스라 기존 중분류/소분류를 고르면 그 아래에 붙는
-            기존 동작을 그대로 옮겨 왔다. */}
-        {addOpen && (
-        <div className="set-add-form set-add-form--col set-draft">
-          <div className="set-draft__head">
-            <span className="set-draft__name">새 항목</span>
-          </div>
-
-          {/* 중분류·소분류는 한 줄에 나란히. 새로 만드는 중이면 고르는 칸이
-              있던 그 자리가 이름 칸으로 바뀐다 — 줄이 늘었다 줄었다 하지 않는다. */}
-          <div className="set-add-form__pair">
-            <div className="set-add-form__slot">
-              {addCat1Mode ? (
-                <input
-                  className="cat-input"
-                  placeholder="(새 중분류)"
-                  value={newCat1Name}
-                  onChange={(e) => setNewCat1Name(e.target.value)}
-                />
-              ) : (
-                <SingleSelect
-                  noun="중분류"
-                  options={[
-                    { value: "NEW", label: "[+] 새 항목 추가" },
-                    { value: "", label: "(중분류)" },
-                    ...cat1.map(c => ({ value: String(c.cat1_id), label: c.cat1_name, icon: c.emoji })),
-                  ]}
-                  selected={selectedCat1ForAdd ? String(selectedCat1ForAdd) : ""}
-                  onChange={(value) => {
-                    if (value === "NEW") {
-                      setAddCat1Mode(true);
-                      setNewCat1Name("");
-                    } else if (value === "") {
-                      setAddCat1Mode(false);
-                      setSelectedCat1ForAdd(null);
-                    } else {
-                      setAddCat1Mode(false);
-                      setSelectedCat1ForAdd(parseInt(value));
-                    }
-                    // 중분류가 바뀌면 아래 선택은 의미가 없어진다.
-                    setAddCat2Mode(false);
-                    setNewCat2Name("");
-                  }}
-                  placeholder="(중분류)"
-                />
-              )}
-            </div>
-
-            <div className="set-add-form__slot">
-              {addCat1Mode || addCat2Mode ? (
-                <input
-                  className="cat-input"
-                  placeholder="(새 소분류)"
-                  value={newCat2Name}
-                  onChange={(e) => setNewCat2Name(e.target.value)}
-                />
-              ) : (
-                <SingleSelect
-                  noun="소분류"
-                  options={[
-                    ...(selectedCat1ForAdd
-                      ? [{ value: "NEW", label: "[+] 새 항목 추가" }]
-                      : []),
-                    { value: "", label: "(소분류)" },
-                    ...cat2
-                      .filter(c => c.cat1_id === selectedCat1ForAdd)
-                      .map(c => ({ value: c.cat2_name, label: c.cat2_name })),
-                  ]}
-                  selected={newCat2Name}
-                  onChange={(value) => {
-                    if (value === "NEW") {
-                      setAddCat2Mode(true);
-                      setNewCat2Name("");
-                    } else {
-                      setAddCat2Mode(false);
-                      setNewCat2Name(value);
-                    }
-                  }}
-                  placeholder="(소분류)"
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="set-add-form__tail">
-            <input
-              className="cat-input"
-              placeholder="(새 세분류)"
-              value={newCat3Name}
-              onChange={(e) => setNewCat3Name(e.target.value)}
-            />
-            <button className="ui-btn" onClick={handleAdd}>추가</button>
-          </div>
-        </div>
-        )}
-
         {!ready && <Waiting />}
         {ready && cat1View.length === 0 && (
           <p className="page-empty">등록된 분류가 없습니다.</p>
@@ -1234,6 +1133,112 @@ export default function Categories() {
           </SortableContext>
         </DndContext>
       </div>
+
+      {/* 담기 — 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다.
+          분류가 3뎁스라 기존 중분류/소분류를 고르면 그 아래에 붙는 기존
+          동작도 그대로 옮겨 왔다. */}
+      {addOpen && (
+        <CardEditModal
+          title="새 항목"
+          onClose={() => setAddOpen(false)}
+          onSave={handleAdd}
+          saveLabel="추가"
+        >
+          <div className="edit-grid">
+            {/* 1행 — 분류 3단. 내역 편집과 같은 차례·같은 칸 수다. 성격이
+                하나라 가르지 않는다.
+
+                새로 만드는 중이면 고르는 칸이 있던 그 자리가 이름 칸으로
+                바뀐다 — 칸이 늘었다 줄었다 하지 않으니 팝업도 안 흔들린다. */}
+            <EditField label="중분류" span={4} required>
+            {addCat1Mode ? (
+              <input
+                className="cat-input"
+                placeholder="(새 중분류)"
+                value={newCat1Name}
+                onChange={(e) => setNewCat1Name(e.target.value)}
+              />
+            ) : (
+              <SingleSelect
+                noun="중분류"
+                options={[
+                  { value: "NEW", label: "[+] 새 항목 추가" },
+                  { value: "", label: "(중분류)" },
+                  ...cat1.map((c) => ({ value: String(c.cat1_id), label: c.cat1_name, icon: c.emoji })),
+                ]}
+                selected={selectedCat1ForAdd ? String(selectedCat1ForAdd) : ""}
+                onChange={(value) => {
+                  if (value === "NEW") {
+                    setAddCat1Mode(true);
+                    setNewCat1Name("");
+                  } else if (value === "") {
+                    setAddCat1Mode(false);
+                    setSelectedCat1ForAdd(null);
+                  } else {
+                    setAddCat1Mode(false);
+                    setSelectedCat1ForAdd(parseInt(value));
+                  }
+                  // 중분류가 바뀌면 아래 선택은 의미가 없어진다.
+                  setAddCat2Mode(false);
+                  setNewCat2Name("");
+                }}
+                placeholder="(중분류)"
+              />
+            )}
+            </EditField>
+
+            <EditField label="소분류" span={4}>
+            {addCat1Mode || addCat2Mode ? (
+              <input
+                className="cat-input"
+                placeholder="(새 소분류)"
+                value={newCat2Name}
+                onChange={(e) => setNewCat2Name(e.target.value)}
+              />
+            ) : (
+              <SingleSelect
+                noun="소분류"
+                options={[
+                  ...(selectedCat1ForAdd ? [{ value: "NEW", label: "[+] 새 항목 추가" }] : []),
+                  { value: "", label: "(소분류)" },
+                  ...cat2
+                    .filter((c) => c.cat1_id === selectedCat1ForAdd)
+                    .map((c) => ({ value: c.cat2_name, label: c.cat2_name })),
+                ]}
+                selected={newCat2Name}
+                onChange={(value) => {
+                  if (value === "NEW") {
+                    setAddCat2Mode(true);
+                    setNewCat2Name("");
+                  } else {
+                    setAddCat2Mode(false);
+                    setNewCat2Name(value);
+                  }
+                }}
+                placeholder="(소분류)"
+              />
+            )}
+            </EditField>
+
+            <EditField label="세분류" span={4}>
+              <input
+                className="cat-input"
+                placeholder="(새 세분류)"
+                value={newCat3Name}
+                onChange={(e) => setNewCat3Name(e.target.value)}
+              />
+            </EditField>
+          </div>
+        </CardEditModal>
+      )}
+
+      <AddButton
+        이름="새 항목"
+        잠김={editMode}
+        onClick={(e) =>
+          editMode ? showLock(e, "편집을 마친 후 추가하세요.") : setAddOpen(true)
+        }
+      />
 
       <EditLockTip lockAt={lockAt} tipRef={tipRef} />
 

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "../api/client";
 import { apiErrorMessage } from "../utils/apiError";
 import useBackClose from "../hooks/useBackClose";
+import AddButton from "./components/AddButton";
+import CardEditModal, { EditField, EditDivider } from "./components/CardEditModal";
 import SingleSelect from "./components/SingleSelect";
 import MonthPicker from "./components/MonthPicker";
 import MonthNav from "./components/MonthNav";
@@ -312,6 +314,14 @@ export default function Goals() {
   const { lockAt, showLock, tipRef } = useEditLock(editMode);
   const [addOpen, setAddOpen] = useState(false);
 
+  /* 담는 팝업이 떠 있는 동안은 뒤 화면이 굴러가지 않는다. 떠 있는 단추들도
+     이 표를 보고 비킨다 — 다른 화면의 팝업과 같은 규칙이다. */
+  useEffect(() => {
+    if (!addOpen) return;
+    document.documentElement.classList.add("modal-open");
+    return () => document.documentElement.classList.remove("modal-open");
+  }, [addOpen]);
+
   /* 새로 걸 도전 */
   const [cat1, setCat1] = useState("");
   const [cat2, setCat2] = useState("");
@@ -365,7 +375,6 @@ export default function Goals() {
   );
 
   /* 담던 것을 뒤로 가기로 접는다 — 설정 탭 네 화면이 모두 그렇다. */
-  useBackClose(addOpen, () => setAddOpen(false));
 
   /* 지나가는 중인 달은 오늘까지로 속도를 어림하고, 끝난 달은 말일을 오늘로
      삼는다 — 그러면 "이대로면"이 사라지고 쓴 돈이 곧 그 달의 결과가 된다. */
@@ -572,21 +581,6 @@ export default function Goals() {
             {/* 고치는 것은 이 달에서만 한다. 지난 달 화면에서 금액을 고치면
                 그 달만 고치는 것처럼 보이지만 도전은 한 줄뿐이라 모든 달이
                 함께 바뀐다. */}
-            {/* 담기와 고치기는 나란히 둔다 — 손이 가는 자리가 한 군데다. */}
-            {지금달 && (
-              <button
-                type="button"
-                className={`set-add-btn ${addOpen ? "on" : ""}`}
-                aria-disabled={editMode || undefined}
-                onClick={(e) =>
-                  editMode ? showLock(e, "편집을 마친 후 추가하세요.") : setAddOpen((v) => !v)
-                }
-              >
-                <span className="set-add-btn__mark" aria-hidden="true">+</span>
-                새 도전 추가
-              </button>
-            )}
-
             {지금달 && (
               <button
                 className="ui-btn primary"
@@ -618,107 +612,6 @@ export default function Goals() {
             <span className={`goal-sum__n ${성적.지킴 === 성적.전체 ? "ok" : "no"}`}>
               {성적.지킴} / {성적.전체}
             </span>
-          </div>
-        )}
-
-        {addOpen && 지금달 && (
-          <div className="set-add-form set-add-form--col set-draft">
-            <div className="set-draft__head">
-              <span className="set-draft__name">새 도전</span>
-            </div>
-
-            <div className="goal-add__row">
-              <div className="goal-add__cat">
-                <SingleSelect
-                  noun="중분류"
-                  placeholder="(중분류)"
-                  options={visible(cat1List).map((c) => ({ value: String(c.id), label: c.name, icon: c.emoji }))}
-                  selected={cat1}
-                  onChange={(v) => {
-                    setCat1(v);
-                    setCat2("");
-                    setCat3("");
-                  }}
-                />
-              </div>
-
-              {/* 아래 두 칸은 처음부터 자리를 지킨다 — 중분류를 고를 때마다.
-                  칸이 생겼다 없어졌다 하면 줄이 들썩인다. */}
-              <div className="goal-add__cat">
-                <SingleSelect
-                  noun="소분류"
-                  placeholder="(소분류)"
-                  options={[
-                    { value: "", label: "(중분류 전체)" },
-                    ...cat2Options.map((c) => ({ value: String(c.id), label: c.name })),
-                  ]}
-                  selected={cat2}
-                  onChange={(v) => {
-                    setCat2(v);
-                    setCat3("");
-                  }}
-                />
-              </div>
-
-              <div className="goal-add__cat">
-                <SingleSelect
-                  noun="세분류"
-                  placeholder="(세분류)"
-                  options={[
-                    { value: "", label: "(소분류 전체)" },
-                    ...cat3Options.map((c) => ({ value: String(c.id), label: c.name })),
-                  ]}
-                  selected={cat3}
-                  onChange={setCat3}
-                />
-              </div>
-            </div>
-
-            {/* 칸 차례는 걸어 둔 카드를 고칠 때와 같다 — 금액, 한마디,
-                그리고 시작 연월. 두 자리에서 차례가 다르면 손이 헷갈린다. */}
-            <div className="goal-add__row">
-              <input
-                type="number"
-                className="amount-input"
-                placeholder="(도전 금액)"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-              <span className="goal-add__unit">원</span>
-              <input
-                type="text"
-                className="memo-input goal-add__memo"
-                placeholder="(메모)"
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-              />
-            </div>
-
-            {/* 끝은 비워 두는 것이 예사다 — 그만둘 때 와서 적으면 된다. */}
-            <div className="goal-add__row">
-              <div className="goal-add__ym">
-                <MonthPicker
-                  value={짧은연월(start || 이번달)}
-                  onChange={(v) => setStart(긴연월(v))}
-                  max={맨뒤달}
-                />
-              </div>
-              <span className="goal-add__ym-tail">부터</span>
-
-              <div className="goal-add__ym">
-                <MonthPicker
-                  value={end ? 짧은연월(end) : ""}
-                  onChange={(v) => setEnd(v ? 긴연월(v) : "")}
-                  min={짧은연월(start || 이번달)}
-                  placeholder="(종료 없음)"
-                  clearable
-                  clearLabel="종료 없음"
-                />
-              </div>
-              <span className="goal-add__ym-tail">까지</span>
-
-              <button className="ui-btn goal-add__go" onClick={add}>추가</button>
-            </div>
           </div>
         )}
 
@@ -759,6 +652,136 @@ export default function Goals() {
           nudge={picked}
           onClose={() => setPicked(null)}
           onGo={goAfterClose}
+        />
+      )}
+
+      {/* 담기 — 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다.
+          일곱 칸이 세 줄에 끼어 있던 것을 네 줄로 편다. 칸 차례(금액 →
+          메모 → 시작)는 걸어 둔 카드를 고칠 때와 같다 — 두 자리에서 차례가
+          다르면 손이 헷갈린다. */}
+      {addOpen && 지금달 && (
+        <CardEditModal
+          title="새 도전"
+          onClose={() => setAddOpen(false)}
+          onSave={add}
+          saveLabel="추가"
+        >
+          <div className="edit-grid">
+            {/* 1행 — 무엇을 걸지. 분류 3단은 내역 편집과 같은 차례·같은 칸 수다. */}
+            <EditField label="중분류" span={4} required>
+            <SingleSelect
+              noun="중분류"
+              placeholder="(중분류)"
+              options={visible(cat1List).map((c) => ({ value: String(c.id), label: c.name, icon: c.emoji }))}
+              selected={cat1}
+              onChange={(v) => {
+                setCat1(v);
+                setCat2("");
+                setCat3("");
+              }}
+            />
+          </EditField>
+
+            {/* 아래 두 칸은 처음부터 자리를 지킨다 — 중분류를 고를 때마다.
+                칸이 생겼다 없어졌다 하면 팝업이 들썩인다. */}
+            <EditField label="소분류" span={4}>
+            <SingleSelect
+              noun="소분류"
+              placeholder="(소분류)"
+              options={[
+                { value: "", label: "(중분류 전체)" },
+                ...cat2Options.map((c) => ({ value: String(c.id), label: c.name })),
+              ]}
+              selected={cat2}
+              onChange={(v) => {
+                setCat2(v);
+                setCat3("");
+              }}
+            />
+          </EditField>
+
+            <EditField label="세분류" span={4}>
+            <SingleSelect
+              noun="세분류"
+              placeholder="(세분류)"
+              options={[
+                { value: "", label: "(소분류 전체)" },
+                ...cat3Options.map((c) => ({ value: String(c.id), label: c.name })),
+              ]}
+              selected={cat3}
+              onChange={setCat3}
+            />
+          </EditField>
+
+            <EditDivider />
+
+            {/* 2행 — 얼마를 걸고 뭐라고 적어 둘지. 거는 것과는 성격이 다르다. */}
+            <EditField label="금액" span={6} required>
+            <div className="goal-add__row">
+              <input
+                type="number"
+                className="amount-input"
+                placeholder="(도전 금액)"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              <span className="goal-add__unit">원</span>
+            </div>
+          </EditField>
+
+            <EditField label="메모" span={6}>
+            <input
+              type="text"
+              className="memo-input goal-add__memo"
+              placeholder="(메모)"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+            />
+          </EditField>
+
+            <EditDivider />
+
+            {/* 3행 — 언제부터 언제까지. 끝은 비워 두는 것이 예사다 —
+                그만둘 때 와서 적으면 된다. */}
+            <EditField label="시작월" span={6} required>
+            <div className="goal-add__row">
+              <div className="goal-add__ym">
+                <MonthPicker
+                  value={짧은연월(start || 이번달)}
+                  onChange={(v) => setStart(긴연월(v))}
+                  max={맨뒤달}
+                />
+              </div>
+              <span className="goal-add__ym-tail">부터</span>
+            </div>
+          </EditField>
+
+            <EditField label="종료월" span={6}>
+            <div className="goal-add__row">
+              <div className="goal-add__ym">
+                <MonthPicker
+                  value={end ? 짧은연월(end) : ""}
+                  onChange={(v) => setEnd(v ? 긴연월(v) : "")}
+                  min={짧은연월(start || 이번달)}
+                  placeholder="(종료 없음)"
+                  clearable
+                  clearLabel="종료 없음"
+                />
+              </div>
+                <span className="goal-add__ym-tail">까지</span>
+              </div>
+            </EditField>
+          </div>
+        </CardEditModal>
+      )}
+
+      {지금달 && (
+        <AddButton
+          이름="새 도전"
+          잠김={editMode}
+          onClick={(e) =>
+            editMode ? showLock(e, "편집을 마친 후 추가하세요.") : setAddOpen(true)
+          }
         />
       )}
 
