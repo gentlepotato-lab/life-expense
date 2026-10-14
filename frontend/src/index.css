@@ -7821,8 +7821,12 @@ html {
   font-size: 32px;
 }
 
+/* 식 줄은 비어 있어도 한 줄 자리를 그대로 잡는다. 17px은 글이 없을 때의
+   키였고 글이 들어가면 18px이 되어, 그 1px이 창을 밀고 판까지 밀었다 —
+   =를 누를 때마다 계산기가 1px 들썩였다. 한 줄 키로 못 박는다. */
 .calculator-popup-content .calculator-expression {
-  min-height: 17px;
+  min-height: 18px;
+  line-height: 18px;
   font-size: var(--font-size-sm);
 }
 
@@ -10470,11 +10474,15 @@ button.cat2-inout:active {
   color: var(--color-text-tertiary);
 }
 
+/* 상세의 목록은 잔소리마다 같은 자리를 쓴다. 석 줄짜리는 306, 쉰 줄짜리는
+   616으로 판이 두 배 가까이 갈렸다. 메모가 달린 줄이 67px이라 그 석 줄 반을
+   자리로 잡는다 — 메모까지 있는 서넛이 들어가고, 더 있으면 안에서 굴러간다. */
 .nudge-detail__list {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 46vh;
+  --nudge-row: 67px;
+  height: min(calc(var(--nudge-row) * 3.5), calc(100dvh - 240px));
   overflow-y: auto;
 }
 
@@ -14187,11 +14195,14 @@ body:has(.pick-bar) .peel-tip {
 
 /* ─── 팝업 ──────────────────────────────────────────── */
 
+/* 혜택 몸은 카드마다 같은 자리를 쓴다. 구간 하나짜리 카드는 497, 둘짜리는
+   617로 판이 갈렸다 — 띠에서 카드를 바꿔 가며 누르면 팝업이 커졌다 작아졌다
+   했다. 둘 사이쯤에 못 박고 넘치는 것은 이 안에서 굴린다. */
 .perk-body {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  max-height: 56vh;
+  height: min(420px, calc(100dvh - 300px));
   overflow-y: auto;
 }
 
