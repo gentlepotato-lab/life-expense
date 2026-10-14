@@ -19555,8 +19555,18 @@ textarea.memo-input.memo-area {
   color: #fff;
 }
 
-.mk-pickrow__name {
+/* 이름과 건수 딱지가 한 칸을 나눠 쓴다. 딱지를 오른쪽 끝(meta)에 두면 긴
+   이름과 멀어져 어느 묶음의 건수인지 한눈에 안 붙는다. */
+.mk-pickrow__title {
   grid-area: 1 / 2 / 2 / 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mk-pickrow__name {
+  min-width: 0;
   line-height: 1.3;
   font-size: var(--font-size-sm);
   font-weight: 600;

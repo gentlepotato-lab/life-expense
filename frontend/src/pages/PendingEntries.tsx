@@ -1069,15 +1069,6 @@ export default function PendingEntries() {
           kind="pending"
           items={picked}
           meta={{ cat1List, cat2List, payList }}
-          /* 대기는 달 넘기기가 없어 필터가 걸렸을 때만 기간이 생긴다. */
-          span={
-            isFilterActive
-              ? {
-                  from: appliedFilter.dateFrom || undefined,
-                  to: appliedFilter.dateTo || undefined,
-                }
-              : undefined
-          }
           onDone={() => {
             setMakeOpen(false);
             setPickedIds(new Set());

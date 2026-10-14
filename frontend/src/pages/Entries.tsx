@@ -1057,15 +1057,6 @@ export default function Entries() {
           kind="entry"
           items={picked}
           meta={{ cat1List, cat2List, payList }}
-          /* 기존 묶음을 지금 보고 있는 기간으로 거른다. */
-          span={
-            isFilterActive
-              ? {
-                  from: appliedFilter.dateFrom || undefined,
-                  to: appliedFilter.dateTo || undefined,
-                }
-              : { ym: yearMonth }
-          }
           onDone={() => {
             setMakeOpen(false);
             setPickedIds(new Set());

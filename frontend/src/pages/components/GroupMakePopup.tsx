@@ -9,9 +9,6 @@ import { formatDateLabel } from "../../utils/dateGroup";
 import type { EntryGroup, GroupItem, GroupKind } from "../../utils/groups";
 import Waiting from "./Waiting";
 
-/** 목록이 보고 있는 기간. 기존 묶음을 이 기간으로 거른다. */
-export type GroupSpan = { ym?: string; from?: string; to?: string };
-
 /**
  * 묶기 — 선택한 내역을 한 덩이로 만들거나, 이미 있는 묶음에 넣는다.
  *
@@ -22,22 +19,21 @@ export type GroupSpan = { ym?: string; from?: string; to?: string };
  * 갈래는 제목 줄 오른쪽 끝의 스위치로 가른다. 아래 막대에 단추를 하나 더
  * 두는 쪽은 360px에서 막대가 잘려 쓸 수 없었다(지출 329 → 335, 대기 → 370).
  *
- * 기존 묶음 쪽은 목록이 보고 있는 기간으로 걸러 보여 준다. 서버가 ym 과
- * date_from 과 date_to 를 이미 받으므로 그대로 넘기기만 한다.
+ * 기존 묶음 쪽은 기간을 가리지 않고 모두 보여 준다. 넣으려는 묶음이 지금
+ * 보고 있는 달에 걸쳐 있으란 법이 없다 — 여행처럼 날이 걸친 묶음은 목록을
+ * 어느 달로 두고 보느냐에 따라 보였다 말았다 했다. 찾는 칸이 따로 있으므로
+ * 많아도 고르기 어렵지 않다.
  */
 export default function GroupMakePopup({
   kind,
   items,
   meta,
-  span,
   onDone,
   onClose,
 }: {
   kind: GroupKind;
   items: GroupItem[];
   meta: GroupMeta;
-  /** 정기 내역은 날짜가 없어 주지 않는다. */
-  span?: GroupSpan;
   onDone: () => void;
   onClose: () => void;
 }) {
@@ -54,22 +50,12 @@ export default function GroupMakePopup({
   const [typed, setTyped] = useState("");
   const [find, setFind] = useState("");
 
-  /* 객체를 그대로 기대면 판마다 새것이라 부르기가 멈추지 않는다. 값만 뗀다. */
-  const ym = span?.ym;
-  const from = span?.from;
-  const to = span?.to;
-  /* 정기 묶음은 날짜가 없어 서버가 기간을 가리지 않는다. */
-  const 기간봄 = kind !== "scheduled";
-
   const load = useCallback(() => {
     setReady(false);
     axios
       .get("/entry-groups", {
         params: {
           kind,
-          ym: 기간봄 ? ym : undefined,
-          date_from: 기간봄 ? from : undefined,
-          date_to: 기간봄 ? to : undefined,
           name: find || undefined,
         },
       })
@@ -79,7 +65,7 @@ export default function GroupMakePopup({
         say.warn(apiErrorMessage(err, "묶음을 불러오지 못했습니다."));
       })
       .finally(() => setReady(true));
-  }, [kind, 기간봄, ym, from, to, find]);
+  }, [kind, find]);
 
   useEffect(() => {
     if (mode !== "old") return;
@@ -99,17 +85,7 @@ export default function GroupMakePopup({
   }, [든것]);
   const 막힘 = 든것.length > 0;
 
-  const 기간말 = !기간봄
-    ? "모든 묶음이 보입니다."
-    : ym
-      ? `${Number(ym.slice(0, 4))}년 ${Number(ym.slice(5, 7))}월에 걸리는 묶음만 보입니다.`
-      : from && to
-        ? `${formatDateLabel(from)} ~ ${formatDateLabel(to)}에 걸리는 묶음만 보입니다.`
-        : from
-          ? `${formatDateLabel(from)}부터 걸리는 묶음만 보입니다.`
-          : to
-            ? `${formatDateLabel(to)}까지 걸리는 묶음만 보입니다.`
-            : "모든 묶음이 보입니다.";
+  const 기간말 = "모든 묶음이 보입니다.";
 
   const save = async () => {
     if (saving) return;
@@ -262,9 +238,11 @@ export default function GroupMakePopup({
                     onClick={() => set선택묶음(g.group_id)}
                   >
                     <span className="mk-pickrow__mark">✓</span>
-                    <span className="mk-pickrow__name">{g.name}</span>
-                    <span className="mk-pickrow__meta">
+                    <span className="mk-pickrow__title">
+                      <span className="mk-pickrow__name">{g.name}</span>
                       <span className="date-group__count">{g.count}</span>
+                    </span>
+                    <span className="mk-pickrow__meta">
                       <span
                         className={`date-group__sum ${g.net > 0 ? "plus" : g.net < 0 ? "minus" : "zero"}`}
                       >
