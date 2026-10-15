@@ -16,7 +16,7 @@ import {
 import type { Step } from "../utils/theme";
 import PalettePopup from "./components/PalettePopup";
 import { putPrefs } from "../utils/prefs";
-import { putWho } from "../utils/who";
+import { putWho, 글칸, 이름자리 } from "../utils/who";
 import { applyMotion } from "../utils/motion";
 import useEditLock from "../hooks/useEditLock";
 import { EditLockCover, EditLockTip } from "./components/EditLock";
@@ -68,9 +68,6 @@ const EMPTY: Profile = {
   display_name: null, email: null, avatar_url: null,
   provider: null, emoji: null, bio: null, joined_on: null,
 };
-
-/** 이름에 넣을 수 있는 글자 수 — 공백도 한 자로 센다. */
-const 이름길이 = 7;
 
 const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
 
@@ -357,14 +354,16 @@ export default function Me() {
                         placeholder="(이름)"
                         value={profile.display_name ?? ""}
                         onChange={(e) => {
-                          /* 이름은 공백까지 세어 일곱 자다. 넘겨 치면 받지 않고
+                          /* 이름은 글자 수가 아니라 폭으로 끊는다 — 한글 일곱
+                             자만큼이고, 폭이 좁은 영문은 그만큼 더 들어간다.
+                             넘겨 치면 받지 않고
                              왜 안 들어가는지 그 칸에 한 줄 띄운다 — 아무 일도
                              일어나지 않으면 고장으로 읽힌다.
                              줄이는 쪽은 막지 않는다. 일곱 자보다 긴 이름이 이미
                              적혀 있으면 한 글자도 지울 수 없게 된다. */
-                          const 친것 = [...e.target.value];
-                          const 있던것 = [...(profile.display_name ?? "")];
-                          if (친것.length > 이름길이 && 친것.length > 있던것.length) {
+                          const 친것 = 글칸(e.target.value);
+                          const 있던것 = 글칸(profile.display_name ?? "");
+                          if (친것 > 이름자리 && 친것 > 있던것) {
                             showLock(e, "설정 가능한 글자 수를 초과했습니다.");
                             return;
                           }

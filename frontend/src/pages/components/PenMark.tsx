@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { getWho, 누구글, 누구채우기 } from "../../utils/who";
+import { getWho, 글칸, 누구글, 누구채우기 } from "../../utils/who";
 
 /**
  * 안내 한 줄 오른쪽 끝에 서는 만년필 자국.
@@ -252,27 +252,6 @@ const 첫인사말 = "안녕하세요-! ;-)";
 
 /** 쪽지 안에서 글 양옆으로 비우는 자리. */
 const 옆여백 = 6;
-
-/**
- * 글 한 자가 먹는 칸 — 글씨 크기를 1로 본 값이다.
- *
- * 실제로 재어 맞췄다. 이모지 하나가 14px에서 19px이라 1.36, 한글 한 자가
- * 같은 크기에서 12px이라 0.86이다. 영문과 기호는 그 절반에 못 미치고 빈칸은
- * 더 좁다. 한글과 이모지를 같은 값으로 치면 한글만 적은 글이 쓸데없이 작게
- * 나온다 — 일곱 자가 10px로 떨어져 쪽지의 삼분의 이만 썼다.
- */
-function 글칸(글: string): number {
-  let 합 = 0;
-  for (const c of 글) {
-    const u = c.codePointAt(0)!;
-    /* 이모지는 두 칸짜리(surrogate)이거나 기호 그림 자리에 있다. */
-    if (u > 0xffff || (u >= 0x2190 && u <= 0x2bff)) 합 += 1.4;
-    else if (u >= 0x1100) 합 += 0.88;
-    else if (c === " ") 합 += 0.3;
-    else 합 += 0.42;
-  }
-  return 합;
-}
 
 /**
  * 쪽지에 적을 글씨 크기.
