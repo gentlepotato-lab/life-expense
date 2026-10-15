@@ -373,7 +373,7 @@ export default function PenMark() {
 
   return (
     <span
-      className={`page-doodle${적을글 ? " page-doodle--say" : ""}`}
+      className="page-doodle"
       aria-hidden="true"
       style={{ width: `${폭}px` }}
     >
