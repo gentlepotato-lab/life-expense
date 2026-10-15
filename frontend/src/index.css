@@ -20367,17 +20367,37 @@ html:has(.popup-overlay) .add-btn {
   right: 0;
   top: 6px;
   bottom: 2px;
-  border-radius: 5px;
   background-color: var(--color-surface);
-  /* 테는 그리지 않고 한 겹 두른다. border로 그리면 안쪽 자리가 2px 줄어
-     쪽지 안의 글이 그만큼 좁아진다. */
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-border) 65%, transparent);
+  /* 양 끝을 테이프처럼 오려 낸다.
+
+     긴 두 변은 곧고, 짧은 두 끝만 한 번씩 비스듬히 잘린 꼴이다 — 손으로
+     끊어 붙인 테이프 끝이 그렇다. 네 귀를 둥글게 굴리던 것은 걷었다.
+     테이프에는 둥근 귀가 없다.
+
+     톱니로 잘게 뜯어도 봤는데, 세로 27px짜리 쪽지에서는 굴곡이 너무 커서
+     리본 여러 장이 겹친 것처럼 보였다. 한 번만 비스듬히 끊는 쪽이 이 크기에
+     맞다.
+
+     clip-path는 그림자까지 함께 자른다. 그래서 테를 두르던 box-shadow 대신
+     drop-shadow를 쓴다 — 이쪽은 잘린 뒤의 모양을 따라가므로 비스듬한 끝에도
+     그림자가 붙는다. */
+  clip-path: polygon(
+    3px 0,
+    0 100%,
+    calc(100% - 3px) 100%,
+    100% 0
+  );
+  /* 테두리 노릇을 할 그림자를 세 겹 겹친다. 한 겹으로는 바탕과 종이의 빛깔이
+     가까워 테가 서지 않고, 그러면 밑줄이 종이를 가른 틈처럼 읽힌다. */
+  filter: drop-shadow(0 0 0.5px color-mix(in srgb, var(--color-border) 95%, transparent))
+          drop-shadow(0 0 0.5px color-mix(in srgb, var(--color-border) 95%, transparent))
+          drop-shadow(0 1px 1.5px color-mix(in srgb, var(--color-text-primary) 8%, transparent));
   /* 줄 노트의 밑줄. 8px마다 한 가닥이라 28px 안에 두 가닥 남짓 든다.
      테보다 옅게 깔아 무늬로만 읽히게 한다 — 짙으면 줄이 글을 가른다. */
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0 8px,
-    color-mix(in srgb, var(--color-border) 55%, transparent) 8px 9px
+    color-mix(in srgb, var(--color-border) 38%, transparent) 8px 9px
   );
 }
 
@@ -20402,9 +20422,10 @@ html:has(.popup-overlay) .add-btn {
   align-items: center;
   /* 가운데 맞춤. 글이 길든 짧든 쪽지 한가운데 선다. */
   justify-content: center;
-  /* PenMark의 옆여백과 같아야 한다 — 글이 가장 길 때 꼭 이 자리를 채운다. */
-  padding-left: 6px;
-  padding-right: 6px;
+  /* PenMark의 옆여백과 같아야 한다 — 글이 가장 길 때 꼭 이 자리를 채운다.
+     뜯긴 모서리만큼 비켜 준다. */
+  padding-left: 8px;
+  padding-right: 8px;
   /* 글씨 크기는 글자 수를 보고 PenMark가 정해 준다. */
   font-size: var(--doodle-say-size, 10px);
   font-weight: 700;
