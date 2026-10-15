@@ -13,6 +13,7 @@ from app.routers import (
     exports,
     goals,
     holidays,
+    nudges,
     payment_methods,
     pending_entries,
     places,
@@ -147,6 +148,8 @@ app.include_router(pending_entries.router, prefix=f"{API}/pending-entries", tags
 app.include_router(scheduled_entries.router, prefix=f"{API}/scheduled-entries", tags=["scheduled_entries"])
 app.include_router(places.router, prefix=f"{API}/places", tags=["places"])
 app.include_router(holidays.router, prefix=f"{API}/holidays", tags=["holidays"])
+# 잔소리 — 부를 때 세어 돌려준다. 적는 것은 없다(app/nudgecalc.py).
+app.include_router(nudges.router, prefix=f"{API}/nudges", tags=["nudges"])
 # 화면마다 걸린 조건 그대로 엑셀로 내보낸다.
 app.include_router(exports.router, prefix=f"{API}/export", tags=["export"])
 
