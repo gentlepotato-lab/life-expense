@@ -16,6 +16,7 @@ import {
 import type { Step } from "../utils/theme";
 import PalettePopup from "./components/PalettePopup";
 import { putPrefs } from "../utils/prefs";
+import { putWho } from "../utils/who";
 import { applyMotion } from "../utils/motion";
 import useEditLock from "../hooks/useEditLock";
 import { EditLockCover, EditLockTip } from "./components/EditLock";
@@ -205,6 +206,9 @@ export default function Me() {
       axios.get("/profile/summary").then((r) => r.data).catch(() => null),
     ]).then(([p, f, s]) => {
       setProfile({ ...EMPTY, ...p });
+      /* 이름과 이모지는 안내 줄 쪽지와 앞머리 화면도 꺼내 쓴다. 앞머리는
+         서버를 부를 수 없어, 받아 온 김에 브라우저에 한 벌 남긴다. */
+      putWho({ name: p?.display_name ?? "", emoji: p?.emoji ?? "" });
       if (f) {
         setPrefs(f);
         putPrefs(f);
@@ -277,6 +281,8 @@ export default function Me() {
     try {
       await axios.post("/profile", profile);
       await axios.post("/profile/prefs", prefs);
+      /* 고친 이름이 쪽지와 앞머리에도 바로 반영되게 한다. */
+      putWho({ name: profile.display_name ?? "", emoji: profile.emoji ?? "" });
       /* 담긴 뒤에 붙인다. 고르는 동안 미리 바뀌면 담지 않고 나가도 그대로
          남아, 담은 것과 보이는 것이 어긋난다. */
       applyTape(prefs.tape_style ?? DEFAULT_TAPE);

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { getWho, 누구글, 누구채우기 } from "../../utils/who";
 
 /**
  * 안내 한 줄 오른쪽 끝에 서는 만년필 자국.
@@ -30,6 +31,19 @@ import { useEffect, useRef, useState } from "react";
  */
 function 자국폭(화면: number): number {
   return Math.max(32, Math.min(112, Math.round(화면 - 328)));
+}
+
+/**
+ * 쪽지 폭 — 그림 칸과 종이가 같은 네모다.
+ *
+ * 종이만 넓히고 그림 칸을 그대로 두면 펜이 종이의 오른쪽 토막에서만 오가고,
+ * 글이 드러나는 끝과 펜촉도 어긋난다. 한 네모로 묶어 둘이 같은 자리를 쓴다.
+ *
+ * 자국폭보다 14px 길다. 안내 글이 비울 틈은 여기에 6px을 더해 잡는다 —
+ * 가장 긴 안내(설정 첫 화면 291px)를 두고 재도 400px 화면에서 남는다.
+ */
+function 쪽지폭(화면: number): number {
+  return 자국폭(화면) + 14;
 }
 
 /** 자국이 그려지는 상자. 줄은 YB에 놓이고 끝 그림은 그 위 S칸을 꽉 채운다. */
@@ -90,6 +104,16 @@ const 호 = (r: number, 큰: number, 돎: number, x: number, y: number) =>
  * 모두 같은 네모(S×S)를 채운다. 꼴마다 크기가 들쭉날쭉하면 7초마다 그림이
  * 커졌다 작아졌다 해서 눈에 걸린다.
  */
+/**
+ * 글이 드는 바퀴에 긋는 민줄.
+ *
+ * 끝의 그림 없이 왼쪽 끝에서 오른쪽 끝까지 곧게 간다 — 글 아래에 밑줄이
+ * 그어지는 꼴이다. 끝 그림을 함께 두면 글과 그림이 좁은 쪽지 안에서 겹친다.
+ */
+function 민줄(폭: number): string {
+  return `M${여백} ${YB} L${폭 - 여백} ${YB}`;
+}
+
 function 한획(폭: number, 꼴: 자국꼴): string {
   const 머리 = `M2 ${YB}`;
   const 끝 = 폭 - 여백 - S;
@@ -211,40 +235,152 @@ function 다음꼴(이전: 자국꼴): 자국꼴 {
   return 남은[Math.floor(Math.random() * 남은.length)];
 }
 
+/**
+ * 한 바퀴에 무엇이 드는가.
+ *
+ *   첫인사 — 화면을 새로 연 뒤 첫 바퀴. 늘 `안녕하세요-! ;-)`다.
+ *   자국   — 지금까지 하던 그 한 획.
+ *   이름   — 설정한 이름과 이모지.
+ *
+ * 첫 바퀴가 지나면 자국과 이름을 바퀴마다 무작위로 고른다. 둘로 번갈아만
+ * 두면 다음에 무엇이 올지 뻔히 읽혀, 그 자리를 더는 쳐다보지 않게 된다.
+ */
+type 바퀴 = "첫인사" | "자국" | "이름";
+
+/** 첫 바퀴에 적는 글. 이름을 설정하지 않았어도 이것만은 뜬다. */
+const 첫인사말 = "안녕하세요-! ;-)";
+
+/** 쪽지 안에서 글 양옆으로 비우는 자리. */
+const 옆여백 = 6;
+
+/**
+ * 글 한 자가 먹는 칸 — 글씨 크기를 1로 본 값이다.
+ *
+ * 실제로 재어 맞췄다. 이모지 하나가 14px에서 19px이라 1.36, 한글 한 자가
+ * 같은 크기에서 12px이라 0.86이다. 영문과 기호는 그 절반에 못 미치고 빈칸은
+ * 더 좁다. 한글과 이모지를 같은 값으로 치면 한글만 적은 글이 쓸데없이 작게
+ * 나온다 — 일곱 자가 10px로 떨어져 쪽지의 삼분의 이만 썼다.
+ */
+function 글칸(글: string): number {
+  let 합 = 0;
+  for (const c of 글) {
+    const u = c.codePointAt(0)!;
+    /* 이모지는 두 칸짜리(surrogate)이거나 기호 그림 자리에 있다. */
+    if (u > 0xffff || (u >= 0x2190 && u <= 0x2bff)) 합 += 1.4;
+    else if (u >= 0x1100) 합 += 0.88;
+    else if (c === " ") 합 += 0.3;
+    else 합 += 0.42;
+  }
+  return 합;
+}
+
+/**
+ * 쪽지에 적을 글씨 크기.
+ *
+ * 글자 수가 적으면 키워서 쪽지를 채운다 — `젠포🎩` 석 자를 10px로 적으면
+ * 쪽지의 삼분의 일만 쓰고 휑하다. 들어갈 만큼까지만 키우고, 그래도 넘치면
+ * 가장 작은 10px에서 멈춘다(그 아래로는 읽기 어렵다).
+ */
+function 글크기(글: string, 폭: number): number {
+  /* 좌우로 6px씩 비운다. 글이 가장 길 때 꼭 이 자리를 채우므로, 그때 왼쪽과
+     오른쪽에 남는 자리가 같아져 가운데 맞춤처럼 보인다. */
+  const 쓸자리 = 폭 - 옆여백 * 2;
+  const 칸 = Math.max(글칸(글), 1);
+  /* 정수로 끊으면 남는 자리가 한쪽으로 쏠린다 — 11px로 끊긴 글이 자리를 다
+     못 채워 오른쪽만 넓어졌다. 0.1px까지 재단해 자리에 딱 맞춘다.
+     0.97은 글칸으로 셈한 폭과 실제로 그려지는 폭의 차를 메운다. */
+  const 재단 = 쓸자리 / (칸 * 0.97);
+  return Math.max(10, Math.min(14, Math.round(재단 * 10) / 10));
+}
+
+/**
+ * 첫인사를 이미 했는가.
+ *
+ * 이 조각은 화면을 옮길 때마다 새로 선다. 상태에 담아 두면 탭을 누를 때마다
+ * 첫인사가 다시 떠, "앱을 새로 열었을 때"라는 뜻을 잃는다. 조각 바깥에 두어
+ * 앱이 떠 있는 동안 한 번만 하게 한다.
+ */
+let 첫인사했나 = false;
+
 export default function PenMark() {
   const [폭, set폭] = useState(() =>
-    자국폭(typeof document === "undefined" ? 360 : document.documentElement.clientWidth)
+    쪽지폭(typeof document === "undefined" ? 360 : document.documentElement.clientWidth)
   );
   const [꼴, set꼴] = useState<자국꼴>(() => 꼴들[Math.floor(Math.random() * 꼴들.length)]);
+  /* 앱을 새로 연 뒤 첫 바퀴만 첫인사다. 화면을 옮겨 다시 설 때는 바로
+     자국과 이름으로 간다. */
+  const [바퀴, set바퀴] = useState<바퀴>(() => (첫인사했나 ? "자국" : "첫인사"));
   const 줄ref = useRef<SVGPathElement | null>(null);
+
+  /* 이름은 브라우저에 남은 것을 꺼내 쓴다. 이 조각은 모든 화면의 머리말에
+     서므로 화면마다 서버를 부르면 같은 것을 수십 번 묻게 된다(utils/who.ts).
+     남은 것이 없는 기기에서는 누구채우기가 한 번만 서버를 두드려 채운다. */
+  const [이름글, set이름글] = useState(() => 누구글(getWho()));
+
+  useEffect(() => {
+    let 살아있나 = true;
+    void 누구채우기().then((받은것) => {
+      if (살아있나 && 받은것) set이름글(누구글(받은것));
+    });
+    return () => {
+      살아있나 = false;
+    };
+  }, []);
 
   /* 안내 글이 비울 자리도 여기서 정한다. CSS가 100vw로 따로 셈하면
      굴림대가 있는 화면에서 둘이 어긋나, 글이 자국 밑으로 깔린다. */
   useEffect(() => {
     const 재기 = () => {
-      const w = 자국폭(document.documentElement.clientWidth);
+      const w = 쪽지폭(document.documentElement.clientWidth);
       set폭(w);
-      document.documentElement.style.setProperty("--doodle-room", `${w + 8}px`);
+      document.documentElement.style.setProperty("--doodle-room", `${w + 6}px`);
     };
     재기();
     window.addEventListener("resize", 재기);
     return () => window.removeEventListener("resize", 재기);
   }, []);
 
-  /* 한 바퀴가 끝날 때마다 다음 그림을 고른다. 7초 가운데 4초 남짓은 아무것도
-     보이지 않는 쉬는 참이라, 그때 길이 바뀌어도 눈에 걸리지 않는다. */
+  /* 한 바퀴가 끝날 때마다 다음에 들 것을 고른다. 7초 가운데 4초 남짓은
+     아무것도 보이지 않는 쉬는 참이라, 그때 바뀌어도 눈에 걸리지 않는다.
+
+     줄은 인사가 뜨는 바퀴에도 그대로 돈다 — 보이지만 않을 뿐이다. 이 줄의
+     한 바퀴가 시계 노릇을 하므로, 멈춰 세우면 다음 바퀴가 오지 않는다. */
   useEffect(() => {
     const el = 줄ref.current;
     if (!el) return;
-    const 한바퀴 = () => set꼴((전) => 다음꼴(전));
+    const 한바퀴 = () => {
+      set꼴((전) => 다음꼴(전));
+      첫인사했나 = true;
+      /* 이름도 이모지도 없으면 인사 바퀴를 건너뛰고 자국만 돈다. */
+      set바퀴(이름글 ? (Math.random() < 0.5 ? "자국" : "이름") : "자국");
+    };
     el.addEventListener("animationiteration", 한바퀴);
     return () => el.removeEventListener("animationiteration", 한바퀴);
-  }, []);
+  }, [이름글]);
 
-  const 길 = 한획(폭, 꼴);
+  /* 이 바퀴에 적을 글. 빈 글이면 자국이 드는 바퀴다. */
+  const 적을글 = 바퀴 === "첫인사" ? 첫인사말 : 바퀴 === "이름" ? 이름글 : "";
+  /* 글이 드는 바퀴에는 끝 그림 없이 곧은 줄만 긋는다. 펜은 이 길을 타고
+     가므로, 길을 바꾸면 펜이 가는 결도 함께 바뀐다. */
+  const 길 = 적을글 ? 민줄(폭) : 한획(폭, 꼴);
 
   return (
-    <span className="page-doodle" aria-hidden="true" style={{ width: `${폭}px` }}>
+    <span
+      className={`page-doodle${적을글 ? " page-doodle--say" : ""}`}
+      aria-hidden="true"
+      style={{ width: `${폭}px` }}
+    >
+      {/* 글 칸은 자국이 드는 바퀴에도 그대로 세워 둔다.
+
+          바퀴마다 새로 세우면 그 칸의 움직임도 그때부터 센다 — 기다림(3.3초)이
+          다시 걸려 펜만 먼저 긋고 글은 한참 뒤에 튀어나왔다. 한 번 세워 두고
+          글자만 갈아 끼우면 줄과 같은 참에 들고 난다. */}
+      <span
+        className="page-doodle__say"
+        style={{ "--doodle-say-size": `${글크기(적을글 || "가", 폭)}px` } as CSSProperties}
+      >
+        {적을글}
+      </span>
       <svg viewBox={`0 0 ${폭} ${높이}`} focusable="false">
         <path ref={줄ref} className="page-doodle__line" pathLength={100} d={길} />
         <g className="page-doodle__pen" style={{ offsetPath: `path("${길}")` }}>
