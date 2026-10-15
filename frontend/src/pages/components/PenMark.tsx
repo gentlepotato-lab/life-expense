@@ -38,12 +38,21 @@ function 자국폭(화면: number): number {
  *
  * 종이만 넓히고 그림 칸을 그대로 두면 펜이 종이의 오른쪽 토막에서만 오가고,
  * 글이 드러나는 끝과 펜촉도 어긋난다. 한 네모로 묶어 둘이 같은 자리를 쓴다.
- *
- * 자국폭보다 14px 길다. 안내 글이 비울 틈은 여기에 6px을 더해 잡는다 —
- * 가장 긴 안내(설정 첫 화면 291px)를 두고 재도 400px 화면에서 남는다.
  */
 function 쪽지폭(화면: number): number {
-  return 자국폭(화면) + 14;
+  return 자국폭(화면) + 19;
+}
+
+/**
+ * 안내 글이 비울 틈.
+ *
+ * 쪽지보다 1px만 넓다 — 쪽지가 이 틈을 거의 다 쓴다는 뜻이다. 틈을 더 늘리면
+ * 가장 긴 안내(설정 첫 화면 291px)가 두 줄로 터진다. 400px 화면에서 그 안내가
+ * 끝나는 자리와 쪽지 왼쪽 끝 사이에 6px이 남는다 — 안내가 짧은 화면에서는
+ * 그만큼 더 넉넉하다.
+ */
+function 글틈(화면: number): number {
+  return 자국폭(화면) + 20;
 }
 
 /** 자국이 그려지는 상자. 줄은 YB에 놓이고 끝 그림은 그 위 S칸을 꽉 채운다. */
@@ -267,9 +276,14 @@ function 글크기(글: string, 폭: number): number {
   const 칸 = Math.max(글칸(글), 1);
   /* 정수로 끊으면 남는 자리가 한쪽으로 쏠린다 — 11px로 끊긴 글이 자리를 다
      못 채워 오른쪽만 넓어졌다. 0.1px까지 재단해 자리에 딱 맞춘다.
-     0.97은 글칸으로 셈한 폭과 실제로 그려지는 폭의 차를 메운다. */
-  const 재단 = 쓸자리 / (칸 * 0.97);
-  return Math.max(10, Math.min(14, Math.round(재단 * 10) / 10));
+
+     글칸이 실제 폭에 맞춰진 값이라 따로 메울 것이 없다. 전에는 0.97로 나눠
+     한 뼘 키웠는데, 글칸이 어림이던 때의 자국이라 이제는 넘치게만 만든다. */
+  const 재단 = 쓸자리 / 칸;
+  /* 가장 작은 쪽을 9px까지 연 까닭: 한도를 걸기 전에 적어 둔 긴 이름이
+     그대로 남아 있을 수 있다. 한도 안의 이름은 10px 아래로 내려갈 일이
+     없고, 그런 옛 이름만 한 단 더 줄어 쪽지에 담긴다. */
+  return Math.max(9, Math.min(14, Math.round(재단 * 10) / 10));
 }
 
 /**
@@ -312,7 +326,10 @@ export default function PenMark() {
     const 재기 = () => {
       const w = 쪽지폭(document.documentElement.clientWidth);
       set폭(w);
-      document.documentElement.style.setProperty("--doodle-room", `${w + 6}px`);
+      document.documentElement.style.setProperty(
+        "--doodle-room",
+        `${글틈(document.documentElement.clientWidth)}px`
+      );
     };
     재기();
     window.addEventListener("resize", 재기);
