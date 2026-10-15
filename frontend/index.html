@@ -117,12 +117,35 @@
          안의 딱지가 로고 왼쪽 끝에서 시작하게 한다. */
       #splash .splash-who {
         display: none;
+        position: relative;
         width: min(58vw, 260px);
         text-align: left;
         /* 로고와 너무 벌어지지 않게 당긴다 — 바깥 gap이 18px이다. */
         margin-bottom: -8px;
         animation: splash-who-rise 380ms 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
       }
+      /* 딱지 왼쪽 위에 비스듬히 걸치는 인사.
+         빛깔은 앞머리가 이미 쓰는 잉크(--sp-ink)다 — 로고의 펜과 같은 빛깔이라
+         "펜이 인사한다"로 읽힌다. 딱지(19px)보다 한 단 작게 두어 이름이 먼저
+         읽히게 한다. 돌리는 축을 왼쪽 아래에 두어, 이름이 길어져 딱지가
+         늘어나도 이 글자는 제자리에 선다. */
+      #splash .splash-who__hi {
+        position: absolute;
+        left: 3px;
+        /* 딱지 위에 살짝 걸친다 — 떼어 놓으면 따로 노는 두 덩이로 보인다. */
+        top: -8px;
+        font-size: 17px;
+        font-weight: 700;
+        line-height: 1;
+        color: var(--sp-ink, #5b5fef);
+        /* 돌리는 데 더해 글자를 비스듬히 민다. 앱의 제목과 앞머리 이름이 쓰는
+           그 7°와 같은 값이다 — 한글 글꼴에는 진짜 이탤릭이 없어 이 앱은
+           기울임을 미는 것으로 만들어 왔고, 그 결을 따른다. */
+        transform: rotate(-18deg) skewX(-7deg);
+        transform-origin: left bottom;
+        pointer-events: none;
+      }
+
       /* 안은 딱지 한 장. 글만 놓으면 앞머리의 빈 바탕에 떠 있는 글씨로
          보이는데, 옅은 음영을 깔면 이름표처럼 읽힌다.
 
@@ -462,7 +485,10 @@
   </head>
   <body>
     <div id="splash">
-      <span class="splash-who" id="splash-who"><span class="splash-who__in" id="splash-who-in"></span></span>
+      <span class="splash-who" id="splash-who"
+        ><span class="splash-who__hi" aria-hidden="true">Hi-!</span
+        ><span class="splash-who__in" id="splash-who-in"></span
+      ></span>
       <svg class="splash-logo" viewBox="0 0 1644 614" role="img" aria-label="돈을 쓰다">
         <defs>
           <linearGradient id="sp-grad" x1=".265" y1="0" x2=".743" y2="0">
