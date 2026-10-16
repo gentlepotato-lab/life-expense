@@ -22,6 +22,7 @@ frontend/src/utils/nudges.ts, goalStand.ts, calendarFilter.ts다. 한쪽만 고�
 from __future__ import annotations
 
 from calendar import monthrange
+from math import floor
 from datetime import date, timedelta
 from typing import Any
 
@@ -54,6 +55,15 @@ def _ymd(d: date) -> str:
 
 def _날(s: str) -> date:
     return date(int(s[0:4]), int(s[5:7]), int(s[8:10]))
+
+
+def _반올림(x: float) -> int:
+    """화면이 쓰던 Math.round과 같게 올린다.
+
+    파이썬 round()는 2827742.5를 짝수인 2827742로 내린다. 화면은 2827743으로
+    올렸다. 옮기면서 1원이 어긋나는 자리가 실제로 나왔다(2026-10-04 식비 도전).
+    """
+    return floor(x + 0.5)
 
 
 def _틈(a: str, b: str) -> int:
@@ -443,7 +453,7 @@ def 세기(추린것: dict, 모은것: dict) -> list:
     이번 = sum(r["net"] for r in 이번줄)
     지난 = sum(r["net"] for r in 그날까지(지난달))
     if 지난 > 0 and 이번 > 0:
-        비율 = round(((이번 - 지난) / 지난) * 1000) / 10
+        비율 = _반올림(((이번 - 지난) / 지난) * 1000) / 10
         if 비율 != 0:
             out.append(
                 {
@@ -498,7 +508,7 @@ def 세기(추린것: dict, 모은것: dict) -> list:
                     "지난날": _틈(today, r["date"]),
                     "분류": 이름["2"].get(r.get("cat2_id")) or "어딘가",
                     "금액": r["net"],
-                    "배": round(하나["배"]),
+                    "배": _반올림(하나["배"]),
                     "평균": 하나["평균"],
                 },
                 "items": [낱(r)] + [낱(p) for p in 또래[:6]],
@@ -592,7 +602,7 @@ def 세기(추린것: dict, 모은것: dict) -> list:
         내줄 = [r for r in 줄들 if r["date"].startswith(이번달) and _목표에드나(g, r)]
         쓴돈 = sum(r["net"] for r in 내줄)
         목표액 = float(g["amount"])
-        속도 = round((쓴돈 / 오늘일) * _달일수(이번달)) if 오늘일 > 0 else 쓴돈
+        속도 = _반올림((쓴돈 / 오늘일) * _달일수(이번달)) if 오늘일 > 0 else 쓴돈
         넘김 = 쓴돈 > 목표액
         길 = " > ".join(
             [
