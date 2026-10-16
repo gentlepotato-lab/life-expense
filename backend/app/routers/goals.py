@@ -120,7 +120,7 @@ def add_goal(payload: dict, db: SessionDep = Depends()):
                AND COALESCE(cat3_id, 0) = COALESCE(:c3, 0)
         """), {"c1": cat1, "c2": cat2, "c3": cat3}).scalar()
         if dup:
-            raise HTTPException(status_code=400, detail="이미 도전을 걸어 둔 분류입니다.")
+            raise HTTPException(status_code=400, detail="이미 도전을 설정한 분류입니다.")
 
         # 새 도전은 맨 뒤에 선다.
         nxt = db.execute(text("""
