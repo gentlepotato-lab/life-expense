@@ -171,6 +171,44 @@ function ensure(): Promise<Loaded | null> {
 }
 
 /**
+ * 서버가 센 것을 꼬리표마다 이 모듈에 얹는다.
+ *
+ * 종 단추는 어느 화면에나 서 있어 화면을 옮길 때마다 다시 마운트된다. 그때
+ * 빈 값에서 시작하면 배지의 숫자가 한 번 사라졌다 돌아온다 — 탭을 옮길
+ * 때마다 깜빡였다. 모래시계 단추(usePending)가 쓰는 방식 그대로 받아 온 것을
+ * 들고 있다가 그대로 내준다.
+ *
+ * 꼬리표가 열쇠인 까닭은 고정 · 변동 고르개가 셈을 바꾸기 때문이다. 잔소리
+ * 화면에서 단추를 눌러 조합을 바꿔도, 한 번 본 조합은 다시 묻지 않는다.
+ */
+const 센곳간 = new Map<string, 센것[]>();
+const 오는중 = new Map<string, Promise<센것[]>>();
+
+function 센것받기(꼬리표: string): Promise<센것[]> {
+  const 든것 = 센곳간.get(꼬리표);
+  if (든것) return Promise.resolve(든것);
+  let 오는것 = 오는중.get(꼬리표);
+  if (!오는것) {
+    오는것 = axios
+      .get("/nudges", { params: { today: ymd(new Date()), fx: 꼬리표 } })
+      .then((r) => {
+        const 센것들 = (r.data?.nudges as 센것[]) ?? [];
+        센곳간.set(꼬리표, 센것들);
+        오는중.delete(꼬리표);
+        return 센것들;
+      })
+      .catch(() => {
+        /* 못 받아 오면 아무 말도 하지 않는다 — 틀린 잔소리보다 낫다.
+           곳간에는 얹지 않는다. 다음에 볼 때 다시 묻는다. */
+        오는중.delete(꼬리표);
+        return [] as 센것[];
+      });
+    오는중.set(꼬리표, 오는것);
+  }
+  return 오는것;
+}
+
+/**
  * 한 건 적고 나면 셈이 달라진다 — 다시 받도록 비운다.
  *
  * 도전판이 보는 줄(cached)을 비우는 것만으로는 모자란다. 잔소리는 서버가
@@ -183,6 +221,8 @@ const 듣는이 = new Set<() => void>();
 export function invalidateNudges() {
   cached = null;
   inflight = null;
+  센곳간.clear();
+  오는중.clear();
   판 += 1;
   듣는이.forEach((f) => f());
 }
@@ -236,13 +276,14 @@ export type NudgeOptions = {
  * 어긋난다.
  *
  * 고정 · 변동 고르개는 질의 변수로 넘긴다. 받아 온 뒤에 거르던 때와 달리
- * 단추를 누르면 다시 받지만, 세는 값이 싸고 잣대가 한 벌로 유지된다.
+ * 조합마다 한 번은 물어야 하지만, 한 번 본 조합은 위 센곳간에 얹혀 다시
+ * 묻지 않는다.
  */
 export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]; ready: boolean } {
   const { fixPick = ALL_FIXED_PICK, reloadKey = 0 } = options;
-  const [센것들, set센것들] = useState<센것[] | null>(null);
-  const [판수, set판수] = useState(판);
   const 꼬리표 = fxTag(fixPick);
+  const [센것들, set센것들] = useState<센것[] | null>(() => 센곳간.get(꼬리표) ?? null);
+  const [판수, set판수] = useState(판);
 
   /* 어디선가 한 건 적으면 판 번호가 오른다. 그때 다시 묻는다. */
   useEffect(() => {
@@ -254,16 +295,17 @@ export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]
   }, []);
 
   useEffect(() => {
+    /* 이미 들고 있으면 그 자리에서 쓴다 — 기다리는 틈이 없어야 깜빡이지
+       않는다. 비운 뒤라면 곳간이 비어 있어 저절로 다시 묻는다. */
+    const 든것 = 센곳간.get(꼬리표);
+    if (든것) {
+      set센것들(든것);
+      return;
+    }
     let alive = true;
-    axios
-      .get("/nudges", { params: { today: ymd(new Date()), fx: 꼬리표 } })
-      .then((r) => {
-        if (alive) set센것들((r.data?.nudges as 센것[]) ?? []);
-      })
-      .catch(() => {
-        /* 못 받아 오면 아무 말도 하지 않는다 — 틀린 잔소리보다 낫다. */
-        if (alive) set센것들([]);
-      });
+    센것받기(꼬리표).then((v) => {
+      if (alive) set센것들(v);
+    });
     return () => {
       alive = false;
     };
