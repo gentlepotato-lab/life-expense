@@ -44,7 +44,7 @@ import { applyMotion } from "./utils/motion";
  * 그 느낌이 그대로 난다.
  */
 const SPLASH_MS = 2900;
-/** #splash의 opacity 전환 시간(index.html)과 맞춰 둘 것 */
+/** #splash의 opacity 전환 시간(index.html)과 맞출 것 */
 const SPLASH_FADE_MS = 320;
 
 /**

@@ -157,7 +157,7 @@ export default function Places() {
   const [typed, setTyped] = useState("");
   const [find, setFind] = useState("");
   const [picked, setPicked] = useState<BoardPlace | null>(null);
-  /* 펼쳐 둔 묶음. 담기지 않은 것은 접힌 것이다. */
+  /* 펼친 묶음. 담기지 않은 것은 접힌 것이다. */
   const [open, setOpen] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -178,7 +178,7 @@ export default function Places() {
       .finally(() => setReady(true));
   }, [period]);
 
-  /* 처음에는 모두 펼쳐 둔다. 잣대를 옮기거나 새로 받아 오면 다시 펼친다 —
+  /* 처음에는 모두 펼친다. 잣대를 옮기거나 새로 받아 오면 다시 펼친다 —
      찾는 글자만 바뀔 때는 건드리지 않는다. 접은 것이 되살아나면 어디를
      보고 있었는지 놓친다. */
   useEffect(() => {

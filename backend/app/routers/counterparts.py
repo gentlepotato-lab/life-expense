@@ -137,7 +137,7 @@ def delete_counterpart(counterpart_id: int, db: SessionDep = Depends()):
 # 구분(분류) — 사용자가 늘릴 수 있다.
 # ═══════════════════════════════════════════════════════════════
 
-# 아바타·점에 쓰는 색. 화면(colorPalette.ts)과 같은 순서로 맞춰 둔다.
+# 아바타·점에 쓰는 색. 화면(colorPalette.ts)과 같은 순서로 맞춘다.
 PALETTE = [
     "indigo", "teal", "amber", "rose", "violet",
     "sky", "lime", "orange", "cyan", "slate",

@@ -124,7 +124,7 @@ def 날요일글(d: date | str) -> str:
 
 
 class 장:
-    """시트 한 장. 자리와 높이를 한 벌로 맞춰 둔다."""
+    """시트 한 장. 자리와 높이를 한 벌로 맞춘다."""
 
     def __init__(self, wb: Workbook, 이름: str, 폭들: Sequence[float]):
         self.ws = wb.create_sheet(이름)
@@ -147,7 +147,7 @@ class 장:
         """빛깔 띠 한 줄.
 
         병합하지 않는다. 병합한 칸은 넘치는 글자를 잘라 버리지만, 빈 칸 위로는
-        글자가 그대로 흘러간다. 칠만 해 두면 보기에는 한 덩이다.
+        글자가 그대로 흘러간다. 칠만 하면 보기에는 한 덩이다.
         """
         n = 칸수 or self.칸수
         for i in range(2, 2 + n):
@@ -238,7 +238,7 @@ def 묶음만들기() -> Workbook:
 
 
 def 마무리(wb: Workbook) -> bytes:
-    """빈 자리까지 같은 높이로 깔고 첫 장을 열어 둔다."""
+    """빈 자리까지 같은 높이로 깔고 첫 장을 연다."""
     for ws in wb:
         for 행 in range(첫줄, max(ws.max_row, 바닥) + 1):
             ws.row_dimensions[행].height = 본문높이
@@ -317,7 +317,7 @@ def 내역장(wb: Workbook, 안내: str, 줄들: Iterable[dict], 번호: str = "
         c = s.ws.cell(row=4, column=칸)
         c.number_format = 부호돈
     for j, x in enumerate(줄들):
-        # 멈춰 둔 정기 규칙은 다음에 생길 날이 없다. 날짜 칸을 비워 둔다.
+        # 멈춘 정기 규칙은 다음에 생길 날이 없다. 날짜 칸을 비운다.
         d = x["tx_date"]
         if isinstance(d, str):
             d = datetime.strptime(d[:10], "%Y-%m-%d").date()

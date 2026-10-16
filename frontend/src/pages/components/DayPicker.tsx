@@ -49,8 +49,8 @@ export default function DayPicker({
   /** 지금 판에 펼친 것 — 날짜인가 달인가. */
   const [mode, setMode] = useState<"day" | "month">("day");
 
-  /* 열 때마다 고른 날의 달로 되돌리고 날짜 쪽으로 펴 둔다. 지난번에 넘겨
-     둔 달이 남아 있으면 엉뚱한 달이 펼쳐진다. */
+  /* 열 때마다 고른 날의 달로 되돌리고 날짜 쪽으로 편다. 지난번에 넘긴
+     달이 남아 있으면 엉뚱한 달이 펼쳐진다. */
   useEffect(() => {
     if (open) {
       setView(viewOf(value));

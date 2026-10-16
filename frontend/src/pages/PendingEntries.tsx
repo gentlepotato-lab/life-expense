@@ -497,7 +497,7 @@ export default function PendingEntries() {
 
   /* 여러 건을 한꺼번에 지출 내역으로 보낸다.
 
-     선택한 항목이 없으면 지금 걸러 둔 것을 통째로, 하나라도 선택했으면 그것만
+     선택한 항목이 없으면 지금 거른 것을 통째로, 하나라도 선택했으면 그것만
      보낸다. 보내는 길은 하나라 뒤처리(다시 읽기 · 필터 다시 걸기)도 하나다. */
   const sendMany = async () => {
     if (sending) return;

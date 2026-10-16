@@ -53,7 +53,7 @@ def set_perf_exclude(entry_id: int, value: int = Query(...), db: SessionDep = De
 def set_fixed(entry_id: int, value: str = Query(...), db: SessionDep = Depends()):
     """이 건이 고정인지 변동인지를 손으로 정한다.
 
-    비워 두면 분류(소 · 세)에 정해 둔 것을 따른다. 손으로 정하면 그 건에만
+    비우면 분류(소 · 세)에 정한 것을 따른다. 손으로 정하면 그 건에만
     남아, 뒤에 분류 설정을 바꿔도 이 건은 그대로다. 카드 실적 제외와 같이
     한 칸만 손대는 자리다.
     """
@@ -400,7 +400,7 @@ def update_entries_bulk(rows: list[dict], db: SessionDep = Depends()):
 @router.get("/span")
 def get_month_span(db: SessionDep = Depends()):
     """
-    적어 둔 것이 걸쳐 있는 연월의 처음과 끝.
+    적은 것이 걸쳐 있는 연월의 처음과 끝.
 
     달을 넘겨 보는 화면들이 어디까지 거슬러 갈 수 있는지 묻는 자리다.
     적은 것이 하나도 없는 달까지 끝없이 넘어가면 빈 화면만 지나간다.
@@ -488,7 +488,7 @@ def delete_entry(entry_id: int, db: SessionDep = Depends()):
 
 @router.post("")
 def add_entries(payload: list[EntryIn], db: SessionDep = Depends()):
-    # 만든 건을 담아 둔다. 쓰기 화면에서 N빵을 붙이려면 방금 생긴 건의
+    # 만든 건을 담는다. 쓰기 화면에서 N빵을 붙이려면 방금 생긴 건의
     # entry_id가 있어야 하는데, 지금까지는 돌려주는 것이 없었다.
     made: list[Entry] = []
 

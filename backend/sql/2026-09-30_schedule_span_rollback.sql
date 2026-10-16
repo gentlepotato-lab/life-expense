@@ -1,6 +1,6 @@
 -- 2026-09-30_schedule_span.sql 되돌리기.
 --
--- 다섯 칸을 지우면 격월 · 매년 · 할부로 적어 둔 스케줄은 모두 매월로 돌아간다.
+-- 다섯 칸을 지우면 격월 · 매년 · 할부로 적은 스케줄은 모두 매월로 돌아간다.
 -- 되돌리기 전에 그런 줄이 있는지 먼저 본다.
 --
 --   SELECT schedule_id, interval_months, anchor_ym, end_ym, remaining, skip_ym

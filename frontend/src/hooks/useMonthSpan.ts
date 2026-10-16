@@ -42,7 +42,7 @@ export function 이번달(): string {
  * 넘겨 볼 수 있는 맨 앞 · 맨 뒤 연월.
  *
  * 뒤는 늘 이 달 + {@link AHEAD}개월이다. 앞은 처음 적은 달인데, 아직 받아
- * 오기 전이면 가두지 않는다 — 가둬 두면 화면이 뜨자마자 ‹ 가 잠겨 보였다가
+ * 오기 전이면 가두지 않는다 — 가두면 화면이 뜨자마자 ‹ 가 잠겨 보였다가
  * 풀리는 깜박임이 생긴다.
  */
 export default function useMonthSpan(): { min: string | null; max: string } {

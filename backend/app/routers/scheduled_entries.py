@@ -16,7 +16,7 @@ router = APIRouter()
 # `말일`을 가리키는 day_of_month 값.
 #
 # 달마다 끝 날이 달라 하나의 숫자로는 적을 수 없다. 1~31 바깥의 값을 하나
-# 정해 두고 셈할 때 그 달의 끝 날로 바꿔 쓴다. 0이 아니라 32인 것은, 0이
+# 정하고 셈할 때 그 달의 끝 날로 바꿔 쓴다. 0이 아니라 32인 것은, 0이
 # 화면 쪽에서 "안 고름"과 구별되지 않기 때문이다.
 LAST_DAY = 32
 
@@ -174,7 +174,7 @@ def create_scheduled_entry(payload: ScheduledEntryIn, db: SessionDep = Depends()
 def set_perf_exclude(schedule_id: int, value: int = Query(...), db: SessionDep = Depends()):
     """카드 실적에서 뺄지를 켜고 끈다. 지출 · 대기와 같은 자리다.
 
-    여기서 켜 두면 이 스케줄이 대기 내역으로 나갈 때마다 표가 따라간다.
+    여기서 켜면 이 스케줄이 대기 내역으로 나갈 때마다 표가 따라간다.
     """
     result = db.execute(text("""
         UPDATE life_expense.scheduled_entries
@@ -280,9 +280,9 @@ def update_scheduled_entry(schedule_id: int, payload: ScheduledEntryUpdate, db: 
 def delete_scheduled_entry(schedule_id: int, db: SessionDep = Depends()):
     """스케줄 항목을 아주 지운다.
 
-    예전에는 is_active를 0으로 내려 두고 월례 청소가 나중에 지웠다. 이제
+    예전에는 is_active를 0으로 내리고 월례 청소가 나중에 지웠다. 이제
     is_active 0은 "감춤"이라는 다른 뜻을 지니므로, 지우는 일은 여기서 끝낸다.
-    되돌릴 수 없다 — 잠시 치워 두려는 것이라면 감추기를 쓴다.
+    되돌릴 수 없다 — 잠시 치우려는 것이라면 감추기를 쓴다.
 
     함께 걸린 몫(scheduled_entry_splits)은 FK가 ON DELETE CASCADE라 따라
     지워진다. 이미 대기 · 지출로 나간 내역은 이 표를 가리키지 않으므로
@@ -409,7 +409,7 @@ def calculate_next_run_at(
         base_date = now.date()
     
     # 1단계: 이번 달의 원래 스케줄된 날짜 계산
-    #        말일이면 그 달의 끝 날로 바꿔 둔다.
+    #        말일이면 그 달의 끝 날로 바꾼다.
     #        그 날이 없는 달(2월 31일 등)은 건너뛴다.
     scheduled_date = _first_valid_from(base_date, day_of_month)
     
@@ -532,7 +532,7 @@ def calculate_next_run_span(
 ) -> datetime | None:
     """다음 실행 일시. 더 올 자리가 없으면 None을 준다.
 
-    None은 "끝났다"는 뜻이다. 부르는 쪽은 next_run_at을 비워 두면 된다 —
+    None은 "끝났다"는 뜻이다. 부르는 쪽은 next_run_at을 비우면 된다 —
     비어 있는 줄은 스케줄러가 집어 들지 않으므로 그것으로 멈춘다.
     """
     # 지금까지와 똑같은 스케줄은 손대지 않는다.
@@ -609,7 +609,7 @@ def process_scheduled_entries(db: Session):
     ).all()
 
     created_count = 0
-    # 만든 것은 없어도 다음 실행 일시만 고쳐 둔 경우를 따로 센다 — 아래 커밋
+    # 만든 것은 없어도 다음 실행 일시만 고친 경우를 따로 센다 — 아래 커밋
     # 조건에 쓴다.
     fixed_count = 0
 
@@ -674,8 +674,8 @@ def process_scheduled_entries(db: Session):
         if schedule.next_run_at is None:
             schedule.is_active = 0
 
-    # 만든 것이 없어도 고쳐 둔 것이 있으면 담아야 한다. 예전에는 만든 것만
-    # 보고 커밋해서, 중복 막이로 건너뛰며 다시 셈해 둔 다음 실행 일시가
+    # 만든 것이 없어도 고친 것이 있으면 담아야 한다. 예전에는 만든 것만
+    # 보고 커밋해서, 중복 막이로 건너뛰며 다시 셈한 다음 실행 일시가
     # 세션이 닫힐 때 버려졌다 — 같은 스케줄을 매분 다시 집어 드는 꼴이었고,
     # 다른 스케줄이 같은 분에 걸려 커밋이 일어날 때만 우연히 고쳐졌다.
     if created_count > 0 or fixed_count > 0:

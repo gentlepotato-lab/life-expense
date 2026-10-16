@@ -11,7 +11,7 @@ router = APIRouter()
 @router.get("")
 def list_goals(db: SessionDep = Depends()):
     """
-    걸어 둔 도전을 분류 이름까지 붙여 돌려준다.
+    건 도전을 분류 이름까지 붙여 돌려준다.
 
     이름을 함께 보내는 것은 화면이 분류 세 벌을 따로 받아 짝을 맞추지 않아도
     되게 하려는 것이다. 이름이 바뀌어도 FK로 따라오므로 어긋나지 않는다.
@@ -70,7 +70,7 @@ def _target(payload: dict) -> tuple[int, int | None, int | None]:
 
 
 def _start_ym(payload: dict) -> str | None:
-    """어느 달부터 세는 도전인지. 비워 두면 서버가 이 달로 잡는다."""
+    """어느 달부터 세는 도전인지. 비우면 서버가 이 달로 잡는다."""
     raw = (payload.get("start_ym") or "").strip()
     if not raw:
         return None
@@ -80,7 +80,7 @@ def _start_ym(payload: dict) -> str | None:
 
 
 def _end_ym(payload: dict) -> str | None:
-    """어느 달까지 센 도전인지. 비워 두면 끝이 없다는 뜻이다."""
+    """어느 달까지 센 도전인지. 비우면 끝이 없다는 뜻이다."""
     raw = (payload.get("end_ym") or "").strip()
     if not raw:
         return None

@@ -42,7 +42,7 @@ class PaymentMethod(Base):
     method_name = Column(String, nullable=False, unique=True)
     # 구분은 payment_method_categories 행을 가리킨다.
     category_id = Column(Integer, ForeignKey("payment_method_categories.category_id", ondelete="SET NULL"))
-    # 카드 연회비. 카드가 아닌 것은 비워 둔다.
+    # 카드 연회비. 카드가 아닌 것은 비운다.
     annual_fee = Column(Numeric(14, 2))
     sort_order = Column(Integer, default=0, nullable=True)
 
@@ -277,7 +277,7 @@ class ScheduledEntry(Base):
     # 이번 한 번만 건너뛸 달 'YYYYMM'. 쓰고 나면 지워진다.
     skip_ym = Column(String(6), nullable=True)
 
-    # 다음 실행 일시. 비어 있으면 더 오지 않는다 — 끝났거나 꺼 둔 것이다.
+    # 다음 실행 일시. 비어 있으면 더 오지 않는다 — 끝났거나 끈 것이다.
     next_run_at = Column(DateTime, nullable=True)
 
     # 지출 내역 정보
@@ -393,9 +393,9 @@ class PendingEntrySplit(Base):
 
 class ScheduledEntrySplit(Base):
     """
-    스케줄에 걸어 두는 분할 템플릿.
+    스케줄에 거는 분할 템플릿.
     스케줄러가 PendingEntry를 만들 때 pending_entry_splits로 복사된다.
-    매달 나가는 지출의 N빵 설정을 한 번만 해 두면 계속 따라온다.
+    매달 나가는 지출의 N빵 설정을 한 번만 하면 계속 따라온다.
     """
     __tablename__ = "scheduled_entry_splits"
 
@@ -569,7 +569,7 @@ class Profile(Base):
     돈쓴이 — 쓰는 사람.
 
     지금은 혼자 쓰는 앱이라 줄이 하나뿐이다. 그래도 칸은 바깥 인증(구글·카카오)이
-    돌려주는 것에 맞춰 두었다. provider가 비어 있으면 손으로 적어 넣은 것이다.
+    돌려주는 것에 맞췄다. provider가 비어 있으면 손으로 적어 넣은 것이다.
     """
     __tablename__ = "profile"
 

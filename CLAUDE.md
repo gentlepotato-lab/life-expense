@@ -197,7 +197,7 @@ TO-BE 구조(네임스페이스 분리 · 네이티브 실행 · `gp-lab`/`life_
 ### 색
 
 - **색값을 코드에 박지 않는다.** 화면 전체의 빛깔을 벌째로 갈아 끼우기 때문에,
-  한 자리라도 박아 두면 그 자리만 안 바뀌어 벌이 깨진다.
+  한 자리라도 박으면 그 자리만 안 바뀌어 벌이 깨진다.
 - 색은 `src/utils/palettes.ts` 한 곳에만 적는다. 쓰는 쪽은 CSS 변수로 꺼내 쓴다.
   `--color-primary`, `--color-success`, `--color-danger`, `--color-amber`,
   `--chart-1`~`--chart-5`, `--chart-etc`, `--chart-week`, `--cat-1`~`--cat-10`,
@@ -206,7 +206,7 @@ TO-BE 구조(네임스페이스 분리 · 네이티브 실행 · `gp-lab`/`life_
 - 화면 코드에서 색이 값으로 필요하면 `currentPalette()`를 **부를 때** 읽는다.
   모듈 꼭대기에서 상수로 굳히면 벌이 늦게 끼워졌을 때 옛 색이 남는다.
 - 구분 열 가지의 열쇠(`indigo` 등)는 DB에 담기는 이름이라 바꾸지 않는다.
-- 로고는 `<img>`라 CSS가 닿지 않는다. 벌마다 한 장씩 미리 물들여 두고
+- 로고는 `<img>`라 CSS가 닿지 않는다. 벌마다 한 장씩 미리 물들이고
   (`tools/palette-logos.mjs`) 화면은 그 가운데 하나를 고른다. 원본
   `public/logo-h.svg`는 첫 띄움 화면이 쓰므로 건드리지 않는다.
 
@@ -234,7 +234,7 @@ TO-BE 구조(네임스페이스 분리 · 네이티브 실행 · `gp-lab`/`life_
   화면 수정은 잦고 한 번 찍는 데 마흔여덟 장이 걸려, 따라 찍으면 본래 하던
   일이 그만큼 밀린다. 예시가 잠깐 옛 모습으로 남아 있는 편이 낫다.
 - 찍을 때는 `node tools/palette-shots.mjs`로 한 번에 찍는다. 규칙은
-  `docs/palette-shots.md`에 적어 두었다.
+  `docs/palette-shots.md`에 적었다.
 
 ### 의존성
 

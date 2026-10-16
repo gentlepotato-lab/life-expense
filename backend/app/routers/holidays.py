@@ -99,7 +99,7 @@ def update_holidays_core(db: Session, year: int, month: int) -> bool:
 
     if not ok:
         # 조회가 안 되면 알고 있던 것을 그대로 둔다. 다만 아직 한 줄도 없는
-        # 달이면 주말만이라도 채워 둔다. 있던 값을 덮지는 않는다.
+        # 달이면 주말만이라도 채운다. 있던 값을 덮지는 않는다.
         has_row = db.query(Holiday).filter(
             Holiday.year == year, Holiday.month == month
         ).first()
@@ -150,7 +150,7 @@ def update_holidays_core(db: Session, year: int, month: int) -> bool:
 
     db.commit()
 
-    # (2) 받아 둔 공휴일만 True로 override
+    # (2) 받은 공휴일만 True로 override
     print(f"[update_holidays_core] Fetched {len(items)} holidays from API")
 
     for d, name in items:

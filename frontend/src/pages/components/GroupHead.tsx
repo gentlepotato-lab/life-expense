@@ -72,7 +72,7 @@ export default function GroupHead({
         ✓
       </button>
 
-      {/* 이름은 네모난 딱지에 담는다. 앞에 클립을 세워 두었는데 걷었다 —
+      {/* 이름은 네모난 딱지에 담는다. 앞에 클립을 세웠는데 걷었다 —
           카드마다 클립이 이미 서 있어 머리말까지 같은 그림을 두면 한 화면에
           클립이 여럿 선다. */}
       <span className="date-group__label">{group.name}</span>

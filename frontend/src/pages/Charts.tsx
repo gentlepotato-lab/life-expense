@@ -87,7 +87,7 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
    벌을 새로 들일 때도 같은 잣대를 지킨다.
    회색은 갈래 색이 아니라 "기타" 전용이다. 눈에 덜 띄어야 하는 자리다.
    부를 때 읽는 함수인 까닭은 빛깔이 모듈을 읽는 차례보다 늦게 끼워질 수
-   있어서다. 값으로 굳혀 두면 그 자리만 옛 색으로 남는다. */
+   있어서다. 값으로 굳히면 그 자리만 옛 색으로 남는다. */
 const PALETTE = () => currentPalette().chart;
 const ETC_COLOR = () => currentPalette().chartEtc;
 
@@ -265,7 +265,7 @@ const GhostRight = ghostBar("value", "전월", "right");
  *
  * 점은 그림 전체가 아니라 저마다 눌려야 하므로 누르는 자리를 직접 단다.
  * 보이는 점(반지름 4)은 손가락으로 겨누기에 작아 속이 빈 큰 원을 하나 더
- * 겹쳐 둔다 — 보이지 않고 누르는 자리만 넓힌다.
+ * 겹친다 — 보이지 않고 누르는 자리만 넓힌다.
  *
  * Recharts가 이 낱개를 복제하며 제 값(cx · cy · index · r)을 덮어씌우므로,
  * 그려지는 모양은 여기 적힌 값으로만 정한다. 밖에 쓴 r과 strokeWidth는
@@ -1402,7 +1402,7 @@ export default function Charts() {
     [trendRows, prevYm, keep]
   );
 
-  /* 지난달 하루치 — 자리는 이 달 일자에 맞춰 둔다. */
+  /* 지난달 하루치 — 자리는 이 달 일자에 맞춘다. */
   const prevByDay = useMemo(() => {
     const spend = new Array<number>(daysInMonth + 1).fill(0);
     prevRows.forEach((r) => {
@@ -1514,7 +1514,7 @@ export default function Charts() {
     rows.forEach((r) => {
       r.전월 = Math.round((지난달.get(r.name) ?? 0) + (r.name === "기타" ? 나머지 : 0));
     });
-    /* 이 달에 아예 쓰지 않은 수단만 줄을 새로 얻는다. 빼 두면 이번 달에
+    /* 이 달에 아예 쓰지 않은 수단만 줄을 새로 얻는다. 빼면 이번 달에
        안 쓴 것인지 애초에 없던 것인지 가릴 수가 없다. */
     [...지난달.entries()]
       .filter(([k, v]) => v > 0 && !줄이름.has(k) && !이달.has(k))
@@ -1778,7 +1778,7 @@ export default function Charts() {
      펼친다. 카드 실적을
      꾹 눌러 가는 길(openCardDetail)과 한 가지만 다르다: 거기서는 그 카드
      하나로 좁히지만, 여기서는 좁히지 않는다.
-     맡기는 자리에는 카드 실적을 펼쳐 두었는지를 지금 값 그대로 담는다 —
+     맡기는 자리에는 카드 실적을 펼쳤는지를 지금 값 그대로 담는다 —
      꾹 누르는 길과 달리 접힌 채로도 누를 수 있는 단추다. */
   const openDetail = useCallback(() => {
     const [y, m] = yearMonth.split("-").map(Number);
@@ -2417,7 +2417,7 @@ export default function Charts() {
 
           <div className="toolbar-btns">
             {/* 달력과 같은 자리 — 필터 왼쪽. 달력은 날을 골라야 나타나지만
-                여기서는 늘 누를 수 있어 알약에 불을 켜 두지 않는다. 이 툴바에서
+                여기서는 늘 누를 수 있어 알약에 불을 켜지 않는다. 이 툴바에서
                 켜진 불은 "걸린 것이 있다"는 뜻이고, 그 뜻을 흐리면 안 된다. */}
             <button
               type="button"

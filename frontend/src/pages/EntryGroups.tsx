@@ -69,8 +69,8 @@ export default function EntryGroups() {
   const [yearMonth, setYearMonth] = useState(ymNow);
   const [groups, setGroups] = useState<EntryGroup[]>([]);
   const [ready, setReady] = useState(false);
-  /* 펼쳐 둔 묶음. 비어 있으면 모두 접힌 것이다 — 묶음 내역은 접힌 채로
-     연다. 묶음이 여럿이면 저마다 날짜 단과 카드를 거느려, 다 펼쳐 두면
+  /* 펼친 묶음. 비어 있으면 모두 접힌 것이다 — 묶음 내역은 접힌 채로
+     연다. 묶음이 여럿이면 저마다 날짜 단과 카드를 거느려, 다 펼치면
      무엇이 몇 개인지가 한 화면에 안 들어온다. 접으면 더미 한 장씩이라
      훑기 쉽고, 볼 것만 펼친다. */
   const [expanded, setExpanded] = useState<Set<number>>(new Set());

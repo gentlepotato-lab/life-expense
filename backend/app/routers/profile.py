@@ -9,7 +9,7 @@ from app.xlsx import sheet_bytes
 # 자리는 main.py에서 /api/profile로 붙인다.
 router = APIRouter()
 
-# 담아 두는 앱 설정. 여기 없는 열쇠는 받지 않는다 —
+# 담는 앱 설정. 여기 없는 열쇠는 받지 않는다 —
 # 화면이 잘못 보내도 표가 지저분해지지 않게 한다.
 PREF_KEYS = {
     "blur_default": "0",
@@ -42,7 +42,7 @@ def get_profile(db: SessionDep = Depends()):
     """
     쓰는 사람. 아직 아무것도 적지 않았으면 빈 줄을 돌려준다.
 
-    칸은 바깥 인증이 돌려주는 것에 맞춰 두었다. provider가 비어 있으면
+    칸은 바깥 인증이 돌려주는 것에 맞췄다. provider가 비어 있으면
     사람이 손으로 적어 넣은 것이다.
     """
     row = db.execute(text("""
@@ -105,7 +105,7 @@ def save_profile(payload: dict, db: SessionDep = Depends()):
 
 @router.get("/prefs")
 def get_prefs(db: SessionDep = Depends()):
-    """앱 설정. 담아 둔 것이 없으면 기본값을 돌려준다."""
+    """앱 설정. 담은 것이 없으면 기본값을 돌려준다."""
     rows = db.execute(text("""
         SELECT pref_key, pref_value FROM life_expense.app_prefs
     """)).mappings().all()
@@ -256,7 +256,7 @@ def get_summary(db: SessionDep = Depends()):
     }
 
 
-# 내보낼 표. 적어 둔 차례대로 담는다 — 되살릴 때 가리키는 쪽이 뒤에 오도록.
+# 내보낼 표. 적은 차례대로 담는다 — 되살릴 때 가리키는 쪽이 뒤에 오도록.
 EXPORT_TABLES = [
     "categories_lvl1", "categories_lvl2", "categories_lvl3",
     "payment_method_categories", "payment_methods",

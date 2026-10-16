@@ -38,7 +38,7 @@ function 글풀기(el: HTMLElement | null): void {
  *
  * 꾹 누르기가 터지는 순간 손은 아직 닿아 있는데 그 자리에 팝업이 뜬다.
  * 마침 누른 자리에 팝업 글이 걸리면, 이어지는 누름이 그 글을 바로 집어
- * 선택 손잡이가 떠 버렸다. 누른 요소만 잠가 두었던 것으로는 막을 수 없다 —
+ * 선택 손잡이가 떠 버렸다. 누른 요소만 잠갔던 것으로는 막을 수 없다 —
  * 팝업은 그 요소 밖에 그려지기 때문이다.
  *
  * 그래서 잠깐 body에 건다. 손을 떼면 곧바로 푸므로, 팝업 안의 글을 나중에
@@ -87,7 +87,7 @@ export default function useLongPress(
   const timerRef = useRef<number | null>(null);
   const originRef = useRef<{ x: number; y: number } | null>(null);
   const firedRef = useRef(false);
-  /** 글을 잠가 둔 요소. 떼거나 취소될 때 이것만 푼다. */
+  /** 글을 잠근 요소. 떼거나 취소될 때 이것만 푼다. */
   const 잠근것 = useRef<HTMLElement | null>(null);
   const [pressing, setPressing] = useState(false);
 
