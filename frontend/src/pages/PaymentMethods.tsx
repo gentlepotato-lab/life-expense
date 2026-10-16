@@ -107,7 +107,7 @@ export default function PaymentMethods() {
   /* 편집이 아닐 때 잠긴 조각을 누르면 왜 안 되는지 알린다 — 다른 설정 화면과
      같은 갈고리다. */
   const { lockAt, showLock, tipRef } = useEditLock(editMode);
-  /* 펼쳐 둔 카드와 그 카드의 실적 구간 */
+  /* 펼친 카드와 그 카드의 실적 구간 */
   const [openCards, setOpenCards] = useState<Set<number>>(new Set());
   const [tiers, setTiers] = useState<Record<number, TierDraft[]>>({});
   const [tierOf, setTierOf] = useState<

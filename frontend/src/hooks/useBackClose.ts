@@ -11,7 +11,7 @@ import { useEffect, useRef } from "react";
  * 횟수만큼 뒤로 가기를 눌러야 하는 일이 생기지 않는다.
  *
  * Esc는 늘 닫는다. Backspace는 계산기처럼 그 키를 따로 쓰는 화면이 있어
- * 끌 수 있게 해 둔다.
+ * 끌 수 있게 한다.
  *
  * @param open      지금 열려 있는지
  * @param close     닫는 함수
@@ -39,7 +39,7 @@ const openStack: { close: () => void }[] = [];
  */
 export function closeOverlays(): Promise<void> {
   const waiting = openStack.length;
-  /* 닫으면 목록이 줄어드니 베껴 두고 돈다. */
+  /* 닫으면 목록이 줄어드니 베끼고 돈다. */
   [...openStack].reverse().forEach((t) => t.close());
   if (waiting === 0) return Promise.resolve();
 

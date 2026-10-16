@@ -298,7 +298,7 @@ def 거르기(모은것: dict, 고른것: dict) -> dict[str, Any]:
             "date": 날,
             "name": 이름 or "대기 내역",
             "memo": 이름 or None,
-            # 위 _줄()과 같은 까닭으로 0을 살려 둔다.
+            # 위 _줄()과 같은 까닭으로 0을 살린다.
             "amount": float(x["net_amount"] if x.get("net_amount") is not None else (x.get("amount") or 0)),
             "cat1_id": x.get("cat1_id"),
             "cat2_id": x.get("cat2_id"),

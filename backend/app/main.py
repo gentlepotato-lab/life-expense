@@ -115,11 +115,11 @@ app.add_middleware(
 # API는 모두 /api 아래로 모은다.
 #
 # 전에는 /meta, /entries처럼 루트를 쓰고 있었다. 그래서 화면(SPA)을 루트에 올리면
-# 라우트와 API가 부딪혀, 화면을 /app/으로 밀어 둘 수밖에 없었다.
+# 라우트와 API가 부딪혀, 화면을 /app/으로 밀 수밖에 없었다.
 # 여기 한 자리로 모으면서 그 제약이 풀린다.
 #
 # 판(v1, v2 …)은 나누지 않는다. 쓰는 사람이 하나뿐이라 갈래를 늘릴 이유가 없고,
-# 갈라 두면 고칠 때마다 두 곳을 손봐야 한다.
+# 가르면 고칠 때마다 두 곳을 손봐야 한다.
 API = "/api"
 
 # 규칙 — 한 자원은 한 자리, 한 파일, 한 화면을 갖는다.
@@ -158,7 +158,7 @@ app.include_router(splits.router, prefix=f"{API}/entries", tags=["splits"])
 app.include_router(splits.pending_router, prefix=f"{API}/pending-entries", tags=["splits"])
 app.include_router(splits.scheduled_router, prefix=f"{API}/scheduled-entries", tags=["splits"])
 
-# 쓰기 슬라이드(beta) — 시범 기능이라 길을 한자리에 모아 두었다.
+# 쓰기 슬라이드(beta) — 시범 기능이라 길을 한자리에 모았다.
 # 접을 때는 이 한 줄만 걷으면 된다.
 app.include_router(write_slide.router, prefix=f"{API}/write-slide", tags=["write_slide"])
 

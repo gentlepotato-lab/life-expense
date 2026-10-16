@@ -114,7 +114,7 @@ export default function EntryEditFields({
           </span>
         </EditField>
 
-        {/* 열쇠는 글자로 맞춰 둔다. 화면마다 숫자로도 문자열로도 담고 있어,
+        {/* 열쇠는 글자로 맞춘다. 화면마다 숫자로도 문자열로도 담고 있어,
             엄격하게 견주면 담은 꼴이 다른 화면에서만 고른 것이 비어 보였다.
             담을 때는 숫자로 돌려놓는다 — 표에 들어가는 값은 숫자다. */}
         <EditField label="결제 수단" span={4} required>

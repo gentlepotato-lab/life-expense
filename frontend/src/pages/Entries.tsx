@@ -127,7 +127,7 @@ export default function Entries() {
         setPayList(
           r.data.map((p: any) => ({
             /* 열쇠는 글자로 담는다. 화면의 고르개가 쓰는 값이 글자이고,
-               선언도 글자다. 숫자로 담아 두었더니 선언과 어긋난 채 any에
+               선언도 글자다. 숫자로 담았더니 선언과 어긋난 채 any에
                가려, 다른 꼴로 담은 화면에서만 짝이 안 맞았다. */
             code: String(p.method_id),
             name: p.method_name,
@@ -448,7 +448,7 @@ export default function Entries() {
   /**
    * 필터를 건다.
    *
-   * 바꾸는 것은 모두 조회가 끝난 뒤에 몰아서 한다. 먼저 바꿔 두면 팝업이
+   * 바꾸는 것은 모두 조회가 끝난 뒤에 몰아서 한다. 먼저 바꾸면 팝업이
    * 아직 떠 있는 동안 뒤쪽 도구 줄만 바뀌어, 팝업이 반 박자 늦게 닫히는
    * 것처럼 보인다. 한 판에 같이 바꾸면 닫히는 순간에 함께 바뀐다.
    */
@@ -1419,7 +1419,7 @@ export const EntryCard = memo(function EntryCard({
   /* 뜯는 동안 뜨는 한 줄. 고치지 못하는 화면에서만 쓴다 — 어디로 가야
      고치는지를 적는다. 넘기지 않으면 그 카드에서는 안내가 뜨지 않는다. */
   peelTip?: string;
-  /* 골라 둔 건인지. 넘기지 않으면 고르기 상자가 서지 않는다 — 기간 상세처럼
+  /* 고른 건인지. 넘기지 않으면 고르기 상자가 서지 않는다 — 기간 상세처럼
      보기만 하는 화면은 지금까지와 같은 꼴을 지킨다. */
   picked?: boolean;
   onTogglePick?: (id: number) => void;
@@ -1583,7 +1583,7 @@ export const EntryCard = memo(function EntryCard({
       <MemoPad memo={row.memo} />
 
       {/* 쪼갠 건 — 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다.
-          카드 안 금액 옆에 끼워 두었더니 자리가 붕 떠 보였다. */}
+          카드 안 금액 옆에 끼웠더니 자리가 붕 떠 보였다. */}
       {hasSplit && (
         <div className={`split-tab${open ? " open" : ""}`}>
           <span

@@ -1496,7 +1496,7 @@ export function ScheduleCard({
   payList: { code: string; name: string; category?: string }[];
   toTimeString: (hour?: number, minute?: number) => string;
   onOpenEditor?: (schedule: any) => void;
-  /* 골라 둔 건인지. 넘기지 않으면 고르기 상자가 서지 않는다 — 기간 상세처럼
+  /* 고른 건인지. 넘기지 않으면 고르기 상자가 서지 않는다 — 기간 상세처럼
      보기만 하는 화면은 지금까지와 같은 꼴을 지킨다. */
   picked?: boolean;
   onTogglePick?: (id: number) => void;

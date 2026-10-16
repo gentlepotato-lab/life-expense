@@ -164,7 +164,7 @@ def sheet_bytes(
     )
 
     buf = BytesIO()
-    # 압축해 두어야 줄이 많아져도 내려받는 데 오래 걸리지 않는다.
+    # 압축해야 줄이 많아져도 내려받는 데 오래 걸리지 않는다.
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("[Content_Types].xml", CONTENT_TYPES)
         z.writestr("_rels/.rels", ROOT_RELS)
