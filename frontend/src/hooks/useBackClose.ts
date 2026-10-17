@@ -56,9 +56,9 @@ export function closeOverlays(): Promise<void> {
       done();
     };
     const onPop = () => {
-      /* 닫힌 쪽은 이미 귀를 닫았다 — 삼키려고 올린 수를 여기서 내린다.
+      /* 닫힌 쪽은 이미 귀를 닫았다 — 삼키려고 센 것을 여기서 지운다.
          그대로 두면 다음에 열린 팝업이 진짜 뒤로 가기 한 번을 삼켜버린다. */
-      if (unwinding > 0) unwinding -= 1;
+      걷는울림인가();
       seen += 1;
       if (seen >= waiting) finish();
     };
@@ -69,13 +69,37 @@ export function closeOverlays(): Promise<void> {
 }
 
 /**
- * 우리가 스스로 걷어 내는 중인 칸의 수.
+ * 우리가 스스로 걷어 내는 중인 칸들.
  *
  * 단추로 닫으면 끼운 칸을 history.back()으로 도로 걷는데, 그 back도
  * popstate를 울린다. 그 울림은 "뒤로 가기를 눌렀다"는 뜻이 아니므로
  * 한 번 삼키고 아무것도 닫지 않는다.
+ *
+ * 수가 아니라 번호를 담는 까닭은, 삼킬 귀가 하나도 없는 자리가 있기
+ * 때문이다. 아래 효과는 정리할 때 제 귀를 먼저 떼고 back()을 부르므로,
+ * 혼자 떠 있던 것이 닫히면 그 울림을 받을 귀가 없다. 수로 세면 올린 하나가
+ * 그대로 남아 다음 진짜 뒤로 가기를 삼킨다 — 내역에서 체크를 풀었다 다시
+ * 걸면 뒤로 가기 한 번이 먹히고 두 번째가 화면을 떠나던 것이 이것이었다.
+ * 번호마다 틈을 주고, 그 틈이 지나도록 아무도 삼키지 않으면 스스로 지운다.
  */
-let unwinding = 0;
+let 걷는번호 = 0;
+const 걷는중 = new Set<number>();
+
+/** 걷을 칸 하나를 센다. */
+function 걷기시작() {
+  const 번호 = ++걷는번호;
+  걷는중.add(번호);
+  /* 울림이 지나갈 틈. closeOverlays가 기다리는 틈과 같은 값이다. */
+  window.setTimeout(() => 걷는중.delete(번호), 400);
+}
+
+/** 이 울림이 우리가 걷은 것인지. 맞으면 하나를 지우고 참을 돌려준다. */
+function 걷는울림인가(): boolean {
+  const 첫 = 걷는중.values().next();
+  if (첫.done) return false;
+  걷는중.delete(첫.value);
+  return true;
+}
 
 export default function useBackClose(
   open: boolean,
@@ -100,10 +124,7 @@ export default function useBackClose(
 
     const onPop = () => {
       /* 우리가 걷어 낸 칸이 되돌아온 울림이면 아무도 닫지 않는다. */
-      if (unwinding > 0) {
-        unwinding -= 1;
-        return;
-      }
+      if (걷는울림인가()) return;
       /* 맨 위에 있는 것만 닫는다 — 아래 깔린 것까지 함께 닫히면 안 된다. */
       if (openStack[openStack.length - 1] !== token) return;
 
@@ -146,7 +167,7 @@ export default function useBackClose(
       if (!popped) {
         const state = window.history.state as { __overlay?: boolean } | null;
         if (state?.__overlay) {
-          unwinding += 1;
+          걷기시작();
           window.history.back();
         }
       }
