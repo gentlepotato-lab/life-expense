@@ -1,5 +1,5 @@
 import { visible } from "../utils/visible";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import api from "../api/client";
 import useBackClose from "../hooks/useBackClose";
 import PlacePicker from "./components/PlacePicker";
@@ -77,7 +77,12 @@ export default function PendingEntries() {
 
   /* 선택한 항목. 화면에 지금 보이는 것만 센다 — 걸러서 사라진 건이 선택된 채로
      남아 있으면, 눈에 없는 것이 함께 날아간다. 아래 picked에서 추려 쓴다. */
+  /* 고른 것이 있는지. openEditor가 부를 때 읽으므로 ref로 든다 —
+     상태를 그대로 쓰면 고를 때마다 openEditor가 새로 서서 카드
+     수십 장이 함께 다시 그려진다. */
+  const 고른것있나 = useRef(false);
   const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
+  고른것있나.current = pickedIds.size > 0;
 
   /* 고른 것이 있으면 뒤로 가기가 화면을 떠나지 않고 고른 것만 푼다.
      팝업과 같은 결이다 — 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 고른
@@ -277,6 +282,14 @@ export default function PendingEntries() {
   // ------------------------------------
 
   const openEditor = useCallback((row: any) => {
+    /* 고르는 중에는 편집 팝업을 열지 않는다. 꾹 누르기도, 쪽지나 클립을
+       뜯는 것도 이 한 곳을 지난다. 고른 채로 한 건을 고치면 목록이 다시
+       그려지면서 고른 것이 가리키던 줄이 어긋난다 — 필터를 막는 것과 같은
+       까닭이다. */
+    if (고른것있나.current) {
+      say.warn("선택한 내역이 있습니다. 해제한 후 시도해 주세요.");
+      return;
+    }
     setDraft({ ...row });
     // 분할은 목록 조회에 합계만 실려 오므로, 편집할 때 상세를 따로 가져온다.
     setSplits([]);
@@ -971,7 +984,7 @@ export default function PendingEntries() {
                  바뀌어 고른 것이 가리키던 줄이 사라진다. */
               onClick={() => {
                 if (picked.length > 0) {
-                  say.warn("선택한 내역이 있습니다. 해제한 후 필터를 열어 주세요.");
+                  say.warn("선택한 내역이 있습니다. 해제한 후 시도해 주세요.");
                   return;
                 }
                 setFilterOpen(true);

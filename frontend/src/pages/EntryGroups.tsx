@@ -82,6 +82,17 @@ export default function EntryGroups() {
      Backspace는 받지 않는다 — 고르는 중에 쓰는 키가 아니다. */
   useBackClose(picked.size > 0, () => setPicked(new Set()), false);
   const [openId, setOpenId] = useState<number | null>(null);
+
+  /* 묶음 팝업을 여는 유일한 길. 머리말 · 기간 · 메모 · 접힌 한 줄이 모두
+     여기를 지난다 — 자리마다 따로 적으면 한 곳만 막고 나머지를 잊는다.
+     고르는 중에는 열지 않는다. 필터를 막는 것과 같은 까닭이다. */
+  const 묶음열기 = (id: number) => {
+    if (picked.size > 0) {
+      say.warn("선택한 묶음이 있습니다. 해제한 후 시도해 주세요.");
+      return;
+    }
+    setOpenId(id);
+  };
   /* 꾹 눌러 편집을 열면 손을 뗄 때 click이 뒤따라 온다. 그대로 두면 편집
      팝업이 뜨면서 뒤에서 묶음이 접힌다. 한 번만 삼킨다. */
   const 방금편집 = useRef(false);
@@ -252,7 +263,7 @@ export default function EntryGroups() {
                  바뀌어 고른 것이 가리키던 줄이 사라진다. */
               onClick={() => {
                 if (picked.size > 0) {
-                  say.warn("선택한 묶음이 있습니다. 해제한 후 필터를 열어 주세요.");
+                  say.warn("선택한 묶음이 있습니다. 해제한 후 시도해 주세요.");
                   return;
                 }
                 setFilter(applied);
@@ -286,7 +297,7 @@ export default function EntryGroups() {
                 group={group}
                 open={open}
                 onToggle={() => toggleGroup(group.group_id)}
-                onOpen={() => setOpenId(group.group_id)}
+                onOpen={() => 묶음열기(group.group_id)}
                 picked={picked.has(group.group_id)}
                 onTogglePick={() => togglePick(group.group_id)}
               />
@@ -299,7 +310,7 @@ export default function EntryGroups() {
                   className="mk-span"
                   label={open ? `묶음 ${group.name} 접기` : `묶음 ${group.name} 펼치기`}
                   onToggle={() => toggleGroup(group.group_id)}
-                  onOpen={() => setOpenId(group.group_id)}
+                  onOpen={() => 묶음열기(group.group_id)}
                 >
                   <span className="ws-tag ws-tag--now mk-span__tag">{걸친기간(group)}</span>
                 </GroupTap>
@@ -310,7 +321,7 @@ export default function EntryGroups() {
                 className="mk-memo"
                 label={open ? `묶음 ${group.name} 접기` : `묶음 ${group.name} 펼치기`}
                 onToggle={() => toggleGroup(group.group_id)}
-                onOpen={() => setOpenId(group.group_id)}
+                onOpen={() => 묶음열기(group.group_id)}
               >
                 <MemoPad memo={group.memo} />
               </GroupTap>
@@ -325,7 +336,7 @@ export default function EntryGroups() {
                     group={group}
                     meta={meta}
                     onToggle={() => toggleGroup(group.group_id)}
-                    onOpen={() => setOpenId(group.group_id)}
+                    onOpen={() => 묶음열기(group.group_id)}
                   />
                 </Collapse>
               )}
@@ -352,6 +363,12 @@ export default function EntryGroups() {
                         readOnly={group.kind === "scheduled"}
                         onOpenEditor={(r) => {
                           if (group.kind === "scheduled") return;
+                          /* 고르는 중에는 열지 않는다 — 필터를 막는 것과 같은
+                             까닭이다. 꾹 누르기도 클립을 뜯는 것도 여기를 지난다. */
+                          if (picked.size > 0) {
+                            say.warn("선택한 묶음이 있습니다. 해제한 후 시도해 주세요.");
+                            return;
+                          }
                           방금편집.current = true;
                           setEditing({ kind: group.kind, row: r });
                         }}
