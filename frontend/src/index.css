@@ -1129,6 +1129,10 @@ div:has(> .cat2-header-row) .drag-handle {
   width: 34px;
   flex-shrink: 0;
   text-align: center;
+  /* 손가락으로 끌 수 있게 한다. 이것이 없으면 첫 움직임을 브라우저가 화면
+     굴리기로 가져가고, 끌기는 시작도 못 하고 끊긴다(pointercancel). 중분류
+     쪽에만 적혀 있어 소분류 · 세분류는 손전화에서 차례를 못 바꿨다. */
+  touch-action: none;
 }
 
 /* 소분류 행 */
@@ -1184,6 +1188,8 @@ div:has(> .cat2-header-row) .drag-handle {
   width: 34px;
   flex-shrink: 0;
   text-align: center;
+  /* 위 소분류와 같은 까닭이다. */
+  touch-action: none;
 }
 
 .cat3-row {
