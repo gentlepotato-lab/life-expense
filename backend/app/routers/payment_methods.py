@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from app.deps import SessionDep
 
 # 자리는 main.py에서 /api/payment-methods로 붙인다.
@@ -78,21 +79,30 @@ def save_methods(payload: list[dict], db: SessionDep = Depends()):
 # 삭제
 @router.delete("/delete")
 def delete_method(method_id: int, db: SessionDep = Depends()):
-    # entries 사용 중이면 막기...
+    # 쓰는 곳이 있으면 막는다.
+    # 지출 내역만 보면 모자란다. 대기 내역은 결제수단에 FK가 없어 지워도 DB가
+    # 막지 않고 이름만 비어 버리고, 정기 내역은 FK가 막아 500이 난다.
     used = db.execute(text("""
-        SELECT 1 FROM life_expense.entries
-         WHERE pay_method = :id
-         LIMIT 1
+        SELECT 1 FROM life_expense.entries           WHERE pay_method = :id LIMIT 1
+    """), {"id": method_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.pending_entries   WHERE pay_method = :id LIMIT 1
+    """), {"id": method_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.scheduled_entries WHERE pay_method = :id LIMIT 1
     """), {"id": method_id}).fetchone()
 
     if used:
         return {"error": "IN_USE"}
 
-    db.execute(text("""
-        DELETE FROM life_expense.payment_methods
-         WHERE method_id = :id
-    """), {"id": method_id})
-    db.commit()
+    try:
+        db.execute(text("""
+            DELETE FROM life_expense.payment_methods
+             WHERE method_id = :id
+        """), {"id": method_id})
+        db.commit()
+    except IntegrityError:
+        # 위에서 못 걸러 낸 참조가 남아 있을 때. 500 대신 같은 안내로 돌린다.
+        db.rollback()
+        return {"error": "IN_USE"}
 
     return {"status": "deleted"}
 
@@ -229,7 +239,7 @@ def list_tiers(method_id: int, db: SessionDep = Depends()):
 
     ids = [t["tier_id"] for t in tiers]
     rows = db.execute(text("""
-        SELECT benefit_id, tier_id, content, memo, limit_amount, sort_order
+        SELECT benefit_id, tier_id, content, description, limit_amount, sort_order
           FROM life_expense.card_benefits
          WHERE tier_id = ANY(:ids)
       ORDER BY sort_order ASC, benefit_id ASC
@@ -237,7 +247,7 @@ def list_tiers(method_id: int, db: SessionDep = Depends()):
 
     # 혜택에 걸린 대상까지 한 번에 모아 온다.
     targets = db.execute(text("""
-        SELECT t.target_id, t.benefit_id, t.area, t.stores
+        SELECT t.target_id, t.benefit_id, t.area, t.detail
           FROM life_expense.card_benefit_targets t
           JOIN life_expense.card_benefits b ON b.benefit_id = t.benefit_id
          WHERE b.tier_id = ANY(:ids)
@@ -249,7 +259,7 @@ def list_tiers(method_id: int, db: SessionDep = Depends()):
         by_benefit.setdefault(t["benefit_id"], []).append({
             "target_id": t["target_id"],
             "area": t["area"],
-            "stores": t["stores"],
+            "detail": t["detail"],
         })
 
     bag: dict[int, list[dict]] = {}
@@ -257,7 +267,7 @@ def list_tiers(method_id: int, db: SessionDep = Depends()):
         bag.setdefault(r["tier_id"], []).append({
             "benefit_id": r["benefit_id"],
             "content": r["content"],
-            "memo": r["memo"],
+            "description": r["description"],
             "limit": float(r["limit_amount"]) if r["limit_amount"] is not None else None,
             "targets": by_benefit.get(r["benefit_id"], []),
         })
@@ -301,38 +311,38 @@ def save_tiers(method_id: int, payload: list[dict], db: SessionDep = Depends()):
 
             for j, b in enumerate(tier.get("benefits") or []):
                 name = (b.get("content") or "").strip()
-                # 이름 없는 줄은 담지 않는다 — 메모만 있는 혜택은 뜻이 없다.
+                # 이름 없는 줄은 담지 않는다 — 설명만 있는 혜택은 뜻이 없다.
                 if not name:
                     continue
-                memo = (b.get("memo") or "").strip()
+                desc = (b.get("description") or "").strip()
                 cap = b.get("limit")
                 benefit_id = db.execute(text("""
                     INSERT INTO life_expense.card_benefits
-                                (tier_id, content, memo, limit_amount, sort_order)
-                         VALUES (:tid, :content, :memo, :cap, :sort)
+                                (tier_id, content, description, limit_amount, sort_order)
+                         VALUES (:tid, :content, :desc, :cap, :sort)
                       RETURNING benefit_id
                 """), {
                     "tid": tier_id,
                     "content": name[:200],
-                    "memo": memo[:200] or None,
+                    "desc": desc[:200] or None,
                     "cap": cap if cap not in (None, "") else None,
                     "sort": j + 1,
                 }).scalar()
 
                 for k, t in enumerate(b.get("targets") or []):
-                    stores = (t.get("stores") or "").strip()
-                    # 가맹점이 없으면 대상이라 할 것이 없다.
-                    if not stores:
+                    detail = (t.get("detail") or "").strip()
+                    # 무엇이 걸리는지 적지 않았으면 대상이라 할 것이 없다.
+                    if not detail:
                         continue
                     area = (t.get("area") or "").strip()
                     db.execute(text("""
                         INSERT INTO life_expense.card_benefit_targets
-                                    (benefit_id, area, stores, sort_order)
-                             VALUES (:bid, :area, :stores, :sort)
+                                    (benefit_id, area, detail, sort_order)
+                             VALUES (:bid, :area, :detail, :sort)
                     """), {
                         "bid": benefit_id,
                         "area": area[:60] or None,
-                        "stores": stores[:400],
+                        "detail": detail[:400],
                         "sort": k + 1,
                     })
 

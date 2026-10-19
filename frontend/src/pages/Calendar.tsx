@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { stash, takeStash } from "../utils/pageState";
+import FixedFilter from "./components/FixedFilter";
 import { useNavigate } from "react-router-dom";
 import axios from "../api/client";
-import useRevealDrag from "../hooks/useRevealDrag";
+import { say } from "../utils/notify";
 import EntryFilterPopup from "./components/EntryFilterPopup";
 import QuickActions from "./components/QuickActions";
+import ExportButton from "./components/ExportButton";
+import { 내보낼조건 } from "../utils/exportParams";
+import MonthNav from "./components/MonthNav";
+import useMonthSpan from "../hooks/useMonthSpan";
 import {
   EMPTY_FILTER,
-  blurSetsFrom,
-  excludeSetsFrom,
+  fixedSetsFrom,
+  ALL_FIXED_PICK,
+  fxTag,
+  type FixedPick,
   hasCondition,
-  isBlurred,
-  isExcluded,
+  passFixed,
   pass,
   type Filter,
   type Row,
@@ -42,66 +49,92 @@ function dayOf(v: string | null | undefined): number | null {
   return m ? Number(m[2]) : null;
 }
 
+/** 상세로 갔다 되돌아왔을 때 되살릴 것 */
+type CalKeep = {
+  yearMonth: string;
+  on: Record<Src, boolean>;
+  fixPick: FixedPick;
+  pick: number[];
+  filter: Filter;
+  appliedFilter: Filter;
+};
+
 export default function Calendar() {
-  const [yearMonth, setYearMonth] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
+  /* 상세에서 되돌아온 참이면 보던 자리를 그대로 이어 받는다. 한 번 꺼내면
+     사라지므로, 탭으로 새로 들어오면 늘 하던 대로 이 달 · 고른 날 없음이다. */
+  const kept = useMemo(() => takeStash<CalKeep>("calendar"), []);
+
+  const [yearMonth, setYearMonth] = useState(
+    () =>
+      kept?.yearMonth ??
+      (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      })()
+  );
 
   /* 겹쳐 볼 자료 — 처음에는 셋 다 켠다. */
-  const [on, setOn] = useState<Record<Src, boolean>>({
-    expense: true,
-    pending: true,
-    scheduled: true,
-  });
+  const [on, setOn] = useState<Record<Src, boolean>>(() =>
+    kept?.on ?? {
+      expense: true,
+      pending: true,
+      scheduled: true,
+    }
+  );
 
   const [rows, setRows] = useState<Row[]>([]);
 
-  /* Blur를 걸어 둔 갈래를 셈에 넣을지. 처음에는 빼 둔다 —
-     가릴 것이 아예 없으면 테이프도 뜨지 않는다. */
-  const [blurOn, setBlurOn] = useState(false);
-
-  /* Exclude를 걸어 둔 갈래를 뺄지. 처음에는 뺀다(켜짐) —
-     끄면 수입 · 저축까지 들어와 Net이 보인다. */
-  const [excludeOn, setExcludeOn] = useState(true);
+  /* 어떤 갈래를 볼지 — 고정 · 변동 곱하기 지출 · 수입 넷.
+     들어올 때는 넷 다 켜져 있고 담지 않는다. */
+  /* 상세로 갔다 되돌아오면 고른 갈래도 그대로다 — 저장된 것을 되살린다.
+     달과 고른 날과 걸린 조건이 그대로인데 이것만 풀리면 보던 자리가 달라진다. */
+  const [fixPick, setFixPick] = useState<FixedPick>(() => kept?.fixPick ?? ALL_FIXED_PICK);
 
   /* 눌러서 고른 기간.
      한 번 누르면 시작일만 잡히고(end === null), 한 번 더 누르면 끝일까지 잡힌다.
      시작일만 잡힌 상태에서 같은 날 또는 달력 바깥을 누르면 고르기를 접는다. */
-  /* 고른 날들. 이어진 기간일 필요가 없어 그냥 날짜를 담아 둔다 */
-  const [pick, setPick] = useState<number[]>([]);
+  /* 고른 날들. 이어진 기간일 필요가 없어 그냥 날짜만 지닌다. */
+  const [pick, setPick] = useState<number[]>(() => kept?.pick ?? []);
   const calRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
   /* 적고 나면 그 날 칸에 바로 드러나야 한다 — 한 달치를 다시 읽는다. */
   const [reloadKey, setReloadKey] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filter, setFilter] = useState<Filter>(EMPTY_FILTER);
-  const [appliedFilter, setAppliedFilter] = useState<Filter>(EMPTY_FILTER);
+  const [filter, setFilter] = useState<Filter>(() => kept?.filter ?? EMPTY_FILTER);
+  const [appliedFilter, setAppliedFilter] = useState<Filter>(() => kept?.appliedFilter ?? EMPTY_FILTER);
 
   /* 고르는 목록들 */
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; exclude?: number; is_active?: number }[]>([]);
-  const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; exclude?: number; is_active?: number }[]>([]);
-  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; exclude?: number; is_active?: number }[]>([]);
-  const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null; is_active?: number }[]>([]);
+  const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; fixed?: number; is_active?: number }[]>([]);
+  const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; fixed?: number; is_active?: number }[]>([]);
+  const [payList, setPayList] = useState<{ code: string; name: string; emoji?: string | null; is_active?: number }[]>([]);
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
 
   const isFilterActive = useMemo(() => hasCondition(appliedFilter), [appliedFilter]);
 
   useEffect(() => {
-    axios.get("/categories/lvl1").then((r) => setCat1List(r.data));
-    axios.get("/categories/lvl2").then((r) => setCat2List(r.data));
-    axios.get("/categories/lvl3").then((r) => setCat3List(r.data));
-    axios.get("/counterparts").then((r) => setCpList(r.data));
-    axios.get("/payment-methods").then((r) =>
-      setPayList(
-        r.data.map((p: { method_id: number; method_name: string; is_active?: number }) => ({
-          code: String(p.method_id),
-          name: p.method_name,
-          is_active: p.is_active,
-        }))
+    // 조회가 실패하면 빈 목록으로 둔다. 그냥 두면 처리되지 않은 거절만
+    // 남고 화면은 까닭 없이 비어 보인다. 기준 자료라 한 번은 알린다.
+    const 메타실패 = () => say.warn("기준 자료를 불러오지 못했습니다. 새로 고쳐 주세요.");
+    axios.get("/categories/lvl1").then((r) => setCat1List(r.data)).catch(메타실패);
+    axios.get("/categories/lvl2").then((r) => setCat2List(r.data)).catch(메타실패);
+    axios.get("/categories/lvl3").then((r) => setCat3List(r.data)).catch(메타실패);
+    axios.get("/counterparts").then((r) => setCpList(r.data)).catch(메타실패);
+    axios
+      .get("/payment-methods")
+      .then((r) =>
+        setPayList(
+          r.data.map((p: { method_id: number; method_name: string; category_emoji?: string | null; is_active?: number }) => ({
+            code: String(p.method_id),
+            name: p.method_name,
+            is_active: p.is_active,
+            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다. */
+            emoji: p.category_emoji ?? null,
+          }))
+        )
       )
-    );
+      .catch(메타실패);
   }, []);
 
   /* 세 자료를 한 달치로 모은다. */
@@ -138,6 +171,8 @@ export default function Calendar() {
             pay_method: x.pay_method as number,
             memo: x.memo as string,
             place_name: x.place_name as string,
+            /* 손으로 정한 고정 · 변동. 비면 분류에 정한 것을 따른다. */
+            fixed_flag: (x.fixed_flag as number | null) ?? null,
             counterpart_ids: (x.counterpart_ids as number[]) ?? [],
           });
         });
@@ -154,31 +189,15 @@ export default function Calendar() {
     };
   }, [yearMonth, reloadKey]);
 
-  /* Blur가 걸린 갈래 — 그런 지출이 낀 날은 칸의 금액도 덮는다.
-     중 · 소 · 세 어디에 걸려도 함께 덮인다. */
-  const blurSets = useMemo(
-    () => blurSetsFrom(cat1List, cat2List, cat3List),
-    [cat1List, cat2List, cat3List]
-  );
+  const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
 
-  const excSets = useMemo(
-    () => excludeSetsFrom(cat1List, cat2List, cat3List),
-    [cat1List, cat2List, cat3List]
-  );
-
-  /* 켠 자료 + 걸린 조건을 통과한 줄만.
-     Blur를 끄면 가려야 할 갈래는 셈에서 아예 뺀다.
-     Exclude가 켜져 있으면 집계에서 빼 둔 갈래도 뺀다. */
+  /* 켠 자료 + 고른 갈래 + 걸린 조건을 통과한 줄만. */
   const shown = useMemo(
     () =>
       rows.filter(
-        (r) =>
-          on[r.src] &&
-          (blurOn || !isBlurred(r, blurSets)) &&
-          !(excludeOn && isExcluded(r, excSets)) &&
-          pass(r, appliedFilter)
+        (r) => on[r.src] && passFixed(r, fixPick, fixSets) && pass(r, appliedFilter)
       ),
-    [rows, on, appliedFilter, blurOn, blurSets, excludeOn, excSets]
+    [rows, on, appliedFilter, fixPick, fixSets]
   );
 
   /* 날짜별로 모은다. */
@@ -206,17 +225,14 @@ export default function Calendar() {
     });
   }, [yearMonth]);
 
-  const monthLabel = useMemo(() => {
-    const [y, m] = yearMonth.split("-").map(Number);
-    return `${y}년 ${m}월`;
-  }, [yearMonth]);
+  /* 넘겨 볼 수 있는 끝 — 적은 것이 있는 달부터 이 달 두 달 뒤까지.
+     내역 세 화면과 씀씀이가 쓰는 그 잣대를 그대로 쓴다. */
+  const { min: 달바닥, max: 달천장 } = useMonthSpan();
 
-  const shiftMonth = (step: number) => {
-    const [y, m] = yearMonth.split("-").map(Number);
-    const d = new Date(y, m - 1 + step, 1);
+  const 달옮기기 = (v: string) => {
     /* 고른 날은 그 달의 날이다. 달을 넘기면 뜻을 잃으므로 접는다. */
     setPick([]);
-    setYearMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    setYearMonth(v);
   };
 
   const today = useMemo(() => {
@@ -227,30 +243,17 @@ export default function Calendar() {
     };
   }, []);
 
-  /* 끌면 그 날 하나만 잠깐 드러난다 — 카드·날짜 합계와 같은 손짓이다. */
-  const [revealDay, setRevealDay] = useState<number | null>(null);
-  const dragDay = useRef<number | null>(null);
-  const startReveal = useRevealDrag((on) => setRevealDay(on ? dragDay.current : null));
-
-  /* 한 달 합계. 가려야 할 줄이 하나라도 섞였으면 합계도 함께 덮는다 —
-     날마다 가려 놓고 합계로 드러나면 가린 뜻이 없다. */
+  /* 한 달 합계. 집계에는 테이프를 붙이지 않는다 — 덮는 것은 개별 내역뿐이다. */
   const monthSum = useMemo(() => {
     let inSum = 0;
     let outSum = 0;
-    let hasBlur = false;
     shown.forEach((r) => {
       if (r.inout === 1) inSum += r.net;
       else outSum += r.net;
-      if (isBlurred(r, blurSets)) hasBlur = true;
     });
-    return { inSum, outSum, net: inSum - outSum, hasBlur };
-  }, [shown, blurSets]);
-
-  const [sumRevealed, setSumRevealed] = useState(false);
-  const startSumReveal = useRevealDrag(setSumRevealed);
-  const sumMasked = monthSum.hasBlur && !sumRevealed;
-
-  /** 날짜 한 칸을 눌렀을 때 — 담겨 있으면 빼고, 없으면 담는다 */
+    return { inSum, outSum, net: inSum - outSum };
+  }, [shown]);
+  /** 날짜 한 칸을 눌렀을 때 — 담겨 있으면 빼고, 없으면 담는다. */
   const pickDay = useCallback((day: number) => {
     setPick((prev) =>
       prev.includes(day)
@@ -264,7 +267,7 @@ export default function Calendar() {
      떼는 순간 그 사이를 통째로 담는다. 한 칸 안에서 누르고 떼면 그냥 하루를
      누른 것으로 본다.
 
-     손가락이 지나간 칸은 pointermove 가 알려 주지 않는다 — 누른 칸이 이후
+     손가락이 지나간 칸은 pointermove가 알려 주지 않는다 — 누른 칸이 이후
      신호를 붙잡기(setPointerCapture) 때문이다. 그래서 좌표로 어느 칸 위인지
      되짚는다. 마우스와 손가락을 한 갈래로 다루려면 이 편이 낫다. */
   const dragFrom = useRef<number | null>(null);
@@ -279,8 +282,16 @@ export default function Calendar() {
   };
 
   const onCellDown = (day: number) => (e: React.PointerEvent<HTMLDivElement>) => {
-    /* 덮인 금액은 제 손짓(끌어서 잠깐 보기)이 있으므로 비켜 준다 */
-    if (e.target instanceof Element && e.target.closest(".cal__net")) return;
+    /* 가린 갈래가 섞인 날의 금액은 제 손짓(끌어서 잠깐 보기)이 있으므로
+       비켜 준다. 가릴 것이 없는 날의 금액에는 그 손짓이 붙지 않으므로 비켜
+       주면 안 된다 — 그러면 그 글자를 누른 손짓이 아무 데도 가지 않아, 칸의
+       가로폭을 통째로 차지하는 금액 줄을 누를 때마다 하루가 담기지도 빠지지도
+       않는다. masked·revealed 둘 중 하나가 붙은 것만이 제 손짓을 가진 금액이다. */
+    if (
+      e.target instanceof Element &&
+      e.target.closest(".cal__net.masked, .cal__net.revealed")
+    )
+      return;
     dragFrom.current = day;
     dragMoved.current = false;
     setDragTo(day);
@@ -302,12 +313,12 @@ export default function Calendar() {
     setDragTo(null);
     if (from === null) return;
 
-    /* 한 칸 안에서 누르고 뗐다 — 하루를 담거나 뺀다 */
+    /* 한 칸 안에서 누르고 뗐다 — 하루를 담거나 뺀다. */
     if (!dragMoved.current || to === null || to === from) {
       pickDay(from);
       return;
     }
-    /* 끌었다 — 지나온 날을 통째로 담는다. 이미 담긴 날은 그대로 둔다 */
+    /* 끌었다 — 지나온 날을 통째로 담는다. 이미 담긴 날은 그대로 둔다. */
     const lo = Math.min(from, to);
     const hi = Math.max(from, to);
     setPick((prev) => {
@@ -325,16 +336,17 @@ export default function Calendar() {
   const openDetail = useCallback(() => {
     if (!pick.length) return;
     const pad = (n: number) => String(n).padStart(2, "0");
-    /* 고른 날을 그대로 죽 적어 보낸다 — 이어져 있을 필요가 없다 */
+    /* 고른 날을 그대로 죽 적어 보낸다 — 이어져 있을 필요가 없다. */
     const days = pick.map((d) => `${yearMonth}-${pad(d)}`).join(",");
     const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
-    navigate(
-      `/calendar/detail?days=${days}&src=${src}&blur=${blurOn ? 1 : 0}&exclude=${excludeOn ? 1 : 0}`,
-      {
+    /* 되돌아왔을 때 이 자리가 그대로이도록 저장한다. */
+    stash("calendar", { yearMonth, on, fixPick, pick, filter, appliedFilter });
+    /* 고른 갈래를 그대로 물려준다 — 달력에 보이던 것과 상세가 어긋나면 안 된다. */
+    navigate(`/calendar/detail?days=${days}&src=${src}&fx=${fxTag(fixPick)}`, {
       /* 걸린 조건도 함께 넘긴다 — 달력에 보이던 것과 상세가 어긋나면 안 된다. */
       state: { filter: appliedFilter },
     });
-  }, [pick, yearMonth, on, blurOn, excludeOn, appliedFilter, navigate]);
+  }, [pick, yearMonth, on, fixPick, filter, appliedFilter, navigate]);
 
   const closeFilter = useCallback(() => {
     setFilter(appliedFilter);
@@ -346,18 +358,26 @@ export default function Calendar() {
       {/* 월 넘기기 + 필터 — 내역 세 화면과 같은 툴바 */}
       <div className="toolbar-wrap">
         <div className="toolbar">
-          <div className="month-nav">
-            <button type="button" className="month-nav__arrow" aria-label="지난달" onClick={() => shiftMonth(-1)}>
-              ‹
-            </button>
-            <span className="month-nav__label">{monthLabel}</span>
-            <button type="button" className="month-nav__arrow" aria-label="다음 달" onClick={() => shiftMonth(1)}>
-              ›
-            </button>
-          </div>
+          <MonthNav ym={yearMonth} onChange={달옮기기} min={달바닥} max={달천장} />
 
           <div className="toolbar-btns">
-            {/* 날짜를 고르면 필터 왼쪽에 나타난다 */}
+            {/* 날짜를 고르면 필터 왼쪽에 둘이 나타난다 — 고른 것을 무르는
+                [초기화]가 왼쪽, 보러 가는 [상세]가 오른쪽. 불은 하려던 일
+                하나에만 켠다. */}
+            {pick.length > 0 && (
+              <button
+                type="button"
+                className="filter-pill"
+                onClick={() => setPick([])}
+                title={
+                  pick.length === 1
+                    ? `${pick[0]}일을 뺀다.`
+                    : `선택한 ${pick.length}일을 모두 뺀다.`
+                }
+              >
+                초기화
+              </button>
+            )}
             {pick.length > 0 && (
               <button
                 type="button"
@@ -367,7 +387,7 @@ export default function Calendar() {
                 title={
                   pick.length === 1
                     ? `${pick[0]}일 내역을 본다.`
-                    : `고른 ${pick.length}일의 내역을 본다.`
+                    : `선택한 ${pick.length}일의 내역을 본다.`
                 }
               >
                 상세
@@ -400,35 +420,13 @@ export default function Calendar() {
           </label>
         ))}
 
-        {/* Blur를 켜야 가려 둔 갈래까지 셈에 든다. */}
-        <button
-          type="button"
-          className={`cal-source cal-source--blur${blurOn ? " on" : ""}`}
-          aria-pressed={blurOn}
-          onClick={() => setBlurOn((v) => !v)}
-        >
-          Blur
-        </button>
-
-        <button
-          type="button"
-          className={`cal-source cal-source--exclude${excludeOn ? " on" : ""}`}
-          aria-pressed={excludeOn}
-          onClick={() => setExcludeOn((v) => !v)}
-        >
-          Exclude
-        </button>
+        {/* 고정 · 변동 가운데 무엇을 셈에 넣을지. 넷을 알약으로 늘어놓으면
+            손전화 가로를 넘어 하나로 접는다. */}
+        <FixedFilter value={fixPick} onChange={setFixPick} />
 
         <span className="cal-sum">
           {monthSum.net !== 0 && (
-            <span
-              className={`${monthSum.net > 0 ? "cal-sum__in" : "cal-sum__out"}${
-                monthSum.hasBlur ? (sumMasked ? " masked" : " revealed") : ""
-              }`}
-              title={monthSum.hasBlur ? "끌면 잠깐 보인다." : undefined}
-              onMouseDown={monthSum.hasBlur ? startSumReveal : undefined}
-              onTouchStart={monthSum.hasBlur ? startSumReveal : undefined}
-            >
+            <span className={monthSum.net > 0 ? "cal-sum__in" : "cal-sum__out"}>
               {monthSum.net > 0 ? "+" : "−"}
               {Math.abs(monthSum.net).toLocaleString("ko-KR")}
             </span>
@@ -452,21 +450,18 @@ export default function Calendar() {
 
             const items = byDay.get(day) ?? [];
             let net = 0;
-            let hasBlur = false;
             const kinds = new Set<Src>();
             items.forEach((r) => {
               net += r.inout === 1 ? r.net : -r.net;
               kinds.add(r.src);
-              if (isBlurred(r, blurSets)) hasBlur = true;
             });
-            const netMasked = hasBlur && revealDay !== day;
 
             const dow = i % 7;
             const isToday = today.ym === yearMonth && today.day === day;
 
             /* 고른 날 표시. 끄는 중이면 그 사이도 미리 담긴 것처럼 보여 준다.
                앞뒤로 이어진 날이 없을 때만 그 자리에서 끝을 둥글게 하므로,
-               나란한 날을 고르면 한 줄로 이어져 보인다 */
+               나란한 날을 고르면 한 줄로 이어져 보인다. */
             const inDrag = (d: number) =>
               dragFrom.current !== null &&
               dragTo !== null &&
@@ -492,8 +487,8 @@ export default function Calendar() {
                 onPointerMove={onCellMove}
                 onPointerUp={onCellUp}
                 onPointerCancel={onCellUp}
-                /* 손짓을 pointer 로 옮기면서 키보드가 갈 곳을 잃었다.
-                   Enter · Space 는 하루를 담고 빼는 것으로 받는다 */
+                /* 손짓을 pointer로 옮기면서 키보드가 갈 곳을 잃었다.
+                   Enter · Space는 하루를 담고 빼는 것으로 받는다. */
                 onKeyDown={(e) => {
                   if (e.key !== "Enter" && e.key !== " ") return;
                   e.preventDefault();
@@ -508,28 +503,7 @@ export default function Calendar() {
                 {items.length > 0 && (
                   <>
                     <span
-                      className={`cal__net ${net > 0 ? "plus" : net < 0 ? "minus" : "zero"}${
-                        hasBlur ? (netMasked ? " masked" : " revealed") : ""
-                      }`}
-                      title={hasBlur ? "끌면 잠깐 보인다." : undefined}
-                      /* 덮인 금액은 제 손짓이 있으므로 날짜 고르기로 넘기지 않는다. */
-                      onClick={hasBlur ? (e) => e.stopPropagation() : undefined}
-                      onMouseDown={
-                        hasBlur
-                          ? (e) => {
-                              dragDay.current = day;
-                              startReveal(e);
-                            }
-                          : undefined
-                      }
-                      onTouchStart={
-                        hasBlur
-                          ? (e) => {
-                              dragDay.current = day;
-                              startReveal(e);
-                            }
-                          : undefined
-                      }
+                      className={`cal__net ${net > 0 ? "plus" : net < 0 ? "minus" : "zero"}`}
                     >
                       {net > 0 ? "+" : net < 0 ? "−" : ""}
                       {Math.abs(net).toLocaleString("ko-KR")}
@@ -566,6 +540,12 @@ export default function Calendar() {
       )}
 
       <QuickActions onSaved={() => setReloadKey((k) => k + 1)} />
+
+      <ExportButton
+        길="calendar"
+        이름="달력"
+        params={{ ym: yearMonth, ...내보낼조건(appliedFilter) }}
+      />
     </div>
   );
 }

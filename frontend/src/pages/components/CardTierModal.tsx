@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
+import useBackClose from "../../hooks/useBackClose";
 import CardEditModal from "./CardEditModal";
+import GrowArea from "./GrowArea";
 
 /**
  * 실적 구간 하나를 적는 팝업.
  *
- * 결제 수단 화면에서 카드 줄을 펼치고 [+]를 누르거나, 이미 적어 둔 구간의
+ * 결제 수단 화면에서 카드 줄을 펼치고 [+]를 누르거나, 이미 적은 구간의
  * [상세]를 누르면 열린다. 한 번에 한 구간만 다룬다 — 여러 구간을 한 판에
  * 늘어놓으면 판이 늘었다 줄었다 하고, 지금 무엇을 고치는지도 흐려진다.
  *
@@ -16,12 +18,17 @@ import CardEditModal from "./CardEditModal";
  * 카드 한 장치를 통째로 저장하는 일은 부르는 쪽이 맡는다.
  */
 
-export type TierTarget = { area: string; stores: string };
+export type TierTarget = { area: string; detail: string };
 /** limit는 월간 통합 할인한도. 없는 혜택도 있어 빈 글일 수 있다. */
-export type TierBenefit = { content: string; memo: string; limit: string; targets: TierTarget[] };
+export type TierBenefit = {
+  content: string;
+  description: string;
+  limit: string;
+  targets: TierTarget[];
+};
 export type TierDraft = { threshold: string; benefits: TierBenefit[] };
 
-/** 이미 적어 둔 혜택 한 벌 — 고르면 내용까지 그대로 옮겨 온다. */
+/** 이미 적은 혜택 한 벌 — 고르면 내용까지 그대로 옮겨 온다. */
 export type BenefitHint = { label: string; benefit: TierBenefit };
 
 /** 화면 안에서만 쓰는 줄 번호 — 저장하면 서버가 새로 매긴다. */
@@ -32,7 +39,13 @@ const nextKey = () => {
 };
 
 type Target = TierTarget & { key: string };
-type Benefit = { key: string; content: string; memo: string; limit: string; targets: Target[] };
+type Benefit = {
+  key: string;
+  content: string;
+  description: string;
+  limit: string;
+  targets: Target[];
+};
 
 const trim = (b: Benefit[]) =>
   JSON.stringify(
@@ -40,9 +53,9 @@ const trim = (b: Benefit[]) =>
       .filter((x) => x.content.trim())
       .map((x) => [
         x.content.trim(),
-        x.memo.trim(),
+        x.description.trim(),
         x.limit.trim(),
-        x.targets.filter((t) => t.stores.trim()).map((t) => [t.area.trim(), t.stores.trim()]),
+        x.targets.filter((t) => t.detail.trim()).map((t) => [t.area.trim(), t.detail.trim()]),
       ])
   );
 
@@ -56,7 +69,7 @@ export default function CardTierModal({
   cardName: string;
   /** 고칠 구간. 새로 만들 때는 null */
   tier: TierDraft | null;
-  /** 이 카드에 이미 적어 둔 혜택들 — 고르면 내용까지 그대로 채운다. */
+  /** 이 카드에 이미 적은 혜택들 — 고르면 내용까지 그대로 채운다. */
   hints: BenefitHint[];
   onClose: () => void;
   onSave: (next: TierDraft) => void;
@@ -64,25 +77,25 @@ export default function CardTierModal({
   const [threshold, setThreshold] = useState(tier?.threshold ?? "");
   const [benefits, setBenefits] = useState<Benefit[]>(() => {
     if (!tier) {
-      /* 새로 만들 때는 빈 칸을 한 벌 깔아 둔다 — 텅 빈 판만 뜨면
+      /* 새로 만들 때는 빈 칸을 한 벌 깐다 — 텅 빈 판만 뜨면
          무엇을 어디에 적는 자리인지 알 수가 없다. 내용이 없으므로
          이대로 두고 저장해도 담기지 않는다. */
       return [
         {
           key: nextKey(),
           content: "",
-          memo: "",
+          description: "",
           limit: "",
-          targets: [{ key: nextKey(), area: "", stores: "" }],
+          targets: [{ key: nextKey(), area: "", detail: "" }],
         },
       ];
     }
     return tier.benefits.map((b) => ({
       key: nextKey(),
       content: b.content,
-      memo: b.memo,
+      description: b.description,
       limit: b.limit ?? "",
-      targets: b.targets.map((t) => ({ key: nextKey(), area: t.area, stores: t.stores })),
+      targets: b.targets.map((t) => ({ key: nextKey(), area: t.area, detail: t.detail })),
     }));
   });
 
@@ -91,9 +104,9 @@ export default function CardTierModal({
       (tier?.benefits ?? []).map((b) => ({
         key: "",
         content: b.content,
-        memo: b.memo,
+        description: b.description,
         limit: b.limit ?? "",
-        targets: b.targets.map((t) => ({ key: "", area: t.area, stores: t.stores })),
+        targets: b.targets.map((t) => ({ key: "", area: t.area, detail: t.detail })),
       }))
     )}`,
     [tier]
@@ -111,6 +124,10 @@ export default function CardTierModal({
      화면에 붙이고(position: fixed) 자리만 칸에서 받아 온다 —
      결제 수단 고르기(SingleSelect)가 쓰는 방식 그대로다. */
   const [hintFor, setHintFor] = useState<string | null>(null);
+
+  /* 떠 있는 추천 목록도 뒤로 가기로는 그것만 닫는다 — 뒤에 깔린 편집 팝업이
+     함께 닫히면 적던 것을 잃는다. Backspace는 글자를 지우는 데 쓴다. */
+  useBackClose(hintFor !== null, () => setHintFor(null), false);
   const [hintBox, setHintBox] = useState<{ top: number; left: number; width: number }>({
     top: 0,
     left: 0,
@@ -155,11 +172,11 @@ export default function CardTierModal({
         .filter((b) => b.content.trim())
         .map((b) => ({
           content: b.content.trim(),
-          memo: b.memo.trim(),
+          description: b.description.trim(),
           limit: b.limit.trim(),
           targets: b.targets
-            .filter((t) => t.stores.trim())
-            .map((t) => ({ area: t.area.trim(), stores: t.stores.trim() })),
+            .filter((t) => t.detail.trim())
+            .map((t) => ({ area: t.area.trim(), detail: t.detail.trim() })),
         })),
     });
 
@@ -170,7 +187,7 @@ export default function CardTierModal({
       onSave={save}
       saveDisabled={!dirty || threshold.trim() === ""}
     >
-      {/* 키를 미리 잡아 둔다 — 혜택을 늘리고 줄일 때마다 판이 들썩이면
+      {/* 키를 미리 잡는다 — 혜택을 늘리고 줄일 때마다 판이 들썩이면
           지금 무엇을 고치고 있었는지 눈이 놓친다. */}
       <div className="tier-pop" onScroll={followHints}>
         <div className="tier-pop__amount">
@@ -226,17 +243,17 @@ export default function CardTierModal({
                        mousedown은 blur보다 먼저라 여기서 받는다. */
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      /* 이름만이 아니라 적어 둔 것을 통째로 물어 온다 —
+                      /* 이름만이 아니라 적은 것을 통째로 물어 온다 —
                          같은 이름이라도 구간마다 내용과 대상이 다르다. */
                       patch(b.key, (x) => ({
                         ...x,
                         content: h.benefit.content,
-                        memo: h.benefit.memo,
+                        description: h.benefit.description,
                         limit: h.benefit.limit ?? "",
                         targets: h.benefit.targets.map((t) => ({
                           key: nextKey(),
                           area: t.area,
-                          stores: t.stores,
+                          detail: t.detail,
                         })),
                       }));
                       setHintFor(null);
@@ -248,13 +265,12 @@ export default function CardTierModal({
               </div>
             )}
 
-            <input
-              type="text"
-              className="benefit__memo"
-              value={b.memo}
-              placeholder="(상세)"
+            <GrowArea
+              className="benefit__desc"
+              placeholder="(설명)"
               maxLength={200}
-              onChange={(e) => patch(b.key, (x) => ({ ...x, memo: e.target.value }))}
+              value={b.description}
+              onChange={(v) => patch(b.key, (x) => ({ ...x, description: v }))}
             />
 
             {/* 월간 통합 할인한도 — 상세 글에 섞어 적으면 셈에 쓸 수가 없다. */}
@@ -290,17 +306,18 @@ export default function CardTierModal({
                       }))
                     }
                   />
-                  <input
-                    type="text"
-                    className="target__stores"
-                    value={tg.stores}
-                    placeholder="(가맹점)"
+                  {/* 가맹점만 적는 칸이 아니다 — `아파트 관리비, 도시가스,
+                      전기요금`처럼 그 영역에서 무엇이 걸리는지를 적는다. */}
+                  <GrowArea
+                    className="target__detail"
+                    placeholder="(가맹점, 상세)"
                     maxLength={400}
-                    onChange={(e) =>
+                    value={tg.detail}
+                    onChange={(v) =>
                       patch(b.key, (x) => ({
                         ...x,
                         targets: x.targets.map((y) =>
-                          y.key === tg.key ? { ...y, stores: e.target.value } : y
+                          y.key === tg.key ? { ...y, detail: v } : y
                         ),
                       }))
                     }
@@ -328,7 +345,7 @@ export default function CardTierModal({
                 onClick={() =>
                   patch(b.key, (x) => ({
                     ...x,
-                    targets: [...x.targets, { key: nextKey(), area: "", stores: "" }],
+                    targets: [...x.targets, { key: nextKey(), area: "", detail: "" }],
                   }))
                 }
               >
@@ -344,7 +361,7 @@ export default function CardTierModal({
           onClick={() =>
             setBenefits((prev) => [
               ...prev,
-              { key: nextKey(), content: "", memo: "", limit: "", targets: [] },
+              { key: nextKey(), content: "", description: "", limit: "", targets: [] },
             ])
           }
         >

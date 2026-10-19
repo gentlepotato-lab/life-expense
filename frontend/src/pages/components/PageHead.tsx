@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { PAGE_TITLE, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
+import { PAGE_TITLE, PAGE_NOTE, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
+import useHeadPin from "../../hooks/useHeadPin";
+import PenMark from "./PenMark";
 
 /**
  * 모든 화면의 머리말.
@@ -25,15 +27,41 @@ const PARENT: Record<string, string> = {
   "/calendar/detail": "/calendar",
 };
 
+/**
+ * 안내 한 줄을 조각으로 가른다.
+ *
+ * 중괄호로 감싼 말은 다른 화면의 이름이라 조금 짙게 세운다. 누를 수 있는
+ * 것은 아니므로 단추나 링크로 만들지 않는다 — 가리키기만 한다.
+ *
+ * split에 묶음(괄호)을 쓰면 가른 자리의 알맹이도 함께 끼어 나온다. 짝수
+ * 자리가 보통 글, 홀수 자리가 화면 이름이다.
+ */
+function noteParts(note: string) {
+  return note.split(/\{([^}]+)\}/).map((part, i) =>
+    i % 2 === 0 ? (
+      part
+    ) : (
+      <em key={i} className="page-note__at">
+        {part}
+      </em>
+    )
+  );
+}
+
 export default function PageHead() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
+  /* 머리말과 첫 줄 도구를 위에 붙인다. 굴리는 쪽을 보고 감추거나 드러낸다. */
+  useHeadPin();
 
   const title = PAGE_TITLE[pathname] ?? "돈을 쓰다";
   /* 알약이 어디에 놓일지는 어미 화면으로 따진다. */
   const tabKey = PARENT[pathname] ?? pathname;
   const subs = subTabsFor(tabKey);
   const index = subs ? subs.indexOf(tabKey) : -1;
+  /* 갈래 탭이 선 화면에서도 둔다 — 제목과 탭 사이에 끼어 선다. */
+  const note = PAGE_NOTE[pathname];
 
   useEffect(() => {
     document.title = pathname === "/" ? "돈을 쓰다" : `${title} · 돈을 쓰다`;
@@ -42,8 +70,21 @@ export default function PageHead() {
   return (
     <header className="page-head">
       <div className="page-head__row">
-        <h1 className="page-title">{title}</h1>
+        {/* 글자만 기울이고 네모 바탕은 반듯하게 두려면 한 겹이 더 있어야 한다.
+            바깥이 바탕, 안이 기울어진 글자와 형광펜 띠다. */}
+        <h1 className="page-title">
+          <span className="page-title__in">{title}</span>
+        </h1>
       </div>
+
+      {/* 안내 줄 오른쪽 끝의 만년필 자국. 띄워서 얹으므로 머리말 높이는
+          그대로다. */}
+      {note && (
+        <p className="page-note">
+          {noteParts(note)}
+          <PenMark />
+        </p>
+      )}
 
       {subs && (
         <div
@@ -56,7 +97,7 @@ export default function PageHead() {
           {/* 켜진 갈래를 덮는 알약 하나. 자리만 옮기므로 미끄러진다. */}
           <span
             className="subtabs__thumb"
-            /* 3D로 적어 두면 어느 기기에서나 합성기가 맡는다 — 본줄기가 막혀도 미끄러진다. */
+            /* 3D로 적으면 어느 기기에서나 합성기가 맡는다 — 본줄기가 막혀도 미끄러진다. */
             style={{ transform: `translate3d(${index * 100}%, 0, 0)` }}
             aria-hidden="true"
           />

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from app.deps import SessionDep
 
-# 자리는 main.py에서 /api/charts로 붙인다
+# 자리는 main.py에서 /api/charts로 붙인다.
 router = APIRouter()
 
 
@@ -12,7 +12,7 @@ def list_cards(db: SessionDep = Depends()):
     그림 카드의 차례와 켜짐.
 
     그림이 무엇인지는 화면이 안다. 여기는 열쇠와 차례만 돌려준다 — 표에 없는
-    열쇠는 화면이 적어 둔 차례 그대로 맨 뒤에 세운다.
+    열쇠는 화면이 적은 차례 그대로 맨 뒤에 세운다.
     """
     rows = db.execute(text("""
         SELECT card_key, sort_order, is_active, span

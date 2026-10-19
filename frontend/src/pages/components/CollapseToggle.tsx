@@ -56,6 +56,9 @@ export default function CollapseToggle({
  * "모두"는 두 단추가 함께 이고 있는 말이라 글자로만 두고, 누르는 자리는
  * "펼치기"와 "접기" 뿐이다. 좁은 화면에서 "모두"를 두 번 적을 자리가
  * 없어 줄 끝이 잘리던 것도 이걸로 사라진다.
+ *
+ * 옅은 판(.set-bulk__pair)은 누르는 둘만 덮는다 — 이고 있는 말까지 덮으면
+ * 어디를 누를 수 있는지가 판 모양으로는 갈라지지 않는다.
  */
 export function CollapseAllButtons({
   onExpandAll,
@@ -69,23 +72,25 @@ export function CollapseAllButtons({
       <span className="set-bulk__all" aria-hidden="true">
         모두
       </span>
-      <button
-        type="button"
-        className="set-bulk__btn"
-        aria-label="모두 펼치기"
-        onClick={onExpandAll}
-      >
-        펼치기
-      </button>
-      <span className="set-bulk__sep" aria-hidden="true" />
-      <button
-        type="button"
-        className="set-bulk__btn"
-        aria-label="모두 접기"
-        onClick={onCollapseAll}
-      >
-        접기
-      </button>
+      <span className="set-bulk__pair">
+        <button
+          type="button"
+          className="set-bulk__btn"
+          aria-label="모두 펼치기"
+          onClick={onExpandAll}
+        >
+          펼치기
+        </button>
+        <span className="set-bulk__sep" aria-hidden="true" />
+        <button
+          type="button"
+          className="set-bulk__btn"
+          aria-label="모두 접기"
+          onClick={onCollapseAll}
+        >
+          접기
+        </button>
+      </span>
     </div>
   );
 }

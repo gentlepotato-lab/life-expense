@@ -36,7 +36,7 @@ VALUES ('가족', 'indigo', 1), ('친구', 'teal', 2),
        ('직장', 'amber', 3), ('기타', 'slate', 4)
 ON CONFLICT (name) DO NOTHING;
 
--- 코드에 없던 이름을 누가 넣어 두었다면 그것도 행으로 만든다.
+-- 코드에 없던 이름을 누가 넣었다면 그것도 행으로 만든다.
 INSERT INTO life_expense.counterpart_categories (name, color, sort_order)
 SELECT DISTINCT c.category, 'slate',
        100 + dense_rank() OVER (ORDER BY c.category)

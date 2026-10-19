@@ -1,30 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "../../api/client";
+import { loadKakaoMap } from "../../utils/kakaoMap";
 
 /**
  * 장소 고르기 팝업.
  *
- * 저장해 둔 장소를 먼저 찾고, 없으면 카카오에서 찾아 새로 적는다.
+ * 저장한 장소를 먼저 찾고, 없으면 카카오에서 찾아 새로 적는다.
  * 쓰기 · 쓴 내역 · 쓰다 만 내역 · 쓸 내역 네 화면이 함께 쓰기 때문에
- * 어느 한 화면에 얹어 두지 않고 여기 따로 둔다.
+ * 어느 한 화면에 얹지 않고 여기 따로 둔다.
  */
-function loadKakaoMap() {
-  return new Promise<void>((resolve) => {
-    // 이미 로드되어 있으면 바로 resolve
-    if (window.kakao && window.kakao.maps) {
-      window.kakao.maps.load(resolve);
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${import.meta.env.VITE_KAKAO_MAP_KEY}&autoload=false&libraries=services`;
-    script.onload = () => {
-      window.kakao.maps.load(resolve);
-    };
-    document.head.appendChild(script);
-  });
-}
-
 const overlayStyle: React.CSSProperties = {
   position: "fixed" as const,
   inset: 0,
@@ -211,7 +195,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
         {/* 검색어 */}
         <input
           className="ui-input place-picker__keyword"
-          placeholder="(검색어)"
+          placeholder="(장소/가게)"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           onKeyDown={(e) => {
@@ -223,17 +207,20 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
         />
 
         {/* 출처 전환 — 누른 쪽으로 목록과 제목이 바뀐다. */}
+        {/* 찾아본 뒤에만 그쪽이 켜진다. source는 처음부터 "db"라, 켜고 끄는
+            잣대로 그것만 쓰면 아직 아무것도 안 찾았는데 한쪽이 눌린 것처럼
+            보였다 — 어느 쪽을 누를지 고르는 자리인데 이미 골라져 있는 꼴이다. */}
         <div className="place-picker__tabs">
           <button
             type="button"
-            className={`place-tab ${source === "db" ? "active" : ""}`}
+            className={`place-tab ${searched && source === "db" ? "active" : ""}`}
             onClick={searchDB}
           >
             저장된 장소/가게
           </button>
           <button
             type="button"
-            className={`place-tab ${source === "kakao" ? "active" : ""}`}
+            className={`place-tab ${searched && source === "kakao" ? "active" : ""}`}
             onClick={searchKakao}
           >
             [+] 새로운 장소/가게
@@ -250,8 +237,8 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
           {results.length === 0 ? (
             <div className="popup-empty">
               {searched
-                ? `${listTitle} 검색 결과가 없습니다.`
-                : "검색어를 입력하고 위 버튼을 누르세요."}
+                ? `${listTitle}가 없습니다.`
+                : "장소/가게를 입력하고 위 버튼을 누르세요."}
             </div>
           ) : source === "db" ? (
             dbResults.map((r) => (
@@ -286,7 +273,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
           )}
         </div>
 
-        {/* 지도 — 영역은 항상 잡아 두고, 선택 전에는 안내를 띄운다. */}
+        {/* 지도 — 영역은 항상 잡고, 선택 전에는 안내를 띄운다. */}
         <div className="place-picker__mapwrap">
           <div id="popup-map" className="place-picker__map"></div>
           {!selected && (

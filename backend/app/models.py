@@ -1,5 +1,5 @@
 from app.deps import Base
-from sqlalchemy import Column, Integer, String, Numeric, Date, ForeignKey, SmallInteger, TIMESTAMP, func, UniqueConstraint, DateTime
+from sqlalchemy import Column, Integer, String, Numeric, Date, ForeignKey, SmallInteger, TIMESTAMP, func, UniqueConstraint, DateTime, Index
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 
@@ -13,7 +13,6 @@ class CategoryL1(Base):
     sort_order = Column(Integer, default=0, nullable=True)
     is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 고르는 목록에서 뺀다.
     blur_flag = Column(SmallInteger, nullable=False, default=0)     # 1이면 금액을 덮는다.
-    exclude_flag = Column(SmallInteger, nullable=False, default=0)  # 1이면 집계에서 뺀다.
 
 class CategoryL2(Base):
     __tablename__ = "categories_lvl2"
@@ -25,7 +24,7 @@ class CategoryL2(Base):
     blur_flag = Column(SmallInteger, default=0, nullable=False)
     inout = Column(SmallInteger, nullable=True)
     is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 고르는 목록에서 뺀다.
-    exclude_flag = Column(SmallInteger, nullable=False, default=0)  # 1이면 집계에서 뺀다.
+    fixed_flag = Column(SmallInteger, nullable=False, default=0)    # 1이면 고정, 0이면 변동.
 
 class CategoryL3(Base):
     __tablename__ = "categories_lvl3"
@@ -35,7 +34,7 @@ class CategoryL3(Base):
     sort_order = Column(Integer, default=0, nullable=True)
     is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 고르는 목록에서 뺀다.
     blur_flag = Column(SmallInteger, nullable=False, default=0)     # 1이면 금액을 덮는다.
-    exclude_flag = Column(SmallInteger, nullable=False, default=0)  # 1이면 집계에서 뺀다.
+    fixed_flag = Column(SmallInteger, nullable=False, default=0)    # 1이면 고정, 0이면 변동.
 
 class PaymentMethod(Base):
     __tablename__ = "payment_methods"
@@ -43,12 +42,53 @@ class PaymentMethod(Base):
     method_name = Column(String, nullable=False, unique=True)
     # 구분은 payment_method_categories 행을 가리킨다.
     category_id = Column(Integer, ForeignKey("payment_method_categories.category_id", ondelete="SET NULL"))
-    # 카드 연회비. 카드가 아닌 것은 비워 둔다.
+    # 카드 연회비. 카드가 아닌 것은 비운다.
     annual_fee = Column(Numeric(14, 2))
     sort_order = Column(Integer, default=0, nullable=True)
 
+class EntryGroup(Base):
+    """
+    묶음 — 따로 든 내역 여럿을 한 덩이로 본다.
+
+    쪼개기(N빵)와는 다르다. 쪼개기는 한 건 안을 나누고, 묶음은 독립된 건
+    여럿을 하나로 모은다. 여행이나 행사처럼 날이 걸쳐 있고 분류도 제각각인
+    지출을 한자리에서 보려는 것이다.
+
+    kind는 어느 화면의 내역을 묶었는지다. 지출과 대기와 정기는 표가 달라
+    한 묶음이 둘을 섞어 담지 않는다 — 섞으면 합계의 뜻이 흐려지고, 대기가
+    전송되는 순간 같은 건이 두 표에 걸친다.
+    """
+    __tablename__ = "entry_groups"
+
+    group_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(60), nullable=False)
+    memo = Column(String(200))
+    # 'entry' | 'pending' | 'scheduled'
+    kind = Column(String(12), nullable=False, server_default="entry", default="entry")
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    def to_dict(self):
+        return {
+            "group_id": self.group_id,
+            "name": self.name,
+            "memo": self.memo,
+            "kind": self.kind,
+        }
+
+
 class Entry(Base):
     __tablename__ = "entries"
+    # 조회는 거의 늘 날짜로 들어온다(달 조회, 날짜 정렬, 기간 조회).
+    # 분류와 결제수단은 거르기와 삭제 전 사용 확인에 쓴다.
+    __table_args__ = (
+        Index("ix_entries_tx_date", "tx_date"),
+        Index("ix_entries_cat2", "cat2_id"),
+        Index("ix_entries_cat3", "cat3_id"),
+        Index("ix_entries_pay_method", "pay_method"),
+        Index("ix_entries_group", "group_id"),
+    )
+
     entry_id = Column(Integer, primary_key=True, autoincrement=True)
     tx_date = Column(Date, nullable=False)
     cat1_id = Column(Integer, ForeignKey("categories_lvl1.cat1_id"))
@@ -64,6 +104,17 @@ class Entry(Base):
     # place_lat = Column(Numeric(10,6), nullable=True)
     # place_lng = Column(Numeric(10,6), nullable=True)
     place_id = Column(Integer, ForeignKey("places.place_id"), nullable=True)
+    # 1이면 카드 실적에서 뺀다. 상품권 · 세금처럼 카드로 긋고도 실적으로
+    # 쳐 주지 않는 건이 있다. 갈래가 아니라 건마다 정한다.
+    perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
+    # 비면 분류를 따른다. 손으로 바꾸면 그 건에만 남는다.
+    fixed_flag = Column(SmallInteger, nullable=True)
+    # 어느 묶음에 들어 있는지. 묶음을 풀면 비워진다(SET NULL).
+    group_id = Column(
+        Integer,
+        ForeignKey("entry_groups.group_id", ondelete="SET NULL"),
+        nullable=True,
+    )
     place = relationship("Place", back_populates="entries")
 
     def to_dict(self):
@@ -112,6 +163,13 @@ class Place(Base):
 
 class PendingEntry(Base):
     __tablename__ = "pending_entries"
+    # 목록은 늘 sended = 0만 본다. schedule_id는 정기 내역이 매분 중복을
+    # 확인할 때 쓴다.
+    __table_args__ = (
+        Index("ix_pending_sended", "sended"),
+        Index("ix_pending_schedule", "schedule_id", "tx_date"),
+        Index("ix_pending_group", "group_id"),
+    )
 
     entry_id = Column(Integer, primary_key=True, autoincrement=True)
     tx_date = Column(Date, nullable=False)
@@ -127,6 +185,24 @@ class PendingEntry(Base):
 
     created_at = Column(TIMESTAMP, server_default=func.now())
     sended = Column(Integer, default=0, nullable=False)
+    # 1이면 카드 실적에서 뺀다. 전송하면 지출 내역으로 그대로 따라간다.
+    perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
+    # 비면 분류를 따른다. 손으로 바꾸면 그 건에만 남는다.
+    fixed_flag = Column(SmallInteger, nullable=True)
+    # 어느 정기 내역이 만들었는지. 손으로 넣은 건은 비어 있다.
+    # 중복 생성 확인에 쓴다. 분류와 금액이 같은 정기 내역이 여럿이어도
+    # 이 값으로 서로를 구분한다.
+    schedule_id = Column(
+        Integer,
+        ForeignKey("scheduled_entries.schedule_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    # 어느 묶음에 들어 있는지. 묶음을 풀면 비워진다(SET NULL).
+    group_id = Column(
+        Integer,
+        ForeignKey("entry_groups.group_id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     def to_dict(self):
         return {
@@ -175,20 +251,35 @@ class Holiday(Base):
 
 class ScheduledEntry(Base):
     __tablename__ = "scheduled_entries"
+    # 스케줄러가 매분 next_run_at으로 고른다.
+    __table_args__ = (
+        Index("ix_scheduled_next_run", "next_run_at"),
+        Index("ix_scheduled_group", "group_id"),
+    )
 
     schedule_id = Column(Integer, primary_key=True, autoincrement=True)
     
     # 스케줄 설정
-    day_of_month = Column(Integer, nullable=False)  # 매월 몇 일(1-31)
+    day_of_month = Column(Integer, nullable=False)  # 매월 몇 일(1-31, 32는 말일)
     hour = Column(Integer, nullable=False)  # 몇 시(0-23)
     minute = Column(Integer, nullable=False)  # 몇 분(0-59)
     
     # 휴일 처리 옵션: 'before', 'on', 'after'
     holiday_handling = Column(String, nullable=False, default='on')
-    
-    # 다음 실행 일시
+
+    # 몇 달마다 오는가. 1=매월, 2=격월, 3=분기, 6=반년, 12=매년
+    interval_months = Column(SmallInteger, nullable=False, server_default="1", default=1)
+    # 주기의 첫 달 'YYYYMM'. 격월이 홀수 달인지 짝수 달인지를 이것이 정한다.
+    anchor_ym = Column(String(6), nullable=True)
+    # 이 달까지만 온다 'YYYYMM'. 비면 끝이 없다.
+    end_ym = Column(String(6), nullable=True)
+    # 남은 횟수. 한 번 나갈 때마다 줄고 0이면 멈춘다. end_ym과 함께 쓰지 않는다.
+    # 이번 한 번만 건너뛸 달 'YYYYMM'. 쓰고 나면 지워진다.
+    skip_ym = Column(String(6), nullable=True)
+
+    # 다음 실행 일시. 비어 있으면 더 오지 않는다 — 끝났거나 끈 것이다.
     next_run_at = Column(DateTime, nullable=True)
-    
+
     # 지출 내역 정보
     cat1_id = Column(Integer, ForeignKey("categories_lvl1.cat1_id"), nullable=True)
     cat2_id = Column(Integer, ForeignKey("categories_lvl2.cat2_id"), nullable=True)
@@ -198,7 +289,18 @@ class ScheduledEntry(Base):
     pay_method = Column(Integer, ForeignKey("payment_methods.method_id"), nullable=True)
     memo = Column(String, nullable=True)
     place_id = Column(Integer, ForeignKey("places.place_id"), nullable=True)
-    
+    # 1이면 카드 실적에서 뺀다. 대기 내역으로 나갈 때 그대로 따라간다.
+    perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
+    # 비면 분류를 따른다. 손으로 바꾸면 그 건에만 남는다.
+    fixed_flag = Column(SmallInteger, nullable=True)
+
+    # 어느 묶음에 들어 있는지. 묶음을 풀면 비워진다(SET NULL).
+    group_id = Column(
+        Integer,
+        ForeignKey("entry_groups.group_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     # 활성화 여부
     is_active = Column(SmallInteger, default=1, nullable=False)    # 1: 활성, 0: 비활성
     
@@ -237,6 +339,10 @@ class EntrySplit(Base):
     분할은 자기 자신을 다시 쪼갤 수 없으므로 깊이는 항상 1이다.
     """
     __tablename__ = "entry_splits"
+    # 함께한 상대를 지우기 전에 쓰임을 센다.
+    __table_args__ = (
+        Index("ix_entry_splits_counterpart", "counterpart_id"),
+    )
 
     split_id = Column(Integer, primary_key=True, autoincrement=True)
     entry_id = Column(Integer, ForeignKey("entries.entry_id", ondelete="CASCADE"), nullable=False)
@@ -287,9 +393,9 @@ class PendingEntrySplit(Base):
 
 class ScheduledEntrySplit(Base):
     """
-    스케줄에 걸어 두는 분할 템플릿.
+    스케줄에 거는 분할 템플릿.
     스케줄러가 PendingEntry를 만들 때 pending_entry_splits로 복사된다.
-    매달 나가는 지출의 N빵 설정을 한 번만 해 두면 계속 따라온다.
+    매달 나가는 지출의 N빵 설정을 한 번만 하면 계속 따라온다.
     """
     __tablename__ = "scheduled_entry_splits"
 
@@ -386,7 +492,7 @@ class CardBenefit(Base):
     """
     구간 하나가 주는 혜택 한 줄.
 
-    content는 항목 이름, memo는 그 옆에 적는 상세다 —
+    content는 항목 이름, description은 그 밑에 적는 설명이다 —
     "커피 할인" 만으로는 어느 가게에서 얼마인지가 남지 않는다.
     """
     __tablename__ = "card_benefits"
@@ -394,7 +500,7 @@ class CardBenefit(Base):
     benefit_id = Column(Integer, primary_key=True, autoincrement=True)
     tier_id = Column(Integer, ForeignKey("card_tiers.tier_id", ondelete="CASCADE"), nullable=False)
     content = Column(String(200), nullable=False)
-    memo = Column(String(200))
+    description = Column(String(200))
     # 월간 통합 할인한도. 없는 혜택도 있어 비울 수 있다.
     limit_amount = Column(Numeric(14, 2))
     sort_order = Column(Integer, nullable=False, default=0)
@@ -406,14 +512,16 @@ class CardBenefitTarget(Base):
     혜택 하나가 걸리는 대상.
 
     "디지털 구독 할인" 아래에 OTT → 넷플릭스·유튜브프리미엄, 음원 → 멜론·지니
-    처럼 영역과 가맹점이 짝으로 붙는다. 영역 구분이 없는 혜택도 있어 area는 비울 수 있다.
+    처럼 영역과 그 영역에서 걸리는 것이 짝으로 붙는다. detail은 가맹점만이
+    아니라 요금 종류나 결제 방식까지 담는다 — `아파트 관리비, 도시가스`처럼.
+    영역 구분이 없는 혜택도 있어 area는 비울 수 있다.
     """
     __tablename__ = "card_benefit_targets"
 
     target_id = Column(Integer, primary_key=True, autoincrement=True)
     benefit_id = Column(Integer, ForeignKey("card_benefits.benefit_id", ondelete="CASCADE"), nullable=False)
     area = Column(String(60))
-    stores = Column(String(400), nullable=False)
+    detail = Column(String(400), nullable=False)
     sort_order = Column(Integer, nullable=False, default=0)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
@@ -451,6 +559,41 @@ class ChartCard(Base):
     card_key = Column(String(40), primary_key=True)
     sort_order = Column(Integer, nullable=False, default=0)
     is_active = Column(SmallInteger, nullable=False, default=1)
-    # 1이면 반 칸, 2면 한 줄을 다 쓴다. 좁은 화면은 이 값과 상관없이 한 줄에 하나씩이다
+    # 1이면 반 칸, 2면 한 줄을 다 쓴다. 좁은 화면은 이 값과 상관없이 한 줄에 하나씩이다.
     span = Column(SmallInteger, nullable=False, default=1)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class Profile(Base):
+    """
+    돈쓴이 — 쓰는 사람.
+
+    지금은 혼자 쓰는 앱이라 줄이 하나뿐이다. 그래도 칸은 바깥 인증(구글·카카오)이
+    돌려주는 것에 맞췄다. provider가 비어 있으면 손으로 적어 넣은 것이다.
+    """
+    __tablename__ = "profile"
+
+    profile_id = Column(Integer, primary_key=True, default=1)
+    display_name = Column(String(60))
+    email = Column(String(200))
+    avatar_url = Column(String(500))
+    provider = Column(String(20))
+    provider_id = Column(String(100))
+    emoji = Column(String(8))
+    bio = Column(String(200))
+    joined_on = Column(Date)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class AppPref(Base):
+    """
+    앱을 어떻게 볼지.
+
+    화면마다 흩어져 매번 다시 눌러야 하던 것들을 한자리에 모은다.
+    값은 모두 글자로 담는다 — 하나 더 늘려도 표를 고칠 일이 없다.
+    """
+    __tablename__ = "app_prefs"
+
+    pref_key = Column(String(40), primary_key=True)
+    pref_value = Column(String(200), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now())

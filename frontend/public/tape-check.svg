@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="30" viewBox="0 0 60 30">
+  <title>마스킹 테이프 — 깅엄</title>
+  <!--
+    일곱 가지 가운데 넷째. 연하늘 바탕에 깅엄 체크다.
+
+    가로·세로 줄을 반쯤 비치게 겹친다. 겹치는 자리가 저절로 한 단 진해져
+    깅엄 특유의 세 단계(바탕 · 줄 · 겹친 곳)가 나온다 — 세 색을 따로 칠하는
+    것보다 눈에 자연스럽다.
+
+    두 방향 모두 10 간격이다. 60도 30도 10으로 나누어떨어지므로 이어 붙인
+    자리에서 격자가 어긋나지 않는다.
+  -->
+  <defs>
+    <linearGradient id="checkBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E9F4FA"/>
+      <stop offset="1" stop-color="#D3E8F5"/>
+    </linearGradient>
+
+    <path id="checkShape"
+      d="M0 3.4 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0
+         L60 26.6 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 Z"/>
+
+    <clipPath id="checkClip">
+      <use href="#checkShape"/>
+    </clipPath>
+  </defs>
+
+  <use href="#checkShape" fill="url(#checkBody)"/>
+
+  <g clip-path="url(#checkClip)" fill="#FFFFFF" fill-opacity="0.62">
+    <!-- 가로 -->
+    <rect x="-2" y="1.5" width="64" height="4"/>
+    <rect x="-2" y="11.5" width="64" height="4"/>
+    <rect x="-2" y="21.5" width="64" height="4"/>
+    <!-- 세로 -->
+    <rect x="-2" y="-2" width="4" height="34"/>
+    <rect x="8" y="-2" width="4" height="34"/>
+    <rect x="18" y="-2" width="4" height="34"/>
+    <rect x="28" y="-2" width="4" height="34"/>
+    <rect x="38" y="-2" width="4" height="34"/>
+    <rect x="48" y="-2" width="4" height="34"/>
+    <rect x="58" y="-2" width="4" height="34"/>
+  </g>
+</svg>

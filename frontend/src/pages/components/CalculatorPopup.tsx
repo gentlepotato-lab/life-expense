@@ -23,7 +23,7 @@ let sharedHistory: HistoryItem[] = [];
  * 휴대폰으로 IP를 찍어 들어오면 http라 아예 없다. 그때는 눈에 안 보이는
  * 칸을 만들어 골라 놓고 execCommand로 베낀다.
  *
- * iOS는 그냥 select()로는 안 골라진다. contentEditable로 열어 두고
+ * iOS는 그냥 select()로는 안 골라진다. contentEditable로 열고
  * Range로 고른 뒤 setSelectionRange까지 해 줘야 한다. readOnly는 자판이
  * 올라오지 않게 막는 것이다.
  */
@@ -39,7 +39,7 @@ function legacyCopy(text: string): boolean {
   const prev = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
 
   if (/iP(hone|ad|od)/.test(navigator.userAgent)) {
-    /* iOS는 select()로 안 골라진다. 편집 가능으로 열어 두고 Range로 고른다. */
+    /* iOS는 select()로 안 골라진다. 편집 가능으로 열고 Range로 고른다. */
     ta.contentEditable = "true";
     const range = document.createRange();
     range.selectNodeContents(ta);
@@ -78,7 +78,7 @@ export default function CalculatorPopup({ onClose }: CalculatorPopupProps) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [isCalculated, setIsCalculated] = useState(false);
 
-  /* 뒤로 가기 · Esc로 닫는다. Backspace는 숫자를 지우는 키로 남겨 둔다. */
+  /* 뒤로 가기 · Esc로 닫는다. Backspace는 숫자를 지우는 키로 남긴다. */
   useBackClose(true, onClose, false);
 
   // 팝업 열렸을 때 뒤 화면 스크롤/인터랙션 막기

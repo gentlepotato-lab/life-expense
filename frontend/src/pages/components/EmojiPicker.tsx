@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import useBackClose from "../../hooks/useBackClose";
 import { EMOJI_ALL, EMOJI_GROUPS, searchEmoji } from "../../utils/emojiData";
 import type { EmojiEntry } from "../../utils/emojiData";
 
@@ -13,14 +14,23 @@ export default function EmojiPicker({
   value,
   onChange,
   disabled = false,
+  /* 잠겼을 때 누름을 받을 곳. 받을 데가 있으면 진짜 disabled 대신
+     aria-disabled를 단다 — disabled는 누름 자체가 나지 않아 "왜 안 되는지"를
+     알릴 길이 없다. 읽어 주는 기계에게는 여전히 잠긴 것으로 들린다. */
+  onLocked,
   title = "이모지 선택",
 }: {
   value: string | null;
   onChange: (emoji: string | null) => void;
   disabled?: boolean;
+  onLocked?: (e: React.MouseEvent<HTMLElement>) => void;
   title?: string;
 }) {
   const [open, setOpen] = useState(false);
+
+  /* 뒤로 가기는 떠 있는 이 판만 닫는다 — 화면을 떠나면 안 된다.
+     Backspace는 받지 않는다. 이 판 옆에는 글자를 지우는 칸이 흔하다. */
+  useBackClose(open, () => setOpen(false), false);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<string>("all");
   const [style, setStyle] = useState<React.CSSProperties>({});
@@ -83,7 +93,7 @@ export default function EmojiPicker({
     };
   }, [open]);
 
-  // 열 때마다 검색어는 비워 둔다.
+  // 열 때마다 검색어는 비운다.
   useEffect(() => {
     if (open) {
       setQuery("");
@@ -108,8 +118,15 @@ export default function EmojiPicker({
         className={`emoji-pick__btn ${value ? "has" : ""} ${disabled ? "readonly" : ""}`}
         title={disabled ? undefined : title}
         aria-label={title}
-        disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
+        disabled={disabled && !onLocked}
+        aria-disabled={disabled || undefined}
+        onClick={(e) => {
+          if (disabled) {
+            onLocked?.(e);
+            return;
+          }
+          setOpen((v) => !v);
+        }}
       >
         {value || "＋"}
       </button>
@@ -121,7 +138,7 @@ export default function EmojiPicker({
             type="text"
             value={query}
             autoFocus
-            placeholder="(검색 — 밥, 커피, 지하철, coffee)"
+            placeholder="(이모지)"
             onChange={(e) => setQuery(e.target.value)}
           />
 

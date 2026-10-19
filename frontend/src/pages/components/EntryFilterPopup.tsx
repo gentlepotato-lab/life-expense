@@ -9,10 +9,10 @@ import { EMPTY_FILTER, type Filter } from "../../utils/calendarFilter";
 /**
  * 날짜를 뺀 걸러 내기 팝업.
  *
- * 달력과 씀씀이가 똑같은 조건을 쓴다. 같은 것을 두 벌 만들어 두면
+ * 달력과 씀씀이가 똑같은 조건을 쓴다. 같은 것을 두 벌 만들면
  * 언젠가 한쪽만 고쳐져 서로 달라지므로 여기 한 자리에 둔다.
  *
- * 목록은 밖에서 받는다 — 부르는 쪽이 이미 받아 둔 것들이라
+ * 목록은 밖에서 받는다 — 부르는 쪽이 이미 받은 것들이라
  * 여기서 다시 부르면 같은 것을 두 번 묻게 된다.
  */
 
@@ -20,14 +20,14 @@ import { EMPTY_FILTER, type Filter } from "../../utils/calendarFilter";
 const ALL = -1;
 
 /** "(식비 전체)"처럼 한 부모의 자식을 통째로 집는 항목의 값.
-    실제 id와 겹치지 않도록 −1000 아래로 내려 둔다 — 내역 세 화면과 같은 규칙이다. */
+    실제 id와 겹치지 않도록 −1000 아래로 내린다 — 내역 세 화면과 같은 규칙이다. */
 const parentAll = (id: number) => -(1000 + id);
 const parentOf = (v: number) => -(v + 1000);
 
-type Cat1 = { id: number; name: string; is_active?: number };
+type Cat1 = { id: number; name: string; emoji?: string | null; is_active?: number };
 type Cat2 = { id: number; name: string; cat1_id: number; blur?: number; is_active?: number };
 type Cat3 = { id: number; name: string; cat2_id: number; is_active?: number };
-type Pay = { code: string; name: string; is_active?: number };
+type Pay = { code: string; name: string; emoji?: string | null; is_active?: number };
 type Cp = { counterpart_id: number; name: string };
 
 export default function EntryFilterPopup({
@@ -104,7 +104,7 @@ export default function EntryFilterPopup({
   }
 
   const cat1Options = useMemo(
-    () => [{ value: ALL, label: "[전체]" }, ...cat1Pool.map((c) => ({ value: c.id, label: c.name }))],
+    () => [{ value: ALL, label: "[전체]" }, ...cat1Pool.map((c) => ({ value: c.id, label: c.name, icon: c.emoji }))],
     [cat1Pool]
   );
   const cat2Options = useMemo(
@@ -122,7 +122,7 @@ export default function EntryFilterPopup({
     [filter.cat2, cat2List, cat3List]
   );
   const payOptions = useMemo(
-    () => [{ value: "__ALL__", label: "[전체]" }, ...payPool.map((p) => ({ value: p.code, label: p.name }))],
+    () => [{ value: "__ALL__", label: "[전체]" }, ...payPool.map((p) => ({ value: p.code, label: p.name, icon: p.emoji }))],
     [payPool]
   );
   const cpOptions = useMemo(
@@ -221,6 +221,9 @@ export default function EntryFilterPopup({
       <div
         className="popup-panel popup-panel--framed"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="필터"
       >
         <header className="popup-head">
           <h3 className="popup-head__title">필터</h3>
@@ -346,9 +349,13 @@ export default function EntryFilterPopup({
           </EditField>
         </div>
 
-        <div className="btn-row popup-foot">
+        {/* 내역 편집 팝업과 같은 차례로 — 되돌리는 것 · 닫기 · 하려던 것 */}
+        <div className="btn-row popup-foot popup-foot--tight">
           <button className="ui-btn" onClick={() => setFilter(EMPTY_FILTER)}>
             초기화
+          </button>
+          <button className="ui-btn" onClick={onClose}>
+            닫기
           </button>
           <button className="ui-btn primary" onClick={onApply}>
             적용

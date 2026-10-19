@@ -1,0 +1,376 @@
+import { useCallback, useEffect, useRef } from "react";
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
+import { LONG_PRESS_DELAY } from "./useLongPress";
+
+/**
+ * 카드 왼쪽 위 접은 자국을 잡아 오른쪽으로 끌면, 그 귀퉁이가 포스트잇처럼
+ * 접혀 넘어온다.
+ *
+ * - 끄는 만큼만 접힌다. 중간에 놓으면 제자리로 펴져 붙는다.
+ * - 끝까지 끌고 놓으면 꾹 눌렀을 때처럼 편집 팝업을 연다.
+ * - 잡은 채 가만히 있으면 역시 편집 팝업을 연다 — 귀퉁이만 꾹 누르기가 빠지지 않게.
+ * - 위아래로 먼저 움직이면 목록을 굴리려는 것으로 보고 손을 뗀다.
+ *
+ * 접는 모양은 매 틀마다 셈한다. 귀퉁이가 손가락이 닿은 자리까지 넘어오도록
+ * 두 점(원래 귀퉁이 · 끌린 귀퉁이)의 수직이등분선을 접는 선으로 삼고,
+ *   ① 카드에서 그 선 바깥(귀퉁이 쪽)을 바탕색으로 덮어 떼어진 것처럼 비우고
+ *   ② 그 조각을 선 너머로 뒤집어 종이 뒷면으로 그린다.
+ * 뒤집은 조각은 조금 짧게 그려 납작하게 접힌 것이 아니라 둥글게 말린 것처럼 보이게 한다.
+ *
+ * 손가락이 움직일 때마다 React를 다시 그리면 끊긴다. 카드 요소에 CSS 변수만
+ * 한 틀에 한 번 적고, 그리는 것은 index.css 119절이 맡는다.
+ */
+
+/** 끝까지 떼었다고 볼 거리 — 카드 폭에 곱한다. */
+const PEEL_FULL = 0.55;
+
+/**
+ * 그 거리의 상한.
+ *
+ * 카드는 화면이 넓어지면 784px까지 자란다(.page-wrap). 폭에만 곱하면 폰에서
+ * 196px이던 것이 태블릿 · 노트북에서 417px이 되어, 손가락이 두 배 넘게 가야
+ * 했다. 마우스는 한 번에 그만큼 끌 수 있어 표가 안 났지만 태블릿에서는 같은
+ * 손짓으로 절반도 못 가 제자리로 펴졌다.
+ *
+ * 가장 넓은 폰 카드가 드는 거리(430px 화면에서 218px)를 상한으로 둔다. 폰은
+ * 전과 한 치도 다르지 않고, 넓은 화면만 그 거리로 내려온다 — 접히는 귀퉁이도
+ * 어느 화면에서나 같은 크기의 종이가 된다.
+ */
+const PEEL_FULL_MAX = 220;
+
+/** 이 폭의 카드에서 끝까지 떼는 데 드는 거리 */
+function fullPeel(w: number) {
+  return Math.min(w * PEEL_FULL, PEEL_FULL_MAX);
+}
+
+/** 이만큼 움직이기 전에는 떼는 중으로 보지 않는다. */
+const PEEL_SLOP = 5;
+
+/** 옆으로 끌 때 귀퉁이가 아래로 처지는 정도 — 0이면 책장 넘기듯 세로로 접힌다. */
+const SLOPE = 0.42;
+
+/** 뒤집어 넘어온 조각을 얼마나 짧게 그릴지 — 1이면 납작하게 접힌 종이다. */
+const CURL = 0.84;
+
+/** 접는 선의 법선. 기울기(SLOPE)에서만 나오므로 끄는 내내 같다. */
+const NX = 1 / Math.hypot(1, SLOPE);
+const NY = SLOPE / Math.hypot(1, SLOPE);
+
+/** 놓았을 때 펴져 붙는 시간 */
+const SETTLE_MS = 360;
+
+type Pt = [number, number];
+type Drag = { x: number; y: number; w: number; h: number; full: number; p: number; moved: boolean };
+
+const VARS = ["--peel", "--peel-cut", "--peel-flap", "--peel-grad", "--peel-shade", "--peel-sx", "--peel-sy",
+  "--peel-mark"];
+
+/**
+ * 종이가 접히는 각.
+ *
+ * 조각을 뒤집을 때 쓰는 셈(1 + CURL)에서 그대로 나온다. 접는 선에서 s만큼
+ * 떨어진 점은 φ만큼 접히면 s·cos φ 자리에 비치므로, 옮겨 간 거리가
+ * s(cos φ − 1)이다. 이것이 종이 쪽 셈 −(1 + CURL)·s와 같으려면
+ * cos φ = −CURL이다. 납작하게 접으면 180도, 둥글게 말리니 그보다 덜하다.
+ */
+const FOLD_DEG = (Math.acos(-CURL) * 180) / Math.PI;
+
+/** 끌 때 책갈피 · 클립이 함께 잡혀 넘어가도록 재는 것 */
+type Mark = {
+  /** 쉴 때 걸려 있는 제 변형 — 뒤에 그대로 붙여 쓴다. */
+  base: string;
+  /** 가운데 자리(카드 안쪽 기준) */
+  cx: number;
+  cy: number;
+  /** 접는 선 쪽으로 재었을 때의 반지름 — 선이 이만큼 지나는 동안 넘어간다. */
+  r: number;
+};
+
+/**
+ * 카드에 걸린 표(책갈피 · 클립)를 잰다. 끌기 시작할 때 한 번만 부른다 —
+ * 매 틀마다 재면 그만큼 셈이 는다.
+ */
+function markOf(card: HTMLElement, nx: number, ny: number): Mark | null {
+  const el = card.querySelector<HTMLElement>(".inout-bar");
+  if (!el) return null;
+  const 네모 = el.getBoundingClientRect();
+  return {
+    base: getComputedStyle(el).transform,
+    cx: el.offsetLeft + el.offsetWidth / 2,
+    cy: el.offsetTop + el.offsetHeight / 2,
+    r: Math.max(1, (네모.width * Math.abs(nx) + 네모.height * Math.abs(ny)) / 2),
+  };
+}
+
+/**
+ * 표가 접는 선을 타고 넘어가는 모습.
+ *
+ * 종이처럼 잘려 둘로 나뉘지는 않는다. 클립도 책갈피도 제 꼴이 있는 물건이라
+ * 통째로 들려 넘어간다. 그래서 자르지 않고 접는 선을 축 삼아 통째로 돌린다.
+ *
+ * 선이 아직 닿지 않았으면 가만히 있고, 선이 표를 지나는 동안(지름만큼)
+ * 0도에서 FOLD_DEG까지 기운다. 다 지나면 종이와 똑같은 자리에 눕는다 —
+ * 두 셈이 같은 각에서 나왔으므로 어긋나지 않는다. 지나는 동안 모로 서는
+ * 틀이 있는데, 그것이 곧 넘어가는 중이라는 말이다.
+ */
+function markTurn(m: Mark, nx: number, ny: number, fold: number): string {
+  const s = m.cx * nx + m.cy * ny - fold;
+  const t = Math.max(0, Math.min(1, (m.r - s) / (2 * m.r)));
+  if (t <= 0) return m.base;
+  const dx = -s * nx;
+  const dy = -s * ny;
+  return `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) ` +
+    `rotate3d(${(-ny).toFixed(4)}, ${nx.toFixed(4)}, 0, ${(t * FOLD_DEG).toFixed(2)}deg) ` +
+    `translate(${(-dx).toFixed(2)}px, ${(-dy).toFixed(2)}px) ${m.base}`;
+}
+
+function polygon(pts: Pt[]): string {
+  if (pts.length < 3) return "polygon(0 0, 0 0, 0 0)";
+  return `polygon(${pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(", ")})`;
+}
+
+/** 귀퉁이를 d만큼 끌었을 때 — 비울 자리 · 넘어온 조각 · 그 위의 명암 */
+function shape(w: number, h: number, d: number) {
+  const px = d;
+  const py = d * SLOPE;
+  const len = Math.hypot(px, py);
+  if (len < 0.5) return null;
+
+  const nx = px / len;
+  const ny = py / len;
+  const fold = len / 2;
+  /* 음수면 접는 선 바깥, 곧 떼어져 넘어가는 쪽이다. */
+  const side = ([x, y]: Pt) => x * nx + y * ny - fold;
+
+  /* 카드 네모를 접는 선으로 한 번 자른다. */
+  const rect: Pt[] = [[0, 0], [w, 0], [w, h], [0, h]];
+  const cut: Pt[] = [];
+  for (let i = 0; i < rect.length; i++) {
+    const a = rect[i];
+    const b = rect[(i + 1) % rect.length];
+    const sa = side(a);
+    const sb = side(b);
+    if (sa < 0) cut.push(a);
+    if (sa < 0 !== sb < 0) {
+      const t = sa / (sa - sb);
+      cut.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]);
+    }
+  }
+
+  /* 잘린 조각을 선 너머로 뒤집는다. 선 위의 점은 그대로 있다. */
+  const flap: Pt[] = cut.map((pt) => {
+    const s = side(pt);
+    return [pt[0] - (1 + CURL) * s * nx, pt[1] - (1 + CURL) * s * ny];
+  });
+
+  /* 명암은 접힌 자리에서 끝으로 한 방향 — 접힌 골은 어둡고, 말린 등성이는 밝고,
+     끝으로 갈수록 빛을 덜 받아 다시 어둡다. CSS 그라데이션 선 위의 px 자리로 셈한다. */
+  const deg = (Math.atan2(nx, -ny) * 180) / Math.PI;
+  const lineLen = Math.abs(w * nx) + Math.abs(h * ny);
+  const origin = (w / 2) * nx + (h / 2) * ny - lineLen / 2;
+  const at = fold - origin;
+  const tip = Math.max(...flap.map(([x, y]) => x * nx + y * ny)) - origin;
+  const span = Math.max(1, tip - at);
+  const px1 = (k: number) => `${(at + span * k).toFixed(1)}px`;
+  const grad =
+    `linear-gradient(${deg.toFixed(2)}deg, rgba(0,0,0,0) ${px1(0.15)}, var(--peel-tint) ${px1(1)}), ` +
+    `linear-gradient(${deg.toFixed(2)}deg, rgba(16,24,40,0.2) ${px1(0)}, #FFFFFF ${px1(0.24)}, ` +
+    `#F4F5F7 ${px1(0.62)}, #E3E6EA ${px1(1)})`;
+
+  /* 종이가 들린 바닥 — 접힌 선 가까이는 넘어온 조각의 그늘이 진다. */
+  const shade =
+    `linear-gradient(${deg.toFixed(2)}deg, rgba(16,24,40,0) ${(at - 42).toFixed(1)}px, ` +
+    `rgba(16,24,40,0.1) ${at.toFixed(1)}px)`;
+
+  return { cut: polygon(cut), flap: polygon(flap), grad, shade, nx, ny, fold };
+}
+
+function paint(card: HTMLElement, p: number, w: number, h: number, full: number, mark: Mark | null) {
+  const g = shape(w, h, p * full);
+  if (!g) {
+    VARS.forEach((v) => card.style.removeProperty(v));
+    /* 표는 쉴 때 걸려 있던 제 변형으로 돌린다. 지워 버리면 끌던 겹이
+       아직 붙어 있는 동안 표가 제자리에서 홱 돌아간다. */
+    if (mark) card.style.setProperty("--peel-mark", mark.base);
+    return;
+  }
+  card.style.setProperty("--peel", p.toFixed(4));
+  card.style.setProperty("--peel-cut", g.cut);
+  card.style.setProperty("--peel-flap", g.flap);
+  card.style.setProperty("--peel-grad", g.grad);
+  card.style.setProperty("--peel-shade", g.shade);
+  card.style.setProperty("--peel-sx", `${(g.nx * 3).toFixed(2)}px`);
+  card.style.setProperty("--peel-sy", `${(g.ny * 3).toFixed(2)}px`);
+  if (mark) card.style.setProperty("--peel-mark", markTurn(mark, g.nx, g.ny, g.fold));
+  card.classList.toggle("is-peeled", p >= 1);
+}
+
+function clean(card: HTMLElement) {
+  card.classList.remove("is-peeling", "is-peeled", "is-settling");
+  VARS.forEach((v) => card.style.removeProperty(v));
+}
+
+export default function usePeel(onPeeled: () => void, disabled = false) {
+  const cardRef = useRef<HTMLElement | null>(null);
+  const dragRef = useRef<Drag | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const holdRef = useRef<number | null>(null);
+  const settleRef = useRef<number | null>(null);
+  /** 함께 잡혀 넘어갈 표. 끌기 시작할 때 한 번 재고 그 뒤로는 그대로 쓴다. */
+  const markRef = useRef<Mark | null>(null);
+
+  const clearHold = useCallback(() => {
+    if (holdRef.current !== null) {
+      window.clearTimeout(holdRef.current);
+      holdRef.current = null;
+    }
+  }, []);
+
+  const clearFrame = useCallback(() => {
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+  }, []);
+
+  const clearSettle = useCallback(() => {
+    if (settleRef.current !== null) {
+      window.cancelAnimationFrame(settleRef.current);
+      settleRef.current = null;
+    }
+  }, []);
+
+  /** 펴져 붙는다. 움직임 줄이기를 켠 사람에게는 바로 붙인다. */
+  const settle = useCallback(
+    (card: HTMLElement, from: number, w: number, h: number, full: number) => {
+      clearSettle();
+      card.classList.remove("is-peeling", "is-peeled");
+      card.classList.add("is-settling");
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        clean(card);
+        markRef.current = null;
+        return;
+      }
+      const t0 = performance.now();
+      const step = (now: number) => {
+        const t = Math.min(1, (now - t0) / SETTLE_MS);
+        const eased = 1 - Math.pow(1 - t, 3);
+        paint(card, from * (1 - eased), w, h, full, markRef.current);
+        if (t < 1) {
+          settleRef.current = window.requestAnimationFrame(step);
+        } else {
+          settleRef.current = null;
+          clean(card);
+          markRef.current = null;
+        }
+      };
+      settleRef.current = window.requestAnimationFrame(step);
+    },
+    [clearSettle]
+  );
+
+  useEffect(
+    () => () => {
+      clearHold();
+      clearFrame();
+      clearSettle();
+    },
+    [clearHold, clearFrame, clearSettle]
+  );
+
+  const onPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      if (disabled || e.button !== 0) return;
+      const card = e.currentTarget.closest<HTMLElement>(".card--entry");
+      if (!card) return;
+
+      cardRef.current = card;
+      /* 표는 여기서 한 번만 잰다 — 아직 아무 겹도 걸리지 않아 쉴 때의
+         제 변형을 그대로 읽을 수 있다. */
+      markRef.current = markOf(card, NX, NY);
+      /* 겉 테두리 안쪽(padding box) 크기 — 덮개와 조각이 그 안에 깔린다. */
+      dragRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+        w: card.clientWidth,
+        h: card.clientHeight,
+        full: fullPeel(card.clientWidth),
+        p: 0,
+        moved: false,
+      };
+      e.currentTarget.setPointerCapture(e.pointerId);
+
+      clearHold();
+      holdRef.current = window.setTimeout(() => {
+        holdRef.current = null;
+        const d = dragRef.current;
+        if (d && !d.moved) {
+          dragRef.current = null;
+          onPeeled();
+        }
+      }, LONG_PRESS_DELAY);
+    },
+    [disabled, clearHold, onPeeled]
+  );
+
+  const onPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      const d = dragRef.current;
+      const card = cardRef.current;
+      if (!d || !card) return;
+
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+
+      if (!d.moved) {
+        if (Math.abs(dx) < PEEL_SLOP && Math.abs(dy) < PEEL_SLOP) return;
+        clearHold();
+        if (Math.abs(dy) > Math.abs(dx)) {
+          dragRef.current = null;
+          return;
+        }
+        d.moved = true;
+        clearSettle();
+        card.classList.remove("is-settling");
+        card.classList.add("is-peeling");
+      }
+
+      d.p = Math.max(0, Math.min(1, dx / d.full));
+      if (frameRef.current === null) {
+        frameRef.current = window.requestAnimationFrame(() => {
+          frameRef.current = null;
+          const live = dragRef.current;
+          if (live && cardRef.current) paint(cardRef.current, live.p, live.w, live.h, live.full, markRef.current);
+        });
+      }
+    },
+    [clearHold, clearSettle]
+  );
+
+  const finish = useCallback(
+    (fire: boolean) => {
+      clearHold();
+      clearFrame();
+      const d = dragRef.current;
+      const card = cardRef.current;
+      dragRef.current = null;
+      if (!d || !card || !d.moved) return;
+
+      settle(card, d.p, d.w, d.h, d.full);
+      if (fire && d.p >= 1) onPeeled();
+    },
+    [clearHold, clearFrame, settle, onPeeled]
+  );
+
+  const onPointerUp = useCallback(() => finish(true), [finish]);
+  const onPointerCancel = useCallback(() => finish(false), [finish]);
+
+  /* 잡은 채 길게 누를 때 뜨는 컨텍스트 메뉴를 막는다.
+     잡고 있지 않을 때는 막지 않는다. 늘 막으면 PC에서 카드 우클릭 메뉴가
+     아예 안 뜬다. useLongPress도 같은 방식이다. */
+  const onContextMenu = useCallback((e: ReactMouseEvent<HTMLElement>) => {
+    if (dragRef.current || holdRef.current !== null) e.preventDefault();
+  }, []);
+
+  return { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onContextMenu };
+}

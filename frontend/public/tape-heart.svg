@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="30" viewBox="0 0 60 30">
+  <title>마스킹 테이프 — 하트</title>
+  <!--
+    일곱 가지 가운데 여섯째. 연분홍 바탕에 작은 하트다.
+
+    꽃 테이프와 같은 손놀림이다 — 옅은 무늬를 먼저 흩어 놓고 그 위에 한 단
+    진한 것을 얹는다. 한 톤으로만 찍으면 도장을 찍은 것처럼 납작해지는데,
+    두 겹을 겹치면 깊이가 생긴다.
+
+    크기와 기울기를 조금씩 달리해 손으로 찍은 결을 낸다. 무늬는 가장자리에
+    걸치지 않게 안쪽에만 둔다 — 이어 붙였을 때 잘려 보이지 않는다.
+  -->
+  <defs>
+    <linearGradient id="heartBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FDECF1"/>
+      <stop offset="1" stop-color="#FAD8E2"/>
+    </linearGradient>
+
+    <!-- 하트 하나 — 가운데가 (0,0)이고 지름 6쯤이다. -->
+    <path id="heart"
+      d="M0 3.1 C-3.4 0.6 -4.2 -1.2 -3.1 -2.5 C-2.1 -3.7 -0.6 -3.3 0 -2
+         C0.6 -3.3 2.1 -3.7 3.1 -2.5 C4.2 -1.2 3.4 0.6 0 3.1 Z"/>
+  </defs>
+
+  <path
+    d="M0 3.4 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0 q7.5 -3.4 15 0
+       L60 26.6 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 q-7.5 3.4 -15 0 Z"
+    fill="url(#heartBody)"/>
+
+  <!-- 옅은 무늬가 먼저 -->
+  <g fill="#F8C4D3">
+    <use href="#heart" transform="translate(10 20) rotate(-14) scale(0.85)"/>
+    <use href="#heart" transform="translate(33 9.5) rotate(16) scale(0.8)"/>
+    <use href="#heart" transform="translate(53 19.5) rotate(-8) scale(0.9)"/>
+  </g>
+
+  <!-- 진한 무늬가 그 위에 -->
+  <g fill="#EF93AE">
+    <use href="#heart" transform="translate(20 11) rotate(12)"/>
+    <use href="#heart" transform="translate(42 20) rotate(-18) scale(0.95)"/>
+  </g>
+</svg>

@@ -1,11 +1,16 @@
 import { visible } from "../../utils/visible";
+import GrowArea from "./GrowArea";
 import React, { forwardRef, useEffect, useState } from "react";
 import axios from "../../api/client";
 import useBackClose from "../../hooks/useBackClose";
 import SingleSelect from "./SingleSelect";
-import { EditField } from "./CardEditModal";
+import { EditField, EditDivider } from "./CardEditModal";
+import SplitEditor from "./SplitEditor";
+import type { SplitDraft } from "./SplitEditor";
 import PlacePicker from "./PlacePicker";
-
+import GoToButton from "./GoToButton";
+import DayPicker from "./DayPicker";
+import { say } from "../../utils/notify";
 /**
  * 지출 한 건을 적는 입력 칸 묶음.
  *
@@ -42,10 +47,14 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
     place_id: ""
   });
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; inout: number | null; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; is_active?: number }[]>([]);
-  const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
+  const [payList, setPayList] = useState<{ code: string; name: string; emoji?: string | null; is_active?: number }[]>([]);
+
+  /* 아직 없는 건의 몫. 건이 생겨 entry_id를 받아야 붙일 수 있어
+     그때까지 화면이 들고 있는다. */
+  const [splits, setSplits] = useState<SplitDraft[]>([]);
 
   const [showPlacePicker, setShowPlacePicker] = useState(false);
 
@@ -55,6 +64,9 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
   const [selectedPlace, setSelectedPlace] = useState<any>(null);
 
   const [isDirty, setIsDirty] = useState(false);
+  // 저장은 장소, 지출, 분할을 차례로 보낸다. 그 사이에 단추를 다시 누르면
+  // 지출이 두 건 생긴다. 보내는 동안 단추를 쉬게 한다.
+  const [saving, setSaving] = useState(false);
 
   /* 손댄 여부를 부르는 쪽에도 알린다. */
   useEffect(() => {
@@ -62,8 +74,13 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
   }, [isDirty, onDirtyChange]);
 
   // 중분류(카테고리1) 불러오기
+  // 조회가 실패하면 빈 목록으로 둔다. 고를 것이 없으면 아래 검사에 걸려
+  // 저장이 막히므로, 잘못된 값이 들어가지는 않는다.
   useEffect(() => {
-    axios.get("/categories/lvl1").then((res) => setCat1List(res.data));
+    axios
+      .get("/categories/lvl1")
+      .then((res) => setCat1List(res.data))
+      .catch(() => say.warn("분류를 불러오지 못했습니다. 새로 고쳐 주세요."));
   }, []);
 
   // 소분류(카테고리2) 불러오기 → cat1_id 변경 시
@@ -71,7 +88,8 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
     if (!form.cat1_id) return;
     axios
       .get("/categories/lvl2", { params: { cat1_id: form.cat1_id } })
-      .then((res) => setCat2List(res.data));
+      .then((res) => setCat2List(res.data))
+      .catch(() => setCat2List([]));
   }, [form.cat1_id]);
 
   // 소분류 선택 시 IN/OUT 자동 설정
@@ -94,31 +112,61 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
     }
     axios
       .get("/categories/lvl3", { params: { cat2_id: form.cat2_id } })
-      .then((res) => setCat3List(res.data));
+      .then((res) => setCat3List(res.data))
+      .catch(() => setCat3List([]));
   }, [form.cat2_id]);
 
   // 결제 수단 불러오기
   useEffect(() => {
-    axios.get("/payment-methods").then((res) =>
-      setPayList(
-        res.data.map((p: any) => ({
-          code: String(p.method_id),
-          name: p.method_name,
-          is_active: p.is_active,
-        }))
+    axios
+      .get("/payment-methods")
+      .then((res) =>
+        setPayList(
+          res.data.map((p: any) => ({
+            code: String(p.method_id),
+            name: p.method_name,
+            is_active: p.is_active,
+            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다.
+               같은 구분에 든 수단끼리는 같은 이모지가 선다. */
+            emoji: p.category_emoji ?? null,
+          }))
+        )
       )
-    );
+      .catch(() => say.warn("결제 수단을 불러오지 못했습니다. 새로 고쳐 주세요."));
   }, []);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setIsDirty(true);
   };
 
+  /** 보내고 난 뒤 폼을 비운다. 두 자리에서 쓴다. */
+  const reset = () => {
+    setForm({
+      tx_date: "",
+      cat1_id: "",
+      cat2_id: "",
+      cat3_id: "",
+      inout: "-1",
+      amount: "",
+      pay_method: "",
+      memo: "",
+      place_id: "",
+    });
+    setSelectedPlace(null);
+    setSelectedPlaceName("");
+    setSplits([]);
+    setCat2List([]);
+    setIsDirty(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
 
     if (
       !form.tx_date ||
@@ -127,10 +175,25 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       form.amount == null || form.amount === '' ||
       !form.pay_method
     ) {
-      alert("Date, CategoryM/S, Amount, PaymentMethod는 필수 입력입니다.");
+      say.warn("날짜, 분류, 금액, 결제 수단은 꼭 넣어 주세요.");
       return;
     }
 
+    /* 몫은 빈 줄을 버리고, 합계가 결제 금액을 넘으면 막는다 —
+       편집 팝업과 같은 잣대다. */
+    const cleanSplits = splits.filter(
+      (x) => x.amount !== "" && Number(x.amount) > 0
+    );
+    if (splits.some((x) => x.amount === "" || Number(x.amount) <= 0)) {
+      say.warn("쪼갠 금액은 0보다 커야 합니다.");
+      return;
+    }
+    if (cleanSplits.reduce((a, r) => a + Number(r.amount), 0) > Number(form.amount)) {
+      say.warn("쪼갠 합계가 결제 금액을 넘었습니다.");
+      return;
+    }
+
+    setSaving(true);
     try {
       let place_id = form.place_id ? Number(form.place_id) : null;
 
@@ -181,30 +244,33 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
         },
       ];
 
-      await axios.post("/entries", payload);
-      alert("전송 완료-!! ;-)");
+      const res = await axios.post("/entries", payload);
 
-      // 초기화
-      setForm({
-        tx_date: "",
-        cat1_id: "",
-        cat2_id: "",
-        cat3_id: "",
-        inout: "-1",
-        amount: "",
-        pay_method: "",
-        memo: "",
-        place_id: "",
-      });
-      setSelectedPlace(null);
-      setSelectedPlaceName("");
-      setCat2List([]);
-      setIsDirty(false);
+      // 몫은 건이 생긴 뒤에야 붙일 수 있다. 빈 채로는 부르지 않는다.
+      //
+      // 여기서 실패하면 지출은 이미 들어가 있다. 예전에는 바깥 catch가
+      // "입력하지 못했습니다"라고만 알려, 다시 누르면 같은 지출이 또
+      // 들어갔다. 지출이 들어간 사실을 알리고 폼을 비워 다시 보내지 않게 한다.
+      const newId = res.data?.entry_ids?.[0];
+      if (newId && cleanSplits.length > 0) {
+        try {
+          await axios.put(`/entries/${newId}/splits`, cleanSplits);
+        } catch {
+          say.warn("지출은 들어갔는데 쪼갠 몫을 붙이지 못했습니다. 지출 내역에서 고쳐 주세요.");
+          reset();
+          onSaved?.();
+          return;
+        }
+      }
 
+      say.ok("전송 완료-!! ;-)");
+      reset();
       onSaved?.();
     } catch (err) {
       console.error(err);
-      alert("입력 중 오류가 발생했습니다.");
+      say.bad("입력하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -217,12 +283,13 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
     >
       {/* 날짜는 편집 팝업의 머리말과 같은 자리에 둔다. */}
       <div className="edit-modal__headfields entry-form__headfields">
-        <EditField label="날짜" span={12}>
-          <input
-            type="date"
-            name="tx_date"
+        <EditField label="날짜" span={12} required>
+          <DayPicker
             value={form.tx_date}
-            onChange={handleChange}
+            onChange={(v) => {
+              setForm({ ...form, tx_date: v });
+              setIsDirty(true);
+            }}
           />
         </EditField>
       </div>
@@ -230,11 +297,11 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       {/* 편집 팝업과 동일한 12칸 그리드 배치 */}
       <div className="edit-grid">
         {/* 1행 — 분류 3단 */}
-        <EditField label="중분류" span={4}>
+        <EditField label="중분류" span={4} required>
           <SingleSelect
             noun="중분류"
             options={visible(cat1List, (c) => String(c.id) === form.cat1_id)
-              .map(c => ({ value: String(c.id), label: c.name }))}
+              .map(c => ({ value: String(c.id), label: c.name, icon: c.emoji }))}
             selected={form.cat1_id}
             onChange={(value) => {
               setForm({ ...form, cat1_id: value });
@@ -244,7 +311,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           />
         </EditField>
 
-        <EditField label="소분류" span={4}>
+        <EditField label="소분류" span={4} required>
           <SingleSelect
             noun="소분류"
             options={visible(cat2List, (c) => String(c.id) === form.cat2_id)
@@ -273,17 +340,17 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
         </EditField>
 
         {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래 */}
-        <EditField label="IN/OUT" span={4}>
+        <EditField label="IN/OUT" span={4} required>
           <span className={`inout-chip ${form.inout === "1" ? "in" : form.inout === "-1" ? "out" : ""}`}>
             {form.inout === "1" ? "IN(+)" : form.inout === "-1" ? "OUT(−)" : "—"}
           </span>
         </EditField>
 
-        <EditField label="결제 수단" span={4}>
+        <EditField label="결제 수단" span={4} required>
           <SingleSelect
             noun="결제 수단"
             options={visible(payList, (p) => p.code === form.pay_method)
-              .map(p => ({ value: p.code, label: p.name }))}
+              .map(p => ({ value: p.code, label: p.name, icon: p.emoji }))}
             selected={form.pay_method}
             onChange={(value) => {
               setForm({ ...form, pay_method: value });
@@ -293,7 +360,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           />
         </EditField>
 
-        <EditField label="금액" span={4}>
+        <EditField label="금액" span={4} required>
           <input
             type="number"
             name="amount"
@@ -322,15 +389,32 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
 
         {/* 4행 — 메모 */}
         <EditField label="메모" span={12}>
-          <input
-            type="text"
+          <GrowArea
+            className="memo-area"
             name="memo"
             value={form.memo}
             placeholder="(메모)"
-            onChange={handleChange}
+            maxLength={200}
+            onChange={(_v, e) => handleChange(e)}
           />
         </EditField>
       </div>
+
+      {/* 나가는 돈만 쪼갤 수 있다. 편집 팝업과 같은 자리 · 같은 모양이다 —
+          적을 때와 고칠 때 묻는 것이 달라서는 안 된다. */}
+      {form.inout === "-1" && (
+        <>
+          <EditDivider />
+          <SplitEditor
+            grossAmount={Number(form.amount) || 0}
+            value={splits}
+            onChange={(v) => {
+              setSplits(v);
+              setIsDirty(true);
+            }}
+          />
+        </>
+      )}
 
       {showPlacePicker && (
         <PlacePicker
@@ -350,15 +434,20 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
         />
       )}
 
-      {/* Send Button */}
+      {/* Send Button.
+          왼쪽에 지출 내역으로 건너뛰는 단추를 둔다 — 적고 나서 바로 목록을
+          보러 가는 길이다. 쓰기 팝업도 바닥 왼쪽 끝에 같은 것을 단다. */}
       {showSubmit && (
-        <button
-          type="submit"
-          className="ui-btn primary w-full entry-form__submit"
-          disabled={!isDirty}
-        >
-          전송
-        </button>
+        <div className="entry-form__foot">
+          <GoToButton to="/entries" label="지출 내역" className="write-go" />
+          <button
+            type="submit"
+            className="ui-btn primary w-full entry-form__submit"
+            disabled={!isDirty || saving}
+          >
+            전송
+          </button>
+        </div>
       )}
     </form>
   );

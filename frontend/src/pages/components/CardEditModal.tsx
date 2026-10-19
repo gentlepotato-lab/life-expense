@@ -13,6 +13,20 @@ type CardEditModalProps = {
   /** 저장 버튼 왼쪽에 들어가는 추가 액션(예: Pending의 "전송") */
   footerExtra?: ReactNode;
   /**
+   * 바닥 왼쪽 끝에 들어가는 것.
+   *
+   * 그 자리는 본디 [삭제]가 쓴다. 지울 것이 없는 팝업(쓰기)에서 비우느니
+   * 건너뛰는 단추를 둔다 — 잔소리 상세도 같은 자리에 같은 단추를 단다.
+   */
+  footerLead?: ReactNode;
+  /**
+   * [삭제] 바로 오른쪽에 붙는 것.
+   *
+   * 지우는 것과 성격이 다른 또 하나의 손잡이가 필요할 때 쓴다 — 정기 내역의
+   * [감추기]가 그 자리다. footerExtra는 저장 쪽에 붙으므로 뜻이 다르다.
+   */
+  footerAfterDelete?: ReactNode;
+  /**
    * 머리말 아래에 붙는 날짜·시간 입력 줄.
    * 본문 그리드 사이에 끼면 칸이 좁아지고, 어차피 머리말이 날짜를 말하고 있으므로
    * 시점에 관한 입력은 여기에 모은다.
@@ -33,8 +47,10 @@ export default function CardEditModal({
   onDelete,
   saveDisabled = false,
   saveLabel = "저장",
-  deleteLabel = "삭제",
+  deleteLabel = "제거",
   footerExtra,
+  footerLead,
+  footerAfterDelete,
   headerFields,
   children,
 }: CardEditModalProps) {
@@ -74,11 +90,14 @@ export default function CardEditModal({
 
         <footer className="edit-modal__foot">
           {onDelete ? (
-            <button type="button" className="delete-btn" onClick={onDelete}>
-              {deleteLabel}
-            </button>
+            <span className="edit-modal__foot-left">
+              <button type="button" className="delete-btn" onClick={onDelete}>
+                {deleteLabel}
+              </button>
+              {footerAfterDelete}
+            </span>
           ) : (
-            <span />
+            footerLead ?? <span />
           )}
 
           <div className="edit-modal__foot-right">
@@ -112,14 +131,24 @@ export function EditField({
   label,
   children,
   span = 6,
+  required = false,
 }: {
   label: string;
   children: ReactNode;
   span?: 3 | 4 | 6 | 8 | 12;
+  /** 비우면 저장이 안 되는 칸. 이름표 옆에 붉은 별을 단다. */
+  required?: boolean;
 }) {
   return (
     <div className={`edit-field edit-field--span-${span}`}>
-      <label className="edit-field__label">{label}</label>
+      <label className="edit-field__label">
+        {label}
+        {required && (
+          <span className="edit-field__req" aria-hidden="true">
+            *
+          </span>
+        )}
+      </label>
       <div className="edit-field__control">{children}</div>
     </div>
   );

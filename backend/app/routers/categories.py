@@ -16,14 +16,14 @@ router = APIRouter()
 def cat1(db=Depends(get_db)):
     rows = db.execute(
         select(CategoryL1.cat1_id, CategoryL1.cat1_name, CategoryL1.emoji,
-               CategoryL1.is_active, CategoryL1.exclude_flag, CategoryL1.blur_flag)
+               CategoryL1.is_active, CategoryL1.blur_flag)
         .order_by(CategoryL1.sort_order)
     ).all()
     # 감춘 것도 함께 준다. 지난 내역이 그 분류를 가리키고 있어 이름을 찾으려면
     # 목록에 있어야 하기 때문이다. 고르는 목록에서 빼는 일은 화면이 한다.
     return [
-        {"id": i, "name": n, "emoji": e, "is_active": a, "exclude": x, "blur": b}
-        for i, n, e, a, x, b in rows
+        {"id": i, "name": n, "emoji": e, "is_active": a, "blur": b}
+        for i, n, e, a, b in rows
     ]
 
 @router.get("/lvl2")
@@ -39,7 +39,7 @@ def cat2(cat1_id: int | None = Query(None), db=Depends(get_db)):
         CategoryL2.blur_flag,
         CategoryL2.inout,
         CategoryL2.is_active,
-        CategoryL2.exclude_flag
+        CategoryL2.fixed_flag
     ).order_by(CategoryL2.cat1_id, CategoryL2.sort_order)
 
     if cat1_id:
@@ -48,8 +48,8 @@ def cat2(cat1_id: int | None = Query(None), db=Depends(get_db)):
     rows = db.execute(stmt).all()
     return [
         {"id": i, "name": n, "cat1_id": c1, "blur": b, "inout": io,
-         "is_active": a, "exclude": x}
-        for i, n, c1, b, io, a, x in rows
+         "is_active": a, "fixed": f}
+        for i, n, c1, b, io, a, f in rows
     ]
 
 @router.get("/lvl3")
@@ -59,7 +59,7 @@ def cat3(cat2_id: int | None = Query(None), db=Depends(get_db)):
         CategoryL3.cat3_name,
         CategoryL3.cat2_id,
         CategoryL3.is_active,
-        CategoryL3.exclude_flag,
+        CategoryL3.fixed_flag,
         CategoryL3.blur_flag,
     ).order_by(CategoryL3.cat2_id, CategoryL3.sort_order)
 
@@ -68,8 +68,8 @@ def cat3(cat2_id: int | None = Query(None), db=Depends(get_db)):
 
     rows = db.execute(stmt).all()
     return [
-        {"id": i, "name": n, "cat2_id": c2, "is_active": a, "exclude": x, "blur": b}
-        for i, n, c2, a, x, b in rows
+        {"id": i, "name": n, "cat2_id": c2, "is_active": a, "fixed": f, "blur": b}
+        for i, n, c2, a, f, b in rows
     ]
 
 @router.post("/add/lvl3")
@@ -121,8 +121,6 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
             }
             if "is_active" in item:
                 update_data["is_active"] = 1 if item["is_active"] else 0
-            if "exclude" in item:
-                update_data["exclude_flag"] = 1 if item["exclude"] else 0
             if "blur" in item:
                 update_data["blur_flag"] = 1 if item["blur"] else 0
             # 키가 없으면 그대로 두고, 빈 값이면 지운다.
@@ -156,8 +154,8 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
             }
             if "is_active" in item:
                 update_data["is_active"] = 1 if item["is_active"] else 0
-            if "exclude" in item:
-                update_data["exclude_flag"] = 1 if item["exclude"] else 0
+            if "fixed" in item:
+                update_data["fixed_flag"] = 1 if item["fixed"] else 0
             if "blur" in item:
                 update_data["blur_flag"] = 1 if item["blur"] else 0
             if "inout" in item:
@@ -184,8 +182,8 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
             }
             if "is_active" in item:
                 update3["is_active"] = 1 if item["is_active"] else 0
-            if "exclude" in item:
-                update3["exclude_flag"] = 1 if item["exclude"] else 0
+            if "fixed" in item:
+                update3["fixed_flag"] = 1 if item["fixed"] else 0
             if "blur" in item:
                 update3["blur_flag"] = 1 if item["blur"] else 0
             db.query(CategoryL3).filter(CategoryL3.cat3_id == cid).update(update3)
@@ -248,6 +246,13 @@ def add_cat2(
 
 @router.delete("/delete/lvl1")
 def delete_cat1(cat1_id: int, db: Session = Depends(get_db)):
+    # 대기 내역은 분류에 FK가 없어 DB가 막아 주지 않는다. 먼저 확인한다.
+    used = db.execute(text("""
+        SELECT 1 FROM life_expense.pending_entries WHERE cat1_id = :cid LIMIT 1
+    """), {"cid": cat1_id}).fetchone()
+    if used:
+        raise HTTPException(status_code=409, detail="USED_CATEGORY")
+
     try:
         # 하위 소분류 먼저 삭제
         db.query(CategoryL2).filter(CategoryL2.cat1_id == cat1_id).delete()
@@ -262,40 +267,54 @@ def delete_cat1(cat1_id: int, db: Session = Depends(get_db)):
 
 @router.delete("/delete/lvl2")
 def delete_cat2(cat2_id: int, db: Session = Depends(get_db)):
-    # 1) entries 테이블에서 사용 여부 확인
+    # 1) 쓰는 곳이 있는지 확인
+    #    지출 내역만 보면 모자란다. 대기 내역은 분류에 FK가 없어 지워도 DB가
+    #    막지 않고 이름만 비어 버리고, 정기 내역은 FK가 막아 500이 난다.
+    #    셋을 함께 보고 하나라도 쓰고 있으면 409로 알린다.
     used = db.execute(text("""
-        SELECT 1
-          FROM life_expense.entries
-         WHERE cat2_id = :cid
-         LIMIT 1
+        SELECT 1 FROM life_expense.entries           WHERE cat2_id = :cid LIMIT 1
+    """), {"cid": cat2_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.pending_entries   WHERE cat2_id = :cid LIMIT 1
+    """), {"cid": cat2_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.scheduled_entries WHERE cat2_id = :cid LIMIT 1
     """), {"cid": cat2_id}).fetchone()
 
     if used:
         raise HTTPException(status_code=409, detail="USED_CATEGORY")
 
-    # 2) 세분류 먼저 삭제
-    db.query(CategoryL3).filter(CategoryL3.cat2_id == cat2_id).delete()
+    try:
+        # 2) 세분류 먼저 삭제
+        db.query(CategoryL3).filter(CategoryL3.cat2_id == cat2_id).delete()
 
-    # 3) 소분류 삭제
-    db.query(CategoryL2).filter(CategoryL2.cat2_id == cat2_id).delete()
-    db.commit()
+        # 3) 소분류 삭제
+        db.query(CategoryL2).filter(CategoryL2.cat2_id == cat2_id).delete()
+        db.commit()
+    except IntegrityError:
+        # 위에서 못 걸러 낸 참조가 남아 있을 때. 500 대신 같은 안내로 돌린다.
+        db.rollback()
+        raise HTTPException(status_code=409, detail="USED_CATEGORY")
 
     return {"status": "ok"}
 
 @router.delete("/delete/lvl3")
 def delete_cat3(cat3_id: int, db: Session = Depends(get_db)):
     used = db.execute(text("""
-        SELECT 1
-          FROM life_expense.entries
-         WHERE cat3_id = :cid
-         LIMIT 1
+        SELECT 1 FROM life_expense.entries           WHERE cat3_id = :cid LIMIT 1
+    """), {"cid": cat3_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.pending_entries   WHERE cat3_id = :cid LIMIT 1
+    """), {"cid": cat3_id}).fetchone() or db.execute(text("""
+        SELECT 1 FROM life_expense.scheduled_entries WHERE cat3_id = :cid LIMIT 1
     """), {"cid": cat3_id}).fetchone()
 
     if used:
         raise HTTPException(status_code=409, detail="USED_CATEGORY")
 
-    db.query(CategoryL3).filter(CategoryL3.cat3_id == cat3_id).delete()
-    db.commit()
+    try:
+        db.query(CategoryL3).filter(CategoryL3.cat3_id == cat3_id).delete()
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="USED_CATEGORY")
     return {"status": "ok"}
 
 @router.post("/blur/set")

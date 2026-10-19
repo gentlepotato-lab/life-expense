@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
 import SingleSelect from "./components/SingleSelect";
+import AddButton from "./components/AddButton";
+import CardEditModal, { EditField } from "./components/CardEditModal";
 import EmojiPicker from "./components/EmojiPicker";
 import CollapseToggle, { CollapseAllButtons } from "./components/CollapseToggle";
 import {
@@ -9,6 +11,7 @@ import {
   closestCenter,
   PointerSensor,
   TouchSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -16,9 +19,23 @@ import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
+  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import QuickActions from "./components/QuickActions";
+import { PinIcon, WaveIcon } from "./components/FixedIcons";
+import useEditLock from "../hooks/useEditLock";
+import { EditLockTip } from "./components/EditLock";
+import { say, ask } from "../utils/notify";
+import Collapse from "./components/Collapse";
+import Waiting from "./components/Waiting";
+/**
+ * 고정 · 변동 고르개가 입을 빛깔 — 그 갈래가 나가는 돈인지 들어오는 돈인지를
+ * 따른다. 이름 앞의 +/− 점(.cat2-inout)이 이미 그 빛깔이라, 한 줄 안에서
+ * 두 가지가 다른 말을 하지 않게 한다. 세분류는 딸린 소분류를 따른다.
+ */
+const inoutTone = (inout?: number | null) =>
+  inout === 1 ? " set-fixed--in" : inout === -1 ? " set-fixed--out" : "";
 
 type SortableItemProps = {
   id: string | number;
@@ -55,17 +72,27 @@ function SortableItem({ id, children, dragHandle = false }: SortableItemProps) {
 
 export default function Categories() {
   const [editMode, setEditMode] = useState(false);
+  // 불러오는 중과 "없음"을 가른다. 목표 · 어디 쓰나와 같은 방식이다.
+  const [ready, setReady] = useState(false);
   const [cat1, setCat1] = useState<any[]>([]);
   const [cat2, setCat2] = useState<any[]>([]);
   const [cat3, setCat3] = useState<any[]>([]);
 
   const [addCat1Mode, setAddCat1Mode] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+
+  /* 담는 팝업이 떠 있는 동안은 뒤 화면이 굴러가지 않는다. 떠 있는 단추들도
+     이 표를 보고 비킨다 — 다른 화면의 팝업과 같은 규칙이다. */
+  useEffect(() => {
+    if (!addOpen) return;
+    document.documentElement.classList.add("modal-open");
+    return () => document.documentElement.classList.remove("modal-open");
+  }, [addOpen]);
   const [addCat2Mode, setAddCat2Mode] = useState(false);
   /** 감춘 항목까지 보여 줄지. 꺼져 있으면 목록에서만 빠진다(상태에는 그대로 남는다) */
   const [showInactive, setShowInactive] = useState(false);
 
-  /** 접어 둔 묶음. 비어 있으면 전부 펼쳐진 상태다(기존과 같은 모습).
+  /** 접은 묶음. 비어 있으면 전부 펼쳐진 상태다(기존과 같은 모습).
       중분류와 소분류를 한 곳에 담되 접두사로 구분한다. */
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
@@ -110,7 +137,7 @@ export default function Categories() {
   const [beforeEditCat3, setBeforeEditCat3] = useState<any[]>([]);
 
   /* 뒤로 가기 · Backspace로 편집을 무른다.
-     편집에 들어올 때 떠 둔 원본으로 되돌리므로 손댄 내용은 버려진다.
+     편집에 들어올 때 뜬 원본으로 되돌리므로 손댄 내용은 버려진다.
      추가 칸이 열려 있으면 그것부터 닫는다(나중에 연 것이 먼저 닫힌다). */
   useBackClose(editMode, () => {
     setCat1(beforeEditCat1);
@@ -118,7 +145,10 @@ export default function Categories() {
     setCat3(beforeEditCat3);
     setEditMode(false);
   });
-  useBackClose(addOpen, () => setAddOpen(false));
+
+  /* 편집이 아닐 때 고정 · 변동과 Blur를 누르면 왜 안 되는지 알린다.
+     조각이 옅어진 것만으로는 "지금은 못 고친다"가 읽히지 않는다. */
+  const { lockAt, showLock, tipRef } = useEditLock(editMode);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -126,55 +156,61 @@ export default function Categories() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: { delay: 120, tolerance: 6 }
-    })
+    }),
+    // 순서 바꾸기를 키보드로도 할 수 있게 한다.
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // 셋을 한 번에 기다린다. 호출 수는 그대로 셋이고, 다 끝난 뒤에야
+  // ready를 켜서 "불러오는 중"과 "없음"을 가른다.
   useEffect(() => {
-    axios.get("/categories/lvl1").then((r) =>
-      setCat1(r.data.map((c: any) => ({
-        cat1_id: c.id,
-        cat1_name: c.name,
-        emoji: c.emoji ?? null,
-        is_active: c.is_active ?? 1,
-        exclude: c.exclude ?? 0,
-        blur: c.blur ?? 0,
-        editing: false
-      })))
-    );
+    Promise.all([
+      axios.get("/categories/lvl1"),
+      axios.get("/categories/lvl2"),
+      axios.get("/categories/lvl3"),
+    ])
+      .then(([r1, r2, r3]) => {
+        setCat1(r1.data.map((c: any) => ({
+          cat1_id: c.id,
+          cat1_name: c.name,
+          emoji: c.emoji ?? null,
+          is_active: c.is_active ?? 1,
+          blur: c.blur ?? 0,
+          editing: false
+        })));
 
-    axios.get("/categories/lvl2").then((r) =>
-      setCat2(r.data.map((c: any) => ({
-        cat2_id: c.id,
-        cat2_name: c.name,
-        cat1_id: c.cat1_id,
-        blur: c.blur ?? 0, // blur 값 받기
-        inout: c.inout ?? null, // inout 값 받기
-        is_active: c.is_active ?? 1,
-        exclude: c.exclude ?? 0,
-        editing: false
-      })))
-    );
+        setCat2(r2.data.map((c: any) => ({
+          cat2_id: c.id,
+          cat2_name: c.name,
+          cat1_id: c.cat1_id,
+          blur: c.blur ?? 0, // blur 값 받기
+          inout: c.inout ?? null, // inout 값 받기
+          is_active: c.is_active ?? 1,
+          fixed: c.fixed ?? 0,
+          editing: false
+        })));
 
-    axios.get("/categories/lvl3").then((r) =>
-      setCat3(r.data.map((c: any) => ({
-        cat3_id: c.id,
-        cat3_name: c.name,
-        cat2_id: c.cat2_id,
-        is_active: c.is_active ?? 1,
-        exclude: c.exclude ?? 0,
-        blur: c.blur ?? 0,
-        editing: false
-      })))
-    );
+        setCat3(r3.data.map((c: any) => ({
+          cat3_id: c.id,
+          cat3_name: c.name,
+          cat2_id: c.cat2_id,
+          is_active: c.is_active ?? 1,
+          fixed: c.fixed ?? 0,
+          blur: c.blur ?? 0,
+          editing: false
+        })));
+      })
+      .catch(() => say.bad("분류를 불러오지 못했습니다. 새로 고쳐 주세요."))
+      .finally(() => setReady(true));
   }, []);
 
-  /* Exclude — 집계에서 뺀다. 저장을 눌러야 반영되는 것은 감추기와 같다. */
-  const toggleExclude1 = (id: number) =>
-    setCat1(cat1.map((x) => (x.cat1_id === id ? { ...x, exclude: x.exclude ? 0 : 1 } : x)));
-  const toggleExclude2 = (id: number) =>
-    setCat2(cat2.map((x) => (x.cat2_id === id ? { ...x, exclude: x.exclude ? 0 : 1 } : x)));
-  const toggleExclude3 = (id: number) =>
-    setCat3(cat3.map((x) => (x.cat3_id === id ? { ...x, exclude: x.exclude ? 0 : 1 } : x)));
+  /* 고정 · 변동 — 달마다 같은 자리에 오는 돈인지. 중분류에는 두지 않는다.
+     한 중분류 안에서도 소분류마다 갈리기 때문이다(저축은 고정, 투자는 변동).
+     Blur와 같이 저장을 눌러야 반영된다. */
+  const setFixed2 = (id: number, v: number) =>
+    setCat2(cat2.map((x) => (x.cat2_id === id ? { ...x, fixed: v } : x)));
+  const setFixed3 = (id: number, v: number) =>
+    setCat3(cat3.map((x) => (x.cat3_id === id ? { ...x, fixed: v } : x)));
 
   /* Blur — Exclude와 같이 저장을 눌러야 반영된다.
      예전에는 소분류만 있었고 누르는 즉시 저장됐다. 되돌리기(뒤로 가기)가
@@ -228,7 +264,7 @@ export default function Categories() {
     const cat1Names = cat1.map(c => c.cat1_name.trim());
     const duplicateCat1 = cat1Names.filter((v, i) => cat1Names.indexOf(v) !== i);
     if (duplicateCat1.length > 0) {
-      alert("이미 존재하는 항목입니다.");
+      say.warn("이미 있는 항목입니다.");
       return;
     }
 
@@ -243,24 +279,24 @@ export default function Categories() {
     for (const group of grouped) {
       const dup = group.cat2_names.filter((v, i) => group.cat2_names.indexOf(v) !== i);
       if (dup.length > 0) {
-        alert("이미 존재하는 항목입니다.");
+        say.warn("이미 있는 항목입니다.");
         return;
       }
     }
 
     // 변경 체크 & 저장 로직 기존 그대로
-    /* Exclude도 함께 본다 — 이것만 건드리고 저장하면
+    /* 고정 · 변동도 함께 본다 — 이것만 건드리고 저장하면
        "변경된 내용이 없습니다"로 되돌아가 버린다. */
     const changed =
-      JSON.stringify(beforeEditCat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.exclude ?? 0, c.blur ?? 0])) !==
-        JSON.stringify(cat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.exclude ?? 0, c.blur ?? 0])) ||
-      JSON.stringify(beforeEditCat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active, c.exclude ?? 0])) !==
-        JSON.stringify(cat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active, c.exclude ?? 0])) ||
-      JSON.stringify(beforeEditCat3.map(c => [c.cat3_id, c.cat3_name, c.is_active, c.exclude ?? 0, c.blur ?? 0])) !==
-        JSON.stringify(cat3.map(c => [c.cat3_id, c.cat3_name, c.is_active, c.exclude ?? 0, c.blur ?? 0]));
+      JSON.stringify(beforeEditCat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.blur ?? 0])) !==
+        JSON.stringify(cat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.blur ?? 0])) ||
+      JSON.stringify(beforeEditCat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active, c.fixed ?? 0])) !==
+        JSON.stringify(cat2.map(c => [c.cat2_id, c.cat2_name, c.blur, c.inout, c.is_active, c.fixed ?? 0])) ||
+      JSON.stringify(beforeEditCat3.map(c => [c.cat3_id, c.cat3_name, c.is_active, c.fixed ?? 0, c.blur ?? 0])) !==
+        JSON.stringify(cat3.map(c => [c.cat3_id, c.cat3_name, c.is_active, c.fixed ?? 0, c.blur ?? 0]));
 
     if (!changed) {
-      alert("변경된 내용이 없습니다만...?");
+      say.warn("변경된 내용이 없습니다만...?");
       setEditMode(false);
       return;
     }
@@ -271,7 +307,6 @@ export default function Categories() {
         cat1_name: c.cat1_name,
         emoji: c.emoji ?? "",
         is_active: c.is_active ?? 1,
-        exclude: c.exclude ?? 0,
         blur: c.blur ?? 0,
         sort_order: idx + 1,
       })),
@@ -283,7 +318,7 @@ export default function Categories() {
             cat1_id: c1.cat1_id,
             cat2_name: c.cat2_name,
             is_active: c.is_active ?? 1,
-            exclude: c.exclude ?? 0,
+            fixed: c.fixed ?? 0,
             blur: c.blur ?? 0,
             sort_order: idx + 1,
             inout: c.inout,
@@ -297,17 +332,23 @@ export default function Categories() {
             cat2_id: c2.cat2_id,
             cat3_name: c.cat3_name,
             is_active: c.is_active ?? 1,
-            exclude: c.exclude ?? 0,
+            fixed: c.fixed ?? 0,
             blur: c.blur ?? 0,
             sort_order: idx + 1,
           }))
       )
     };
 
-    axios.post("/categories/save", payload).then(() => {
-      alert("저장 완료-!! ;-)");
-      setEditMode(false);
-    });
+    // 실패하면 알린다. 편집 상태도 그대로 두어 다시 저장할 수 있게 한다.
+    axios
+      .post("/categories/save", payload)
+      .then(() => {
+        say.ok("저장 완료-!! ;-)");
+        setEditMode(false);
+      })
+      .catch(() => {
+        say.bad("저장하지 못했습니다. 다시 시도해 주세요.");
+      });
   };
 
   /**
@@ -321,7 +362,18 @@ export default function Categories() {
   const toggleHidden3 = (id: number) =>
     setCat3(cat3.map(x => x.cat3_id === id ? { ...x, is_active: x.is_active ? 0 : 1 } : x));
 
+  // 추가는 중, 소, 세분류를 차례로 만든다. 가운데서 실패하면 예전에는 조용히
+  // 멈췄다. 알리고 목록을 서버 상태로 맞춰, 화면과 서버가 어긋난 채 남지 않게 한다.
   const handleAdd = async () => {
+    try {
+      await handleAddCore();
+    } catch {
+      say.bad("추가하지 못했습니다. 다시 시도해 주세요.");
+      await refreshListsAll().catch(() => {});
+    }
+  };
+
+  const handleAddCore = async () => {
     const cat1Name = newCat1Name.trim();
     const cat2Name = newCat2Name.trim();
     const cat3Name = newCat3Name.trim();
@@ -329,7 +381,7 @@ export default function Categories() {
     // --- CASE 1: '+ 중분류 추가' ---
     if (addCat1Mode) {
       if (!cat1Name || !cat2Name) {
-        alert("항목을 입력하세요.");
+        say.warn("항목을 입력해 주세요.");
         return;
       }
 
@@ -369,11 +421,11 @@ export default function Categories() {
             params: { cat2_id, name: cat3Name }
           });
         } else {
-          alert("이미 존재하는 세분류입니다.");
+          say.warn("이미 있는 세분류입니다.");
         }
       }
 
-      alert("추가 완료-!! ;-)");
+      say.ok("추가 완료-!! ;-)");
       setAddOpen(false);
       setNewCat1Name("");
       setNewCat2Name("");
@@ -385,7 +437,7 @@ export default function Categories() {
     // --- CASE 2: 기존 중분류 아래 추가 ---
     if (selectedCat1ForAdd && !selectedCat2ForAdd) {
       if (!cat2Name) {
-        alert("소분류를 입력하세요.");
+        say.warn("소분류를 입력해 주세요.");
         return;
       }
 
@@ -407,19 +459,19 @@ export default function Categories() {
             await axios.post("/categories/add/lvl3", null, {
               params: { cat2_id, name: cat3Name }
             });
-            alert("추가 완료-!! ;-)");
+            say.ok("추가 완료-!! ;-)");
       setAddOpen(false);
             setNewCat3Name("");
             await refreshListsAll();
             return;
           } else {
-            alert("이미 존재하는 세분류입니다.");
+            say.warn("이미 있는 세분류입니다.");
             return;
           }
         }
 
         // 세분류도 없으면 추가할 게 없으므로 중복 경고
-        alert("이미 존재하는 소분류입니다.");
+        say.warn("이미 있는 소분류입니다.");
         return;
       }
 
@@ -436,7 +488,7 @@ export default function Categories() {
         });
       }
 
-      alert("추가 완료-!! ;-)");
+      say.ok("추가 완료-!! ;-)");
       setAddOpen(false);
       setNewCat2Name("");
       setNewCat3Name("");
@@ -447,7 +499,7 @@ export default function Categories() {
     // --- CASE 3: 기존 소분류 아래 세분류 추가 ---
     if (selectedCat2ForAdd) {
       if (!cat3Name) {
-        alert("세분류를 입력하세요.");
+        say.warn("세분류를 입력해 주세요.");
         return;
       }
 
@@ -458,10 +510,10 @@ export default function Categories() {
         await axios.post("/categories/add/lvl3", null, {
           params: { cat2_id: selectedCat2ForAdd, name: cat3Name }
         });
-        alert("추가 완료-!! ;-)");
+        say.ok("추가 완료-!! ;-)");
       setAddOpen(false);
       } else {
-        alert("이미 존재하는 세분류입니다.");
+        say.warn("이미 있는 세분류입니다.");
       }
 
       setNewCat3Name("");
@@ -469,7 +521,7 @@ export default function Categories() {
       return;
     }
 
-    alert("항목을 입력하세요.");
+    say.warn("항목을 입력해 주세요.");
   };
 
   const refreshListsAll = async () => {
@@ -479,11 +531,14 @@ export default function Categories() {
       axios.get("/categories/lvl3"),
     ]);
 
+    // 처음 불러올 때와 같은 칸을 받는다. 예전에는 여기만 blur와 fixed가
+    // 빠져 있어, 분류를 더하거나 지운 직후에는 그 둘이 꺼진 듯 보였다.
     setCat1(r1.data.map((c: any) => ({
       cat1_id: c.id,
       cat1_name: c.name,
       emoji: c.emoji ?? null,
       is_active: c.is_active ?? 1,
+      blur: c.blur ?? 0,
       editing: false,
     })));
 
@@ -494,6 +549,7 @@ export default function Categories() {
       is_active: c.is_active ?? 1,
       blur: c.blur ?? 0,
       inout: c.inout ?? null,
+      fixed: c.fixed ?? 0,
       editing: false,
     })));
 
@@ -502,55 +558,84 @@ export default function Categories() {
       cat3_name: c.name,
       cat2_id: c.cat2_id,
       is_active: c.is_active ?? 1,
+      blur: c.blur ?? 0,
+      fixed: c.fixed ?? 0,
       editing: false,
     })));
   };
 
   const deleteCat1 = async (cat1_id: number) => {
-    if (!window.confirm("이 중분류와 그 아래를 모두 제거할까요?")) return;
+    if (
+      !(await ask({
+        title: "중분류 제거",
+        body: "이 중분류와 그 아래를 모두 제거할까요?",
+        warn: "딸린 소분류와 세분류가 함께 사라집니다. 되돌릴 수 없습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
 
     try {
       await axios.delete("/categories/delete/lvl1", { params: { cat1_id } });
       refreshListsAll();
-      alert("제거 완료-!! ;-)");
+      say.ok("제거 완료-!! ;-)");
     } catch (err: any) {
       if (err.response?.status === 409) {
-        alert("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
+        say.warn("쓰고 있는 항목이라 제거할 수 없습니다. 정리한 뒤에 다시 해 주세요.");
       } else {
-        alert("항목 제거 중 오류가 발생했습니다.");
+        say.bad("항목을 제거하지 못했습니다. 다시 시도해 주세요.");
       }
     }
   };
 
   const deleteCat2 = async (cat2_id: number) => {
-    if (!window.confirm("이 소분류와 그 아래 세분류를 모두 제거할까요?")) return;
+    if (
+      !(await ask({
+        title: "소분류 제거",
+        body: "이 소분류와 그 아래 세분류를 모두 제거할까요?",
+        warn: "딸린 세분류가 함께 사라집니다. 되돌릴 수 없습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
 
     try {
       await axios.delete("/categories/delete/lvl2", { params: { cat2_id } });
       refreshListsAll();
-      alert("제거 완료-!! ;-)");
+      say.ok("제거 완료-!! ;-)");
       setSelectedCat2ForAdd(null);
     } catch (err: any) {
       if (err.response?.status === 409) {
-        alert("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
+        say.warn("쓰고 있는 항목이라 제거할 수 없습니다. 정리한 뒤에 다시 해 주세요.");
       } else {
-        alert("항목 제거 중 오류가 발생했습니다.");
+        say.bad("항목을 제거하지 못했습니다. 다시 시도해 주세요.");
       }
     }
   };
 
   const deleteCat3 = async (cat3_id: number) => {
-    if (!window.confirm("이 세분류만 제거할까요?")) return;
+    if (
+      !(await ask({
+        title: "세분류 제거",
+        body: "이 세분류만 제거할까요?",
+        warn: "되돌릴 수 없습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
 
     try {
       await axios.delete("/categories/delete/lvl3", { params: { cat3_id } });
       refreshListsAll();
-      alert("제거 완료-!! ;-)");
+      say.ok("제거 완료-!! ;-)");
     } catch (err: any) {
       if (err.response?.status === 409) {
-        alert("항목이 사용 중이기 때문에 제거할 수 없습니다.\n정리 후 다시 시도하세요.");
+        say.warn("쓰고 있는 항목이라 제거할 수 없습니다. 정리한 뒤에 다시 해 주세요.");
       } else {
-        alert("항목 제거 중 오류가 발생했습니다.");
+        say.bad("항목을 제거하지 못했습니다. 다시 시도해 주세요.");
       }
     }
   };
@@ -578,7 +663,12 @@ export default function Categories() {
 
             <button
               className="ui-btn primary"
-              onClick={() => {
+              aria-disabled={addOpen || undefined}
+              onClick={(e) => {
+                if (addOpen) {
+                  showLock(e, "추가를 마친 후 편집하세요.");
+                  return;
+                }
                 if (!editMode) {
                   // 편집 시작 시 원본 저장
                   setBeforeEditCat1(JSON.parse(JSON.stringify(cat1)));
@@ -597,112 +687,9 @@ export default function Categories() {
       </div>
 
       <div className="cat-card">
-        {/* 추가는 목록 맨 위에서 — 세 Settings 화면 공통 자리.
-            분류가 3뎁스라 기존 중분류/소분류를 고르면 그 아래에 붙는
-            기존 동작을 그대로 옮겨 왔다. */}
-        <div className="set-add-bar">
-          <button
-            type="button"
-            className={`set-add-btn ${addOpen ? "on" : ""}`}
-            onClick={() => setAddOpen((v) => !v)}
-          >
-            <span className="set-add-btn__mark" aria-hidden="true">+</span>
-            새 항목 추가
-          </button>
-        </div>
-
-        {addOpen && (
-        <div className="set-add-form set-add-form--col set-draft">
-          <div className="set-draft__head">
-            <span className="set-draft__name">새 항목</span>
-          </div>
-
-          {/* 중분류·소분류는 한 줄에 나란히. 새로 만드는 중이면 고르는 칸이
-              있던 그 자리가 이름 칸으로 바뀐다 — 줄이 늘었다 줄었다 하지 않는다. */}
-          <div className="set-add-form__pair">
-            <div className="set-add-form__slot">
-              {addCat1Mode ? (
-                <input
-                  className="cat-input"
-                  placeholder="(새 중분류)"
-                  value={newCat1Name}
-                  onChange={(e) => setNewCat1Name(e.target.value)}
-                />
-              ) : (
-                <SingleSelect
-                  noun="중분류"
-                  options={[
-                    { value: "NEW", label: "[+] 새 항목 추가" },
-                    { value: "", label: "(중분류)" },
-                    ...cat1.map(c => ({ value: String(c.cat1_id), label: c.cat1_name })),
-                  ]}
-                  selected={selectedCat1ForAdd ? String(selectedCat1ForAdd) : ""}
-                  onChange={(value) => {
-                    if (value === "NEW") {
-                      setAddCat1Mode(true);
-                      setNewCat1Name("");
-                    } else if (value === "") {
-                      setAddCat1Mode(false);
-                      setSelectedCat1ForAdd(null);
-                    } else {
-                      setAddCat1Mode(false);
-                      setSelectedCat1ForAdd(parseInt(value));
-                    }
-                    // 중분류가 바뀌면 아래 선택은 의미가 없어진다.
-                    setAddCat2Mode(false);
-                    setNewCat2Name("");
-                  }}
-                  placeholder="(중분류)"
-                />
-              )}
-            </div>
-
-            <div className="set-add-form__slot">
-              {addCat1Mode || addCat2Mode ? (
-                <input
-                  className="cat-input"
-                  placeholder="(새 소분류)"
-                  value={newCat2Name}
-                  onChange={(e) => setNewCat2Name(e.target.value)}
-                />
-              ) : (
-                <SingleSelect
-                  noun="소분류"
-                  options={[
-                    ...(selectedCat1ForAdd
-                      ? [{ value: "NEW", label: "[+] 새 항목 추가" }]
-                      : []),
-                    { value: "", label: "(소분류)" },
-                    ...cat2
-                      .filter(c => c.cat1_id === selectedCat1ForAdd)
-                      .map(c => ({ value: c.cat2_name, label: c.cat2_name })),
-                  ]}
-                  selected={newCat2Name}
-                  onChange={(value) => {
-                    if (value === "NEW") {
-                      setAddCat2Mode(true);
-                      setNewCat2Name("");
-                    } else {
-                      setAddCat2Mode(false);
-                      setNewCat2Name(value);
-                    }
-                  }}
-                  placeholder="(소분류)"
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="set-add-form__tail">
-            <input
-              className="cat-input"
-              placeholder="(새 세분류)"
-              value={newCat3Name}
-              onChange={(e) => setNewCat3Name(e.target.value)}
-            />
-            <button className="ui-btn" onClick={handleAdd}>추가</button>
-          </div>
-        </div>
+        {!ready && <Waiting />}
+        {ready && cat1View.length === 0 && (
+          <p className="page-empty">등록된 분류가 없습니다.</p>
         )}
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndCat1}>
@@ -760,27 +747,28 @@ export default function Categories() {
                         </span>
                       )}
 
+                      {/* 건수는 이름 바로 오른쪽. 줄 맨 오른쪽에 두었더니 이름이
+                          짧은 줄에서는 멀찍이 떨어져 어느 분류의 수인지 한눈에
+                          이어지지 않았다. 이름 · 이모지와 한 덩어리로 묶는다. */}
+                      <span className="set-group__count">
+                        {cat2View.filter((c) => c.cat1_id === c1.cat1_id).length}
+                      </span>
                     </div>
 
-                    {editMode && (
-                      <button
-                        type="button"
-                        className={`set-exclude-btn ${c1.exclude ? "on" : ""}`}
-                        onClick={() => toggleExclude1(c1.cat1_id)}
-                      >
-                        Exclude
-                      </button>
-                    )}
-
-                    {editMode && (
-                      <button
-                        type="button"
-                        className={`set-blur-btn ${c1.blur ? "on" : ""}`}
-                        onClick={() => toggleBlur1(c1.cat1_id)}
-                      >
-                        Blur
-                      </button>
-                    )}
+                    {/* 건 Blur는 보기 모드에서도 보인다 — 무엇이 걸려 있는지
+                        알려고 편집을 켰다 끄게 하지 않는다. 누르는 것만 막는다. */}
+                    <button
+                      type="button"
+                      className={`set-blur-btn ${c1.blur ? "on" : ""}`}
+                      aria-disabled={!editMode || undefined}
+                      title={c1.blur ? "금액을 테이프로 덮는다." : undefined}
+                      onClick={(e) => {
+                        if (!editMode) return showLock(e);
+                        toggleBlur1(c1.cat1_id);
+                      }}
+                    >
+                      Blur
+                    </button>
 
                     {editMode && (
                       <button
@@ -805,15 +793,11 @@ export default function Categories() {
                       </button>
                     )}
 
-                    {/* 건수는 줄 맨 오른쪽 — 결제 수단 · 함께한 상대와 같은 자리(388~405) */}
-                    <span className="set-group__count">
-                      {cat2View.filter((c) => c.cat1_id === c1.cat1_id).length}
-                    </span>
                   </div>
                 </SortableItem>
 
                 {/* 접힌 중분류는 아래를 그리지 않는다. */}
-                {isOpen(`1:${c1.cat1_id}`) && (
+                <Collapse open={isOpen(`1:${c1.cat1_id}`)}>
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -880,7 +864,13 @@ export default function Categories() {
                                         x.cat2_id === c2.cat2_id ? { ...x, editing: true } : x
                                       ));
                                     } else {
-                                      setSelectedCat2ForAdd(c2.cat2_id); // 🆕 세분류 추가용 선택
+                                      /* 다시 누르면 접는다 — 열 때 누른 그 자리를
+                                         또 눌러 닫는 것이 열고 닫는 가장 짧은 길이다.
+                                         잘못 눌러 열린 칸을 닫으려고 다른 데를
+                                         찾아다니지 않게 한다. */
+                                      setSelectedCat2ForAdd((prev) =>
+                                        prev === c2.cat2_id ? null : c2.cat2_id
+                                      );
                                     }
                                   }}
                                 >
@@ -889,28 +879,66 @@ export default function Categories() {
                                 </span>
                               )}
 
-                              {editMode && (
-                                <button
-                                  type="button"
-                                  className={`set-exclude-btn ${c1.exclude || c2.exclude ? "on" : ""}`}
-                                  disabled={!!c1.exclude}
-                                  onClick={() => toggleExclude2(c2.cat2_id)}
-                                >
-                                  Exclude
-                                </button>
+                              {/* 세분류를 거느린 줄에만 건수를 단다. 중분류 머리와
+                                  같이 이름 바로 오른쪽이다 — 접힌 채로도 안에 몇
+                                  갈래가 들었는지 보인다. */}
+                              {cat3View.some((c) => c.cat2_id === c2.cat2_id) && (
+                                <span className="set-group__count">
+                                  {cat3View.filter((c) => c.cat2_id === c2.cat2_id).length}
+                                </span>
                               )}
 
-                              {editMode && (
-                                /* Blur는 금액을 테이프로 덮는 것. 감추기와는 다르다. */
+                              {/* 고정이면 압정, 변동이면 물결. 둘 가운데 하나다.
+                                  보기 모드에서도 그대로 서고 누르는 것만 막힌다. */}
+                              <span
+                                className={`set-fixed${inoutTone(c2.inout)}`}
+                                role="group"
+                                aria-label="고정/변동"
+                              >
                                 <button
                                   type="button"
-                                  className={`set-blur-btn ${c1.blur || c2.blur ? "on" : ""}`}
-                                  disabled={!!c1.blur}
-                                  onClick={() => toggleBlur2(c2.cat2_id)}
+                                  className={c2.fixed ? "on" : ""}
+                                  aria-disabled={!editMode || undefined}
+                                  title="고정 — 달마다 같은 자리에 온다."
+                                  aria-label="고정"
+                                  aria-pressed={!!c2.fixed}
+                                  onClick={(e) => {
+                                    if (!editMode) return showLock(e);
+                                    setFixed2(c2.cat2_id, 1);
+                                  }}
                                 >
-                                  Blur
+                                  <PinIcon />
                                 </button>
-                              )}
+                                <button
+                                  type="button"
+                                  className={c2.fixed ? "" : "on"}
+                                  aria-disabled={!editMode || undefined}
+                                  title="변동 — 그때그때 달라진다."
+                                  aria-label="변동"
+                                  aria-pressed={!c2.fixed}
+                                  onClick={(e) => {
+                                    if (!editMode) return showLock(e);
+                                    setFixed2(c2.cat2_id, 0);
+                                  }}
+                                >
+                                  <WaveIcon />
+                                </button>
+                              </span>
+
+                              {/* Blur는 금액을 테이프로 덮는 것. 감추기와는 다르다. */}
+                              <button
+                                type="button"
+                                className={`set-blur-btn ${c1.blur || c2.blur ? "on" : ""}`}
+                                disabled={editMode && !!c1.blur}
+                                aria-disabled={!editMode || !!c1.blur || undefined}
+                                title={c1.blur ? "중분류에서 걸려 있다." : undefined}
+                                onClick={(e) => {
+                                  if (!editMode) return showLock(e);
+                                  toggleBlur2(c2.cat2_id);
+                                }}
+                              >
+                                Blur
+                              </button>
 
                               {editMode && (
                                 <button
@@ -939,7 +967,7 @@ export default function Categories() {
 
                           {/* 소분류 클릭 시 세분류 입력 칸 표시 */}
                           {selectedCat2ForAdd === c2.cat2_id && (
-                            <div className="cat3-add-row" style={{ marginLeft: "20px", marginTop: "4px" }}>
+                            <div className="cat3-add-row">
                               <input
                                 className="cat3-input"
                                 placeholder="(새 세분류)"
@@ -951,8 +979,8 @@ export default function Categories() {
                           )}
 
                           {/* 세분류는 cat2-header-row 밖 & 새 DndContext 영역 - 세분류가 있을 때만 표시 */}
-                          {isOpen(`2:${c2.cat2_id}`) &&
-                            cat3View.filter((c) => c.cat2_id === c2.cat2_id).length > 0 && (
+                          <Collapse open={isOpen(`2:${c2.cat2_id}`) &&
+                            cat3View.filter((c) => c.cat2_id === c2.cat2_id).length > 0}>
                             <DndContext
                               sensors={sensors}
                               collisionDetection={closestCenter}
@@ -1011,27 +1039,60 @@ export default function Categories() {
                                           </span>
                                         )}
 
-                                        {editMode && (
+                                        {/* 소분류가 고정이면 딸린 세분류도 고정이다
+                                            — Blur와 같은 셈법이라 그때는 잠긴다. */}
+                                        <span
+                                          className={`set-fixed${inoutTone(c2.inout)}${
+                                            c2.fixed ? " set-fixed--lock" : ""
+                                          }`}
+                                          role="group"
+                                          aria-label="고정/변동"
+                                        >
                                           <button
                                             type="button"
-                                            className={`set-exclude-btn ${c1.exclude || c2.exclude || c3.exclude ? "on" : ""}`}
-                                            disabled={!!c1.exclude || !!c2.exclude}
-                                            onClick={() => toggleExclude3(c3.cat3_id)}
+                                            className={c2.fixed || c3.fixed ? "on" : ""}
+                                            disabled={editMode && !!c2.fixed}
+                                            aria-disabled={!editMode || !!c2.fixed || undefined}
+                                            title="고정 — 달마다 같은 자리에 온다."
+                                            aria-label="고정"
+                                            aria-pressed={!!(c2.fixed || c3.fixed)}
+                                            onClick={(e) => {
+                                              if (!editMode) return showLock(e);
+                                              setFixed3(c3.cat3_id, 1);
+                                            }}
                                           >
-                                            Exclude
+                                            <PinIcon />
                                           </button>
-                                        )}
+                                          <button
+                                            type="button"
+                                            className={c2.fixed || c3.fixed ? "" : "on"}
+                                            disabled={editMode && !!c2.fixed}
+                                            aria-disabled={!editMode || !!c2.fixed || undefined}
+                                            title="변동 — 그때그때 달라진다."
+                                            aria-label="변동"
+                                            aria-pressed={!(c2.fixed || c3.fixed)}
+                                            onClick={(e) => {
+                                              if (!editMode) return showLock(e);
+                                              setFixed3(c3.cat3_id, 0);
+                                            }}
+                                          >
+                                            <WaveIcon />
+                                          </button>
+                                        </span>
 
-                                        {editMode && (
-                                          <button
-                                            type="button"
-                                            className={`set-blur-btn ${c1.blur || c2.blur || c3.blur ? "on" : ""}`}
-                                            disabled={!!c1.blur || !!c2.blur}
-                                            onClick={() => toggleBlur3(c3.cat3_id)}
-                                          >
-                                            Blur
-                                          </button>
-                                        )}
+                                        <button
+                                          type="button"
+                                          className={`set-blur-btn ${c1.blur || c2.blur || c3.blur ? "on" : ""}`}
+                                          disabled={editMode && (!!c1.blur || !!c2.blur)}
+                                          aria-disabled={!editMode || !!c1.blur || !!c2.blur || undefined}
+                                          title={c1.blur || c2.blur ? "위 분류에서 걸려 있다." : undefined}
+                                          onClick={(e) => {
+                                            if (!editMode) return showLock(e);
+                                            toggleBlur3(c3.cat3_id);
+                                          }}
+                                        >
+                                          Blur
+                                        </button>
 
                                         {editMode && (
                                           <button
@@ -1061,17 +1122,125 @@ export default function Categories() {
                                 </div>
                               </SortableContext>
                             </DndContext>
-                          )}
+                          </Collapse>
                         </>
                       ))}
                   </SortableContext>
                 </DndContext>
-                )}
+                </Collapse>
               </div>
             ))}
           </SortableContext>
         </DndContext>
       </div>
+
+      {/* 담기 — 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다.
+          분류가 3뎁스라 기존 중분류/소분류를 고르면 그 아래에 붙는 기존
+          동작도 그대로 옮겨 왔다. */}
+      {addOpen && (
+        <CardEditModal
+          title="새 항목"
+          onClose={() => setAddOpen(false)}
+          onSave={handleAdd}
+          saveLabel="추가"
+        >
+          <div className="edit-grid">
+            {/* 1행 — 분류 3단. 내역 편집과 같은 차례·같은 칸 수다. 성격이
+                하나라 가르지 않는다.
+
+                새로 만드는 중이면 고르는 칸이 있던 그 자리가 이름 칸으로
+                바뀐다 — 칸이 늘었다 줄었다 하지 않으니 팝업도 안 흔들린다. */}
+            <EditField label="중분류" span={4} required>
+            {addCat1Mode ? (
+              <input
+                className="cat-input"
+                placeholder="(새 중분류)"
+                value={newCat1Name}
+                onChange={(e) => setNewCat1Name(e.target.value)}
+              />
+            ) : (
+              <SingleSelect
+                noun="중분류"
+                options={[
+                  { value: "NEW", label: "[+] 새 항목 추가" },
+                  { value: "", label: "(중분류)" },
+                  ...cat1.map((c) => ({ value: String(c.cat1_id), label: c.cat1_name, icon: c.emoji })),
+                ]}
+                selected={selectedCat1ForAdd ? String(selectedCat1ForAdd) : ""}
+                onChange={(value) => {
+                  if (value === "NEW") {
+                    setAddCat1Mode(true);
+                    setNewCat1Name("");
+                  } else if (value === "") {
+                    setAddCat1Mode(false);
+                    setSelectedCat1ForAdd(null);
+                  } else {
+                    setAddCat1Mode(false);
+                    setSelectedCat1ForAdd(parseInt(value));
+                  }
+                  // 중분류가 바뀌면 아래 선택은 의미가 없어진다.
+                  setAddCat2Mode(false);
+                  setNewCat2Name("");
+                }}
+                placeholder="(중분류)"
+              />
+            )}
+            </EditField>
+
+            <EditField label="소분류" span={4}>
+            {addCat1Mode || addCat2Mode ? (
+              <input
+                className="cat-input"
+                placeholder="(새 소분류)"
+                value={newCat2Name}
+                onChange={(e) => setNewCat2Name(e.target.value)}
+              />
+            ) : (
+              <SingleSelect
+                noun="소분류"
+                options={[
+                  ...(selectedCat1ForAdd ? [{ value: "NEW", label: "[+] 새 항목 추가" }] : []),
+                  { value: "", label: "(소분류)" },
+                  ...cat2
+                    .filter((c) => c.cat1_id === selectedCat1ForAdd)
+                    .map((c) => ({ value: c.cat2_name, label: c.cat2_name })),
+                ]}
+                selected={newCat2Name}
+                onChange={(value) => {
+                  if (value === "NEW") {
+                    setAddCat2Mode(true);
+                    setNewCat2Name("");
+                  } else {
+                    setAddCat2Mode(false);
+                    setNewCat2Name(value);
+                  }
+                }}
+                placeholder="(소분류)"
+              />
+            )}
+            </EditField>
+
+            <EditField label="세분류" span={4}>
+              <input
+                className="cat-input"
+                placeholder="(새 세분류)"
+                value={newCat3Name}
+                onChange={(e) => setNewCat3Name(e.target.value)}
+              />
+            </EditField>
+          </div>
+        </CardEditModal>
+      )}
+
+      <AddButton
+        이름="새 항목"
+        잠김={editMode}
+        onClick={(e) =>
+          editMode ? showLock(e, "편집을 마친 후 추가하세요.") : setAddOpen(true)
+        }
+      />
+
+      <EditLockTip lockAt={lockAt} tipRef={tipRef} />
 
       <QuickActions />
     </div>

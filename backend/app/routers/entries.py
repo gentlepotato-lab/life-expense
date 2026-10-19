@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import select, text
 from datetime import date
-import pandas as pd
 from io import BytesIO
 from app.models import Entry, Place
 from app.schemas import EntryIn, EntryOut, EntryUpdate
@@ -34,9 +33,92 @@ def list_entries(start: date, end: date, db=Depends(get_db)):
     rows = db.scalars(select(Entry).where(Entry.tx_date.between(start, end))).all()
     return [r.to_dict() for r in rows]
 
+@router.put("/{entry_id}/perf-exclude")
+def set_perf_exclude(entry_id: int, value: int = Query(...), db: SessionDep = Depends()):
+    """카드 실적에서 뺄지를 켜고 끈다.
+
+    내역 카드의 기호를 누를 때마다 부르는 자리라 한 칸만 손댄다. 묶음 수정
+    (PUT /bulk)은 장소를 함께 다루느라 무거워, 표 하나 뒤집자고 태울 길이 아니다.
+    """
+    sql = text("""
+        UPDATE life_expense.entries
+           SET perf_exclude = :v
+         WHERE entry_id = :id
+    """)
+    result = db.execute(sql, {"v": 1 if value else 0, "id": entry_id})
+    db.commit()
+    return {"status": "ok", "updated": result.rowcount}
+
+@router.put("/{entry_id}/fixed")
+def set_fixed(entry_id: int, value: str = Query(...), db: SessionDep = Depends()):
+    """이 건이 고정인지 변동인지를 손으로 정한다.
+
+    비우면 분류(소 · 세)에 정한 것을 따른다. 손으로 정하면 그 건에만
+    남아, 뒤에 분류 설정을 바꿔도 이 건은 그대로다. 카드 실적 제외와 같이
+    한 칸만 손대는 자리다.
+    """
+    v = None if value == "" else (1 if value in ("1", "true", "fixed") else 0)
+    sql = text("""
+        UPDATE life_expense.entries
+           SET fixed_flag = :v
+         WHERE entry_id = :id
+    """)
+    result = db.execute(sql, {"v": v, "id": entry_id})
+    db.commit()
+    return {"status": "ok", "updated": result.rowcount}
+
+def _check_bulk_row(r: dict) -> None:
+    """일괄 수정 한 줄을 검사한다.
+
+    이 길은 dict를 그대로 받아 raw SQL로 넘긴다. 장소 메타가 줄마다 달라
+    스키마 하나로 묶기 어려웠던 탓인데, 그래서 금액이 음수든 inout이 5든
+    그대로 들어가 집계가 깨졌다. 숫자로 셈하는 칸만 여기서 막는다.
+    """
+    if r.get("entry_id") is None:
+        raise HTTPException(status_code=400, detail="entry_id is required")
+
+    if "inout" in r and r["inout"] not in (-1, 1):
+        raise HTTPException(
+            status_code=400,
+            detail=f"inout must be -1 or 1 (entry_id={r.get('entry_id')})",
+        )
+
+    if "amount" in r and r["amount"] is not None:
+        try:
+            amount = float(r["amount"])
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=400,
+                detail=f"amount must be a number (entry_id={r.get('entry_id')})",
+            )
+        # 0원은 받는다. 쿠폰이나 포인트로 전액 결제한 건이 그렇다.
+        if amount < 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"amount must be 0 or more (entry_id={r.get('entry_id')})",
+            )
+
+    for key in ("cat1_id", "cat2_id", "cat3_id", "pay_method", "place_id"):
+        v = r.get(key)
+        if v in (None, ""):
+            continue
+        try:
+            int(v)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=400,
+                detail=f"{key} must be a number (entry_id={r.get('entry_id')})",
+            )
+
+
 @router.put("/bulk")
 def update_entries_bulk(rows: list[dict], db: SessionDep = Depends()):
     updated = 0
+
+    # 한 줄이라도 어긋나면 아무것도 고치지 않는다. 절반만 들어가면 어디까지
+    # 반영됐는지 알 길이 없다.
+    for r in rows:
+        _check_bulk_row(r)
 
     for r in rows:
 
@@ -315,17 +397,23 @@ def update_entries_bulk(rows: list[dict], db: SessionDep = Depends()):
 
     return {"updated": updated}
 
-@router.get("/export")
-def export_entries(start: date, end: date, fmt: str = Query("xlsx"), db=Depends(get_db)):
-    rows = db.scalars(select(Entry).where(Entry.tx_date.between(start, end))).all()
-    df = pd.DataFrame([r.to_dict() for r in rows])
-    bio = BytesIO()
-    if fmt == "csv":
-        csv = df.to_csv(index=False).encode()
-        return Response(csv, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=entries.csv"})
-    with pd.ExcelWriter(bio, engine="openpyxl") as w:
-        df.to_excel(w, index=False, sheet_name="Entries")
-    return Response(bio.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=entries.xlsx"})
+@router.get("/span")
+def get_month_span(db: SessionDep = Depends()):
+    """
+    적은 것이 걸쳐 있는 연월의 처음과 끝.
+
+    달을 넘겨 보는 화면들이 어디까지 거슬러 갈 수 있는지 묻는 자리다.
+    적은 것이 하나도 없는 달까지 끝없이 넘어가면 빈 화면만 지나간다.
+    한 줄짜리 셈이라 화면마다 한 번씩 물어도 무겁지 않다.
+    """
+    row = db.execute(text("""
+        SELECT to_char(MIN(tx_date), 'YYYY-MM') AS first_ym
+             , to_char(MAX(tx_date), 'YYYY-MM') AS last_ym
+          FROM life_expense.entries
+    """)).mappings().first()
+
+    return {"first_ym": row["first_ym"], "last_ym": row["last_ym"]}
+
 
 # 월별 조회(YYYY-MM 형식)
 @router.get("/month")
@@ -344,6 +432,8 @@ def get_entries_by_month(ym: str, db: SessionDep = Depends()):
                  , COALESCE(vn.split_count, 0) AS split_count
                  -- 달력이 "함께한 상대"로 걸러 낼 때 쓴다. 화면에서 거르는 구조라
                  -- 행마다 들려 있어야 한다(pending_entries와 같은 방식).
+                 -- 묶음 이름. 카드에 클립을 세울지 여기 하나로 가른다.
+                 , eg.name AS group_name
                  , COALESCE(
                        (SELECT array_agg(DISTINCT s.counterpart_id)
                           FROM life_expense.entry_splits s
@@ -361,10 +451,20 @@ def get_entries_by_month(ym: str, db: SessionDep = Depends()):
                      LEFT JOIN
                  life_expense.v_entries_net vn
                      ON vn.entry_id = e.entry_id
-           WHERE TO_CHAR(e.tx_date, 'YYYY-MM') = :ym
+                     LEFT JOIN
+                 life_expense.entry_groups eg
+                     ON eg.group_id = e.group_id
+           WHERE e.tx_date >= :ym_from
+             AND e.tx_date <  :ym_to
         ORDER BY e.tx_date DESC, e.entry_id DESC
     """)
-    rows = db.execute(sql, {"ym": ym}).mappings().all()
+    # 예전에는 TO_CHAR(e.tx_date, 'YYYY-MM') = :ym 으로 비교했다. 컬럼에 함수를
+    # 씌우면 tx_date 인덱스를 쓸 수 없어 매번 전체를 훑는다. 같은 달을
+    # 범위로 바꾸면 결과는 그대로이면서 인덱스를 탄다.
+    y, m = int(ym[:4]), int(ym[5:7])
+    ym_from = date(y, m, 1)
+    ym_to = date(y + 1, 1, 1) if m == 12 else date(y, m + 1, 1)
+    rows = db.execute(sql, {"ym_from": ym_from, "ym_to": ym_to}).mappings().all()
     return [dict(r) for r in rows]
 
 # 단일 삭제
@@ -388,6 +488,10 @@ def delete_entry(entry_id: int, db: SessionDep = Depends()):
 
 @router.post("")
 def add_entries(payload: list[EntryIn], db: SessionDep = Depends()):
+    # 만든 건을 담는다. 쓰기 화면에서 N빵을 붙이려면 방금 생긴 건의
+    # entry_id가 있어야 하는데, 지금까지는 돌려주는 것이 없었다.
+    made: list[Entry] = []
+
     for item in payload:
 
         # 기본적으로 place_id 우선 사용
@@ -521,6 +625,7 @@ def add_entries(payload: list[EntryIn], db: SessionDep = Depends()):
             place_id=place_id,
         )
         db.add(new_entry)
+        made.append(new_entry)
 
     db.commit()
 
@@ -531,7 +636,8 @@ def add_entries(payload: list[EntryIn], db: SessionDep = Depends()):
                     AND NOT EXISTS (SELECT 1 FROM life_expense.pending_entries pe WHERE pe.place_id = p.place_id)
     """))
     db.commit()
-    return {"status": "ok"}
+    # 보낸 차례 그대로 돌려준다. 쓰기 화면은 첫 건에 몫을 붙인다.
+    return {"status": "ok", "entry_ids": [e.entry_id for e in made]}
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # >>> ADD: 배열 필터링 처리 기능
@@ -587,6 +693,7 @@ def filter_entries(
                , COALESCE(vn.split_amount, 0) AS split_amount
                , COALESCE(vn.net_amount, e.amount) AS net_amount
                , COALESCE(vn.split_count, 0) AS split_count
+               , eg.name AS group_name
           FROM life_expense.entries e
                    LEFT JOIN
                life_expense.categories_lvl3 c3
@@ -597,6 +704,9 @@ def filter_entries(
                    LEFT JOIN
                life_expense.v_entries_net vn
                    ON vn.entry_id = e.entry_id
+                   LEFT JOIN
+               life_expense.entry_groups eg
+                   ON eg.group_id = e.group_id
          WHERE 1 = 1
     """
 

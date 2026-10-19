@@ -1,9 +1,11 @@
+import type { ReactElement } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArtWrite,
   ArtProfile,
   ArtChart,
   ArtNudge,
+  ArtPlaces,
 } from "./components/HomeArt";
 import QuickActions from "./components/QuickActions";
 
@@ -19,11 +21,20 @@ import QuickActions from "./components/QuickActions";
  * 속은 아직 비어 있다. 그래서 칸마다 무엇이 들어올 자리인지 그림으로 미리 보여 준다.
  */
 
-const TOP = [
+/** 위 한 행에 서는 칸. 설명이 나열이면 desc 대신 tags로 준다. */
+type TopCard = {
+  to: string;
+  title: string;
+  desc?: string;
+  tags?: string[];
+  art: ReactElement;
+};
+
+const TOP: TopCard[] = [
   {
     to: "/write",
     title: "쓰기",
-    desc: "지출 · 수입 입력",
+    tags: ["지출", "수입"],
     art: <ArtWrite />,
   },
   {
@@ -47,6 +58,12 @@ const WIDE = [
     desc: "알림과 추천",
     art: <ArtNudge />,
   },
+  {
+    to: "/places",
+    title: "어디 쓰나",
+    desc: "장소와 가게",
+    art: <ArtPlaces />,
+  },
 ];
 
 export default function Home() {
@@ -67,7 +84,17 @@ export default function Home() {
             <span className="home-card__art">{d.art}</span>
             <span className="home-card__text">
               <span className="home-card__title">{d.title}</span>
-              <span className="home-card__desc">{d.desc}</span>
+              {d.tags ? (
+                <span className="home-card__desc tag-row">
+                  {d.tags.map((t) => (
+                    <span key={t} className="tag">
+                      {t}
+                    </span>
+                  ))}
+                </span>
+              ) : (
+                <span className="home-card__desc">{d.desc}</span>
+              )}
             </span>
           </button>
         ))}

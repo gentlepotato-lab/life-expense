@@ -11,8 +11,6 @@ export type GroupSummary = {
   outSum: number;
   /** 그날의 순합계 = 수입 − 지출. 화면에는 이 값 하나만 보여 준다. */
   net: number;
-  /** 금액이 가려진 항목이 하나라도 있는지 — 합계도 함께 가려야 한다. */
-  hasMasked: boolean;
 };
 
 export type DateGroup<T> = {
@@ -49,26 +47,20 @@ type Summarizable = {
   net_amount?: number | null;
 };
 
-function summarize<T extends Summarizable>(
-  items: T[],
-  isMasked?: (row: T) => boolean
-): GroupSummary {
+function summarize<T extends Summarizable>(items: T[]): GroupSummary {
   let inSum = 0;
   let outSum = 0;
-  let hasMasked = false;
 
   for (const item of items) {
     const raw = item.net_amount ?? item.amount;
     const amount = typeof raw === "number" ? raw : Number(raw);
     if (!Number.isFinite(amount)) continue;
 
-    if (isMasked?.(item)) hasMasked = true;
-
     if (item.inout === 1) inSum += amount;
     else outSum += amount;
   }
 
-  return { count: items.length, inSum, outSum, net: inSum - outSum, hasMasked };
+  return { count: items.length, inSum, outSum, net: inSum - outSum };
 }
 
 /**
@@ -79,8 +71,7 @@ function summarize<T extends Summarizable>(
  *                 섞인 날은 합계도 가려서 표시해야 하므로 필요하다.
  */
 export function groupByDate<T extends Summarizable & { tx_date?: string | null }>(
-  rows: T[],
-  isMasked?: (row: T) => boolean
+  rows: T[]
 ): DateGroup<T>[] {
   const order: string[] = [];
   const bucket = new Map<string, T[]>();
@@ -100,7 +91,7 @@ export function groupByDate<T extends Summarizable & { tx_date?: string | null }
       date,
       label: formatDateLabel(date),
       items,
-      summary: summarize(items, isMasked),
+      summary: summarize(items),
     };
   });
 }

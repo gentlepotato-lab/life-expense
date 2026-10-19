@@ -1,13 +1,20 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import date, datetime
+from typing import Literal
+
+# 금액은 0원을 받는다. 쿠폰이나 포인트로 전액 결제한 건이 그렇다.
+# 음수는 받지 않는다. 돌려받은 돈은 수입(inout = 1)으로 적는다.
+Amount = Field(ge=0)
 
 class EntryIn(BaseModel):
     tx_date: date
     cat1_id: int
     cat2_id: int
-    inout: int
-    amount: float
-    pay_method: str
+    inout: Literal[-1, 1]
+    amount: float = Amount
+    # entries.pay_method는 payment_methods를 가리키는 정수다. 예전에는 여기만
+    # str이라 EntryUpdate와 어긋나 있었다.
+    pay_method: int
     memo: str | None = None
     cat3_id: int | None = None
 
@@ -39,8 +46,8 @@ class EntryUpdate(BaseModel):
     cat1_id: int | None = None
     cat2_id: int | None = None
     cat3_id: int | None = None
-    inout: int | None = None
-    amount: float | None = None
+    inout: Literal[-1, 1] | None = None
+    amount: float | None = Field(default=None, ge=0)
     pay_method: int | None = None
     memo: str | None = None
 
@@ -104,10 +111,14 @@ class HolidayOut(BaseModel):
         orm_mode = True
 
 class ScheduledEntryIn(BaseModel):
-    day_of_month: int  # 1-31
+    day_of_month: int  # 1-31, 32는 말일
     hour: int  # 0-23
     minute: int  # 0-59
     holiday_handling: str  # 'before', 'on', 'after'
+    interval_months: int = 1  # 1=매월, 2=격월, 3=분기, 6=반년, 12=매년
+    anchor_ym: str | None = None  # 주기의 첫 달 'YYYYMM'
+    end_ym: str | None = None  # 이 달까지만 'YYYYMM'
+    skip_ym: str | None = None  # 이번 한 번만 건너뛸 달 'YYYYMM'
     cat1_id: int | None = None
     cat2_id: int | None = None
     cat3_id: int | None = None
@@ -129,6 +140,10 @@ class ScheduledEntryUpdate(BaseModel):
     hour: int | None = None
     minute: int | None = None
     holiday_handling: str | None = None
+    interval_months: int | None = None
+    anchor_ym: str | None = None
+    end_ym: str | None = None
+    skip_ym: str | None = None
     cat1_id: int | None = None
     cat2_id: int | None = None
     cat3_id: int | None = None
@@ -138,3 +153,18 @@ class ScheduledEntryUpdate(BaseModel):
     memo: str | None = None
     place_id: int | None = None
     is_active: int | None = None
+
+class EntryGroupIn(BaseModel):
+    """묶음 만들기. ids는 그 자리에서 담을 내역이다."""
+    name: str
+    memo: str | None = None
+    kind: str = "entry"
+    ids: list[int] = []
+
+class EntryGroupUpdate(BaseModel):
+    """이름과 메모만 고친다. 담긴 내역은 따로 다룬다."""
+    name: str | None = None
+    memo: str | None = None
+
+class EntryGroupItems(BaseModel):
+    ids: list[int] = []

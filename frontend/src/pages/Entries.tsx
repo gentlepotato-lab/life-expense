@@ -1,21 +1,44 @@
-import { visible } from "../utils/visible";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, memo, useRef } from "react";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
+import MonthNav from "./components/MonthNav";
+import useMonthSpan from "../hooks/useMonthSpan";
 
 import PlacePicker from "./components/PlacePicker";
 import MultiSelect from "./components/MultiSelect";
 import SingleSelect from "./components/SingleSelect";
 import CardEditModal, { EditField, EditDivider } from "./components/CardEditModal";
-import SplitEditor from "./components/SplitEditor";
+import EntryEditFields from "./components/EntryEditFields";
 import type { SplitDraft } from "./components/SplitEditor";
 import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
+import Collapse from "./components/Collapse";
 import SplitRows from "./components/SplitRows";
 import QuickActions from "./components/QuickActions";
+import ExportButton from "./components/ExportButton";
+import { 내보낼조건 } from "../utils/exportParams";
+import PickBar from "./components/PickBar";
+import ReceiptPopup from "./components/ReceiptPopup";
+import type { ReceiptRow } from "../utils/receipt";
+import MemoPad from "./components/MemoPad";
+import ClipMark from "./components/ClipMark";
+import GroupMakePopup from "./components/GroupMakePopup";
+import Waiting from "./components/Waiting";
+import PerfExcludeButton from "./components/PerfExcludeButton";
+import FixedMark from "./components/FixedMark";
 import useLongPress from "../hooks/useLongPress";
-import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
+import usePeel from "../hooks/usePeel";
+import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
+import DayPicker from "./components/DayPicker";
+import { say, ask } from "../utils/notify";
+import { 골라제거 } from "../utils/bulkDelete";
+/* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
+   카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
+type PerfRow = { entry_id: number; perf_exclude?: number | null };
+
+/** 고정 · 변동을 뒤집을 때 필요한 것만 */
+type FixedRow = { entry_id: number; fixed_flag?: number | null };
 
 const EMPTY_FILTER = {
   dateFrom: "",
@@ -58,11 +81,13 @@ export default function Entries() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number; is_active?: number }[]>([]);
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null; blur?: number; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout: number | null; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; is_active?: number }[]>([]);
 
-  const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
+  const [payList, setPayList] = useState<
+    { code: string; name: string; emoji?: string | null; is_active?: number; category?: string }[]
+  >([]);
 
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다.
   const [draft, setDraft] = useState<any | null>(null);
@@ -70,36 +95,52 @@ export default function Entries() {
   const [placePickerOpen, setPlacePickerOpen] = useState(false);
 
   const [filterOpen, setFilterOpen] = useState(false);
+  /* 거르는 동안 덮는 판. 300ms가 지나야 나타난다(Waiting). */
+  const [찾는중, set찾는중] = useState(false);
 
   /* 뒤로 가기 · Backspace로 지금 열린 것만 닫는다.
      카드 편집 팝업은 CardEditModal이 스스로 처리한다. */
   useBackClose(filterOpen, () => closeFilter());
   useBackClose(placePickerOpen, () => setPlacePickerOpen(false));
-  /* 팝업에서 고치는 중인 값(초안)과 실제로 걸려 있는 값을 나눠 둔다.
+  /* 팝업에서 고치는 중인 값(초안)과 실제로 걸려 있는 값을 나눈다.
      하나로 두면 팝업에서 값을 바꾸는 순간 뒤 화면의 버튼과 기간 표시가
      먼저 바뀌어, [적용]을 누르기도 전에 적용된 것처럼 보였다. */
   const [filter, setFilter] = useState(EMPTY_FILTER);
   const [appliedFilter, setAppliedFilter] = useState(EMPTY_FILTER);
 
-  /* 함께한 상대 목록 — 필터에서 고르기 위해 받아 둔다. */
+  /* 함께한 상대 목록 — 필터에서 고르기 위해 받는다. */
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
   const [filterRangeLabel, setFilterRangeLabel] = useState("");
 
   // 메타데이터 불러오기
   useEffect(() => {
-    axios.get("/categories/lvl1").then((r) => setCat1List(r.data));
-    axios.get("/categories/lvl2").then((r) => setCat2List(r.data));
-    axios.get("/counterparts").then((r) => setCpList(r.data));
-    axios.get("/categories/lvl3").then((r) => setCat3List(r.data));
-    axios.get("/payment-methods").then((r) =>
-      setPayList(
-        r.data.map((p: any) => ({
-          code: p.method_id,
-          name: p.method_name,
-          is_active: p.is_active,
-        }))
+    // 조회가 실패하면 빈 목록으로 둔다. 그냥 두면 처리되지 않은 거절만
+    // 남고 화면은 까닭 없이 비어 보인다. 기준 자료라 한 번은 알린다.
+    const 메타실패 = () => say.warn("기준 자료를 불러오지 못했습니다. 새로 고쳐 주세요.");
+    axios.get("/categories/lvl1").then((r) => setCat1List(r.data)).catch(메타실패);
+    axios.get("/categories/lvl2").then((r) => setCat2List(r.data)).catch(메타실패);
+    axios.get("/counterparts").then((r) => setCpList(r.data)).catch(메타실패);
+    axios.get("/categories/lvl3").then((r) => setCat3List(r.data)).catch(메타실패);
+    axios
+      .get("/payment-methods")
+      .then((r) =>
+        setPayList(
+          r.data.map((p: any) => ({
+            /* 열쇠는 글자로 담는다. 화면의 고르개가 쓰는 값이 글자이고,
+               선언도 글자다. 숫자로 담았더니 선언과 어긋난 채 any에
+               가려, 다른 꼴로 담은 화면에서만 짝이 안 맞았다. */
+            code: String(p.method_id),
+            name: p.method_name,
+            is_active: p.is_active,
+            /* 카드인 줄에만 실적 제외 기호가 선다. */
+            category: p.category,
+            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다.
+               같은 구분에 든 수단끼리는 같은 이모지가 선다. */
+            emoji: p.category_emoji ?? null,
+          }))
+        )
       )
-    );
+      .catch(메타실패);
   }, []);
 
   // 팝업 열렸을 때 뒤 화면 스크롤/인터랙션 막기
@@ -122,18 +163,9 @@ export default function Entries() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yearMonth]);
 
-  /** 앞뒤 달로 옮긴다. 값이 바뀌면 아래 useEffect가 바로 불러온다. */
-  const shiftMonth = (step: number) => {
-    const [y, m] = yearMonth.split("-").map(Number);
-    const d = new Date(y, m - 1 + step, 1);
-    setYearMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-  };
-
-  /** "2026-08" → "2026년 8월" */
-  const monthLabel = useMemo(() => {
-    const [y, m] = yearMonth.split("-").map(Number);
-    return `${y}년 ${m}월`;
-  }, [yearMonth]);
+  /* 넘겨 볼 수 있는 끝 — 적은 것이 있는 달부터 이 달 두 달 뒤까지.
+     아직 오지 않은 달이나 적은 것이 하나도 없는 달로는 넘어가지 않는다. */
+  const { min: 달바닥, max: 달천장 } = useMonthSpan();
 
   // 월별 데이터 조회
   const loadData = async () => {
@@ -154,7 +186,19 @@ export default function Entries() {
   // 편집 팝업
   // ------------------------------------
 
+  /* 고른 것이 있는지. openEditor가 부를 때 읽으므로 ref로 든다 —
+     상태를 그대로 쓰면 고를 때마다 openEditor가 새로 서서 카드
+     수십 장이 함께 다시 그려진다. */
+  const 고른것있나 = useRef(false);
   const openEditor = useCallback((row: any) => {
+    /* 고르는 중에는 편집 팝업을 열지 않는다. 꾹 누르기도, 쪽지나 클립을
+       뜯는 것도 이 한 곳을 지난다. 고른 채로 한 건을 고치면 목록이 다시
+       그려지면서 고른 것이 가리키던 줄이 어긋난다 — 필터를 막는 것과 같은
+       까닭이다. */
+    if (고른것있나.current) {
+      say.warn("선택한 내역이 있습니다. 해제한 후 시도해 주세요.");
+      return;
+    }
     setDraft({ ...row });
     // 분할은 목록 조회에 합계만 실려 오므로, 편집할 때 상세를 따로 가져온다.
     setSplits([]);
@@ -212,7 +256,7 @@ export default function Entries() {
 
     // 필수 입력값 검증
     if (!draft.tx_date || !draft.cat1_id || !draft.cat2_id || draft.amount == null || draft.amount === '' || !draft.pay_method) {
-      alert("Date, IN/OUT, CategoryM/S, Amount, PaymentMethod는 필수 입력입니다.");
+      say.warn("날짜, IN/OUT, 분류, 금액, 결제 수단은 꼭 넣어 주세요.");
       return;
     }
 
@@ -221,12 +265,12 @@ export default function Entries() {
       (s) => s.amount !== "" && Number(s.amount) > 0
     );
     if (cleanSplits.length !== splits.length && splits.some((s) => s.amount === "" || Number(s.amount) <= 0)) {
-      alert("분할 금액은 0보다 커야 합니다.");
+      say.warn("쪼갠 금액은 0보다 커야 합니다.");
       return;
     }
     const splitSum = cleanSplits.reduce((s, r) => s + Number(r.amount), 0);
     if (splitSum > Number(draft.amount)) {
-      alert("분할 합계가 결제 금액을 초과합니다.");
+      say.warn("쪼갠 합계가 결제 금액을 넘었습니다.");
       return;
     }
 
@@ -262,30 +306,100 @@ export default function Entries() {
       // 분할은 별도 엔드포인트다. 비어 있어도 보내야 기존 분할이 지워진다.
       await axios.put(`/entries/${draft.entry_id}/splits`, cleanSplits);
       closeEditor();
-      alert("저장 완료-!! ;-)");
+      say.ok("저장 완료-!! ;-)");
       await reload();
     } catch (err) {
       console.error(err);
-      alert("저장 중 오류가 발생했습니다.");
+      say.bad("저장하지 못했습니다. 다시 시도해 주세요.");
     }
   };
 
   // 제거 함수
   const deleteEntry = async (id: number) => {
-    if (!window.confirm("정말 제거하시겠습니까?")) return;
+    if (
+      !(await ask({
+        title: "내역 제거",
+        body: "이 내역을 제거할까요?",
+        warn: "되돌릴 수 없습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
     try {
       await axios.delete(`/entries/${id}`);
       setRows(prev => prev.filter(r => r.entry_id !== id));
       closeEditor();
-      alert("제거 완료-!! ;-)");
+      say.ok("제거 완료-!! ;-)");
     } catch (err) {
       console.error(err);
-      alert("제거 중 오류가 발생했습니다.");
+      say.bad("제거하지 못했습니다. 다시 시도해 주세요.");
     }
   };
 
+  /* 카드 실적에서 뺄지 — 기호를 누르는 즉시 담는다.
+     목록을 다시 읽지 않고 그 줄만 갈아 끼운다. 한 칸만 바뀌는 일에
+     한 달치를 다시 받아 오면 훑던 자리가 흔들린다. 담기지 않으면
+     되돌려 손이 헛놀지 않게 한다. */
+  const togglePerfExclude = useCallback(async (row: PerfRow, next: boolean) => {
+    /* 고정 · 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
+       그쪽과 같이 한 번 묻는다. */
+    if (
+      !(await ask({
+        title: next ? "실적에서 제외" : "실적에 포함",
+        body: next ? "실적에서 제외할까요?" : "실적에 포함할까요?",
+        go: next ? "제외" : "포함",
+      }))
+    )
+      return;
+    const id = row.entry_id;
+    const before = row.perf_exclude ?? 0;
+    const after = next ? 1 : 0;
+    const stamp = (v: number) =>
+      setRows((prev) => prev.map((r) => (r.entry_id === id ? { ...r, perf_exclude: v } : r)));
+    stamp(after);
+    try {
+      await axios.put(`/entries/${id}/perf-exclude`, null, { params: { value: after } });
+    } catch (err) {
+      console.error(err);
+      stamp(before);
+      say.bad("실적 제외를 담지 못했습니다.");
+    }
+  }, []);
+
+  /* 고정인지 변동인지 — 카드 실적 제외와 같은 방식이다. 기호를 누르는 즉시
+     담고, 그 줄만 갈아 끼운다. 담기지 않으면 되돌린다.
+
+     여기서 누르면 그 건에 손으로 정한 것이 되어, 뒤에 분류 설정을 바꿔도
+     이 건은 그대로다. */
+  const toggleFixed = useCallback(async (row: FixedRow, next: boolean) => {
+    /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
+       곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
+    if (
+      !(await ask({
+        title: "고정/변동 바꾸기",
+        body: `${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 바꿀까요?`,
+        go: "변경",
+      }))
+    )
+      return;
+    const id = row.entry_id;
+    const before = row.fixed_flag ?? null;
+    const after = next ? 1 : 0;
+    const stamp = (v: number | null) =>
+      setRows((prev) => prev.map((r) => (r.entry_id === id ? { ...r, fixed_flag: v } : r)));
+    stamp(after);
+    try {
+      await axios.put(`/entries/${id}/fixed`, null, { params: { value: String(after) } });
+    } catch (err) {
+      console.error(err);
+      stamp(before);
+      say.bad("고정/변동을 담지 못했습니다.");
+    }
+  }, []);
+
   // 드래그 제스처 핸들러(금액 마스킹 해제)
-  const handleRevealDrag = (id: number, startX: number) => {
+  const handleRevealDrag = useCallback((id: number, startX: number) => {
     const onMove = (e: MouseEvent | TouchEvent) => {
       const currentX = ('touches' in e)
         ? e.touches[0].clientX
@@ -320,12 +434,12 @@ export default function Entries() {
     window.addEventListener("touchmove", onMove);
     window.addEventListener("mouseup", onEnd);
     window.addEventListener("touchend", onEnd);
-  };
+  }, []);
 
-  const startReveal = (id: number, e: any) => {
+  const startReveal = useCallback((id: number, e: any) => {
     const startX = e.clientX ?? e.touches?.[0]?.clientX;
     handleRevealDrag(id, startX);
-  };
+  }, [handleRevealDrag]);
 
   /* [적용]을 누르지 않고 닫으면 고치던 값은 버린다.
      다시 열었을 때 지금 걸려 있는 조건이 그대로 보여야 한다. */
@@ -334,18 +448,41 @@ export default function Entries() {
     setFilterOpen(false);
   };
 
+  /* 'YYYY-MM-DD' 둘로 도구 줄에 세울 기간 글을 짓는다. */
+  const 기간글 = (from: string, to: string) => {
+    const 날 = (v: string) => new Date(v).toLocaleDateString("ko-KR");
+    if (from && to) return `${날(from)} ~ ${날(to)}`;
+    if (from) return `${날(from)} ~ `;
+    if (to) return ` ~ ${날(to)}`;
+    return "";
+  };
+
+  /**
+   * 필터를 건다.
+   *
+   * 바꾸는 것은 모두 조회가 끝난 뒤에 몰아서 한다. 먼저 바꾸면 팝업이
+   * 아직 떠 있는 동안 뒤쪽 도구 줄만 바뀌어, 팝업이 반 박자 늦게 닫히는
+   * 것처럼 보인다. 한 판에 같이 바꾸면 닫히는 순간에 함께 바뀐다.
+   */
   const applyFilter = async () => {
+    set찾는중(true);
+    try {
+      await 거르기();
+    } finally {
+      set찾는중(false);
+    }
+  };
+
+  const 거르기 = async () => {
     /* 조건을 모두 비운 채로 적용했다면 필터를 끄겠다는 뜻이다.
        그대로 서버에 물으면 조건 없는 조회가 되어 전 기간이 쏟아진다.
        보고 있던 달로 돌아간다. */
-    /* 초안을 그대로 확정한다 — 여기부터 화면에 반영된다. */
-    setAppliedFilter(filter);
-
     if (!hasCondition(filter)) {
+      const back = await axios.get("/entries/month", { params: { ym: yearMonth } });
+      setAppliedFilter(filter);
+      setRows(back.data.map((r: any) => ({ ...r, reveal_amount: false })));
       setFilterRangeLabel("");
       setFilterOpen(false);
-      const back = await axios.get("/entries/month", { params: { ym: yearMonth } });
-      setRows(back.data.map((r: any) => ({ ...r, reveal_amount: false })));
       return;
     }
 
@@ -366,21 +503,10 @@ export default function Entries() {
       }
     });
 
+    setAppliedFilter(filter);
     setRows(res.data.map((r: any)=>({...r, reveal_amount:false})));
+    setFilterRangeLabel(기간글(filter.dateFrom, filter.dateTo));
     setFilterOpen(false);
-
-    // 필터 적용 시 날짜 레이블 생성
-    if (filter.dateFrom && filter.dateTo) {
-      setFilterRangeLabel(
-        `${new Date(filter.dateFrom).toLocaleDateString("ko-KR")} ~ ${new Date(filter.dateTo).toLocaleDateString("ko-KR")}`
-      );
-    } else if (filter.dateFrom) {
-      setFilterRangeLabel(`${new Date(filter.dateFrom).toLocaleDateString("ko-KR")} ~ `);
-    } else if (filter.dateTo) {
-      setFilterRangeLabel(` ~ ${new Date(filter.dateTo).toLocaleDateString("ko-KR")}`);
-    } else {
-      setFilterRangeLabel("");
-    }
   };
 
   // ------------------------------------
@@ -390,7 +516,7 @@ export default function Entries() {
   const cat1Options = useMemo(
     () => [
       { value: -1, label: "[전체]" },
-      ...cat1List.map(c => ({ value: c.id, label: c.name }))
+      ...cat1List.map(c => ({ value: c.id, label: c.name, icon: c.emoji }))
     ],
     [cat1List]
   );
@@ -627,7 +753,7 @@ export default function Entries() {
   const payOptions = useMemo(
     () => [
       { value: "__ALL__", label: "(전체 결제 수단)" },
-      ...payList.map(p => ({ value: p.code, label: p.name }))
+      ...payList.map(p => ({ value: p.code, label: p.name, icon: p.emoji }))
     ],
     [payList]
   );
@@ -695,8 +821,10 @@ export default function Entries() {
 
   // 날짜별 단 — 서버 정렬(tx_date DESC)을 그대로 보존한다.
   // 소분류에 blur가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
-  /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
+  /* 접은 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+
+
   const toggleDay = (d: string) =>
     setCollapsedDays((prev) => {
       const next = new Set(prev);
@@ -711,10 +839,126 @@ export default function Entries() {
     [cat1List, cat2List, cat3List]
   );
 
+  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정한 것이 있으면 그것이 먼저다. */
+  const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
+
   const dateGroups = useMemo(
-    () => groupByDate(rows, (r: any) => isBlurred(r, blurSets)),
-    [rows, blurSets]
+    /* 날짜 단 합계는 집계라 테이프를 붙이지 않는다. 덮는 것은 카드뿐이다. */
+    () => groupByDate(rows),
+    [rows]
   );
+
+  /* 한 번에 다 그리면 수천 건일 때 한참 멈춰 있다가 통째로 튀어나온다.
+     3천 건이면 DOM 마디가 10만에 가까워 그리는 데만 8초가 걸렸다.
+
+     그래서 눈에 닿는 데까지만 그리고, 바닥 가까이 내려가면 그때 더 잇는다.
+     판마다 저절로 이어 붙이는 쪽도 해 봤는데, 이을 때마다 앞의 단을 다시
+     훑느라 다 채우는 데 20초가 걸려 더 나빴다.
+
+     단이 적으면(한판) 지금까지처럼 통째로 그린다 — 보통 한 달은 열몇 단이라
+     이 길로 가므로 달라지는 것이 없다. */
+  const 한판 = 40;
+  const 첫판 = 12;
+  const 덧판 = 12;
+  const [보인단, set보인단] = useState(0);
+  /* 목록이 통째로 바뀐 때만 다시 잇는다 — 카드 하나를 건드릴 때마다 처음부터
+     이으면 보던 자리가 맨 위로 튄다. 줄 수와 양 끝 열쇠로 가린다. 실적 제외나
+     고정 뒤집기는 셋 다 그대로라 다시 잇지 않고, 조회나 달 넘기기는 바뀐다.
+     부르는 자리를 하나라도 빠뜨리면 멈추므로 손으로 올리지 않는다. */
+  const 목록판 = useMemo(
+    () => `${rows.length}:${rows[0]?.entry_id ?? 0}:${rows[rows.length - 1]?.entry_id ?? 0}`,
+    [rows]
+  );
+
+  useEffect(() => {
+    const 끝 = dateGroups.length;
+    set보인단(끝 <= 한판 ? 끝 : 첫판);
+    // dateGroups는 카드 하나만 건드려도 새것이 되므로 판 번호로만 다시 돈다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [목록판]);
+
+  /* 바닥에서 한 화면 안으로 들어오면 그때 더 잇는다. 첫 판이 화면을 다 못
+     채웠으면 곧바로 한 번 더 이어, 굴릴 거리가 생길 때까지 따라붙는다. */
+  useEffect(() => {
+    if (보인단 >= dateGroups.length) return;
+    const 더 = () => {
+      const 남은키 =
+        document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+      if (남은키 < window.innerHeight) {
+        set보인단((v) => Math.min(v + 덧판, dateGroups.length));
+      }
+    };
+    window.addEventListener("scroll", 더, { passive: true });
+    더();
+    return () => window.removeEventListener("scroll", 더);
+  }, [보인단, dateGroups.length]);
+
+  /* 모두 펼치기와 모두 접기 — 단이 많으면 한 판이 길다. 덮개를 먼저 띄워
+     한 번 그려진 뒤에 손대야 기다리는 줄 안다(Waiting은 300ms 뒤에 뜬다). */
+  const 모두 = useCallback((다음: Set<string>, 단수: number) => {
+    if (단수 <= 60) {
+      setCollapsedDays(다음);
+      return;
+    }
+    set찾는중(true);
+    window.setTimeout(() => {
+      setCollapsedDays(다음);
+      set찾는중(false);
+    }, 360);
+  }, []);
+
+  /* ── 영수증으로 뽑을 것 고르기 ──────────────────────────────
+     고른 것은 지금 화면에 보이는 줄에서만 센다. 달을 옮기거나 걸러서
+     사라진 건이 고른 채 남아 있으면, 눈에 없는 것이 영수증에 찍힌다. */
+  const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
+  고른것있나.current = pickedIds.size > 0;
+
+  /* 고른 것이 있으면 뒤로 가기가 화면을 떠나지 않고 고른 것만 푼다.
+     팝업과 같은 결이다 — 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 고른
+     것이 있는 동안만 서 있으므로, 풀면 막대도 함께 내려간다.
+     Backspace는 받지 않는다 — 고르는 중에 쓰는 키가 아니다. */
+  useBackClose(pickedIds.size > 0, () => setPickedIds(new Set()), false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [makeOpen, setMakeOpen] = useState(false);
+
+  const togglePick = useCallback((id: number) => {
+    setPickedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  /* 달을 옮기면 푼다. 다른 달의 건이 섞인 영수증은 기간이 말이 안 된다. */
+  useEffect(() => {
+    setPickedIds(new Set());
+  }, [yearMonth]);
+
+  const picked = useMemo(
+    () => rows.filter((r) => pickedIds.has(r.entry_id)),
+    [rows, pickedIds]
+  );
+
+  /* 영수증 한 줄로 옮긴다. 보이는 그대로를 담는다 — 쪼갠 건은 실지출이다. */
+  const receiptRows = useMemo<ReceiptRow[]>(() => {
+    const name1 = new Map(cat1List.map((c) => [c.id, c.name]));
+    const name2 = new Map(cat2List.map((c) => [c.id, c.name]));
+    const name3 = new Map(cat3List.map((c) => [c.id, c.name]));
+    const payName = new Map(payList.map((p) => [String(p.code), p.name]));
+    return picked.map((r) => ({
+      key: `entry-${r.entry_id}`,
+      src: "지출" as const,
+      date: String(r.tx_date ?? "").slice(0, 10),
+      cat: [name1.get(Number(r.cat1_id)), name2.get(Number(r.cat2_id)), name3.get(Number(r.cat3_id))]
+        .filter(Boolean)
+        .join(" › "),
+      amount: Number((r.split_count ?? 0) > 0 ? r.net_amount : r.amount) || 0,
+      inout: (r.inout as number) ?? null,
+      place: String(r.place_name ?? "").trim(),
+      pay: payName.get(String(r.pay_method ?? "")) ?? "",
+    }));
+  }, [picked, cat1List, cat2List, cat3List, payList]);
 
   /* 버튼과 기간 표시는 '적용된 값'만 본다. 초안은 팝업 안에서만 산다. */
   const isFilterActive = useMemo(() => hasCondition(appliedFilter), [appliedFilter]);
@@ -730,37 +974,30 @@ export default function Entries() {
           {isFilterActive ? (
             <div className="filter-range-label">{filterRangeLabel || "전체 기간"}</div>
           ) : (
-            <div className="month-nav">
-              <button
-                type="button"
-                className="month-nav__arrow"
-                aria-label="지난달"
-                onClick={() => shiftMonth(-1)}
-              >
-                ‹
-              </button>
-              <span className="month-nav__label">{monthLabel}</span>
-              <button
-                type="button"
-                className="month-nav__arrow"
-                aria-label="다음 달"
-                onClick={() => shiftMonth(1)}
-              >
-                ›
-              </button>
-            </div>
+            <MonthNav ym={yearMonth} onChange={setYearMonth} min={달바닥} max={달천장} />
           )}
 
           <div className="toolbar-btns">
             <CollapseAllButtons
-              onExpandAll={() => setCollapsedDays(new Set())}
-              onCollapseAll={() => setCollapsedDays(new Set(dateGroups.map((g) => g.date)))}
+              onExpandAll={() => 모두(new Set(), dateGroups.length)}
+              onCollapseAll={() =>
+                모두(new Set(dateGroups.map((g) => g.date)), dateGroups.length)
+              }
             />
             <button
               type="button"
-              onClick={() => setFilterOpen(true)}
+              /* 고르는 중에는 필터를 열지 않는다. 필터를 걸면 목록이 통째로
+                 바뀌어 고른 것이 가리키던 줄이 사라진다. */
+              onClick={() => {
+                if (picked.length > 0) {
+                  say.warn("선택한 내역이 있습니다. 해제한 후 시도해 주세요.");
+                  return;
+                }
+                setFilterOpen(true);
+              }}
               className={`filter-pill${isFilterActive ? " on" : ""}`}
               aria-pressed={!!isFilterActive}
+              aria-disabled={picked.length > 0 || undefined}
               title={isFilterActive ? "필터가 걸려 있다. 눌러서 고친다." : "필터"}
             >
               필터
@@ -771,7 +1008,9 @@ export default function Entries() {
 
       {/* 카드 리스트 — 날짜별 단으로 묶어서 표시 */}
       <div className="card-list">
-        {dateGroups.map((group) => (
+        {/* 비어 있으면 그렇다고 말한다 — 내역 탭 네 화면이 같은 꼴로 말한다. */}
+        {dateGroups.length === 0 && <p className="page-empty">지출 내역이 없습니다.</p>}
+        {dateGroups.slice(0, 보인단).map((group) => (
           <section key={group.date || "no-date"} className="date-group">
             <DateGroupHeader
               label={group.label}
@@ -779,148 +1018,129 @@ export default function Entries() {
               open={!collapsedDays.has(group.date)}
               onToggle={() => toggleDay(group.date)}
             />
-            {!collapsedDays.has(group.date) &&
-              group.items.map((row: any) => (
-              <EntryCard
-                key={row.entry_id}
-                row={row}
-                cat1List={cat1List}
-                cat2List={cat2List}
-                payList={payList}
-                onOpenEditor={openEditor}
-                onStartReveal={startReveal}
-                blurred={isBlurred(row, blurSets)}
-              />
-            ))}
+            <Collapse open={!collapsedDays.has(group.date)}>
+              {
+                group.items.map((row: any) => (
+                <EntryCard
+                  key={row.entry_id}
+                  row={row}
+                  cat1List={cat1List}
+                  cat2List={cat2List}
+                  payList={payList}
+                  onOpenEditor={openEditor}
+                  onStartReveal={startReveal}
+                  picked={pickedIds.has(row.entry_id)}
+                  onTogglePick={togglePick}
+                  blurred={isBlurred(row, blurSets)}
+                  fixed={isFixed(row, fixSets)}
+                  onTogglePerfExclude={togglePerfExclude}
+                  onToggleFixed={toggleFixed}
+                />
+              ))}
+            </Collapse>
           </section>
         ))}
+        {보인단 < dateGroups.length && <Waiting />}
       </div>
+
+      <PickBar
+        count={picked.length}
+        all={rows.length}
+        onAll={() => setPickedIds(new Set(rows.map((r) => r.entry_id)))}
+        onClear={() => setPickedIds(new Set())}
+        onReceipt={() => setReceiptOpen(true)}
+        onDelete={async () => {
+          /* 한 건 지울 때와 같은 말을 쓴다. 같은 일을 묻는 자리가 둘인데
+             말이 다르면 어느 쪽이 더 무거운 일인지 헷갈린다. */
+          const 예 = await ask({
+            title: "내역 제거",
+            body: `선택한 ${picked.length}건을 제거할까요?`,
+            warn: "되돌릴 수 없습니다.",
+            go: "제거",
+            danger: true,
+          });
+          if (!예) return;
+          const { 성공, 실패 } = await 골라제거(
+            "/entries",
+            picked.map((r) => r.entry_id)
+          );
+          setPickedIds(new Set());
+          await loadData();
+          if (실패 === 0) say.ok(`${성공}건을 제거했습니다.`);
+          else if (성공 === 0) say.bad("제거하지 못했습니다. 다시 시도해 주세요.");
+          else say.warn(`${성공}건을 제거했습니다. ${실패}건은 제거하지 못했습니다.`);
+        }}
+        more={
+          <button
+            type="button"
+            className="pick-bar__more"
+            onClick={() => setMakeOpen(true)}
+          >
+            묶기
+          </button>
+        }
+      />
+
+      {receiptOpen && (
+        <ReceiptPopup rows={receiptRows} onClose={() => setReceiptOpen(false)} />
+      )}
+
+      {찾는중 && <Waiting overlay />}
+
+      {makeOpen && (
+        <GroupMakePopup
+          kind="entry"
+          items={picked}
+          meta={{ cat1List, cat2List, payList }}
+          onDone={() => {
+            setMakeOpen(false);
+            setPickedIds(new Set());
+            loadData();
+          }}
+          onClose={() => setMakeOpen(false)}
+        />
+      )}
 
       {/* 편집 팝업 */}
       {draft && (
         <CardEditModal
           title="내역 편집"
-          subtitle={draft.tx_date ? new Date(draft.tx_date).toLocaleDateString("ko-KR") : undefined}
           onClose={closeEditor}
           onSave={saveDraft}
           onDelete={() => deleteEntry(draft.entry_id)}
           headerFields={
-            <EditField label="날짜" span={12}>
-              <input
-                type="date"
+            <EditField label="날짜" span={12} required>
+              <DayPicker
                 value={draft.tx_date ? draft.tx_date.substring(0, 10) : ""}
-                onChange={(e) => setField("tx_date", e.target.value)}
+                onChange={(v) => setField("tx_date", v)}
               />
             </EditField>
           }
         >
-          <div className="edit-grid">
-            {/* 1행 — 분류 3단 */}
-            <EditField label="중분류" span={4}>
-              <SingleSelect
-                noun="중분류"
-                options={visible(cat1List, (c) => c.id === draft.cat1_id)
-                  .map(c => ({ value: String(c.id), label: c.name }))}
-                selected={draft.cat1_id ? String(draft.cat1_id) : ""}
-                onChange={(value) => setField("cat1_id", value ? Number(value) : null)}
-                placeholder="(중분류)"
-              />
-            </EditField>
-
-            <EditField label="소분류" span={4}>
-              <SingleSelect
-                noun="소분류"
-                options={visible(cat2List, (c) => c.id === draft.cat2_id)
-                  .filter((c) => c.cat1_id === draft.cat1_id)
-                  .map(c => ({ value: String(c.id), label: c.name }))}
-                selected={draft.cat2_id ? String(draft.cat2_id) : ""}
-                onChange={(value) => setField("cat2_id", value ? Number(value) : null)}
-                placeholder="(소분류)"
-              />
-            </EditField>
-
-            <EditField label="세분류" span={4}>
-              <SingleSelect
-                noun="세분류"
-                options={visible(cat3List, (c) => c.id === draft.cat3_id)
-                  .filter((c) => c.cat2_id === draft.cat2_id)
-                  .map(c => ({ value: String(c.id), label: c.name }))}
-                selected={draft.cat3_id ? String(draft.cat3_id) : ""}
-                onChange={(value) => setField("cat3_id", value ? Number(value) : null)}
-                placeholder="(세분류)"
-              />
-            </EditField>
-
-            {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
-            <EditField label="IN/OUT" span={4}>
-              <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
-                {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
-              </span>
-            </EditField>
-
-            <EditField label="결제 수단" span={4}>
-              <SingleSelect
-                noun="결제 수단"
-                options={visible(payList, (p) => p.code === draft.pay_method)
-                  .map(p => ({ value: p.code, label: p.name }))}
-                selected={draft.pay_method || ""}
-                onChange={(value) => setField("pay_method", value)}
-                placeholder="(결제 수단)"
-              />
-            </EditField>
-
-            <EditField label="금액" span={4}>
-              <input
-                type="number"
-                value={draft.amount ?? ""}
-                onChange={(e) => setField("amount", e.target.value === "" ? "" : Number(e.target.value))}
-                className="amount-input"
-              />
-            </EditField>
-
-            {/* 3행 — 장소 */}
-            <EditField label="장소/가게" span={12}>
-              <div className="edit-place">
-                <span className="edit-place__name">📍 {draft.place_name || "—"}</span>
-                <button
-                  type="button"
-                  className="ui-btn small edit-location-btn"
-                  onClick={() => setPlacePickerOpen(true)}
-                >
-                  변경
-                </button>
-              </div>
-            </EditField>
-
-            {/* 4행 — 메모 */}
-            <EditField label="메모" span={12}>
-              <input
-                type="text"
-                value={draft.memo || ""}
-                onChange={(e) => setField("memo", e.target.value)}
-                className="memo-input"
-              />
-            </EditField>
-          </div>
-
-          {/* 금액 쪼개기 — 지출일 때만 의미가 있다. */}
-          {draft.inout === -1 && (
-            <>
-              <EditDivider />
-              <SplitEditor
-                grossAmount={Number(draft.amount) || 0}
-                value={splits}
-                onChange={setSplits}
-              />
-            </>
-          )}
+          <EntryEditFields
+            draft={draft}
+            setField={setField}
+            cat1List={cat1List}
+            cat2List={cat2List}
+            cat3List={cat3List}
+            payList={payList}
+            splits={splits}
+            setSplits={setSplits}
+            onPickPlace={() => setPlacePickerOpen(true)}
+          />
         </CardEditModal>
       )}
 
       {/* 팝업은 map() 밖에서 렌더링 */}
       {filterOpen && (
         <div className="popup-overlay" onClick={closeFilter}>
-          <div className="popup-panel popup-panel--framed" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="popup-panel popup-panel--framed"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="필터"
+          >
 
             {/* 머리·본문·바닥을 편집 팝업과 같은 짜임으로 */}
             <header className="popup-head">
@@ -929,19 +1149,23 @@ export default function Entries() {
 
             {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다. */}
             <div className="popup-body edit-grid">
+              {/* 거르는 자리는 지난 어느 때로도 갈 수 있어야 한다 —
+                  머리의 연월을 누르면 한 해가 펼쳐진다. */}
               <EditField label="시작일" span={6}>
-                <input
-                  type="date"
+                <DayPicker
+                  monthJump
+                  clearable
                   value={filter.dateFrom}
-                  onChange={(e) => setFilter({ ...filter, dateFrom: e.target.value })}
+                  onChange={(v) => setFilter({ ...filter, dateFrom: v })}
                 />
               </EditField>
 
               <EditField label="종료일" span={6}>
-                <input
-                  type="date"
+                <DayPicker
+                  monthJump
+                  clearable
                   value={filter.dateTo}
-                  onChange={(e) => setFilter({ ...filter, dateTo: e.target.value })}
+                  onChange={(v) => setFilter({ ...filter, dateTo: v })}
                 />
               </EditField>
 
@@ -1063,7 +1287,7 @@ export default function Entries() {
               </EditField>
             </div>
 
-            <div className="btn-row popup-foot">
+            <div className="btn-row popup-foot popup-foot--tight">
               <button className="ui-btn" onClick={() =>
                 setFilter({
                   dateFrom: "",
@@ -1080,6 +1304,8 @@ export default function Entries() {
                   cp: [] as number[],
                 })
               }>초기화</button>
+              {/* 편집 팝업과 같은 차례로 — 되돌리는 것 · 닫기 · 하려던 것 */}
+              <button className="ui-btn" onClick={closeFilter}>닫기</button>
               <button className="ui-btn primary" onClick={applyFilter}>적용</button>
             </div>
 
@@ -1160,6 +1386,18 @@ export default function Entries() {
         />
       )}
       <QuickActions onSaved={reload} />
+
+      {/* 지금 걸린 조건 그대로 내보낸다. 필터가 안 걸렸으면 보고 있는 달이다. */}
+      <ExportButton
+        길="entries"
+        이름="지출 내역"
+        빔={rows.length === 0}
+        params={
+          isFilterActive
+            ? 내보낼조건(appliedFilter)
+            : { ym: yearMonth }
+        }
+      />
     </div>
   );
 }
@@ -1167,36 +1405,75 @@ export default function Entries() {
 // ------------------------------------
 // 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다.
 // ------------------------------------
-export function EntryCard({
+export const EntryCard = memo(function EntryCard({
   row,
   cat1List,
   cat2List,
   payList,
   onOpenEditor,
   onStartReveal,
+  picked = false,
+  onTogglePick,
   blurred,
   readOnly = false,
+  onTogglePerfExclude,
+  fixed,
+  onToggleFixed,
+  clipped,
+  onTap,
+  peelTip,
 }: {
   row: any;
   cat1List: { id: number; name: string }[];
   cat2List: { id: number; name: string; cat1_id: number; blur?: number; inout: number | null }[];
-  payList: { code: string; name: string }[];
+  payList: { code: string; name: string; category?: string }[];
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
+  /* 뜯는 동안 뜨는 한 줄. 고치지 못하는 화면에서만 쓴다 — 어디로 가야
+     고치는지를 적는다. 넘기지 않으면 그 카드에서는 안내가 뜨지 않는다. */
+  peelTip?: string;
+  /* 고른 건인지. 넘기지 않으면 고르기 상자가 서지 않는다 — 기간 상세처럼
+     보기만 하는 화면은 지금까지와 같은 꼴을 지킨다. */
+  picked?: boolean;
+  onTogglePick?: (id: number) => void;
   /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
      넘기지 않으면 예전처럼 소분류만 본다. */
   blurred?: boolean;
   /* 보기만 하는 화면(기간 상세)에서는 꾹 눌러 편집하지 않는다.
      기본값은 지금까지와 같으므로 이 화면의 동작은 그대로다. */
   readOnly?: boolean;
+  /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
+  onTogglePerfExclude?: (row: PerfRow, next: boolean) => void;
+  /* 이 건이 고정인지 — 건에 정한 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
+  fixed?: boolean;
+  /* 고정 · 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
+  onToggleFixed?: (row: FixedRow, next: boolean) => void;
+  /* 묶인 건으로 그릴지. 넘기지 않으면 건에 적힌 묶음과 돈쓴이의
+     `내역에 묶음 보이기`를 함께 본다. 묶음 내역은 늘 켜서 넘긴다. */
+  clipped?: boolean;
+  /* 그냥 눌렀을 때. 넘기지 않으면 아무 일도 없다 — 지금까지와 같다.
+     묶음 내역이 쓴다. 거기서는 펼친 묶음을 카드로도 접을 수 있어야 한다. */
+  onTap?: () => void;
 }) {
   const openEditor = useCallback(() => onOpenEditor(row), [onOpenEditor, row]);
+  /* 여기서 고칠 수 있으면 뜯으라고, 없으면 어디서 고치는지를 적는다. */
+  const 안내 = readOnly ? peelTip : "뜯으면 편집 팝업이 뜹니다.";
   const { pressing, handlers } = useLongPress(openEditor);
+  const peel = usePeel(openEditor);
+
+  /* 묶인 건은 왼쪽 위 책갈피가 클립이 된다(index.css 166절).
+     켜고 끄는 설정을 두었다가 걷었다 — 묶어 놓고 묶인 줄 알리지 않을 까닭이
+     없고, 끄면 묶음을 풀 자리도 함께 멀어졌다. */
+  const isClipped = clipped ?? row.group_id != null;
 
   const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
   const isBlur = blurred ?? (cat2List.find(c => c.id === row.cat2_id)?.blur === 1);
+  /* 글자로 견준다. 결제 수단 열쇠를 화면마다 숫자로도 문자열로도 담고 있어,
+     엄격하게 견주면 담은 꼴이 다른 화면에서만 이름을 못 찾았다 — 묶음 내역이
+     그랬다. 어느 꼴로 담기든 같은 열쇠면 같은 것으로 본다. */
+  const pay = payList.find((p) => String(p.code) === String(row.pay_method));
 
-  // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount 다.
+  // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount다.
   const hasSplit = (row.split_count ?? 0) > 0;
   /* 쪼갠 몫을 펼쳤는지. 카드마다 따로 기억한다. */
   const [open, setOpen] = useState(false);
@@ -1204,28 +1481,44 @@ export function EntryCard({
 
   return (
     <article
-      className={`card card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
+      className={`card card--entry card--pressable${readOnly ? " card--flat" : ""}${isClipped ? " is-clipped" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
       {...(readOnly ? {} : handlers)}
+      onClick={onTap}
       title={readOnly ? undefined : "꾹 눌러서 편집"}
     >
-      {/* IN/OUT 색상 바 */}
+      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국.
+          묶인 건에서는 그 자리가 클립이 된다. 요소는 그대로 두어야 금액
+          빛깔 규칙(.card:has(.in-bar))이 살아 있다. */}
       <div
         className={`inout-bar ${
           row.inout === 1 ? "in-bar" : row.inout === -1 ? "out-bar" : ""
         }`}
-      ></div>
-
-      {/* ───── 1행: 장소 ───── 날짜는 상단 날짜 단에서 표시한다. */}
-      <div className="card-row row-top">
-        <div className="card-left">
-          <span className="place-text">
-            📍 {row.place_name || "—"}
-          </span>
-        </div>
+        title={isClipped && row.group_name ? `묶음 ${row.group_name}` : undefined}
+      >
+        {isClipped && <ClipMark />}
       </div>
+      {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리 · 접혀 넘어오는 조각.
+          어느 화면에서나 떼어진다 — 뜯는 손맛이 화면마다 달라지면 고장 난
+          것으로 읽힌다. 고치지 못하는 화면에서는 끝까지 떼어도 열 팝업이
+          없으니 제자리로 펴져 붙고, 대신 아래 한 줄이 어디서 고치는지를
+          알린다. */}
+      <span className="peel-patch" aria-hidden="true" />
+      <span className="peel-flap" aria-hidden="true">
+        <span className="peel-flap__face" />
+      </span>
+      <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
+      {/* 뜯는 동안만 뜨는 한 줄. 늘 그린 채로 보이고 숨기는 일은 CSS가 맡는다 —
+          끄는 중에 React가 다시 그리면 뜯는 겹이 쥐고 있던 class가 지워진다. */}
+      {안내 && (
+        <span className="peel-tip" aria-hidden="true">
+          {안내}
+        </span>
+      )}
 
-      {/* ───── 2행: 카테고리 ───── */}
-      <div className="row-category">
+      {/* ───── 1행: 분류 + 기호 + 금액 ───── 날짜는 상단 날짜 단에서 표시한다.
+          기호 둘은 금액에 딸린 말이라 금액 바로 왼쪽에 선다. 둘째 줄 가운데에
+          두었더니 장소와 결제 수단 사이를 갈라 둘 다 잘려 보였다. */}
+      <div className="entry-ln entry-ln--head">
         <span className="cat-display">
           <span className="cat-text">{cat1Name}</span>
           <span className="cat-sep"> &gt; </span>
@@ -1241,61 +1534,92 @@ export function EntryCard({
             </>
           )}
         </span>
+
+        {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
+        <FixedMark
+          on={fixed ?? false}
+          readOnly={readOnly || !onToggleFixed}
+          onToggle={(next) => onToggleFixed?.(row, next)}
+        />
+        {/* 카드로 그은 건에만 실적 제외 기호가 선다. 현금 · 계좌이체에는
+            실적이라는 것이 없다. */}
+        {pay?.category === "카드" && (
+          <PerfExcludeButton
+            on={!!row.perf_exclude}
+            readOnly={readOnly || !onTogglePerfExclude}
+            onToggle={(next) => onTogglePerfExclude?.(row, next)}
+          />
+        )}
+
+        <span
+          className={`amount-text ${shownAmount === 0 ? "zero " : ""}${
+            isBlur && !row.reveal_amount ? "masked" : "revealed"
+          }`}
+          data-no-longpress
+          onMouseDown={(e) => isBlur && onStartReveal(row.entry_id, e)}
+          onTouchStart={(e) => isBlur && onStartReveal(row.entry_id, e)}
+        >
+          {typeof shownAmount === "number"
+            ? shownAmount.toLocaleString("ko-KR")
+            : ""}
+        </span>
       </div>
 
-      {/* ───── 3행: 결제 수단 + 금액 ───── */}
-      <div className="row-payment">
-        <span className="pay-method-text">
-          {payList.find((p) => p.code === row.pay_method)?.name ?? ""}
-        </span>
+      {/* ───── 2행: 장소 + 결제 수단 ───── */}
+      {/* 메모를 카드 밖 제 판(MemoPad)으로 옮기면서 결제 수단이 혼자 한 줄을
+          차지했다. 장소와 같은 줄로 올려 정기와 같은 두 칸 짜임이 된다 —
+          장소는 왼쪽 끝, 결제 수단은 오른쪽 끝. 사이를 가르던 기호 둘은
+          첫 줄 금액 옆으로 올라가, 이 줄은 글 둘이 제 폭을 다 쓴다. */}
+      <div className="entry-ln">
+        {/* 고르기 상자. 대기 내역과 같은 자리다 — 장소와 결제 수단이 선 줄의
+            왼쪽 끝. 분류 줄에 넣으면 분류 글이 통째로 밀려 쪽마다 자리가
+            달라진다. 카드를 꾹 누르면 편집 팝업이 열리므로 뺀다. */}
+        {onTogglePick && (
+          <button
+            type="button"
+            className={`pe-pick${picked ? " pe-pick--on" : ""}`}
+            data-no-longpress
+            aria-pressed={picked}
+            title={picked ? "선택 해제" : "선택"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePick(row.entry_id);
+            }}
+          >
+            ✓
+          </button>
+        )}
+        {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
+        <span className="pay-method-text">{pay?.name ?? ""}</span>
+      </div>
 
-        {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다.
-            그 줄을 누르면 아래에 함께한 사람과 몫이 펼쳐진다. */}
-        <span className="amount-stack">
-          {hasSplit && (
-            <span
-              className={`amount-split ${isBlur && !row.reveal_amount ? "masked" : "revealed"} is-toggle${open ? " open" : ""}`}
-              role="button"
-              tabIndex={0}
-              data-no-longpress
-              title={open ? "몫 접기" : "함께한 사람 보기"}
-              onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-            >
+      <MemoPad memo={row.memo} />
+
+      {/* 쪼갠 건 — 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다.
+          카드 안 금액 옆에 끼웠더니 자리가 붕 떠 보였다. */}
+      {hasSplit && (
+        <div className={`split-tab${open ? " open" : ""}`}>
+          <span
+            className={`amount-split ${isBlur && !row.reveal_amount ? "masked" : "revealed"} is-toggle${open ? " open" : ""}`}
+            role="button"
+            tabIndex={0}
+            data-no-longpress
+            title={open ? "몫 접기" : "함께한 사람 보기"}
+            onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+          >
+            {/* 뺄셈 한 덩어리 — "모두 펼치기|접기"와 같은 음영을 깔고 손잡이만 밖에 둔다. */}
+            <span className="amount-split__calc">
               {row.amount.toLocaleString("ko-KR")}
               <span className="amount-split__op"> − </span>
               {row.split_amount.toLocaleString("ko-KR")}
-              <span className="amount-split__caret" aria-hidden="true">›</span>
             </span>
-          )}
-          <span
-            className={`amount-text ${shownAmount === 0 ? "zero " : ""}${
-              isBlur && !row.reveal_amount ? "masked" : "revealed"
-            }`}
-            data-no-longpress
-            onMouseDown={(e) => isBlur && onStartReveal(row.entry_id, e)}
-            onTouchStart={(e) => isBlur && onStartReveal(row.entry_id, e)}
-          >
-            {typeof shownAmount === "number"
-              ? shownAmount.toLocaleString("ko-KR")
-              : ""}
+            <span className="amount-split__caret" aria-hidden="true">›</span>
           </span>
-        </span>
-      </div>
-
-      {/* ───── 4행: 메모 ───── */}
-      {/* 메모가 없으면 줄도 만들지 않는다 — 빈 줄이 카드를 20px씩 늘렸다. */}
-      {row.memo && (
-        <div className="card-row row-bottom">
-          <div className="card-left">
-            <span className="memo-text">{row.memo}</span>
-          </div>
+          <Collapse open={open}>
+            <SplitRows base="/entries" ownerId={row.entry_id} />
+          </Collapse>
         </div>
-      )}
-
-      {/* 펼쳤을 때만 — 함께한 사람과 몫 */}
-      {hasSplit && open && (
-        <SplitRows base="/entries" ownerId={row.entry_id} />
       )}
     </article>
   );
-}
+});

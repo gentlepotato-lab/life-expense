@@ -1,5 +1,5 @@
 import { visible } from "../utils/visible";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import api from "../api/client";
 import useBackClose from "../hooks/useBackClose";
 import PlacePicker from "./components/PlacePicker";
@@ -11,10 +11,31 @@ import type { SplitDraft } from "./components/SplitEditor";
 import { groupByDate } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
+import Collapse from "./components/Collapse";
 import QuickActions from "./components/QuickActions";
+import ExportButton from "./components/ExportButton";
+import PickBar from "./components/PickBar";
+import ReceiptPopup from "./components/ReceiptPopup";
+import ClipMark from "./components/ClipMark";
+import GroupMakePopup from "./components/GroupMakePopup";
+import type { ReceiptRow } from "../utils/receipt";
+import MemoPad from "./components/MemoPad";
+import PerfExcludeButton from "./components/PerfExcludeButton";
+import FixedMark from "./components/FixedMark";
+import GrowArea from "./components/GrowArea";
 import SplitRows from "./components/SplitRows";
 import useLongPress from "../hooks/useLongPress";
-import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
+import usePeel from "../hooks/usePeel";
+import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
+import DayPicker from "./components/DayPicker";
+import { say, ask } from "../utils/notify";
+import { 골라제거 } from "../utils/bulkDelete";
+/* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
+   카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
+type PerfRow = { entry_id: number; perf_exclude?: number | null };
+
+/** 고정 · 변동을 뒤집을 때 필요한 것만 */
+type FixedRow = { entry_id: number; fixed_flag?: number | null };
 
 const EMPTY_FILTER = {
   dateFrom: "",
@@ -54,20 +75,74 @@ export default function PendingEntries() {
   const [rows, setRows] = useState<any[]>([]);
   const [allRows, setAllRows] = useState<any[]>([]); // 필터용 원본
 
-  const [cat1List, setCat1List] = useState<{ id: number; name: string; blur?: number; is_active?: number }[]>([]);
+  /* 선택한 항목. 화면에 지금 보이는 것만 센다 — 걸러서 사라진 건이 선택된 채로
+     남아 있으면, 눈에 없는 것이 함께 날아간다. 아래 picked에서 추려 쓴다. */
+  /* 고른 것이 있는지. openEditor가 부를 때 읽으므로 ref로 든다 —
+     상태를 그대로 쓰면 고를 때마다 openEditor가 새로 서서 카드
+     수십 장이 함께 다시 그려진다. */
+  const 고른것있나 = useRef(false);
+  const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
+  고른것있나.current = pickedIds.size > 0;
+
+  /* 고른 것이 있으면 뒤로 가기가 화면을 떠나지 않고 고른 것만 푼다.
+     팝업과 같은 결이다 — 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 고른
+     것이 있는 동안만 서 있으므로, 풀면 막대도 함께 내려간다.
+     Backspace는 받지 않는다 — 고르는 중에 쓰는 키가 아니다. */
+  useBackClose(pickedIds.size > 0, () => setPickedIds(new Set()), false);
+  const [makeOpen, setMakeOpen] = useState(false);
+
+  const togglePick = useCallback((id: number) => {
+    setPickedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const picked = useMemo(
+    () => rows.filter((r) => pickedIds.has(r.entry_id)),
+    [rows, pickedIds]
+  );
+
+
+  const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null; blur?: number; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; inout?: number | null; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; is_active?: number }[]>([]);
-  const [payList, setPayList] = useState<{ code: string; name: string; is_active?: number }[]>([]);
+  const [payList, setPayList] = useState<
+    { code: string; name: string; emoji?: string | null; is_active?: number; category?: string }[]
+  >([]);
+
+  const [receiptOpen, setReceiptOpen] = useState(false);
+
+  const receiptRows = useMemo<ReceiptRow[]>(() => {
+    const name1 = new Map(cat1List.map((c) => [c.id, c.name]));
+    const name2 = new Map(cat2List.map((c) => [c.id, c.name]));
+    const name3 = new Map(cat3List.map((c) => [c.id, c.name]));
+    const payName = new Map(payList.map((p) => [String(p.code), p.name]));
+    return picked.map((r) => ({
+      key: `pending-${r.entry_id}`,
+      src: "대기" as const,
+      date: String(r.tx_date ?? "").slice(0, 10),
+      cat: [name1.get(Number(r.cat1_id)), name2.get(Number(r.cat2_id)), name3.get(Number(r.cat3_id))]
+        .filter(Boolean)
+        .join(" › "),
+      amount: Number((r.split_count ?? 0) > 0 ? r.net_amount : r.amount) || 0,
+      inout: (r.inout as number) ?? null,
+      place: String(r.place_name ?? "").trim(),
+      pay: payName.get(String(r.pay_method ?? "")) ?? "",
+    }));
+  }, [picked, cat1List, cat2List, cat3List, payList]);
 
   const [filterOpen, setFilterOpen] = useState(false);
 
-  /* 팝업에서 고치는 중인 값(초안)과 실제로 걸려 있는 값을 나눠 둔다.
+  /* 팝업에서 고치는 중인 값(초안)과 실제로 걸려 있는 값을 나눈다.
      하나로 두면 팝업에서 값을 바꾸는 순간 뒤 화면의 버튼과 기간 표시가
      먼저 바뀌어, [적용]을 누르기도 전에 적용된 것처럼 보였다. */
   const [filter, setFilter] = useState(EMPTY_FILTER);
   const [appliedFilter, setAppliedFilter] = useState(EMPTY_FILTER);
 
-  /* 함께한 상대 목록 — 필터에서 고르기 위해 받아 둔다. */
+  /* 함께한 상대 목록 — 필터에서 고르기 위해 받는다. */
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
 
   // 편집 팝업 상태 — 카드를 꾹 누르면 열린다.
@@ -81,19 +156,31 @@ export default function PendingEntries() {
   useBackClose(placePickerOpen, () => setPlacePickerOpen(false));
 
   useEffect(() => {
-    api.get("/categories/lvl1").then((r) => setCat1List(r.data));
-    api.get("/categories/lvl2").then((r) => setCat2List(r.data));
-    api.get("/counterparts").then((r) => setCpList(r.data));
-    api.get("/categories/lvl3").then((r) => setCat3List(r.data));
-    api.get("/payment-methods").then((r) =>
-      setPayList(
-        r.data.map((p: any) => ({
-          code: p.method_id,
-          name: p.method_name,
-          is_active: p.is_active,
-        }))
+    // 조회가 실패하면 빈 목록으로 둔다. 그냥 두면 처리되지 않은 거절만
+    // 남고 화면은 까닭 없이 비어 보인다. 기준 자료라 한 번은 알린다.
+    const 메타실패 = () => say.warn("기준 자료를 불러오지 못했습니다. 새로 고쳐 주세요.");
+    api.get("/categories/lvl1").then((r) => setCat1List(r.data)).catch(메타실패);
+    api.get("/categories/lvl2").then((r) => setCat2List(r.data)).catch(메타실패);
+    api.get("/counterparts").then((r) => setCpList(r.data)).catch(메타실패);
+    api.get("/categories/lvl3").then((r) => setCat3List(r.data)).catch(메타실패);
+    api
+      .get("/payment-methods")
+      .then((r) =>
+        setPayList(
+          r.data.map((p: any) => ({
+            /* 열쇠는 글자로 담는다 — 지출 내역과 같다. */
+            code: String(p.method_id),
+            name: p.method_name,
+            is_active: p.is_active,
+            /* 카드인 줄에만 실적 제외 기호가 선다. */
+            category: p.category,
+            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다.
+               같은 구분에 든 수단끼리는 같은 이모지가 선다. */
+            emoji: p.category_emoji ?? null,
+          }))
+        )
       )
-    );
+      .catch(메타실패);
   }, []);
 
   // 팝업 열렸을 때 뒤 화면 스크롤/인터랙션 막기
@@ -128,11 +215,81 @@ export default function PendingEntries() {
     loadData();
   }, []);
 
+  /* 카드 실적에서 뺄지 — 기호를 누르는 즉시 담는다.
+     목록을 다시 읽지 않고 그 줄만 갈아 끼운다. 담기지 않으면 되돌린다. */
+  const togglePerfExclude = async (row: PerfRow, next: boolean) => {
+    /* 고정 · 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
+       그쪽과 같이 한 번 묻는다. */
+    if (
+      !(await ask({
+        title: next ? "실적에서 제외" : "실적에 포함",
+        body: next ? "실적에서 제외할까요?" : "실적에 포함할까요?",
+        go: next ? "제외" : "포함",
+      }))
+    )
+      return;
+    const id = row.entry_id;
+    const after = next ? 1 : 0;
+    const before = row.perf_exclude ?? 0;
+    /* 걸러 낸 목록과 원본 둘 다 갈아 끼운다 — 하나만 고치면 필터를
+       걸었다 풀 때 표가 되돌아간다. */
+    const stamp = (v: number) => {
+      setRows((prev) => prev.map((r) => (r.entry_id === id ? { ...r, perf_exclude: v } : r)));
+      setAllRows((prev) => prev.map((r) => (r.entry_id === id ? { ...r, perf_exclude: v } : r)));
+    };
+    stamp(after);
+    try {
+      await api.put(`/pending-entries/${id}/perf-exclude`, null, { params: { value: after } });
+    } catch (err) {
+      console.error(err);
+      stamp(before);
+      say.bad("실적 제외를 담지 못했습니다.");
+    }
+  };
+
+  /* 고정인지 변동인지 — 카드 실적 제외와 같은 방식이다. 여기서 누르면 그 건에
+     손으로 정한 것이 되어, 뒤에 분류 설정을 바꿔도 이 건은 그대로다. */
+  const toggleFixed = async (row: FixedRow, next: boolean) => {
+    /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
+       곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
+    if (
+      !(await ask({
+        title: "고정/변동 바꾸기",
+        body: `${next ? "변동 → 고정" : "고정 → 변동"} 내역으로 바꿀까요?`,
+        go: "변경",
+      }))
+    )
+      return;
+    const id = row.entry_id;
+    const after = next ? 1 : 0;
+    const before = row.fixed_flag ?? null;
+    const stamp = (v: number | null) => {
+      setRows((prev) => prev.map((r) => (r.entry_id === id ? { ...r, fixed_flag: v } : r)));
+      setAllRows((prev) => prev.map((r) => (r.entry_id === id ? { ...r, fixed_flag: v } : r)));
+    };
+    stamp(after);
+    try {
+      await api.put(`/pending-entries/${id}/fixed`, null, { params: { value: String(after) } });
+    } catch (err) {
+      console.error(err);
+      stamp(before);
+      say.bad("고정/변동을 담지 못했습니다.");
+    }
+  };
+
   // ------------------------------------
   // 편집 팝업
   // ------------------------------------
 
   const openEditor = useCallback((row: any) => {
+    /* 고르는 중에는 편집 팝업을 열지 않는다. 꾹 누르기도, 쪽지나 클립을
+       뜯는 것도 이 한 곳을 지난다. 고른 채로 한 건을 고치면 목록이 다시
+       그려지면서 고른 것이 가리키던 줄이 어긋난다 — 필터를 막는 것과 같은
+       까닭이다. */
+    if (고른것있나.current) {
+      say.warn("선택한 내역이 있습니다. 해제한 후 시도해 주세요.");
+      return;
+    }
     setDraft({ ...row });
     // 분할은 목록 조회에 합계만 실려 오므로, 편집할 때 상세를 따로 가져온다.
     setSplits([]);
@@ -207,12 +364,12 @@ export default function PendingEntries() {
       (x) => x.amount !== "" && Number(x.amount) > 0
     );
     if (splits.some((x) => x.amount === "" || Number(x.amount) <= 0)) {
-      alert("분할 금액은 0보다 커야 합니다.");
+      say.warn("쪼갠 금액은 0보다 커야 합니다.");
       return;
     }
     const splitSum = cleanSplits.reduce((a, r) => a + Number(r.amount), 0);
     if (splitSum > Number(draft.amount)) {
-      alert("분할 합계가 결제 금액을 초과합니다.");
+      say.warn("쪼갠 합계가 결제 금액을 넘었습니다.");
       return;
     }
 
@@ -247,7 +404,7 @@ export default function PendingEntries() {
       // 분할은 별도 엔드포인트다. 비어 있어도 보내야 기존 분할이 지워진다.
       await api.put(`/pending-entries/${draft.entry_id}/splits`, cleanSplits);
       closeEditor();
-      alert("저장 완료-!! ;-)");
+      say.ok("저장 완료-!! ;-)");
       await loadData();
 
       // 필터가 활성화되어 있으면 다시 적용
@@ -256,67 +413,56 @@ export default function PendingEntries() {
       }
     } catch (err) {
       console.error(err);
-      alert("저장 중 오류가 발생했습니다.");
+      say.bad("저장하지 못했습니다. 다시 시도해 주세요.");
     }
   };
 
   const deletePending = async (id: number) => {
-    if (!window.confirm("정말 제거하시겠습니까?")) return;
+    if (
+      !(await ask({
+        title: "대기 내역 제거",
+        body: "이 대기 내역을 제거할까요?",
+        warn: "되돌릴 수 없습니다.",
+        go: "제거",
+        danger: true,
+      }))
+    )
+      return;
 
     try {
       await api.delete(`/pending-entries/${id}`);
       setRows(prev => prev.filter(r => r.entry_id !== id));
       closeEditor();
-      alert("제거 완료-!! ;-)");
+      say.ok("제거 완료-!! ;-)");
     } catch (err) {
       console.error(err);
-      alert("제거 중 오류가 발생했습니다.");
+      say.bad("제거하지 못했습니다. 다시 시도해 주세요.");
     }
   };
 
-  /* Excel 내보내기 — 뒤에 보완하기로 하고 자리만 만들어 둔다.
+  /* Excel 내보내기 — 뒤에 보완하기로 하고 자리만 만든다.
      조용히 아무 일도 없으면 눌린 건지 알 수 없으므로 한마디 남긴다. */
-  const exportExcel = () => {
-    alert("Excel 내보내기는 아직 준비 중입니다.");
-  };
-
-  // Excel Import
-  const importExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const fd = new FormData();
-    fd.append("file", file);
-
-    try {
-      const res = await api.post("/pending-entries/import", fd, {
-        baseURL: "/api",
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      alert(`${res.data.inserted ?? 0}건이 적재되었습니다.`);
-      await loadData();
-      
-      // 필터가 활성화되어 있으면 다시 적용
-      if (isFilterActive) {
-        applyFilter();
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Excel 임포트 중 오류가 발생했습니다.");
-    } finally {
-      e.target.value = ""; // 같은 파일 다시 올릴 수 있게 리셋
-    }
-  };
-
   // Send 단일 카드: (1) pending 업데이트 → (2) send API → (3) 목록에서 제거
+  // 보내는 동안 잠근다. 확인을 누른 뒤 응답이 늦을 때 다시 누르면 같은 건이
+  // 두 번 나간다.
+  const [sending, setSending] = useState(false);
+
   const sendOne = async (row: any) => {
+    if (sending) return;
     // 필수 입력값 검증
     if (!row.tx_date || !row.cat1_id || !row.cat2_id || row.amount == null || row.amount === '' || !row.pay_method) {
-      alert("Date, CategoryM/S, Amount, PaymentMethod는 필수입니다.");
+      say.warn("날짜, 분류, 금액, 결제 수단은 꼭 넣어 주세요.");
       return;
     }
 
-    if (!window.confirm("이 항목을 확정(Entries로 전송)하시겠습니까?")) return;
+    if (
+      !(await ask({
+        title: "지출 내역으로 전송",
+        body: "이 항목을 지출 내역으로 전송할까요?",
+        go: "전송",
+      }))
+    )
+      return;
 
     try {
       // 1) pending_entries 내용 업데이트
@@ -345,53 +491,77 @@ export default function PendingEntries() {
         place_url: row.place_url ?? "",
       };
 
+      setSending(true);
       await api.put(`/pending-entries/${row.entry_id}`, payload);
 
       // 2) entries로 전송 + sended=TRUE
       await api.post(`/pending-entries/send/${row.entry_id}`);
 
-      alert("전송 완료-!! ;-)");
+      say.ok("전송 완료-!! ;-)");
       setRows((prev) => prev.filter((r) => r.entry_id !== row.entry_id));
       setAllRows((prev) => prev.filter((r) => r.entry_id !== row.entry_id));
     } catch (err) {
       console.error(err);
-      alert("전송 중 오류가 발생했습니다.");
+      say.bad("전송하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      setSending(false);
     }
   };
 
-  // 모든 항목을 Entries로 전송(현재 필터링된 항목만)
-  const sendAllEntries = async () => {
-    if (rows.length === 0) {
-      alert("전송할 항목이 없습니다.");
+  /* 여러 건을 한꺼번에 지출 내역으로 보낸다.
+
+     선택한 항목이 없으면 지금 거른 것을 통째로, 하나라도 선택했으면 그것만
+     보낸다. 보내는 길은 하나라 뒤처리(다시 읽기 · 필터 다시 걸기)도 하나다. */
+  const sendMany = async () => {
+    if (sending) return;
+    const 선택함 = picked.length > 0;
+    const 보낼것 = 선택함 ? picked : rows;
+
+    if (보낼것.length === 0) {
+      say.warn("보낼 항목이 없습니다.");
       return;
     }
 
-    if (!window.confirm("모든 항목을 확정(Entries로 전송)하시겠습니까?")) return;
+    if (
+      !(await ask({
+        title: 선택함 ? "선택한 항목 지출 내역으로 전송" : "모두 지출 내역으로 전송",
+        body: 선택함
+          ? `선택한 ${보낼것.length}건을 지출 내역으로 전송할까요?`
+          : "모두 지출 내역으로 전송할까요?",
+        go: 선택함 ? "선택 전송" : "모두 전송",
+      }))
+    )
+      return;
 
     try {
-      // 현재 화면에 표시된 항목들의 entry_id만 전송
-      const entryIds = rows.map(r => r.entry_id);
+      setSending(true);
+      const entryIds = 보낼것.map((r) => r.entry_id);
       const res = await api.post("/pending-entries/send-filtered", {
         entry_ids: entryIds
       });
       const sentCount = res.data.sent_count ?? 0;
-      
+
       if (sentCount === 0) {
-        alert("전송할 항목이 없습니다.");
+        say.warn("보낼 항목이 없습니다.");
       } else {
-        alert(`${sentCount}건이 전송되었습니다.`);
+        say.ok(`${sentCount}건 전송 완료-!! ;-)`);
       }
-      
+
+      /* 보낸 것은 목록에서 사라지므로 선택한 항목도 함께 비운다. */
+      setPickedIds(new Set());
+
       // 데이터 다시 로드(sended = 0인 항목만 표시됨)
       await loadData();
-      
+
       // 필터가 활성화되어 있으면 다시 적용
       if (isFilterActive) {
         applyFilter();
       }
     } catch (err) {
       console.error(err);
-      alert("전송 중 오류가 발생했습니다.");
+      say.bad("전송하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -402,7 +572,7 @@ export default function PendingEntries() {
   const cat1Options = useMemo(
     () => [
       { value: -1, label: "[전체]" },
-      ...cat1List.map((c) => ({ value: c.id, label: c.name })),
+      ...cat1List.map((c) => ({ value: c.id, label: c.name, icon: c.emoji })),
     ],
     [cat1List]
   );
@@ -607,7 +777,7 @@ export default function PendingEntries() {
   const payOptions = useMemo(
     () => [
       { value: "__ALL__", label: "(전체 결제 수단)" },
-      ...payList.map((p) => ({ value: p.code, label: p.name })),
+      ...payList.map((p) => ({ value: p.code, label: p.name, icon: p.emoji })),
     ],
     [payList]
   );
@@ -672,7 +842,7 @@ export default function PendingEntries() {
 
   // 날짜별 단 — 들어온 순서를 그대로 보존한다.
   // 소분류에 blur가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
-  /* 접어 둔 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
+  /* 접은 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const toggleDay = (d: string) =>
     setCollapsedDays((prev) => {
@@ -688,8 +858,12 @@ export default function PendingEntries() {
     [cat1List, cat2List, cat3List]
   );
 
+  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정한 것이 있으면 그것이 먼저다. */
+  const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
+
   const dateGroups = useMemo(
-    () => groupByDate(rows, (r: any) => isBlurred(r, blurSets)),
+    /* 날짜 단 합계는 집계라 테이프를 붙이지 않는다. 덮는 것은 카드뿐이다. */
+    () => groupByDate(rows),
     [rows, blurSets]
   );
 
@@ -723,7 +897,9 @@ export default function PendingEntries() {
       filtered = filtered.filter((r) => filter.cat3.includes(r.cat3_id));
     }
     if (filter.pay.length) {
-      filtered = filtered.filter((r) => filter.pay.includes(r.pay_method));
+      /* 거르개가 쥔 열쇠는 글자, 줄이 쥔 것은 숫자다. 글자로 맞춰 견준다. */
+      const 고른것 = new Set(filter.pay.map(String));
+      filtered = filtered.filter((r) => 고른것.has(String(r.pay_method)));
     }
     if (filter.memo.trim()) {
       const q = filter.memo.trim();
@@ -797,17 +973,6 @@ export default function PendingEntries() {
       {/* 상단 툴바: Excel Import + Filter + Reload */}
       <div className="toolbar-wrap">
         <div className="toolbar">
-          <div className="toolbar-left excel-btns">
-            <label className="ui-btn small">
-              불러오기
-              <input type="file" accept=".xlsx" onChange={importExcel} style={{ display: "none" }} />
-            </label>
-            {/* 내보내기는 자리만 잡아 둔다. 실제 동작은 뒤에 붙인다. */}
-            <button type="button" className="ui-btn small" onClick={exportExcel}>
-              내보내기
-            </button>
-          </div>
-
           <div className="toolbar-btns">
             <CollapseAllButtons
               onExpandAll={() => setCollapsedDays(new Set())}
@@ -815,15 +980,27 @@ export default function PendingEntries() {
             />
             <button
               type="button"
-              onClick={() => setFilterOpen(true)}
+              /* 고르는 중에는 필터를 열지 않는다. 필터를 걸면 목록이 통째로
+                 바뀌어 고른 것이 가리키던 줄이 사라진다. */
+              onClick={() => {
+                if (picked.length > 0) {
+                  say.warn("선택한 내역이 있습니다. 해제한 후 시도해 주세요.");
+                  return;
+                }
+                setFilterOpen(true);
+              }}
               className={`filter-pill${isFilterActive ? " on" : ""}`}
               aria-pressed={!!isFilterActive}
+              aria-disabled={picked.length > 0 || undefined}
               title={isFilterActive ? "필터가 걸려 있다. 눌러서 고친다." : "필터"}
             >
               필터
             </button>
 
-            <button onClick={sendAllEntries} className="ui-btn primary">
+            {/* 도구 줄은 늘 [모두 전송]이다. 고른 것만 보내는 일은 아래
+                고르기 막대가 맡는다 — 같은 자리의 단추가 때에 따라 다른 일을
+                하면 무엇이 갈지 누르기 전에 알 수 없다. */}
+            <button onClick={sendMany} className="ui-btn primary" disabled={sending}>
               모두 전송
             </button>
           </div>
@@ -832,6 +1009,9 @@ export default function PendingEntries() {
 
       {/* 카드 리스트 — 날짜별 단으로 묶어서 표시 */}
       <div className="card-list">
+        {/* 비어 있으면 그렇다고 말한다. 모래시계 팝업이 쓰는 말과 한 글자도
+            다르면 안 된다 — 같은 비어 있음을 두 가지로 말하게 된다. */}
+        {dateGroups.length === 0 && <p className="page-empty">대기 내역이 없습니다.</p>}
         {dateGroups.map((group) => (
           <section key={group.date || "no-date"} className="date-group">
             <DateGroupHeader
@@ -840,58 +1020,133 @@ export default function PendingEntries() {
               open={!collapsedDays.has(group.date)}
               onToggle={() => toggleDay(group.date)}
             />
-            {!collapsedDays.has(group.date) &&
-              group.items.map((row: any) => (
-              <PendingCard
-                key={row.entry_id}
-                row={row}
-                cat1List={cat1List}
-                cat2List={cat2List}
-                cat3List={cat3List}
-                payList={payList}
-                onOpenEditor={openEditor}
-                onStartReveal={startReveal}
-                onSend={sendOne}
-                blurred={isBlurred(row, blurSets)}
-              />
-            ))}
+            <Collapse open={!collapsedDays.has(group.date)}>
+              {
+                group.items.map((row: any) => (
+                <PendingCard
+                  key={row.entry_id}
+                  row={row}
+                  cat1List={cat1List}
+                  cat2List={cat2List}
+                  cat3List={cat3List}
+                  payList={payList}
+                  onOpenEditor={openEditor}
+                  onStartReveal={startReveal}
+                  onSend={sendOne}
+                  picked={pickedIds.has(row.entry_id)}
+                  onTogglePick={togglePick}
+                  blurred={isBlurred(row, blurSets)}
+                  fixed={isFixed(row, fixSets)}
+                  onToggleFixed={toggleFixed}
+                  onTogglePerfExclude={togglePerfExclude}
+                />
+              ))}
+            </Collapse>
           </section>
         ))}
       </div>
 
 
+      <PickBar
+        count={picked.length}
+        all={rows.length}
+        onAll={() => setPickedIds(new Set(rows.map((r) => r.entry_id)))}
+        onClear={() => setPickedIds(new Set())}
+        onReceipt={() => setReceiptOpen(true)}
+        onDelete={async () => {
+          /* 한 건 지울 때와 같은 말을 쓴다. 같은 일을 묻는 자리가 둘인데
+             말이 다르면 어느 쪽이 더 무거운 일인지 헷갈린다. */
+          const 예 = await ask({
+            title: "내역 제거",
+            body: `선택한 ${picked.length}건을 제거할까요?`,
+            warn: "되돌릴 수 없습니다.",
+            go: "제거",
+            danger: true,
+          });
+          if (!예) return;
+          const { 성공, 실패 } = await 골라제거(
+            "/pending-entries",
+            picked.map((r) => r.entry_id)
+          );
+          setPickedIds(new Set());
+          await loadData();
+          if (실패 === 0) say.ok(`${성공}건을 제거했습니다.`);
+          else if (성공 === 0) say.bad("제거하지 못했습니다. 다시 시도해 주세요.");
+          else say.warn(`${성공}건을 제거했습니다. ${실패}건은 제거하지 못했습니다.`);
+        }}
+        more={
+          <>
+            <button
+              type="button"
+              className="pick-bar__more"
+              onClick={() => setMakeOpen(true)}
+            >
+              묶기
+            </button>
+            <button
+              type="button"
+              className="pick-bar__more"
+              onClick={sendMany}
+              disabled={sending}
+            >
+              {/* 아주 좁은 화면에서는 앞말을 접는다. 이 쪽은 막대에 조각이
+                  일곱이라 360px에서 한 줄에 다 들어가지 않는다. 카드의
+                  단추도 [전송]이라 접어도 같은 말이다. */}
+              <span className="pick-bar__more-long">선택 전송</span>
+              <span className="pick-bar__more-short">전송</span>
+            </button>
+          </>
+        }
+      />
+
+      {receiptOpen && (
+        <ReceiptPopup rows={receiptRows} onClose={() => setReceiptOpen(false)} />
+      )}
+
+      {makeOpen && (
+        <GroupMakePopup
+          kind="pending"
+          items={picked}
+          meta={{ cat1List, cat2List, payList }}
+          onDone={() => {
+            setMakeOpen(false);
+            setPickedIds(new Set());
+            loadData();
+          }}
+          onClose={() => setMakeOpen(false)}
+        />
+      )}
+
       {/* 편집 팝업 */}
       {draft && (
         <CardEditModal
           title="미확정 내역 편집"
-          subtitle={draft.tx_date ? new Date(draft.tx_date).toLocaleDateString("ko-KR") : undefined}
           onClose={closeEditor}
           onSave={saveDraft}
           onDelete={() => deletePending(draft.entry_id)}
           headerFields={
-            <EditField label="날짜" span={12}>
-              <input
-                type="date"
+            <EditField label="날짜" span={12} required>
+              <DayPicker
                 value={draft.tx_date ? draft.tx_date.substring(0, 10) : ""}
-                onChange={(e) => setField("tx_date", e.target.value)}
+                onChange={(v) => setField("tx_date", v)}
               />
             </EditField>
           }
         >
           <div className="edit-grid">
             {/* 1행 — 분류 3단 */}
-            <EditField label="중분류" span={4}>
+            <EditField label="중분류" span={4} required>
               <SingleSelect
                 noun="중분류"
                 options={visible(cat1List, (c) => c.id === draft.cat1_id)
-                  .map(c => ({ value: String(c.id), label: c.name }))}
+                  .map(c => ({ value: String(c.id), label: c.name, icon: c.emoji }))}
                 selected={draft.cat1_id ? String(draft.cat1_id) : ""}
                 onChange={(value) => setField("cat1_id", value ? Number(value) : null)}
                 placeholder="(중분류)"
               />
             </EditField>
 
-            <EditField label="소분류" span={4}>
+            <EditField label="소분류" span={4} required>
               <SingleSelect
                 noun="소분류"
                 options={visible(cat2List, (c) => c.id === draft.cat2_id)
@@ -916,24 +1171,24 @@ export default function PendingEntries() {
             </EditField>
 
             {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
-            <EditField label="IN/OUT" span={4}>
+            <EditField label="IN/OUT" span={4} required>
               <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
                 {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
               </span>
             </EditField>
 
-            <EditField label="결제 수단" span={4}>
+            <EditField label="결제 수단" span={4} required>
               <SingleSelect
                 noun="결제 수단"
-                options={visible(payList, (p) => p.code === draft.pay_method)
-                  .map(p => ({ value: p.code, label: p.name }))}
-                selected={draft.pay_method || ""}
+                options={visible(payList, (p) => String(p.code) === String(draft.pay_method))
+                  .map(p => ({ value: p.code, label: p.name, icon: p.emoji }))}
+                selected={draft.pay_method == null || draft.pay_method === "" ? "" : String(draft.pay_method)}
                 onChange={(value) => setField("pay_method", value)}
                 placeholder="(결제 수단)"
               />
             </EditField>
 
-            <EditField label="금액" span={4}>
+            <EditField label="금액" span={4} required>
               <input
                 type="number"
                 value={draft.amount ?? ""}
@@ -958,11 +1213,11 @@ export default function PendingEntries() {
 
             {/* 4행 — 메모 */}
             <EditField label="메모" span={12}>
-              <input
-                type="text"
+              <GrowArea
+                className="memo-input memo-area"
                 value={draft.memo || ""}
-                onChange={(e) => setField("memo", e.target.value)}
-                className="memo-input"
+                maxLength={200}
+                onChange={(v) => setField("memo", v)}
               />
             </EditField>
           </div>
@@ -984,7 +1239,13 @@ export default function PendingEntries() {
       {/* 필터 팝업 */}
       {filterOpen && (
         <div className="popup-overlay" onClick={closeFilter}>
-          <div className="popup-panel popup-panel--framed" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="popup-panel popup-panel--framed"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="필터"
+          >
             {/* 머리·본문·바닥을 편집 팝업과 같은 짜임으로 */}
             <header className="popup-head">
               <h3 className="popup-head__title">필터</h3>
@@ -992,19 +1253,23 @@ export default function PendingEntries() {
 
             {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다. */}
             <div className="popup-body edit-grid">
+              {/* 거르는 자리는 지난 어느 때로도 갈 수 있어야 한다 —
+                  머리의 연월을 누르면 한 해가 펼쳐진다. */}
               <EditField label="시작일" span={6}>
-                <input
-                  type="date"
+                <DayPicker
+                  monthJump
+                  clearable
                   value={filter.dateFrom}
-                  onChange={(e) => setFilter({ ...filter, dateFrom: e.target.value })}
+                  onChange={(v) => setFilter({ ...filter, dateFrom: v })}
                 />
               </EditField>
 
               <EditField label="종료일" span={6}>
-                <input
-                  type="date"
+                <DayPicker
+                  monthJump
+                  clearable
                   value={filter.dateTo}
-                  onChange={(e) => setFilter({ ...filter, dateTo: e.target.value })}
+                  onChange={(v) => setFilter({ ...filter, dateTo: v })}
                 />
               </EditField>
 
@@ -1126,7 +1391,7 @@ export default function PendingEntries() {
               </EditField>
             </div>
 
-            <div className="btn-row popup-foot">
+            <div className="btn-row popup-foot popup-foot--tight">
               <button
                 className="ui-btn"
                 onClick={() =>
@@ -1147,6 +1412,10 @@ export default function PendingEntries() {
                 }
               >
                 초기화
+              </button>
+              {/* 편집 팝업과 같은 차례로 — 되돌리는 것 · 닫기 · 하려던 것 */}
+              <button className="ui-btn" onClick={closeFilter}>
+                닫기
               </button>
               <button className="ui-btn primary" onClick={applyFilter}>
                 적용
@@ -1222,6 +1491,9 @@ export default function PendingEntries() {
         />
       )}
       <QuickActions />
+
+      {/* 대기 내역은 통째로 내보낸다. 보내기 전의 것이 전부다. */}
+      <ExportButton 길="pending" 이름="대기 내역" 빔={rows.length === 0} />
     </div>
   );
 }
@@ -1238,17 +1510,37 @@ export function PendingCard({
   onOpenEditor,
   onStartReveal,
   onSend,
+  picked = false,
+  onTogglePick,
   blurred,
   readOnly = false,
+  onTogglePerfExclude,
+  fixed,
+  onToggleFixed,
+  peelTip,
 }: {
   row: any;
   cat1List: { id: number; name: string }[];
   cat2List: { id: number; name: string; cat1_id: number; blur?: number; inout?: number | null }[];
   cat3List: { id: number; name: string; cat2_id: number }[];
-  payList: { code: string; name: string }[];
+  payList: { code: string; name: string; category?: string }[];
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
   onSend?: (row: any) => void;
+  /* 뜯는 동안 뜨는 한 줄. 고치지 못하는 화면에서만 쓴다 — 어디로 가야
+     고치는지를 적는다. 넘기지 않으면 그 카드에서는 안내가 뜨지 않는다. */
+  peelTip?: string;
+
+  /* 선택한 항목인지. 넘기지 않으면 선택 상자가 서지 않는다 — 기간 상세처럼
+     보기만 하는 화면은 지금까지와 같은 꼴을 지킨다. */
+  picked?: boolean;
+  onTogglePick?: (id: number) => void;
+  /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
+  onTogglePerfExclude?: (row: PerfRow, next: boolean) => void;
+  /* 이 건이 고정인지 — 건에 정한 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
+  fixed?: boolean;
+  /* 고정 · 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
+  onToggleFixed?: (row: FixedRow, next: boolean) => void;
   /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
      넘기지 않으면 예전처럼 소분류만 본다. */
   blurred?: boolean;
@@ -1257,49 +1549,64 @@ export function PendingCard({
   readOnly?: boolean;
 }) {
   const openEditor = useCallback(() => onOpenEditor(row), [onOpenEditor, row]);
+  /* 여기서 고칠 수 있으면 뜯으라고, 없으면 어디서 고치는지를 적는다. */
+  const 안내 = readOnly ? peelTip : "뜯으면 편집 팝업이 뜹니다.";
   const { pressing, handlers } = useLongPress(openEditor);
+  const peel = usePeel(openEditor);
 
   const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
   const isBlur = blurred ?? (cat2List.find((c) => c.id === row.cat2_id)?.blur === 1);
 
-  const payName =
-    payList.find((p) => String(p.code) === String(row.pay_method))?.name ?? "";
+  const pay = payList.find((p) => String(p.code) === String(row.pay_method));
+  const payName = pay?.name ?? "";
 
-  // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount 다.
+  // 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 분할이 없으면 net === amount다.
   const hasSplit = (row.split_count ?? 0) > 0;
   /* 쪼갠 몫을 펼쳤는지. 카드마다 따로 기억한다. */
   const [open, setOpen] = useState(false);
   const shownAmount = hasSplit ? row.net_amount : row.amount;
 
+  /* 묶인 건은 왼쪽 위 접은 자국이 클립이 된다(index.css 166절). */
+  const isClipped = row.group_id != null;
+
   return (
     <article
-      className={`card card--pressable${readOnly ? " card--flat" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
+      className={`card card--entry card--pressable${readOnly ? " card--flat" : ""}${isClipped ? " is-clipped" : ""} ${pressing && !readOnly ? "pressing" : ""}`}
       {...(readOnly ? {} : handlers)}
       title={readOnly ? undefined : "꾹 눌러서 편집"}
     >
-      {/* IN/OUT 색상 바 */}
+      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국.
+          묶인 건에서는 그 자리가 클립이 된다. 요소는 그대로 두어야 금액
+          빛깔 규칙(.card:has(.in-bar))이 살아 있다. */}
       <div
         className={`inout-bar ${
           row.inout === 1 ? "in-bar" : row.inout === -1 ? "out-bar" : ""
         }`}
-      ></div>
-
-      {/* 1행: 장소 / Send 버튼 ── 날짜는 상단 날짜 단에서 표시한다. */}
-      <div className="card-row row-top">
-        <div className="card-left">
-          <span className="place-text">📍 {row.place_name || "—"}</span>
-        </div>
-        {!readOnly && (
-          <div className="card-right">
-            <button className="ui-btn small" onClick={() => onSend?.(row)}>
-              전송
-            </button>
-          </div>
-        )}
+        title={isClipped && row.group_name ? `묶음 ${row.group_name}` : undefined}
+      >
+        {isClipped && <ClipMark />}
       </div>
+      {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리 · 접혀 넘어오는 조각.
+          어느 화면에서나 떼어진다 — 뜯는 손맛이 화면마다 달라지면 고장 난
+          것으로 읽힌다. 고치지 못하는 화면에서는 끝까지 떼어도 열 팝업이
+          없으니 제자리로 펴져 붙고, 대신 아래 한 줄이 어디서 고치는지를
+          알린다. */}
+      <span className="peel-patch" aria-hidden="true" />
+      <span className="peel-flap" aria-hidden="true">
+        <span className="peel-flap__face" />
+      </span>
+      <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
+      {/* 뜯는 동안만 뜨는 한 줄. 늘 그린 채로 보이고 숨기는 일은 CSS가 맡는다 —
+          끄는 중에 React가 다시 그리면 뜯는 겹이 쥐고 있던 class가 지워진다. */}
+      {안내 && (
+        <span className="peel-tip" aria-hidden="true">
+          {안내}
+        </span>
+      )}
 
-      {/* 2행: 카테고리 */}
-      <div className="row-category">
+      {/* 1행: 분류 + 기호 + 금액 ── 날짜는 상단 날짜 단에서 표시한다.
+          기호 둘은 금액에 딸린 말이라 금액 바로 왼쪽에 선다. */}
+      <div className="entry-ln entry-ln--head">
         <span className="cat-display">
           <span className="cat-text">{cat1Name}</span>
           <span className="cat-sep"> &gt; </span>
@@ -1315,58 +1622,95 @@ export function PendingCard({
             </>
           )}
         </span>
-      </div>
 
-      {/* 3행: 결제 수단 + 금액 */}
-      <div className="row-payment">
-        <span className="pay-method-text">{payName}</span>
+        {/* 달마다 같은 자리에 오는 돈인지. 건마다 뒤집을 수 있다. */}
+        <FixedMark
+          on={fixed ?? false}
+          readOnly={readOnly || !onToggleFixed}
+          onToggle={(next) => onToggleFixed?.(row, next)}
+        />
+        {/* 카드로 그은 건에만 실적 제외 기호가 선다. */}
+        {pay?.category === "카드" && (
+          <PerfExcludeButton
+            on={!!row.perf_exclude}
+            readOnly={readOnly || !onTogglePerfExclude}
+            onToggle={(next) => onTogglePerfExclude?.(row, next)}
+          />
+        )}
 
-        {/* 쪼갠 건은 큰 금액을 실지출로 보여 주고, 원래 결제액은 그 위에 작게 남긴다.
-            그 줄을 누르면 아래에 함께한 사람과 몫이 펼쳐진다. */}
-        <span className="amount-stack">
-          {hasSplit && (
-            <span
-              className={`amount-split ${isBlur && !row.reveal_amount ? "masked" : "revealed"} is-toggle${open ? " open" : ""}`}
-              role="button"
-              tabIndex={0}
-              data-no-longpress
-              title={open ? "몫 접기" : "함께한 사람 보기"}
-              onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-            >
-              {row.amount.toLocaleString("ko-KR")}
-              <span className="amount-split__op"> − </span>
-              {row.split_amount.toLocaleString("ko-KR")}
-              <span className="amount-split__caret" aria-hidden="true">›</span>
-            </span>
-          )}
-          <span
-            className={`amount-text ${shownAmount === 0 ? "zero " : ""}${
-              isBlur && !row.reveal_amount ? "masked" : "revealed"
-            }`}
-            data-no-longpress
-            onMouseDown={(e) => isBlur && onStartReveal(row.entry_id, e)}
-            onTouchStart={(e) => isBlur && onStartReveal(row.entry_id, e)}
-          >
-            {typeof shownAmount === "number"
-              ? shownAmount.toLocaleString("ko-KR")
-              : ""}
-          </span>
+        <span
+          className={`amount-text ${shownAmount === 0 ? "zero " : ""}${
+            isBlur && !row.reveal_amount ? "masked" : "revealed"
+          }`}
+          data-no-longpress
+          onMouseDown={(e) => isBlur && onStartReveal(row.entry_id, e)}
+          onTouchStart={(e) => isBlur && onStartReveal(row.entry_id, e)}
+        >
+          {typeof shownAmount === "number"
+            ? shownAmount.toLocaleString("ko-KR")
+            : ""}
         </span>
       </div>
 
-      {/* 4행: 메모 */}
-      {/* 메모가 없으면 줄도 만들지 않는다 — 빈 줄이 카드를 20px씩 늘렸다. */}
-      {row.memo && (
-        <div className="card-row row-bottom">
-          <div className="card-left">
-            <span className="memo-text">{row.memo}</span>
+      {/* 2행: 장소 + 결제 수단 + [전송] */}
+      {/* 장소와 결제 수단은 지출 · 정기와 같이 한 줄이다 — 장소가 왼쪽 끝,
+          결제 수단이 오른쪽 끝. [전송]은 그 오른쪽 — 보내는 것은 이 결제 수단으로
+          그었다고 굳히는 일이라 떼어 놓지 않는다. 장소는 남는 폭만 쓰고 넘치면
+          말줄임된다. 메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
+      <div className="entry-ln entry-ln--send">
+        {/* 선택해서 함께 보내는 상자. 카드를 꾹 누르면 편집 팝업이 열리므로
+            이 상자는 꾹 누르기에서 뺀다(data-no-longpress). */}
+        {onTogglePick && (
+          <button
+            type="button"
+            className={`pe-pick${picked ? " pe-pick--on" : ""}`}
+            data-no-longpress
+            aria-pressed={picked}
+            title={picked ? "선택 해제" : "선택"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePick(row.entry_id);
+            }}
+          >
+            ✓
+          </button>
+        )}
+        {row.place_name && <span className="place-text">📍 {row.place_name}</span>}
+        <span className="pay-method-text">{payName}</span>
+        {!readOnly && (
+          <div className="card-right">
+            <button className="ui-btn small" onClick={() => onSend?.(row)}>
+              전송
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* 펼쳤을 때만 — 함께한 사람과 몫 */}
-      {hasSplit && open && (
-        <SplitRows base="/pending-entries" ownerId={row.entry_id} />
+      <MemoPad memo={row.memo} />
+
+      {/* 쪼갠 건 — 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다. */}
+      {hasSplit && (
+        <div className={`split-tab${open ? " open" : ""}`}>
+          <span
+            className={`amount-split ${isBlur && !row.reveal_amount ? "masked" : "revealed"} is-toggle${open ? " open" : ""}`}
+            role="button"
+            tabIndex={0}
+            data-no-longpress
+            title={open ? "몫 접기" : "함께한 사람 보기"}
+            onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+          >
+            {/* 뺄셈 한 덩어리 — "모두 펼치기|접기"와 같은 음영을 깔고 손잡이만 밖에 둔다. */}
+            <span className="amount-split__calc">
+              {row.amount.toLocaleString("ko-KR")}
+              <span className="amount-split__op"> − </span>
+              {row.split_amount.toLocaleString("ko-KR")}
+            </span>
+            <span className="amount-split__caret" aria-hidden="true">›</span>
+          </span>
+          <Collapse open={open}>
+            <SplitRows base="/pending-entries" ownerId={row.entry_id} />
+          </Collapse>
+        </div>
       )}
     </article>
   );

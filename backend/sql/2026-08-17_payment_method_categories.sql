@@ -3,7 +3,7 @@
 -- 2026-08-17
 -- ─────────────────────────────────────────────────────────────
 -- 지금까지 구분은 코드에 박힌 문자열이었고, 이모지는 이름으로만
--- 매달아 둔 옆 표(group_emojis)에 있었다.
+-- 매단 옆 표(group_emojis)에 있었다.
 -- 이래서는 "구분별 집계에 이모지를 같이 붙인다" 같은 일을 할 때
 -- 이름 문자열로 조인해야 하고, 이름을 고치는 순간 끊긴다.
 --
@@ -65,7 +65,7 @@ END $$;
 CREATE INDEX IF NOT EXISTS payment_methods_category_idx
     ON life_expense.payment_methods (category_id);
 
--- 기존 문자열 값으로 채워 둔다(현재는 전부 NULL이라 바뀌는 행이 없다)
+-- 기존 문자열 값으로 채운다(현재는 전부 NULL이라 바뀌는 행이 없다).
 UPDATE life_expense.payment_methods p
    SET category_id = c.category_id
   FROM life_expense.payment_method_categories c

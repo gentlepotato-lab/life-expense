@@ -4,6 +4,7 @@ import useBackClose from "../../hooks/useBackClose";
 import NudgeGroup from "./NudgeGroup";
 import { PAGE_ICON } from "./MenuIcons";
 import type { Nudge } from "../../utils/nudges";
+import Waiting from "./Waiting";
 
 /**
  * 종 단추를 눌렀을 때 뜨는 잔소리.
@@ -29,7 +30,7 @@ export default function NudgePopup({
     return () => document.documentElement.classList.remove("modal-open");
   }, []);
 
-  /* 팝업은 뒤로 가기용 자리를 하나 밀어 두고 있다. 그냥 옮기면 그 자리를
+  /* 팝업은 뒤로 가기용 자리를 하나 밀고 있다. 그냥 옮기면 그 자리를
      되감으면서 방금 연 화면에서 튕겨 나온다. 먼저 뒤로 가서 팝업을 닫고,
      그 되감기가 끝난 뒤에 옮긴다.
      귀 기울이는 일을 useEffect가 아니라 누르는 그 자리에서 붙인다 —
@@ -60,7 +61,7 @@ export default function NudgePopup({
         </header>
 
         <div className="popup-body nudge-popup">
-          {!ready && <div className="nudge-none">세어 보는 중입니다.</div>}
+          {!ready && <Waiting />}
           {ready && mind.length === 0 && well.length === 0 && (
             <div className="nudge-none">잔소리할 게 없습니다.</div>
           )}

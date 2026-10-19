@@ -1,9 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 from app.deps import get_db, SessionDep
 from app.models import PendingEntry, CategoryL1, CategoryL2, CategoryL3, PaymentMethod, Place
-import pandas as pd
-from io import BytesIO
 
 router = APIRouter()
 
@@ -73,67 +71,28 @@ def load_meta_maps(db):
 
     return cat1_map, cat2_map, cat3_map, pay_map
 
-@router.post("/import")
-async def import_pending_entries(
-    file: UploadFile = File(...),
-    db: SessionDep = Depends()
-):
-
-    # 1) 엑셀 읽기
-    file_bytes = await file.read()
-    df = pd.read_excel(BytesIO(file_bytes))
-
-    required_cols = ["날짜", "중분류", "소분류", "세분류", "IN/OUT", "결제 수단", "금액", "메모"]
-    for col in required_cols:
-        if col not in df.columns:
-            return {"error": f"Excel에 '{col}' 컬럼이 없습니다."}
-
-    # 2) 메타 매핑 로딩
-    cat1_map, cat2_map, cat3_map, pay_map = load_meta_maps(db)
-
-    # 3) 변환된 row 리스트
-    inserted = 0
-
-    for _, row in df.iterrows():
-        # 중분류 → cat1_id
-        c1 = cat1_map.get(str(row["중분류"]).strip())
-        c2 = None
-        c3 = None
-
-        if c1:
-            # 소분류 → cat2_id
-            c2 = cat2_map.get((c1, str(row["소분류"]).strip()))
-
-            if c2:
-                # 세분류 → cat3_id
-                c3 = cat3_map.get((c2, str(row["세분류"]).strip()))
-
-        # IN/OUT 변환
-        inout = 1 if str(row["IN/OUT"]).upper() == "IN" else -1
-
-        # 결제 수단 이름 → method_id
-        pay = pay_map.get(str(row["결제 수단"]).strip())
-
-        # 메모 NaN 처리
-        memo_value = row.get("메모")
-        memo = None if pd.isna(memo_value) else str(memo_value)
-        
-        new_item = PendingEntry(
-            tx_date=row["날짜"],
-            cat1_id=c1,
-            cat2_id=c2,
-            cat3_id=c3,
-            inout=inout,
-            amount=row["금액"],
-            pay_method=pay,
-            memo=memo
-        )
-
-        db.add(new_item)
-        inserted += 1
-
+@router.put("/{entry_id}/perf-exclude")
+def set_perf_exclude(entry_id: int, value: int = Query(...), db: SessionDep = Depends()):
+    """카드 실적에서 뺄지를 켜고 끈다. 지출 내역과 같은 자리다."""
+    result = db.execute(text("""
+        UPDATE life_expense.pending_entries
+           SET perf_exclude = :v
+         WHERE entry_id = :id
+    """), {"v": 1 if value else 0, "id": entry_id})
     db.commit()
-    return {"status": "ok", "inserted": inserted}
+    return {"status": "ok", "updated": result.rowcount}
+
+@router.put("/{entry_id}/fixed")
+def set_fixed(entry_id: int, value: str = Query(...), db: SessionDep = Depends()):
+    """이 건이 고정인지 변동인지를 손으로 정한다. 지출 내역과 같은 자리다."""
+    v = None if value == "" else (1 if value in ("1", "true", "fixed") else 0)
+    result = db.execute(text("""
+        UPDATE life_expense.pending_entries
+           SET fixed_flag = :v
+         WHERE entry_id = :id
+    """), {"v": v, "id": entry_id})
+    db.commit()
+    return {"status": "ok", "updated": result.rowcount}
 
 @router.get("")
 def list_pending_entries(db: SessionDep = Depends()):
@@ -157,6 +116,8 @@ def list_pending_entries(db: SessionDep = Depends()):
              , COALESCE(vn.split_count, 0) AS split_count
              -- 화면에서 "함께한 상대"로 걸러 낼 수 있도록 상대 ID를 함께 보낸다.
              -- 목록을 한 번만 읽고 화면에서 거르는 구조라, 행마다 들려 있어야 한다.
+             -- 묶음 이름. 카드에 클립을 세울지 여기 하나로 가른다.
+             , eg.name AS group_name
              , COALESCE(
                    (SELECT array_agg(DISTINCT s.counterpart_id)
                       FROM life_expense.pending_entry_splits s
@@ -169,6 +130,8 @@ def list_pending_entries(db: SessionDep = Depends()):
                ON p.place_id = pl.place_id
         LEFT JOIN life_expense.v_pending_entries_net vn
                ON vn.entry_id = p.entry_id
+        LEFT JOIN life_expense.entry_groups eg
+               ON eg.group_id = p.group_id
         WHERE p.sended = 0
         ORDER BY p.tx_date DESC, p.entry_id DESC
     """)
@@ -201,7 +164,9 @@ def send_pending(entry_id: int, db: SessionDep = Depends()):
         amount=float(p.amount),
         pay_method=p.pay_method,
         memo=p.memo,
-        place_id=p.place_id  # ← ← ← 중요: 기존 장소 그대로 전달
+        place_id=p.place_id,  # ← ← ← 중요: 기존 장소 그대로 전달
+        perf_exclude=p.perf_exclude,
+        fixed_flag=p.fixed_flag,
     )
 
     db.add(new_entry)
@@ -235,7 +200,9 @@ def send_all_pending(db: SessionDep = Depends()):
             amount=float(p.amount),
             pay_method=p.pay_method,
             memo=p.memo,
-            place_id=p.place_id
+            place_id=p.place_id,
+            perf_exclude=p.perf_exclude,
+        fixed_flag=p.fixed_flag,
         )
         
         db.add(new_entry)
@@ -280,7 +247,9 @@ def send_filtered_pending(payload: SendFilteredRequest, db: SessionDep = Depends
             amount=float(p.amount),
             pay_method=p.pay_method,
             memo=p.memo,
-            place_id=p.place_id
+            place_id=p.place_id,
+            perf_exclude=p.perf_exclude,
+        fixed_flag=p.fixed_flag,
         )
         
         db.add(new_entry)
