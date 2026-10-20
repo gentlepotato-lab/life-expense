@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
 import { say, ask } from "../../utils/notify";
-import GrowArea from "./GrowArea";
 
 /**
  * 공지사항 편집.
@@ -101,12 +100,15 @@ export default function AdminNotices() {
           onChange={(e) => set초안({ ...초안, title: e.target.value })}
           placeholder="제목"
         />
-        {/* 사용자 화면이 메모에 쓰는 칸을 그대로 쓴다. 담긴 글만큼 키가 자란다. */}
-        <GrowArea
+        {/* 일곱 줄로 못 박는다. 글에 맞춰 자라게 두면 적는 동안 아래 단추가
+            밀려 내려가, 적다 말고 눌러야 할 자리를 다시 찾게 된다. 넘치면
+            칸 안에서 구른다(index.css의 textarea.admin-area). */}
+        <textarea
           className="admin-area"
           value={초안.body}
-          onChange={(v) => set초안({ ...초안, body: v })}
+          onChange={(e) => set초안({ ...초안, body: e.target.value })}
           placeholder="본문"
+          rows={7}
         />
         <div className="admin-row">
           <input

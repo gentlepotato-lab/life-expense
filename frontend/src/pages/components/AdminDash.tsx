@@ -51,7 +51,9 @@ export default function AdminDash() {
 
   useEffect(() => {
     let 살아있나 = true;
-    set셈(null);
+    /* 앞서 받은 셈을 비우지 않는다. 비우면 격자가 통째로 사라졌다가 다시
+       서면서 카드 키가 크게 튄다. 기간을 바꾸는 동안에는 옛 값을 그대로
+       두고, 새 값이 오면 조용히 갈아 끼운다. */
     set탈(false);
     axios
       .get("/admin/stats", { params: { days: 기간 }, headers: 머리() })
@@ -93,10 +95,10 @@ export default function AdminDash() {
         <div className="admin-grid">
           <section className="card admin-card">
             <h3 className="admin-card__title">화면별 드나든 수</h3>
-            {셈.view.length === 0 ? (
-              <p className="page-empty">아직 쌓인 것이 없습니다.</p>
-            ) : (
-              <div className="admin-card__body">
+            <div className="admin-card__body">
+              {셈.view.length === 0 ? (
+                <p className="page-empty">아직 쌓인 것이 없습니다.</p>
+              ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={셈.view.slice(0, 8)} layout="vertical" margin={{ top: 4, right: 28, bottom: 4, left: 4 }}>
                     <XAxis type="number" hide />
@@ -106,16 +108,16 @@ export default function AdminDash() {
                       label={{ position: "right", fontSize: 11, fill: "var(--color-text-secondary)" }} />
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
-            )}
+              )}
+            </div>
           </section>
 
           <section className="card admin-card">
             <h3 className="admin-card__title">적고 고친 건수</h3>
-            {셈.write.length === 0 ? (
-              <p className="page-empty">아직 쌓인 것이 없습니다.</p>
-            ) : (
-              <div className="admin-card__body">
+            <div className="admin-card__body">
+              {셈.write.length === 0 ? (
+                <p className="page-empty">아직 쌓인 것이 없습니다.</p>
+              ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={셈.write} margin={{ top: 12, right: 12, bottom: 4, left: -16 }}>
                     <CartesianGrid stroke="var(--color-border)" vertical={false} />
@@ -126,16 +128,16 @@ export default function AdminDash() {
                     <Line type="monotone" dataKey="n" name="건수" stroke={짙은빛} strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
-              </div>
-            )}
+              )}
+            </div>
           </section>
 
           <section className="card admin-card">
             <h3 className="admin-card__title">기능별 쓰임</h3>
-            {셈.feature.length === 0 ? (
-              <p className="page-empty">아직 쌓인 것이 없습니다.</p>
-            ) : (
-              <div className="admin-card__body">
+            <div className="admin-card__body">
+              {셈.feature.length === 0 ? (
+                <p className="page-empty">아직 쌓인 것이 없습니다.</p>
+              ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={셈.feature.slice(0, 8)} layout="vertical" margin={{ top: 4, right: 28, bottom: 4, left: 4 }}>
                     <XAxis type="number" hide />
@@ -145,16 +147,17 @@ export default function AdminDash() {
                       label={{ position: "right", fontSize: 11, fill: "var(--color-text-secondary)" }} />
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
-            )}
+              )}
+            </div>
           </section>
 
           <section className="card admin-card">
             <h3 className="admin-card__title">오류와 느린 요청</h3>
-            {셈.error.length === 0 ? (
-              <p className="page-empty">아직 쌓인 것이 없습니다.</p>
-            ) : (
-              <ul className="admin-slow">
+            <div className="admin-card__body admin-card__body--list">
+              {셈.error.length === 0 ? (
+                <p className="page-empty">아직 쌓인 것이 없습니다.</p>
+              ) : (
+                <ul className="admin-slow">
                 {셈.error.slice(0, 8).map((r) => (
                   <li key={r.name} className="admin-slow__row">
                     <span className="admin-slow__path">{r.name}</span>
@@ -164,8 +167,9 @@ export default function AdminDash() {
                     </span>
                   </li>
                 ))}
-              </ul>
-            )}
+                </ul>
+              )}
+            </div>
           </section>
         </div>
       )}
