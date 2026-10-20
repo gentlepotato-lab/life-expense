@@ -20793,7 +20793,9 @@ html:has(.popup-overlay) .add-btn {
   --color-success: #00A89F;
   --color-danger: #E64842;
 
-  --color-bg: #F8F9FA;
+  /* 바탕만 한 단 내린다. 카드가 흰빛이라 그 위에서 흰 종이가 떠 보이고,
+     운영하는 자리라는 결도 살짝 묻어난다. 앱 바탕은 #F8F9FA 다. */
+  --color-bg: #F1F3F5;
   --color-surface: #FFFFFF;
   --color-border: #E9ECEF;
 
