@@ -20494,3 +20494,107 @@ html:has(.popup-overlay) .add-btn {
   animation: none;
   opacity: 1;
 }
+
+
+/* ─────────────────────────────────────────────
+   185. 홈 위쪽 공지 띠(2026-10-20)
+   ───────────────────────────────────────────── */
+
+/* 홈 맨 위에 한 줄로 선다. 누르면 본문이 펼쳐진다.
+
+   뜰 공지가 없으면 조각 자체를 그리지 않는다(NoticeBand.tsx가 null을
+   돌려준다). 높이 0으로 두면 아래가 한 픽셀 밀리는데, 홈은 손이 가장 자주
+   닿는 화면이라 그래서는 안 된다.
+
+   생김새는 홈 카드(.home-card)의 결을 그대로 쓴다. 테와 모서리와 그림자를
+   같은 토큰에서 꺼내 쓰므로, 빛깔 벌을 바꾸면 띠도 함께 따라간다. */
+.notice-band {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  margin-bottom: var(--space-3);
+  overflow: hidden;
+}
+
+/* 누르는 자리. 전역 button 규칙이 높이를 못 박으므로 여기서 푼다 —
+   본문이 두 줄이 되어도 띠가 그만큼 자라야 한다. */
+.notice-band__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  padding: var(--space-3);
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* 공지라고 알리는 딱지. 앱이 쓰던 알림 빛깔(강조색) 그대로다. */
+.notice-band__tag {
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+}
+
+/* 제목은 한 줄로 끊는다. 두 줄이 되면 띠 높이가 공지마다 달라져 홈이
+   들썩인다. */
+.notice-band__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 뒤에 더 있을 때의 수. 띠는 하나만 띄우므로 몇이 남았는지 알린다. */
+.notice-band__more {
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* 펼침 표시. 열면 아래를 가리킨다. */
+.notice-band__arrow {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid var(--color-text-tertiary);
+  border-bottom: 1.5px solid var(--color-text-tertiary);
+  transform: rotate(-45deg) translate(-1px, -1px);
+  transition: transform var(--dur) var(--ease);
+}
+.notice-band.is-open .notice-band__arrow {
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+/* 펼친 본문. 머리와 가르는 줄을 한 겹 둔다. */
+.notice-band__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-3);
+}
+
+/* 본문 글. 줄바꿈을 적은 그대로 살린다. */
+.notice-band__text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  word-break: keep-all;
+}

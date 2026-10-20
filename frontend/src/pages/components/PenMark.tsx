@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { 자국들, 인사들, 기본인사 } from "../../utils/doodlePool";
 import { getWho, 글칸, 누구글, 누구채우기 } from "../../utils/who";
 
 /**
@@ -62,8 +63,28 @@ const 여백 = 1.5;
 /** 끝 그림이 쓰는 네모. 여덟 가지가 모두 이 한 칸을 같게 채운다. */
 const S = 15;
 
+/* 그리는 법을 아는 그림의 이름. 관리자가 서버에서 끄고 켜도 여기 없는
+   이름은 그리지 못하므로, 받아 온 목록을 이것으로 거른다. */
 const 꼴들 = ["별", "동그라미", "네모", "세모", "다이아", "하트", "초승달", "돼지꼬리"] as const;
 export type 자국꼴 = (typeof 꼴들)[number];
+const 아는꼴 = new Set<string>(꼴들);
+
+/**
+ * 지금 쪽지에 들 수 있는 그림.
+ *
+ * 서버에서 받아 온 것 가운데 그릴 줄 아는 것만 쓴다. 하나도 남지 않으면
+ * 코드에 있는 여덟을 그대로 쓴다 — 쪽지가 빈 채로 도는 것보다 낫다.
+ */
+function 쓸꼴들(): 자국꼴[] {
+  const 걸러진것 = 자국들().filter((n): n is 자국꼴 => 아는꼴.has(n));
+  return 걸러진것.length > 0 ? 걸러진것 : [...꼴들];
+}
+
+/** 지금 쪽지에 들 수 있는 인사말. 하나도 없으면 코드에 있는 것을 쓴다. */
+function 쓸인사들(): string[] {
+  const 받은것 = 인사들();
+  return 받은것.length > 0 ? 받은것 : [기본인사];
+}
 
 /**
  * 하트 곡선.
@@ -250,11 +271,11 @@ function 한획(폭: number, 꼴: 자국꼴): string {
  */
 type 바퀴 = "인사" | "자국" | "이름";
 
-/** 인사말. 새로 연 첫 바퀴에 들고, 그 뒤로도 셋 가운데 하나로 뽑힌다. */
-const 인사말 = "안녕하세요-! ;-)";
+/* 인사말은 서버에서 받아 온 것 가운데 하나를 뽑는다. 하나뿐이면 늘 그것이
+   들어, 받기 전과 못 받았을 때가 지금 화면과 똑같다. */
 
-/** 한 바퀴에 들 수 있는 것 하나. */
-type 거리 = { 바퀴: 바퀴; 꼴?: 자국꼴 };
+/** 한 바퀴에 들 수 있는 것 하나. `글`은 인사가 드는 바퀴에만 있다. */
+type 거리 = { 바퀴: 바퀴; 꼴?: 자국꼴; 글?: string };
 
 /**
  * 다음 바퀴에 들 것을 뽑는다.
@@ -271,8 +292,8 @@ type 거리 = { 바퀴: 바퀴; 꼴?: 자국꼴 };
  * 그러면 더는 같은 확률이 아니다.
  */
 function 다음것(이름글: string): 거리 {
-  const 모음: 거리[] = 꼴들.map((k) => ({ 바퀴: "자국" as const, 꼴: k }));
-  모음.push({ 바퀴: "인사" });
+  const 모음: 거리[] = 쓸꼴들().map((k) => ({ 바퀴: "자국" as const, 꼴: k }));
+  쓸인사들().forEach((글) => 모음.push({ 바퀴: "인사" as const, 글 }));
   /* 이름도 이모지도 없으면 그 자리는 아예 뺀다 — 빈 쪽지가 뜨면 안 된다. */
   if (이름글) 모음.push({ 바퀴: "이름" });
   return 모음[Math.floor(Math.random() * 모음.length)];
@@ -318,7 +339,13 @@ export default function PenMark() {
   const [폭, set폭] = useState(() =>
     쪽지폭(typeof document === "undefined" ? 360 : document.documentElement.clientWidth)
   );
-  const [꼴, set꼴] = useState<자국꼴>(() => 꼴들[Math.floor(Math.random() * 꼴들.length)]);
+  const [꼴, set꼴] = useState<자국꼴>(() => {
+    const 뽑을것 = 쓸꼴들();
+    return 뽑을것[Math.floor(Math.random() * 뽑을것.length)];
+  });
+  /* 이 바퀴에 적을 인사. 새로 연 첫 바퀴는 차례가 가장 앞선 것으로 간다 —
+     관리자가 인사를 여럿 켜 두더라도 앱을 연 첫 인상은 한결같아야 한다. */
+  const [인사글, set인사글] = useState<string>(() => 쓸인사들()[0]);
   /* 앱을 새로 연 뒤 첫 바퀴는 늘 인사다. 화면을 옮겨 다시 설 때는 뽑기로
      간다 — 탭을 누를 때마다 인사로 시작하면 그 뜻을 잃는다. */
   const [바퀴, set바퀴] = useState<바퀴>(() => (첫바퀴돌았나 ? "자국" : "인사"));
@@ -368,13 +395,14 @@ export default function PenMark() {
       const 그다음 = 다음것(이름글);
       if (그다음.꼴) set꼴(그다음.꼴);
       set바퀴(그다음.바퀴);
+      if (그다음.글) set인사글(그다음.글);
     };
     el.addEventListener("animationiteration", 한바퀴);
     return () => el.removeEventListener("animationiteration", 한바퀴);
   }, [이름글]);
 
   /* 이 바퀴에 적을 글. 빈 글이면 자국이 드는 바퀴다. */
-  const 적을글 = 바퀴 === "인사" ? 인사말 : 바퀴 === "이름" ? 이름글 : "";
+  const 적을글 = 바퀴 === "인사" ? 인사글 : 바퀴 === "이름" ? 이름글 : "";
   /* 글이 드는 바퀴에는 끝 그림 없이 곧은 줄만 긋는다. 펜은 이 길을 타고
      가므로, 길을 바꾸면 펜이 가는 결도 함께 바뀐다. */
   const 길 = 적을글 ? 민줄(폭) : 한획(폭, 꼴);

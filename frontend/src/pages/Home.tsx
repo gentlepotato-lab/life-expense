@@ -8,6 +8,7 @@ import {
   ArtPlaces,
 } from "./components/HomeArt";
 import QuickActions from "./components/QuickActions";
+import NoticeBand from "./components/NoticeBand";
 
 /**
  * 첫 화면.
@@ -71,6 +72,10 @@ export default function Home() {
 
   return (
     <div className="page-wrap home">
+
+      {/* 공지 띠 — 뜰 것이 없으면 아무것도 그리지 않는다. 공지를 쓰기
+          전까지 홈은 지금과 한 픽셀도 다르지 않다. */}
+      <NoticeBand />
 
       {/* 위 한 행 — 둘이 나란히 */}
       <div className="home-row">

@@ -25,6 +25,9 @@ import PageHead from "./pages/components/PageHead";
 import TabBar from "./pages/components/TabBar";
 import NotifyHost from "./pages/components/NotifyHost";
 import { loadPrefs, pref, takeHome } from "./utils/prefs";
+import { loadMenuOff } from "./utils/menuOff";
+import { loadDoodlePool } from "./utils/doodlePool";
+import MenuGate from "./pages/components/MenuGate";
 import { applyTape } from "./utils/tapes";
 import { applyMotion } from "./utils/motion";
 
@@ -97,6 +100,14 @@ function App() {
     });
   }, []);
 
+  /* 꺼 놓은 메뉴를 한 번 받는다. 받기 전에는 빈 목록이라 전부 켜진 것으로
+     보이고, 그것이 지금 화면과 같은 상태다. 못 받아 와도 마찬가지다 —
+     메뉴가 통째로 사라지느니 전부 켜진 채로 두는 편이 낫다. */
+  useEffect(() => {
+    void loadMenuOff();
+    void loadDoodlePool();
+  }, []);
+
   return (
     // 화면은 루트에 선다. API가 모두 /api 아래로 들어가면서
     // 더 이상 /app/으로 비켜 서 있을 이유가 없어졌다.
@@ -109,6 +120,10 @@ function App() {
           화면 바깥에 한 번만 둔다 — 화면을 옮겨도 떠 있던 알림이 살아 있어야
           한다. 뜬 것이 없는 동안에는 아무것도 그리지 않는다. */}
       <NotifyHost />
+
+      {/* 꺼 놓은 메뉴의 화면으로 주소를 치고 들어오면 홈으로 보낸다.
+          메뉴에서만 빼면 주소를 아는 사람은 그대로 들어온다. */}
+      <MenuGate />
 
       <Routes>
         {/* 홈: / — 들어가는 문만 낸 첫 화면 */}

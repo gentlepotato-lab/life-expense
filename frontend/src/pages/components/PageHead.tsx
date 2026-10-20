@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useReducer } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PAGE_TITLE, PAGE_NOTE, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
+import { keepOn, onMenuOff } from "../../utils/menuRegistry";
 import useHeadPin from "../../hooks/useHeadPin";
 import PenMark from "./PenMark";
 
@@ -14,8 +15,10 @@ import PenMark from "./PenMark";
  * 제목은 왼쪽 위. 웹 앱으로 띄우는 만큼 브라우저 탭 제목도 같이 맞춘다.
  */
 function subTabsFor(pathname: string): string[] | null {
-  if (ENTRY_TABS.includes(pathname)) return ENTRY_TABS;
-  if (SETTING_TABS.includes(pathname)) return SETTING_TABS;
+  /* 꺼 놓은 메뉴는 알약에서도 뺀다. 목록에서만 빼고 알약을 두면 거기로
+     가는 길이 남는다. */
+  if (ENTRY_TABS.includes(pathname)) return keepOn(ENTRY_TABS);
+  if (SETTING_TABS.includes(pathname)) return keepOn(SETTING_TABS);
   return null;
 }
 
@@ -50,6 +53,11 @@ function noteParts(note: string) {
 
 export default function PageHead() {
   const { pathname } = useLocation();
+
+  /* 꺼 놓은 메뉴 목록은 앱이 뜬 뒤에 도착한다. 그때 알약을 다시 그린다.
+     아무것도 꺼져 있지 않으면 목록이 그대로라 한 줄도 달라지지 않는다. */
+  const [, 다시] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => onMenuOff(다시), []);
   const navigate = useNavigate();
 
   /* 머리말과 첫 줄 도구를 위에 붙인다. 굴리는 쪽을 보고 감추거나 드러낸다. */

@@ -1,6 +1,8 @@
+import { useEffect, useReducer } from "react";
 import { useNavigate } from "react-router-dom";
 import { PAGE_TITLE } from "../../utils/pageTitles";
 import { PAGE_ICON } from "./MenuIcons";
+import { keepOn, onMenuOff } from "../../utils/menuRegistry";
 
 /**
  * 탭 안에서 상세 화면으로 들어가는 목록.
@@ -32,9 +34,16 @@ const DESC: Record<string, string | string[]> = {
 export default function MenuList({ paths }: { paths: string[] }) {
   const navigate = useNavigate();
 
+  /* 꺼 놓은 메뉴는 그리지 않는다. 목록은 앱이 뜬 뒤에 도착하므로 그때
+     다시 그린다. 아무것도 꺼져 있지 않으면 받은 배열을 그대로 쓰므로
+     지금과 한 줄도 다르지 않다. */
+  const [, 다시] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => onMenuOff(다시), []);
+  const 켠것 = keepOn(paths);
+
   return (
     <div className="menu-list">
-      {paths.map((to) => (
+      {켠것.map((to) => (
         <button
           key={to}
           type="button"

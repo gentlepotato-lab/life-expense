@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS life_expense.site_prefs (
 
 -- ── 공지사항 ────────────────────────────────────────────────
 --
--- 홈 맨 위에 한 줄 띠로 뜬다. 뜨는 기간은 날짜만 담으므로 _on으로 끝낸다
--- (시각까지 담는 칸은 _at이다). 둘 다 비우면 늘 뜬다는 뜻이다.
+-- 홈 맨 위에 한 줄 띠로 뜬다. 뜨는 기간은 날짜만 담으므로 _on으로
+-- 끝낸다(시각까지 담는 칸은 _at이다). 둘 다 비우면 늘 뜬다는 뜻이다.
 CREATE TABLE IF NOT EXISTS life_expense.notices (
     notice_id  serial PRIMARY KEY,
     title      varchar(100) NOT NULL,
@@ -102,9 +102,9 @@ ON CONFLICT (item_key) DO NOTHING;
 -- 따로 물어야 하고, 기간을 바꿀 때마다 네 번 돌게 된다.
 --
 -- kind는 무엇을 센 줄인지다.
---   view    화면별 드나든 수 — 라우터가 경로 바뀔 때 적는다
---   feature 기능별 쓰임 — 영수증, 묶음, 엑셀을 쓸 때 적는다
---   error   오류와 느린 요청 — axios 인터셉터가 적는다
+--   view    화면별 드나든 수 — 라우터가 경로 바뀔 때 적는다.
+--   feature 기능별 쓰임 — 영수증, 묶음, 엑셀을 쓸 때 적는다.
+--   error   오류와 느린 요청 — axios 인터셉터가 적는다.
 -- 적고 고친 건수(write)는 적지 않는다. entries에 날짜 칸이 있어 거기서
 -- 셈하면 되고, 그래야 지난 것까지 소급해서 보인다.
 --
