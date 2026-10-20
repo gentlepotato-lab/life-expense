@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type React from "react";
 import { say } from "../utils/notify";
 import { 자물쇠상태, 들어가기, 나가기, 토큰, 암호바꾸기 } from "../utils/adminAuth";
+import { 관리자앱입히기, 관리자앱벗기기 } from "../utils/adminPwa";
 import AdminDash from "./components/AdminDash";
 import AdminNotices from "./components/AdminNotices";
 import { AdminMenu, AdminDoodle } from "./components/AdminToggles";
@@ -48,6 +49,13 @@ export default function Admin() {
      헷갈리지 않게 한다. */
   useEffect(() => {
     document.title = "돈을 쓰다 관리자";
+  }, []);
+
+  /* 손전화에 따로 깔리도록 머리의 manifest를 관리자 것으로 바꾼다.
+     나갈 때 되돌리지 않으면 사용자 화면에서도 관리자 앱으로 깔린다. */
+  useEffect(() => {
+    관리자앱입히기();
+    return 관리자앱벗기기;
   }, []);
 
   useEffect(() => {

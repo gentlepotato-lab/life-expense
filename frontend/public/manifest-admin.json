@@ -1,0 +1,30 @@
+{
+  "id": "/admin",
+  "name": "돈을 쓰다 관리자",
+  "short_name": "관리자",
+  "description": "돈을 쓰다 운영 화면",
+  "lang": "ko",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "background_color": "#6B2CB8",
+  "theme_color": "#6B2CB8",
+  "icons": [
+    {
+      "src": "/icon-admin-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-admin-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-admin-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
