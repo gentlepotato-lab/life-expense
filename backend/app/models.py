@@ -597,3 +597,107 @@ class AppPref(Base):
     pref_key = Column(String(40), primary_key=True)
     pref_value = Column(String(200), nullable=False)
     updated_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class SitePref(Base):
+    """
+    운영하는 사람의 설정.
+
+    AppPref와 칸을 똑같이 맞춘다. 둘이 같은 꼴이어야 "쓰는 사람의 설정"과
+    "운영하는 사람의 설정"을 같은 코드로 다룰 수 있다. 받는 열쇠는 라우터가
+    SITE_KEYS로 가려 받는다 — 거기 없는 열쇠는 들어오지 않는다.
+    """
+    __tablename__ = "site_prefs"
+
+    pref_key = Column(String(40), primary_key=True)
+    pref_value = Column(String(200), nullable=False)
+    # 나중에 여럿이 될 때 자료를 옮기지 않으려고 미리 만든 칸이다.
+    user_id = Column(Integer, nullable=False, default=1)
+    updated_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class Notice(Base):
+    """
+    공지사항.
+
+    홈 맨 위에 한 줄 띠로 뜨고, 누르면 본문이 펼쳐진다. 읽은 표시는
+    돈쓴이의 설정(app_prefs)에 마지막으로 읽은 번호로 담는다.
+    """
+    __tablename__ = "notices"
+
+    notice_id = Column(Integer, primary_key=True)
+    title = Column(String(100), nullable=False)
+    body = Column(String)
+    # 날짜만 담으므로 _on으로 끝낸다. 둘 다 비우면 늘 뜬다는 뜻이다.
+    start_on = Column(Date)
+    end_on = Column(Date)
+    sort_order = Column(Integer, nullable=False, default=0)
+    is_active = Column(SmallInteger, nullable=False, default=1)
+    user_id = Column(Integer, nullable=False, default=1)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class DoodleItem(Base):
+    """
+    애니메이션 문구.
+
+    안내 줄 쪽지와 앞머리 화면이 번갈아 띄우는 것들이다. kind는 mark(그림
+    자국)이거나 hello(인사말)다. 이름과 이모지는 돈쓴이가 정하는 것이라
+    여기 담지 않는다.
+
+    확률은 켜진 줄을 전부 늘어놓고 1/전체로 뽑는다. 갈래로 먼저 나누면
+    그림 하나하나가 글자보다 여덟 배 드물어진다.
+    """
+    __tablename__ = "doodle_items"
+
+    item_key = Column(String(40), primary_key=True)
+    kind = Column(String(20), nullable=False)
+    label = Column(String(100), nullable=False)
+    sort_order = Column(Integer, nullable=False, default=0)
+    is_active = Column(SmallInteger, nullable=False, default=1)
+    user_id = Column(Integer, nullable=False, default=1)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class ActionLog(Base):
+    """
+    행동 기록.
+
+    통계 넷이 이 하나에서 나온다. kind는 view(화면별 드나든 수),
+    feature(기능별 쓰임), error(오류와 느린 요청) 셋이다.
+
+    적고 고친 건수는 적지 않는다 — entries에 날짜 칸이 있어 거기서 셈하면
+    되고, 그래야 지난 것까지 소급해서 보인다.
+
+    90일이 지난 줄은 월례 청소가 지운다(app/scheduler/cleanup_job.py).
+    """
+    __tablename__ = "action_logs"
+
+    log_id = Column(Integer, primary_key=True)
+    kind = Column(String(20), nullable=False)
+    name = Column(String(100), nullable=False)
+    path = Column(String(200))
+    # 걸린 시간과 응답 코드는 error 갈래에만 들어간다.
+    elapsed_ms = Column(Integer)
+    status = Column(SmallInteger)
+    user_id = Column(Integer, nullable=False, default=1)
+    created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
+
+
+class AdminSession(Base):
+    """
+    관리자 자물쇠.
+
+    암호가 맞으면 토큰 한 줄을 적고, 화면은 그것을 sessionStorage에 든다.
+    메모리에 들면 서버를 재기동할 때마다 풀려서 테이블로 둔다.
+
+    이것은 자물쇠지 인증이 아니다. 주소를 숨기고 암호 한 겹 두는 정도이고,
+    여럿이 쓰게 될 때 제대로 된 로그인으로 바꿔야 한다.
+    """
+    __tablename__ = "admin_sessions"
+
+    token = Column(String(64), primary_key=True)
+    expires_at = Column(TIMESTAMP, nullable=False)
+    user_id = Column(Integer, nullable=False, default=1)
+    created_at = Column(TIMESTAMP, server_default=func.now())

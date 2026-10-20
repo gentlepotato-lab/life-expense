@@ -5,14 +5,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.routers import (
+    admin,
     categories,
     charts,
     counterparts,
+    doodle_items,
     entries,
     entry_groups,
     exports,
     goals,
     holidays,
+    notices,
     nudges,
     payment_methods,
     pending_entries,
@@ -150,6 +153,12 @@ app.include_router(places.router, prefix=f"{API}/places", tags=["places"])
 app.include_router(holidays.router, prefix=f"{API}/holidays", tags=["holidays"])
 # 잔소리 — 부를 때 세어 돌려준다. 적는 것은 없다(app/nudgecalc.py).
 app.include_router(nudges.router, prefix=f"{API}/nudges", tags=["nudges"])
+# 공지사항 — 홈 위쪽 띠가 읽는다. 적는 것은 관리자 페이지가 맡는다.
+app.include_router(notices.router, prefix=f"{API}/notices", tags=["notices"])
+# 애니메이션 문구 — 쪽지와 앞머리 화면이 읽는다.
+app.include_router(doodle_items.router, prefix=f"{API}/doodle-items", tags=["doodle_items"])
+# 관리자 페이지. GET /prefs 하나만 암호 없이 열려 있다(app/routers/admin.py).
+app.include_router(admin.router, prefix=f"{API}/admin", tags=["admin"])
 # 화면마다 걸린 조건 그대로 엑셀로 내보낸다.
 app.include_router(exports.router, prefix=f"{API}/export", tags=["export"])
 
