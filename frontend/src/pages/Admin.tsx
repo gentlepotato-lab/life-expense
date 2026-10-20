@@ -170,8 +170,9 @@ function AdminHead({ onLogout }: { onLogout: (() => void) | null }) {
   return (
     <header className="admin-head">
       <span className="admin-head__title">
-        <span className="admin-head__in">돈을 쓰다 관리자</span>
+        <span className="admin-head__in">돈을 쓰다</span>
       </span>
+      <span className="admin-head__kind">관리자</span>
       <span className="admin-head__tag">/admin</span>
       {onLogout && (
         <button type="button" className="admin-head__out" onClick={onLogout}>

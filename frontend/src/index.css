@@ -20642,6 +20642,10 @@ html:has(.popup-overlay) .add-btn {
    고운바탕 19px 700에 비스듬한 밑줄까지 같은 값이다. 다른 것은 바탕이
    짙어서 네모와 밑줄을 흰빛 쪽으로 뒤집은 것뿐이다.
 
+   고운바탕은 앱 이름에만 쓴다. 처음에는 「돈을 쓰다 관리자」를 통째로
+   입혔는데, 「관리자」까지 멋 부린 글씨가 되니 이름인지 갈래인지 흐려졌다.
+   이름만 네모에 넣고 갈래는 본문 글꼴로 뗀다.
+
    글꼴은 index.html이 400과 700을 미리 받으므로 여기서 더 받을 것은 없다. */
 .admin-head__title {
   display: inline-block;
@@ -20669,6 +20673,13 @@ html:has(.popup-overlay) .add-btn {
     rgba(0, 0, 0, 0.18) 62%
   );
   transform: skewX(-7deg);
+}
+
+/* 갈래. 이름 옆에 본문 글꼴로 선다. */
+.admin-head__kind {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 /* 붉은 딱지. 화면을 캡처해 놓고 나중에 볼 때 어느 쪽인지 알아보게 한다. */
