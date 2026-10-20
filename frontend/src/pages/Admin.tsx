@@ -9,7 +9,7 @@ import { AdminMenu, AdminDoodle } from "./components/AdminToggles";
 /**
  * 관리자 페이지.
  *
- * 메뉴에 띄우지 않는다. 주소를 치고 들어와 암호를 넣어야 열린다.
+ * 메뉴에 띄우지 않는다. 주소를 치고 들어와 비밀번호를 넣어야 열린다.
  *
  * 사용자 화면과 섞이지 않게 틀을 따로 둔다 — 떠 있는 단추 넷도 아래 이동
  * 막대도 띄우지 않는다. 같은 틀을 쓰면 잔소리 종이 관리자 화면 위에도 떠서,
@@ -32,7 +32,7 @@ const 자리들 = [
   { key: "notice", name: "공지" },
   { key: "doodle", name: "문구" },
   { key: "menu", name: "메뉴" },
-  { key: "pw", name: "암호" },
+  { key: "pw", name: "비밀번호" },
 ] as const;
 
 type 자리 = (typeof 자리들)[number]["key"];
@@ -68,7 +68,7 @@ export default function Admin() {
 
   const 들어감 = useCallback(async () => {
     if (!암호) {
-      say.warn("암호를 적어 주세요.");
+      say.warn("비밀번호를 넣어 주세요.");
       return;
     }
     try {
@@ -76,7 +76,7 @@ export default function Admin() {
       set암호("");
       set열림(true);
     } catch {
-      say.warn("암호가 맞지 않습니다.");
+      say.warn("비밀번호가 맞지 않습니다.");
     }
   }, [암호]);
 
@@ -85,7 +85,7 @@ export default function Admin() {
     set열림(false);
   }, []);
 
-  /* ── 암호를 묻는 자리 ──────────────────────────────── */
+  /* ── 비밀번호를 묻는 화면 ──────────────────────────── */
   if (!열림) {
     return (
       <div className="page-wrap admin">
@@ -94,12 +94,12 @@ export default function Admin() {
           <h2 className="admin-gate__title">관리자 페이지</h2>
           <p className="admin-gate__note">
             {걸림 === null
-              ? "자물쇠를 확인하고 있습니다."
+              ? "확인하고 있습니다."
               : 걸림
-                ? "암호를 넣어 주세요."
+                ? "비밀번호를 넣어 주세요."
                 : 첫암호있나
-                  ? "처음 들어가는 자리입니다. 환경 변수에 적은 암호를 넣어 주세요."
-                  : "암호가 정해져 있지 않습니다. 서버의 환경 변수부터 적어 주세요."}
+                  ? "처음 로그인합니다. 환경 변수에 적은 비밀번호를 넣어 주세요."
+                  : "비밀번호가 정해져 있지 않습니다. 서버의 환경 변수부터 적어 주세요."}
           </p>
           <input
             type="password"
@@ -109,11 +109,11 @@ export default function Admin() {
             onKeyDown={(e) => {
               if (e.key === "Enter") void 들어감();
             }}
-            placeholder="암호"
+            placeholder="비밀번호"
             autoComplete="current-password"
           />
           <button type="button" className="ui-btn primary" onClick={() => void 들어감()}>
-            들어가기
+            로그인
           </button>
         </div>
       </div>
@@ -130,7 +130,7 @@ export default function Admin() {
           조각 하나가 미끄러진다. */}
       <nav
         className="subtabs admin-tabs"
-        aria-label="관리자 자리"
+        aria-label="관리자 메뉴"
         style={{ "--tab-n": 자리들.length } as React.CSSProperties}
       >
         <span
@@ -169,51 +169,53 @@ export default function Admin() {
 function AdminHead({ onLogout }: { onLogout: (() => void) | null }) {
   return (
     <header className="admin-head">
-      <span className="admin-head__title">돈을 쓰다 관리자</span>
+      <span className="admin-head__title">
+        <span className="admin-head__in">돈을 쓰다 관리자</span>
+      </span>
       <span className="admin-head__tag">/admin</span>
       {onLogout && (
         <button type="button" className="admin-head__out" onClick={onLogout}>
-          나가기
+          로그아웃
         </button>
       )}
     </header>
   );
 }
 
-/** 암호 바꾸기. 바꾸면 들어와 있던 자리가 모두 걷힌다. */
+/** 비밀번호 바꾸기. 바꾸면 로그인해 있던 기기가 모두 로그아웃된다. */
 function AdminPassword() {
   const [새것, set새것] = useState("");
   const [다시, set다시] = useState("");
 
   const 바꿈 = async () => {
     if (새것.length < 8) {
-      say.warn("암호는 여덟 자 이상으로 적어 주세요.");
+      say.warn("비밀번호는 여덟 자 이상이어야 합니다.");
       return;
     }
     if (새것 !== 다시) {
-      say.warn("두 번 적은 암호가 서로 다릅니다.");
+      say.warn("두 번 넣은 비밀번호가 서로 다릅니다.");
       return;
     }
     try {
       await 암호바꾸기(새것);
-      say.ok("암호를 바꿨습니다. 다시 들어와 주세요.");
+      say.ok("비밀번호를 바꿨습니다. 다시 로그인해 주세요.");
       window.location.reload();
     } catch {
-      say.bad("암호를 바꾸지 못했습니다.");
+      say.bad("비밀번호를 바꾸지 못했습니다.");
     }
   };
 
   return (
     <div className="card admin-pw">
       <p className="admin-pw__note">
-        바꾸면 들어와 있던 자리가 모두 걷힙니다. 다른 기기에 열려 있던 것도 함께 닫힙니다.
+        바꾸면 로그인해 있던 기기에서 모두 로그아웃됩니다.
       </p>
       <input
         type="password"
         className="ui-input"
         value={새것}
         onChange={(e) => set새것(e.target.value)}
-        placeholder="새 암호"
+        placeholder="새 비밀번호"
         autoComplete="new-password"
       />
       <input
@@ -224,7 +226,7 @@ function AdminPassword() {
         onKeyDown={(e) => {
           if (e.key === "Enter") void 바꿈();
         }}
-        placeholder="새 암호 다시"
+        placeholder="새 비밀번호 다시"
         autoComplete="new-password"
       />
       <button type="button" className="ui-btn primary" onClick={() => void 바꿈()}>

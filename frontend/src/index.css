@@ -20638,10 +20638,37 @@ html:has(.popup-overlay) .add-btn {
   border-radius: var(--radius);
 }
 
+/* 제목. 사용자 화면의 머리말 제목(6391줄 .page-title)을 그대로 옮긴다.
+   고운바탕 19px 700에 비스듬한 밑줄까지 같은 값이다. 다른 것은 바탕이
+   짙어서 네모와 밑줄을 흰빛 쪽으로 뒤집은 것뿐이다.
+
+   글꼴은 index.html이 400과 700을 미리 받으므로 여기서 더 받을 것은 없다. */
 .admin-head__title {
-  font-size: var(--font-size-lg);
+  display: inline-block;
+  margin: 0;
+  padding: 3px 11px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  font-family: "Gowun Batang", serif;
+  font-size: 19px;
   font-weight: 700;
-  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  color: #FFFFFF;
+}
+
+/* 글자만 기울이고 네모는 반듯하게 둔다. 바탕까지 기울면 평행사변형이 된다.
+   사용자 화면은 밝은 네모에 옅은 빛깔을 깔지만, 여기는 바탕이 짙어 흰 글씨를
+   쓴다. 밑줄까지 흰빛으로 깔았더니 글씨와 겹쳐 또렷함이 깎여서 짙은 쪽으로
+   뒤집었다. */
+.admin-head__title .admin-head__in {
+  display: inline-block;
+  padding: 0 2px;
+  background: linear-gradient(
+    transparent 62%,
+    rgba(0, 0, 0, 0.18) 62%
+  );
+  transform: skewX(-7deg);
 }
 
 /* 붉은 딱지. 화면을 캡처해 놓고 나중에 볼 때 어느 쪽인지 알아보게 한다. */
@@ -20765,9 +20792,6 @@ html:has(.popup-overlay) .add-btn {
 /* 머리띠는 짙게 깐다. 띠 하나로 "여기는 다른 자리"가 읽힌다. */
 .admin-head {
   background: var(--color-primary);
-  color: #FFFFFF;
-}
-.admin-head__title {
   color: #FFFFFF;
 }
 .admin-head__tag {

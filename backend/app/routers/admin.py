@@ -93,14 +93,14 @@ def _적기(db, 열쇠: str, 값: str) -> None:
 def 문지기(db, token: str | None) -> None:
     """토큰이 살아 있는지 본다. 아니면 401로 막는다."""
     if not token:
-        raise HTTPException(status_code=401, detail="관리자 암호가 필요합니다.")
+        raise HTTPException(status_code=401, detail="관리자 비밀번호가 필요합니다.")
     산것 = db.execute(text("""
         SELECT 1
           FROM life_expense.admin_sessions
          WHERE token = :t AND expires_at > now()
     """), {"t": token}).scalar()
     if not 산것:
-        raise HTTPException(status_code=401, detail="관리자 암호가 필요합니다.")
+        raise HTTPException(status_code=401, detail="관리자 비밀번호가 필요합니다.")
 
 
 def 토큰(x_admin_token: str | None = Header(default=None), db: SessionDep = Depends()):
@@ -156,7 +156,7 @@ def admin_login(payload: dict, db: SessionDep = Depends()):
     """
     암호 = str(payload.get("password") or "")
     if not 암호:
-        raise HTTPException(status_code=400, detail="암호를 적어 주세요.")
+        raise HTTPException(status_code=400, detail="비밀번호를 넣어 주세요.")
 
     적힌것 = _값들(db, {"admin_pw"})["admin_pw"]
     if 적힌것:
@@ -166,7 +166,7 @@ def admin_login(payload: dict, db: SessionDep = Depends()):
         맞음 = bool(첫암호) and hmac.compare_digest(암호, 첫암호)
 
     if not 맞음:
-        raise HTTPException(status_code=401, detail="암호가 맞지 않습니다.")
+        raise HTTPException(status_code=401, detail="비밀번호가 맞지 않습니다.")
 
     새토큰 = secrets.token_urlsafe(32)[:64]
     db.execute(text("""
@@ -197,7 +197,7 @@ def set_admin_password(payload: dict, _: str = Depends(토큰), db: SessionDep =
     """
     새것 = str(payload.get("password") or "")
     if len(새것) < 8:
-        raise HTTPException(status_code=400, detail="암호는 여덟 자 이상으로 적어 주세요.")
+        raise HTTPException(status_code=400, detail="비밀번호는 여덟 자 이상이어야 합니다.")
 
     _적기(db, "admin_pw", _해시(새것, secrets.token_hex(16)))
     # 암호를 바꾸면 들어와 있던 자리를 모두 걷는다. 남의 기기에 열린 채로

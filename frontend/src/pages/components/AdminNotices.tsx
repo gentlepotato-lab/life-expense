@@ -24,7 +24,7 @@ type 공지 = {
   is_active: number;
 };
 
-/** 새로 적을 때의 빈 줄. */
+/** 새로 등록할 때의 빈 줄. */
 const 빈것 = { title: "", body: "", start_on: "", end_on: "", sort_order: 0, is_active: 1 };
 
 export default function AdminNotices() {
@@ -58,7 +58,7 @@ export default function AdminNotices() {
       set초안({ ...빈것 });
       받기();
     } catch {
-      say.bad("공지를 담지 못했습니다.");
+      say.bad("공지를 저장하지 못했습니다.");
     }
   };
 
@@ -74,7 +74,13 @@ export default function AdminNotices() {
   };
 
   const 지우기 = async (n: 공지) => {
-    const 할까 = await ask({ title: "공지 제거", body: `${n.title}을 제거할까요?`, warn: "되돌릴 수 없습니다." });
+    const 할까 = await ask({
+      title: "공지 제거",
+      body: "이 공지를 제거할까요?",
+      warn: "되돌릴 수 없습니다.",
+      go: "제거",
+      danger: true,
+    });
     if (!할까) return;
     try {
       await axios.delete(`/admin/notices/${n.notice_id}`, { headers: 머리() });
@@ -116,10 +122,10 @@ export default function AdminNotices() {
             onChange={(e) => set초안({ ...초안, end_on: e.target.value })}
           />
         </div>
-        <p className="admin-hint">뜨는 기간을 비우면 늘 뜹니다.</p>
+        <p className="admin-hint">기간을 비우면 늘 뜹니다.</p>
         <div className="admin-row">
           <button type="button" className="ui-btn primary" onClick={() => void 적기()}>
-            {고치는것 === null ? "적기" : "고치기"}
+            {고치는것 === null ? "등록" : "저장"}
           </button>
           {고치는것 !== null && (
             <button
@@ -130,18 +136,18 @@ export default function AdminNotices() {
                 set초안({ ...빈것 });
               }}
             >
-              그만두기
+              되돌리기
             </button>
           )}
         </div>
       </section>
 
       <section className="card admin-card">
-        <h3 className="admin-card__title">적은 공지</h3>
+        <h3 className="admin-card__title">등록한 공지</h3>
         {목록 === null ? (
           <p className="page-empty">불러오고 있습니다.</p>
         ) : 목록.length === 0 ? (
-          <p className="page-empty">적은 공지가 없습니다.</p>
+          <p className="page-empty">등록한 공지가 없습니다.</p>
         ) : (
           <ul className="admin-list">
             {목록.map((n) => (

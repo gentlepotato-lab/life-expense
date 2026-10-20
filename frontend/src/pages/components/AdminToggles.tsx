@@ -18,7 +18,7 @@ import { invalidateDoodlePool, loadDoodlePool } from "../../utils/doodlePool";
  * 꽉 찬 단추를 줄마다 놓았는데, 아홉 개가 나란히 서니 머리띠와 서로
  * 다투어 어느 쪽을 봐야 할지 흐려졌다.
  *
- * 고치고 나면 사용자 화면이 쥔 목록도 비운다. 그러지 않으면 같은 창에서
+ * 바꾸고 나면 사용자 화면이 쥔 목록도 비운다. 그러지 않으면 같은 창에서
  * 홈으로 돌아갔을 때 옛 목록이 그대로 걸려 있다.
  */
 
@@ -98,7 +98,7 @@ export function AdminDoodle() {
     try {
       await axios.put(`/admin/doodle-items/${it.item_key}`, { is_active: it.is_active ? 0 : 1 }, { headers: 머리() });
       set목록((v) => (v ?? []).map((x) => (x.item_key === it.item_key ? { ...x, is_active: x.is_active ? 0 : 1 } : x)));
-      /* 쪽지가 쥔 목록도 비운다. */
+      /* 문구를 띄우는 쪽이 쥔 목록도 비운다. */
       invalidateDoodlePool();
       void loadDoodlePool();
     } catch {
@@ -111,15 +111,15 @@ export function AdminDoodle() {
   return (
     <div className="admin-edit">
       <section className="card admin-card">
-        <h3 className="admin-card__title">쪽지에 들 것</h3>
+        <h3 className="admin-card__title">화면에 뜨는 문구</h3>
         <p className="admin-hint">
-          켜진 것을 모두 늘어놓고 하나를 고릅니다. 지금 켜진 것은 {켠수}가지입니다.
-          모두 끄면 화면이 코드에 있는 열 가지를 씁니다.
+          켜진 것 가운데 하나를 골라 띄웁니다. 지금 켜진 것은 {켠수}가지입니다.
+          모두 끄면 기본 열 가지를 씁니다.
         </p>
         {목록 === null ? (
           <p className="page-empty">불러오고 있습니다.</p>
         ) : 목록.length === 0 ? (
-          <p className="page-empty">적은 문구가 없습니다.</p>
+          <p className="page-empty">등록한 문구가 없습니다.</p>
         ) : (
           <ul className="admin-list">
             {목록.map((it) => (
