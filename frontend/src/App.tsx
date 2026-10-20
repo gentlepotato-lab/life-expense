@@ -28,6 +28,8 @@ import { loadPrefs, pref, takeHome } from "./utils/prefs";
 import { loadMenuOff } from "./utils/menuOff";
 import { loadDoodlePool } from "./utils/doodlePool";
 import MenuGate from "./pages/components/MenuGate";
+import ViewTracker from "./pages/components/ViewTracker";
+import { 떠날때보내기 } from "./utils/track";
 import { applyTape } from "./utils/tapes";
 import { applyMotion } from "./utils/motion";
 
@@ -108,6 +110,11 @@ function App() {
     void loadDoodlePool();
   }, []);
 
+  /* 화면을 떠날 때 모인 기록을 보낸다. 앱이 떠 있는 동안 한 번만 건다. */
+  useEffect(() => {
+    떠날때보내기();
+  }, []);
+
   return (
     // 화면은 루트에 선다. API가 모두 /api 아래로 들어가면서
     // 더 이상 /app/으로 비켜 서 있을 이유가 없어졌다.
@@ -124,6 +131,9 @@ function App() {
       {/* 꺼 놓은 메뉴의 화면으로 주소를 치고 들어오면 홈으로 보낸다.
           메뉴에서만 빼면 주소를 아는 사람은 그대로 들어온다. */}
       <MenuGate />
+
+      {/* 어느 화면에 들어갔는지 적는다. 아무것도 그리지 않는다. */}
+      <ViewTracker />
 
       <Routes>
         {/* 홈: / — 들어가는 문만 낸 첫 화면 */}

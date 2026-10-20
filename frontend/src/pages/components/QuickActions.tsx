@@ -11,6 +11,7 @@ import SlideIcon from "./SlideIcon";
 import WriteEntryModal from "./WriteEntryModal";
 import WriteSlideModal from "./WriteSlideModal";
 import useNudges, { invalidateNudges } from "../../hooks/useNudges";
+import { 기능적기 } from "../../utils/track";
 import usePending, { invalidatePending } from "../../hooks/usePending";
 import { PAGE_ICON } from "./MenuIcons";
 import { closeOverlays } from "../../hooks/useBackClose";
@@ -66,6 +67,9 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
       (which === "calc" && calculatorOpen) ||
       (which === "deck" && deckOpen) ||
       (which === "nudge" && nudgeOpen);
+    /* 어느 단추를 얼마나 쓰는지 적는다. 여는 누름만 센다 — 같은 단추를
+       다시 눌러 닫는 것까지 세면 쓰임이 배로 부풀어 보인다. */
+    if (!already) 기능적기("단추 " + which);
     void closeOverlays().then(() => {
       setWriteOpen(!already && which === "write");
       setSlideOpen(!already && which === "slide");

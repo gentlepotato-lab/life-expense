@@ -10,6 +10,7 @@ def run_monthly_cleanup():
     """
     매월 1회 실행되는 데이터 정리 작업
     - pending_entries 테이블에서 sended=1인 행 삭제 → 전송 완료된 항목
+    - action_logs에서 90일이 지난 행 삭제 → 관리자 페이지가 보는 기록
 
     정기 내역(scheduled_entries)은 더 이상 여기서 지우지 않는다. 아래 주석을
     보라 — is_active의 뜻이 바뀌었다.
@@ -41,9 +42,23 @@ def run_monthly_cleanup():
         # """))
         # deleted_scheduled = result_scheduled.rowcount
 
+        # 3. action_logs에서 90일이 지난 행 삭제
+        #
+        # 대시보드가 묻는 기간은 길어야 석 달이다. 그보다 오래된 줄은 아무도
+        # 보지 않으면서 테이블만 불린다. 지우는 차례가 ix_action_logs_when의
+        # 첫 칸과 같아 훑는 값도 싸다.
+        result_logs = db.execute(text("""
+            DELETE FROM life_expense.action_logs
+                WHERE created_at < now() - interval '90 days'
+        """))
+        deleted_logs = result_logs.rowcount
+
         db.commit()
 
-        logger.info(f"Monthly cleanup completed: {deleted_pending} pending entries deleted")
+        logger.info(
+            f"Monthly cleanup completed: {deleted_pending} pending entries, "
+            f"{deleted_logs} action logs deleted"
+        )
 
     except Exception as e:
         db.rollback()

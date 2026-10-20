@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.routers import (
+    action_logs,
     admin,
     categories,
     charts,
@@ -157,6 +158,8 @@ app.include_router(nudges.router, prefix=f"{API}/nudges", tags=["nudges"])
 app.include_router(notices.router, prefix=f"{API}/notices", tags=["notices"])
 # 애니메이션 문구 — 쪽지와 앞머리 화면이 읽는다.
 app.include_router(doodle_items.router, prefix=f"{API}/doodle-items", tags=["doodle_items"])
+# 행동 기록 — 화면이 모아 보낸 것을 적기만 한다. 보는 길은 관리자 쪽이다.
+app.include_router(action_logs.router, prefix=f"{API}/action-logs", tags=["action_logs"])
 # 관리자 페이지. GET /prefs 하나만 암호 없이 열려 있다(app/routers/admin.py).
 app.include_router(admin.router, prefix=f"{API}/admin", tags=["admin"])
 # 화면마다 걸린 조건 그대로 엑셀로 내보낸다.

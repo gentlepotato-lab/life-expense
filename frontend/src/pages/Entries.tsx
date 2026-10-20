@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback, memo, useRef } from "react";
 import axios from "../api/client";
 import useBackClose from "../hooks/useBackClose";
+import { 기능적기 } from "../utils/track";
 import MonthNav from "./components/MonthNav";
 import useMonthSpan from "../hooks/useMonthSpan";
 
@@ -1048,7 +1049,10 @@ export default function Entries() {
         all={rows.length}
         onAll={() => setPickedIds(new Set(rows.map((r) => r.entry_id)))}
         onClear={() => setPickedIds(new Set())}
-        onReceipt={() => setReceiptOpen(true)}
+        onReceipt={() => {
+          기능적기("영수증");
+          setReceiptOpen(true);
+        }}
         onDelete={async () => {
           /* 한 건 지울 때와 같은 말을 쓴다. 같은 일을 묻는 자리가 둘인데
              말이 다르면 어느 쪽이 더 무거운 일인지 헷갈린다. */
@@ -1074,7 +1078,10 @@ export default function Entries() {
           <button
             type="button"
             className="pick-bar__more"
-            onClick={() => setMakeOpen(true)}
+            onClick={() => {
+              기능적기("묶기");
+              setMakeOpen(true);
+            }}
           >
             묶기
           </button>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { 기능적기 } from "../../utils/track";
 import api from "../../api/client";
 import { ask, say } from "../../utils/notify";
 import { 조사 } from "../../utils/josa";
@@ -93,6 +94,7 @@ export default function ExportButton({ 길, params, 이름, 빔, 영수증 = tru
         ? await (async () => {
             const fd = new FormData();
             fd.append("receipt", 종이, "receipt.png");
+            기능적기("엑셀 " + 길);
             return api.post(`/export/${길}`, fd, { params, responseType: "blob" });
           })()
         : await api.get(`/export/${길}`, { params, responseType: "blob" });
