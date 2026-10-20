@@ -5,6 +5,7 @@ import { 자물쇠상태, 들어가기, 나가기, 토큰, 암호바꾸기 } fro
 import { 관리자앱입히기, 관리자앱벗기기 } from "../utils/adminPwa";
 import AdminDash from "./components/AdminDash";
 import RefreshIcon from "./components/RefreshIcon";
+import EyeIcon from "./components/EyeIcon";
 import AdminNotices from "./components/AdminNotices";
 import { AdminMenu, AdminDoodle } from "./components/AdminToggles";
 
@@ -111,14 +112,10 @@ export default function Admin() {
                   ? "처음 로그인합니다. 환경 변수에 적은 비밀번호를 넣어 주세요."
                   : "비밀번호가 정해져 있지 않습니다. 서버의 환경 변수부터 적어 주세요."}
           </p>
-          <input
-            type="password"
-            className="ui-input"
+          <AdminPwField
             value={암호}
-            onChange={(e) => set암호(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void 들어감();
-            }}
+            onChange={set암호}
+            onEnter={() => void 들어감()}
             placeholder="비밀번호"
             autoComplete="current-password"
           />
@@ -172,6 +169,56 @@ export default function Admin() {
       ) : (
         <AdminPassword />
       )}
+    </div>
+  );
+}
+
+/**
+ * 비밀번호 칸.
+ *
+ * 오른쪽 끝에 눈을 하나 달아, 적는 중인 글자를 보이거나 감춘다. 여덟 자
+ * 이상을 손으로 치다 보면 어디서 틀렸는지 알 길이 없어서다.
+ *
+ * 칸 셋(들어갈 때 하나, 바꿀 때 두 개)이 같은 꼴이어야 하므로 여기 모은다.
+ * 보임 여부는 칸마다 따로 쥔다. 새 비밀번호와 그 확인을 한 번에 여는 것이
+ * 편해 보이지만, 그러면 확인 칸의 뜻이 없어진다.
+ */
+function AdminPwField({
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+  onEnter,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder: string;
+  autoComplete: string;
+  onEnter?: () => void;
+}) {
+  const [보임, set보임] = useState(false);
+  return (
+    <div className="admin-pw-field">
+      <input
+        type={보임 ? "text" : "password"}
+        className="ui-input"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && onEnter) onEnter();
+        }}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+      />
+      <button
+        type="button"
+        className="admin-eye"
+        onClick={() => set보임((v) => !v)}
+        aria-label={보임 ? "비밀번호 감추기" : "비밀번호 보기"}
+        aria-pressed={보임}
+      >
+        <EyeIcon off={보임} />
+      </button>
     </div>
   );
 }
@@ -247,22 +294,16 @@ function AdminPassword() {
       <p className="admin-pw__note">
         바꾸면 로그인해 있던 기기에서 모두 로그아웃됩니다.
       </p>
-      <input
-        type="password"
-        className="ui-input"
+      <AdminPwField
         value={새것}
-        onChange={(e) => set새것(e.target.value)}
+        onChange={set새것}
         placeholder="새 비밀번호"
         autoComplete="new-password"
       />
-      <input
-        type="password"
-        className="ui-input"
+      <AdminPwField
         value={다시}
-        onChange={(e) => set다시(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") void 바꿈();
-        }}
+        onChange={set다시}
+        onEnter={() => void 바꿈()}
         placeholder="새 비밀번호 다시"
         autoComplete="new-password"
       />

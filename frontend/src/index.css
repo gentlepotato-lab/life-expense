@@ -20755,6 +20755,41 @@ html:has(.popup-overlay) .add-btn {
    .ui-input과 input[type="text"]들이라 input[type="password"]에는 닿지
    않는다. 그래서 전용 이름을 새로 짓지 않고 .ui-input을 붙인다. */
 
+/* 비밀번호 칸과 그 끝에 앉는 눈.
+   칸은 앱의 .ui-input 그대로이고, 오른쪽 안쪽만 눈 자리만큼 비운다.
+   눈은 칸 위에 얹히므로 칸의 키(--control-h)를 건드리지 않는다. */
+.admin-pw-field {
+  position: relative;
+  display: block;
+}
+
+.admin-pw-field > .ui-input {
+  padding-right: 36px;
+}
+
+.admin-eye {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease);
+}
+
+.admin-eye:hover {
+  color: var(--color-text-secondary);
+}
+
 /* 아직 비어 있는 자리. 빈 자리 문구는 앱이 쓰는 한 꼴(.page-empty)이다. */
 .card.admin-soon .page-empty {
   margin: 0;
