@@ -20625,7 +20625,10 @@ html:has(.popup-overlay) .add-btn {
   padding-top: var(--space-3);
 }
 
-/* 머리띠. 제목과 딱지와 나가기가 한 줄에 선다. */
+/* 머리띠. 제목과 딱지와 나가기가 한 줄에 선다.
+   오른쪽만 여백이 넓은 까닭은 떠 있는 새로 고침 단추(34px) 자리를 비우기
+   위해서다. 그러지 않으면 로그아웃이 그 단추 밑에 깔린다. 단추는 화면에
+   고정이라 띠의 여백으로만 피할 수 있다. */
 .admin-head {
   display: flex;
   align-items: center;
@@ -20634,6 +20637,7 @@ html:has(.popup-overlay) .add-btn {
   margin-inline: auto;
   margin-bottom: var(--space-3);
   padding: var(--space-3);
+  padding-right: 46px;
   background: var(--color-primary-light);
   border-radius: var(--radius);
 }

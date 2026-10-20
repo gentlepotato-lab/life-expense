@@ -4,6 +4,7 @@ import { say } from "../utils/notify";
 import { 자물쇠상태, 들어가기, 나가기, 토큰, 암호바꾸기 } from "../utils/adminAuth";
 import { 관리자앱입히기, 관리자앱벗기기 } from "../utils/adminPwa";
 import AdminDash from "./components/AdminDash";
+import RefreshIcon from "./components/RefreshIcon";
 import AdminNotices from "./components/AdminNotices";
 import { AdminMenu, AdminDoodle } from "./components/AdminToggles";
 
@@ -97,6 +98,7 @@ export default function Admin() {
   if (!열림) {
     return (
       <div className="page-wrap admin">
+        <AdminRefresh />
         <AdminHead onLogout={null} />
         <div className="card admin-gate">
           <h2 className="admin-gate__title">관리자 페이지</h2>
@@ -131,6 +133,7 @@ export default function Admin() {
   /* ── 들어온 뒤 ─────────────────────────────────────── */
   return (
     <div className="page-wrap admin">
+      <AdminRefresh />
       <AdminHead onLogout={() => void 나감()} />
 
       {/* 사용자 화면의 갈래 알약을 그대로 쓴다(PageHead.tsx 105줄). 칸 수를
@@ -169,6 +172,31 @@ export default function Admin() {
       ) : (
         <AdminPassword />
       )}
+    </div>
+  );
+}
+
+/**
+ * 떠 있는 새로 고침 단추.
+ *
+ * 사용자 화면의 단추 넷 가운데 이것 하나만 가져온다(QuickActions.tsx).
+ * 묶음과 단추의 클래스를 그대로 써서 자리와 생김새가 한 치도 어긋나지
+ * 않게 한다. 빛깔은 currentColor를 타고 와 이 쪽의 보라를 따른다.
+ *
+ * 쓰기와 계산기와 잔소리는 가져오지 않는다. 관리자 화면에서 내역을 적을
+ * 일이 없고, 잔소리 종이 여기 떠 있으면 사용자 화면과 섞인다.
+ */
+function AdminRefresh() {
+  return (
+    <div className="quick-actions">
+      <button
+        type="button"
+        className="calculator-trigger-button refresh-trigger-button"
+        onClick={() => window.location.reload()}
+        aria-label="새로 고침"
+      >
+        <RefreshIcon />
+      </button>
     </div>
   );
 }
