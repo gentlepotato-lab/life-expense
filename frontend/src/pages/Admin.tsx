@@ -291,6 +291,7 @@ function AdminPassword() {
 
   return (
     <div className="card admin-pw">
+      <h3 className="admin-card__title">비밀번호 바꾸기</h3>
       <p className="admin-pw__note">
         바꾸면 로그인해 있던 기기에서 모두 로그아웃됩니다.
       </p>
