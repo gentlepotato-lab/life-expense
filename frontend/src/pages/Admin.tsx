@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { say } from "../utils/notify";
 import { 자물쇠상태, 들어가기, 나가기, 토큰, 암호바꾸기 } from "../utils/adminAuth";
 import AdminDash from "./components/AdminDash";
+import AdminNotices from "./components/AdminNotices";
+import { AdminMenu, AdminDoodle } from "./components/AdminToggles";
 
 /**
  * 관리자 페이지.
@@ -134,12 +136,14 @@ export default function Admin() {
 
       {자리 === "dash" ? (
         <AdminDash />
-      ) : 자리 === "pw" ? (
-        <AdminPassword />
+      ) : 자리 === "notice" ? (
+        <AdminNotices />
+      ) : 자리 === "doodle" ? (
+        <AdminDoodle />
+      ) : 자리 === "menu" ? (
+        <AdminMenu />
       ) : (
-        <div className="card admin-soon">
-          <p className="page-empty">{자리들.find((t) => t.key === 자리)?.name}는 아직 비어 있습니다.</p>
-        </div>
+        <AdminPassword />
       )}
     </div>
   );

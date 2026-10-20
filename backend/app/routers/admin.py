@@ -151,7 +151,7 @@ def admin_login(payload: dict, db: SessionDep = Depends()):
     암호를 받고 토큰을 돌려준다.
 
     아직 암호를 정하지 않았으면 환경 변수의 첫 암호로 들어간다. 그것도
-    없으면 아무도 못 들어간다 — 비어 있는 암호로 열어 두면 주소를 아는
+    없으면 아무도 못 들어간다 — 암호가 비어 있는 채로 열리면 주소를 아는
     사람이 그대로 들어온다.
     """
     암호 = str(payload.get("password") or "")
@@ -271,3 +271,140 @@ def admin_stats(days: int = 30, _: str = Depends(토큰), db: SessionDep = Depen
         "error": [{"name": r["name"], "n": r["n"], "worst": r["worst"], "status": r["status"]} for r in 탈],
         "write": [{"date": str(r["d"]), "n": r["n"]} for r in 적음],
     }
+
+
+# ── 고치는 자리 ─────────────────────────────────────────────
+#
+# 아래는 모두 토큰을 받는다. 읽기만 하는 GET /prefs와 다르다.
+
+
+@router.put("/menu-off")
+def set_menu_off(payload: dict, _: str = Depends(토큰), db: SessionDep = Depends()):
+    """
+    꺼 놓을 메뉴를 적는다.
+
+    켜진 것은 적지 않는다. 새 기능을 더했을 때 목록에 없다고 꺼져 버리면
+    안 되기 때문이다. 빈 배열을 보내면 전부 켜진다.
+    """
+    온것 = payload.get("menu_off")
+    if not isinstance(온것, list):
+        raise HTTPException(status_code=400, detail="꺼 놓을 메뉴 목록이 없습니다.")
+    열쇠들 = sorted({str(x)[:40] for x in 온것 if str(x).strip()})
+    _적기(db, "menu_off", json.dumps(열쇠들, ensure_ascii=False))
+    db.commit()
+    return {"menu_off": 열쇠들}
+
+
+@router.get("/notices")
+def admin_list_notices(_: str = Depends(토큰), db: SessionDep = Depends()):
+    """적은 공지를 전부 돌려준다. 꺼 놓은 것과 지난 것도 함께 보인다."""
+    rows = db.execute(text("""
+        SELECT notice_id, title, body, start_on, end_on, sort_order, is_active
+          FROM life_expense.notices
+      ORDER BY sort_order ASC, notice_id DESC
+    """)).mappings().all()
+    return [{
+        "notice_id": r["notice_id"],
+        "title": r["title"],
+        "body": r["body"],
+        "start_on": str(r["start_on"]) if r["start_on"] else None,
+        "end_on": str(r["end_on"]) if r["end_on"] else None,
+        "sort_order": r["sort_order"],
+        "is_active": r["is_active"],
+    } for r in rows]
+
+
+def _공지값(payload: dict) -> dict:
+    제목 = str(payload.get("title") or "").strip()
+    if not 제목:
+        raise HTTPException(status_code=400, detail="공지 제목을 적어 주세요.")
+    뜰날 = str(payload.get("start_on") or "").strip() or None
+    끝날 = str(payload.get("end_on") or "").strip() or None
+    if 뜰날 and 끝날 and 끝날 < 뜰날:
+        raise HTTPException(status_code=400, detail="끝나는 날이 뜨는 날보다 앞섭니다.")
+    return {
+        "title": 제목[:100],
+        "body": (str(payload.get("body")) if payload.get("body") else None),
+        "start_on": 뜰날,
+        "end_on": 끝날,
+        "sort_order": int(payload.get("sort_order") or 0),
+        "is_active": 1 if payload.get("is_active", 1) else 0,
+    }
+
+
+@router.post("/notices")
+def admin_add_notice(payload: dict, _: str = Depends(토큰), db: SessionDep = Depends()):
+    """공지 한 줄을 적는다."""
+    값 = _공지값(payload)
+    새번호 = db.execute(text("""
+        INSERT INTO life_expense.notices (title, body, start_on, end_on, sort_order, is_active)
+             VALUES (:title, :body, CAST(:start_on AS date), CAST(:end_on AS date), :sort_order, :is_active)
+          RETURNING notice_id
+    """), 값).scalar()
+    db.commit()
+    return {"notice_id": 새번호}
+
+
+@router.put("/notices/{notice_id}")
+def admin_edit_notice(notice_id: int, payload: dict, _: str = Depends(토큰), db: SessionDep = Depends()):
+    """공지 한 줄을 고친다."""
+    값 = _공지값(payload)
+    값["notice_id"] = notice_id
+    바뀜 = db.execute(text("""
+        UPDATE life_expense.notices
+           SET title = :title
+             , body = :body
+             , start_on = CAST(:start_on AS date)
+             , end_on = CAST(:end_on AS date)
+             , sort_order = :sort_order
+             , is_active = :is_active
+             , updated_at = now()
+         WHERE notice_id = :notice_id
+    """), 값).rowcount
+    db.commit()
+    if not 바뀜:
+        raise HTTPException(status_code=404, detail="그 공지가 없습니다.")
+    return {"ok": True}
+
+
+@router.delete("/notices/{notice_id}")
+def admin_drop_notice(notice_id: int, _: str = Depends(토큰), db: SessionDep = Depends()):
+    """공지 한 줄을 지운다. 되살릴 수 없다 — 잠시 치우려면 끄기를 쓴다."""
+    바뀜 = db.execute(text("""
+        DELETE FROM life_expense.notices WHERE notice_id = :i
+    """), {"i": notice_id}).rowcount
+    db.commit()
+    if not 바뀜:
+        raise HTTPException(status_code=404, detail="그 공지가 없습니다.")
+    return {"ok": True}
+
+
+@router.get("/doodle-items")
+def admin_list_doodle(_: str = Depends(토큰), db: SessionDep = Depends()):
+    """애니메이션 문구를 전부 돌려준다. 꺼 놓은 것도 함께 보인다."""
+    rows = db.execute(text("""
+        SELECT item_key, kind, label, sort_order, is_active
+          FROM life_expense.doodle_items
+      ORDER BY sort_order ASC, item_key ASC
+    """)).mappings().all()
+    return [dict(r) for r in rows]
+
+
+@router.put("/doodle-items/{item_key}")
+def admin_toggle_doodle(item_key: str, payload: dict, _: str = Depends(토큰), db: SessionDep = Depends()):
+    """
+    문구 하나를 켜거나 끈다.
+
+    모두 끄는 것도 막지 않는다. 화면이 그때는 코드에 있는 열 가지를 쓰므로
+    쪽지가 빈 채로 돌지는 않는다(frontend/src/utils/doodlePool.ts).
+    """
+    켬 = 1 if payload.get("is_active", 1) else 0
+    바뀜 = db.execute(text("""
+        UPDATE life_expense.doodle_items
+           SET is_active = :on
+         WHERE item_key = :k
+    """), {"on": 켬, "k": item_key}).rowcount
+    db.commit()
+    if not 바뀜:
+        raise HTTPException(status_code=404, detail="그 문구가 없습니다.")
+    return {"ok": True}
