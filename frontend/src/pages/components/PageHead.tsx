@@ -54,6 +54,10 @@ function noteParts(note: string) {
 export default function PageHead() {
   const { pathname } = useLocation();
 
+  /* 관리자 페이지는 제 머리띠를 쓴다. 사용자 화면의 머리말이 함께 서면
+     제목이 둘이 된다(pages/Admin.tsx). */
+  const 관리자인가 = pathname === "/admin";
+
   /* 꺼 놓은 메뉴 목록은 앱이 뜬 뒤에 도착한다. 그때 알약을 다시 그린다.
      아무것도 꺼져 있지 않으면 목록이 그대로라 한 줄도 달라지지 않는다. */
   const [, 다시] = useReducer((n: number) => n + 1, 0);
@@ -74,6 +78,10 @@ export default function PageHead() {
   useEffect(() => {
     document.title = pathname === "/" ? "돈을 쓰다" : `${title} · 돈을 쓰다`;
   }, [pathname, title]);
+
+  /* 관리자 화면에서는 아무것도 그리지 않는다. 훅은 위에서 모두 돌았으므로
+     부르는 차례가 흐트러지지 않는다. */
+  if (관리자인가) return null;
 
   return (
     <header className="page-head">

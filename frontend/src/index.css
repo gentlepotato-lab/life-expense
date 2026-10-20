@@ -20598,3 +20598,144 @@ html:has(.popup-overlay) .add-btn {
   white-space: pre-wrap;
   word-break: keep-all;
 }
+
+
+/* ─────────────────────────────────────────────
+   186. 관리자 페이지(2026-10-20)
+   ───────────────────────────────────────────── */
+
+/* 사용자 화면과 결을 같게 쓰되 넷만 다르다 — 머리띠, /admin 딱지,
+   떠 있는 단추 없음, 바닥 탭 없음.
+
+   그래서 새 부품을 거의 만들지 않는다. 카드는 .card, 단추는 .ui-btn,
+   알약은 .subtabs를 그대로 쓰고, 여기서는 그 넷과 자리만 적는다.
+   관리자 전용 이름은 전부 .admin-으로 시작하므로 몇 줄인지 한눈에 센다. */
+
+/* 바닥 탭이 없으므로 그만큼 비워 둘 까닭도 없다. 사용자 화면은
+   .page-wrap에 64px을 비우는데(6515줄) 여기서는 되돌린다. */
+.page-wrap.admin {
+  padding-bottom: var(--space-4);
+  max-width: 100vw;
+}
+
+/* 머리띠. 제목과 딱지와 나가기가 한 줄에 선다. */
+.admin-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 784px;
+  margin-inline: auto;
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-primary-light);
+  border-radius: var(--radius);
+}
+
+.admin-head__title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* 붉은 딱지. 화면을 캡처해 놓고 나중에 볼 때 어느 쪽인지 알아보게 한다. */
+.admin-head__tag {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-danger);
+  background: var(--color-surface);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  padding: 1px var(--space-2);
+}
+
+.admin-head__out {
+  margin-left: auto;
+  min-height: 0;
+  height: auto;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+/* 자리 알약. 분류 화면의 갈래 알약을 그대로 쓰되, 다섯이 손전화 가로를
+   넘으므로 가로로 넘긴다. 막대는 숨긴다 — 알약 아래에 줄이 생기면
+   사용자 화면의 알약과 결이 달라진다. */
+.subtabs.admin-tabs {
+  max-width: 784px;
+  margin-inline: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.subtabs.admin-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* 암호를 묻는 자리. 카드 하나를 가운데 세운다. */
+.card.admin-gate,
+.card.admin-pw,
+.card.admin-soon {
+  max-width: 784px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+
+.admin-gate__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-gate__note,
+.admin-pw__note {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  word-break: keep-all;
+}
+
+/* 암호 칸. 전역 input 규칙이 키와 테를 이미 잡으므로 폭만 편다. */
+.admin-gate__input {
+  width: 100%;
+}
+
+/* 아직 비어 있는 자리. 빈 자리 문구는 앱이 쓰는 한 꼴(.page-empty)이다. */
+.card.admin-soon .page-empty {
+  margin: 0;
+}
+
+/* 넓은 화면에서는 알약이 왼쪽으로 간다. 640px은 씀씀이의 그림 칸이 둘로
+   접히는 자리이고, 769px은 앱이 손전화와 넓은 화면을 가르는 자리다. */
+@media (min-width: 769px) {
+  .page-wrap.admin {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    grid-template-areas:
+      "head head"
+      "tabs body";
+    gap: var(--space-3);
+    align-content: start;
+    max-width: 1024px;
+    margin-inline: auto;
+  }
+
+  .admin-head { grid-area: head; margin-bottom: 0; }
+
+  .subtabs.admin-tabs {
+    grid-area: tabs;
+    flex-direction: column;
+    align-items: stretch;
+    overflow-x: visible;
+  }
+
+  .card.admin-gate,
+  .card.admin-pw,
+  .card.admin-soon { grid-area: body; margin-inline: 0; }
+}

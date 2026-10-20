@@ -20,6 +20,9 @@ import Settings from "./pages/Settings";
 /* 씀씀이만 따로 떼어 낸다 — 그림 그리는 짐(Recharts)이 무거워서
    이 화면에 들어갈 때만 받아 오게 한다. 다른 화면은 가벼운 그대로다. */
 const Charts = lazy(() => import("./pages/Charts"));
+/* 관리자 페이지도 따로 떼어 낸다 — 사용자가 쓰는 길에 짐을 더하지 않는다.
+   이 화면에 들어갈 때만 받아 온다. */
+const Admin = lazy(() => import("./pages/Admin"));
 
 import PageHead from "./pages/components/PageHead";
 import TabBar from "./pages/components/TabBar";
@@ -183,6 +186,17 @@ function App() {
             묶음도 씀씀이 것이어야 한다. */}
         <Route path="/charts/detail" element={<CalendarDetail />} />
         <Route path="/nudges" element={<Nudges />} />
+
+        {/* 관리자 페이지. 메뉴에도 탭에도 띄우지 않는다 — 주소를 쳐야
+            들어오고, 들어와서도 암호를 넣어야 열린다. */}
+        <Route
+          path="/admin"
+          element={
+            <Suspense fallback={<div className="page-wrap" />}>
+              <Admin />
+            </Suspense>
+          }
+        />
 
         {/* 존재하지 않는 경로 → 홈으로 */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,16 +1,24 @@
 """
 관리자 페이지가 쓰는 자리.
 
-site_prefs를 읽고 적는다. 읽는 길 하나만 암호 없이 연다 — 아래
-GET /prefs가 그것이고, 공개 열쇠만 돌려준다. 꺼 놓은 메뉴 목록을 사용자
-화면이 알아야 메뉴를 거를 수 있기 때문이다.
+site_prefs를 읽고 적고, 대시보드가 볼 셈을 돌려준다. 읽는 길 하나만 암호
+없이 연다 — 아래 GET /prefs가 그것이고, 공개 열쇠만 돌려준다. 꺼 놓은 메뉴
+목록을 사용자 화면이 알아야 메뉴를 거를 수 있기 때문이다.
 
-나머지는 암호를 받은 뒤에야 열린다. 암호와 토큰은 4단계에서 붙인다.
+나머지는 토큰을 받은 뒤에야 열린다. 토큰은 POST /login으로 받는다.
+
+분명히 적는다. **이것은 자물쇠지 인증이 아니다.** 주소를 숨기고 암호 한 겹
+두는 정도이고, 여럿이 쓰게 될 때 제대로 된 로그인으로 바꿔야 한다.
 """
 
+import hashlib
+import hmac
 import json
+import os
+import secrets
+from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import text
 
 from app.deps import SessionDep
@@ -25,12 +33,40 @@ SITE_KEYS = {
     # 새 기능을 더했을 때 목록에 없다고 꺼져 버리면 안 되기 때문이다.
     # 비면 전부 켜짐이고, 그것이 지금 화면과 같은 상태다.
     "menu_off": "[]",
-    # 관리자 암호의 해시. 4단계에서 쓴다. 절대 내려보내지 않는다.
+    # 관리자 암호의 해시. 절대 내려보내지 않는다.
     "admin_pw": "",
 }
 
 # 암호 없이 내려보내도 되는 열쇠. 사용자 화면이 읽어야 하는 것만 든다.
 PUBLIC_KEYS = {"menu_off"}
+
+# 해시를 짓는 값. 파이썬 기본만 쓴다 — 새 의존성을 들이지 않는다.
+PW_ROUNDS = 200_000
+PW_ALGO = "sha256"
+
+# 토큰이 사는 시간. 한나절을 넘기면 켜 놓은 창에서 그대로 열린다.
+TOKEN_HOURS = 8
+
+# 처음 들어갈 때 쓰는 암호. 환경 변수에 적어 두지 않았으면 이 값이다.
+# 들어가서 바꾸는 것이 먼저다.
+FIRST_PW_ENV = "EXPENSE_ADMIN_PW"
+
+
+def _해시(암호: str, 소금: str) -> str:
+    """암호를 되돌릴 수 없는 꼴로 짓는다."""
+    쇠 = hashlib.pbkdf2_hmac(PW_ALGO, 암호.encode("utf-8"), 소금.encode("utf-8"), PW_ROUNDS)
+    return f"{PW_ALGO}${PW_ROUNDS}${소금}${쇠.hex()}"
+
+
+def _맞나(암호: str, 적힌것: str) -> bool:
+    """적힌 해시와 맞는지 본다. 글자를 한 자씩 견주지 않는다."""
+    try:
+        알고, 돌림, 소금, _ = 적힌것.split("$")
+        돌림 = int(돌림)
+    except (ValueError, AttributeError):
+        return False
+    쇠 = hashlib.pbkdf2_hmac(알고, 암호.encode("utf-8"), 소금.encode("utf-8"), 돌림)
+    return hmac.compare_digest(f"{알고}${돌림}${소금}${쇠.hex()}", 적힌것)
 
 
 def _값들(db, 열쇠들: set) -> dict:
@@ -42,6 +78,35 @@ def _값들(db, 열쇠들: set) -> dict:
     """), {"keys": list(열쇠들)}).mappings().all()
     적힌것 = {r["pref_key"]: r["pref_value"] for r in rows}
     return {k: 적힌것.get(k, SITE_KEYS[k]) for k in 열쇠들}
+
+
+def _적기(db, 열쇠: str, 값: str) -> None:
+    db.execute(text("""
+        INSERT INTO life_expense.site_prefs (pref_key, pref_value)
+             VALUES (:k, :v)
+        ON CONFLICT (pref_key) DO UPDATE
+                SET pref_value = EXCLUDED.pref_value
+                  , updated_at = now()
+    """), {"k": 열쇠, "v": 값})
+
+
+def 문지기(db, token: str | None) -> None:
+    """토큰이 살아 있는지 본다. 아니면 401로 막는다."""
+    if not token:
+        raise HTTPException(status_code=401, detail="관리자 암호가 필요합니다.")
+    산것 = db.execute(text("""
+        SELECT 1
+          FROM life_expense.admin_sessions
+         WHERE token = :t AND expires_at > now()
+    """), {"t": token}).scalar()
+    if not 산것:
+        raise HTTPException(status_code=401, detail="관리자 암호가 필요합니다.")
+
+
+def 토큰(x_admin_token: str | None = Header(default=None), db: SessionDep = Depends()):
+    """토큰을 받아 들이는 딸림. 막히면 이 자리에서 401이 난다."""
+    문지기(db, x_admin_token)
+    return x_admin_token
 
 
 @router.get("/prefs")
@@ -65,3 +130,78 @@ def get_site_prefs(db: SessionDep = Depends()):
         꺼진것 = []
 
     return {"menu_off": [str(x) for x in 꺼진것]}
+
+
+@router.get("/state")
+def admin_state(db: SessionDep = Depends()):
+    """
+    암호를 걸어 놓았는지만 알린다. 암호 자체는 내려보내지 않는다.
+
+    화면은 이 답으로 "암호를 처음 정하는 자리"와 "암호를 묻는 자리" 가운데
+    어느 쪽을 그릴지 고른다.
+    """
+    적힌것 = _값들(db, {"admin_pw"})["admin_pw"]
+    첫암호 = os.environ.get(FIRST_PW_ENV, "")
+    return {"걸림": bool(적힌것), "첫암호있나": bool(첫암호)}
+
+
+@router.post("/login")
+def admin_login(payload: dict, db: SessionDep = Depends()):
+    """
+    암호를 받고 토큰을 돌려준다.
+
+    아직 암호를 정하지 않았으면 환경 변수의 첫 암호로 들어간다. 그것도
+    없으면 아무도 못 들어간다 — 비어 있는 암호로 열어 두면 주소를 아는
+    사람이 그대로 들어온다.
+    """
+    암호 = str(payload.get("password") or "")
+    if not 암호:
+        raise HTTPException(status_code=400, detail="암호를 적어 주세요.")
+
+    적힌것 = _값들(db, {"admin_pw"})["admin_pw"]
+    if 적힌것:
+        맞음 = _맞나(암호, 적힌것)
+    else:
+        첫암호 = os.environ.get(FIRST_PW_ENV, "")
+        맞음 = bool(첫암호) and hmac.compare_digest(암호, 첫암호)
+
+    if not 맞음:
+        raise HTTPException(status_code=401, detail="암호가 맞지 않습니다.")
+
+    새토큰 = secrets.token_urlsafe(32)[:64]
+    db.execute(text("""
+        INSERT INTO life_expense.admin_sessions (token, expires_at)
+             VALUES (:t, :e)
+    """), {"t": 새토큰, "e": datetime.now() + timedelta(hours=TOKEN_HOURS)})
+    # 지난 토큰은 들어올 때마다 걷는다. 따로 청소를 돌릴 만큼 쌓이지 않는다.
+    db.execute(text("DELETE FROM life_expense.admin_sessions WHERE expires_at <= now()"))
+    db.commit()
+    return {"token": 새토큰, "hours": TOKEN_HOURS}
+
+
+@router.post("/logout")
+def admin_logout(x_admin_token: str | None = Header(default=None), db: SessionDep = Depends()):
+    """토큰을 걷는다. 없는 토큰이 와도 탈이 아니다."""
+    if x_admin_token:
+        db.execute(text("DELETE FROM life_expense.admin_sessions WHERE token = :t"), {"t": x_admin_token})
+        db.commit()
+    return {"ok": True}
+
+
+@router.put("/password")
+def set_admin_password(payload: dict, _: str = Depends(토큰), db: SessionDep = Depends()):
+    """
+    암호를 새로 정한다. 들어와 있는 사람만 바꿀 수 있다.
+
+    짧은 암호는 받지 않는다. 자물쇠 한 겹뿐이라 그 한 겹이라도 성해야 한다.
+    """
+    새것 = str(payload.get("password") or "")
+    if len(새것) < 8:
+        raise HTTPException(status_code=400, detail="암호는 여덟 자 이상으로 적어 주세요.")
+
+    _적기(db, "admin_pw", _해시(새것, secrets.token_hex(16)))
+    # 암호를 바꾸면 들어와 있던 자리를 모두 걷는다. 남의 기기에 열린 채로
+    # 두지 않으려는 가름이다.
+    db.execute(text("DELETE FROM life_expense.admin_sessions"))
+    db.commit()
+    return {"ok": True}

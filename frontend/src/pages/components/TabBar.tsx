@@ -81,6 +81,10 @@ export default function TabBar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
+  /* 관리자 화면에서는 바닥 탭을 띄우지 않는다. 사용자 화면과 섞이면 거기서
+     내역을 적을 수 있게 된다(pages/Admin.tsx). */
+  if (pathname === "/admin") return null;
+
   return (
     <nav className="tabbar" aria-label="주요 화면">
       {TABS.map((tab) => {
