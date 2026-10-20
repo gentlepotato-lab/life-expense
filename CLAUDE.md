@@ -84,6 +84,7 @@ TO-BE 구조(네임스페이스 분리 · 네이티브 실행 · `gp-lab`/`life_
 | DB | PostgreSQL 17 · DB `gp-lab` · 스키마 **`life_expense`** |
 | 개발 서버 | Vite `:28101` → 백엔드 `127.0.0.1:18101` 프록시 |
 | 실서비스 | 게이트웨이 Nginx가 `frontend/dist`를 **직접** 서빙(`:8101`, `expense.life.localhost`) |
+| 관리자 | 같은 `dist`를 다른 오리진에서도 서빙(`:8151`, `:9151`, `admin.expense.life.localhost`) |
 
 ### 경로 규칙
 
@@ -99,6 +100,12 @@ TO-BE 구조(네임스페이스 분리 · 네이티브 실행 · `gp-lab`/`life_
 - **SPA는 루트.** `BrowserRouter`에 `basename` 없음, `vite.config.ts`는 `base: '/'`.
   API가 `/api`로 비켜서면서 충돌이 사라졌다(2026-08 이전에는 `/app/`에 있었다).
 - 예전 `/app/…` 주소는 게이트웨이(`Gateway\nginx\conf\conf.d\20-life.conf`)가 301로 넘긴다.
+- **관리자 화면은 포트가 다르다.** 홈 화면 앱은 오리진으로 갈리는데, 사용자 앱의
+  `scope`가 `/`라서 같은 포트의 `/admin`은 그 앱 안으로 읽힌다. 그래서 같은 `dist`를
+  `:8151`과 `:9151`에서도 서빙하고, 그 오리진의 뿌리는 `/admin`으로 넘긴다.
+  포트 자리는 서비스 번호에 50을 얹는 규칙이다(`Gateway\nginx\conf\conf.d\00-default.conf`).
+  화면에서는 `/admin`에 들어온 동안만 머리의 manifest를 관리자 것으로 바꾼다
+  (`utils/adminPwa.ts`). 어느 포트로 들어오든 같게 돈다.
 
 ### 절대 바꾸지 말 것
 
