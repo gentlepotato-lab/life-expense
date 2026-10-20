@@ -55,9 +55,14 @@
          값을 담고(main.tsx의 앞머리기억) 여기서는 그것만 꺼내 꽂는다.
          처음 열어 담긴 것이 없으면 위 CSS의 기본값으로 칠해지고, 한 번 열고
          나면 다음부터 제 빛깔로 뜬다.
-         열쇠 이름은 frontend/src/main.tsx의 SPLASH_KEY와 같아야 한다. */
+         열쇠 이름은 frontend/src/main.tsx의 SPLASH_KEY와 같아야 한다.
+
+         관리자 쪽(/admin)은 건너뛴다. 거기는 고른 벌을 따라가지 않고 제
+         빛깔 하나로만 서는 자리인데, 앞머리 화면만 사용자 쪽 벌을 입고
+         떠서 서로 겉돌았다. 꽂지 않으면 위 CSS의 기본값으로 뜬다. */
       try {
-        var 앞빛 = JSON.parse(localStorage.getItem("life-expense:splash") || "null");
+        var 관리자쪽 = location.pathname.indexOf("/admin") === 0;
+        var 앞빛 = 관리자쪽 ? null : JSON.parse(localStorage.getItem("life-expense:splash") || "null");
         if (앞빛) {
           var 뿌리 = document.documentElement.style;
           if (앞빛.bg) 뿌리.setProperty("--sp-bg", 앞빛.bg);
