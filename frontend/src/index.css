@@ -20739,3 +20739,141 @@ html:has(.popup-overlay) .add-btn {
   .card.admin-pw,
   .card.admin-soon { grid-area: body; margin-inline: 0; }
 }
+
+
+/* ─── 관리자만의 빛깔 ─────────────────────────────────────────
+   짜임과 부품은 사용자 화면 것을 그대로 쓰되, 빛깔만 다른 결로 간다.
+   운영하는 자리라는 것이 눈에 먼저 들어와야 하기 때문이다.
+
+   방법은 토큰을 이 subtree에서만 다시 매기는 것이다. 사용자 쪽 빛깔 벌은
+   html에 인라인으로 적히는데(utils/palettes.ts), 자식이 같은 이름을 다시
+   매기면 그 아래에서는 자식 것이 이긴다. 그래서 .card와 .ui-btn과
+   .subtabs를 고치지 않고도 결이 바뀐다 — 새 부품을 만들지 않는 까닭이다.
+
+   고른 결: 사용자 쪽이 남보라와 청록으로 밝고 톡톡 튄다면, 여기는 먹을
+   머금은 짙은 청록과 서늘한 잿빛이다. 종이가 아니라 책상이다. 빛깔 벌을
+   여섯 가운데 무엇으로 고르든, 밝기 칸을 어느 쪽으로 두든 관리자 화면은
+   늘 이 한 결로 선다 — 운영하는 자리가 날마다 달라 보일 까닭이 없다.
+   그래서 어두운 칸을 따로 두지 않는다. */
+.page-wrap.admin {
+  --color-primary: #2F6F7E;
+  --color-primary-dark: #24565F;
+  --color-primary-light: #E0EBEE;
+  --color-success: #3F7A5E;
+  --color-danger: #B04A3C;
+
+  --color-bg: #EDF0F1;
+  --color-surface: #FAFBFB;
+  --color-border: #D7DEE1;
+
+  --color-text-primary: #1B2426;
+  --color-text-secondary: #5A676B;
+  --color-text-tertiary: #97A3A7;
+
+  background: var(--color-bg);
+}
+
+/* 머리띠는 짙게 깐다. 띠 하나로 "여기는 다른 자리"가 읽힌다. */
+.admin-head {
+  background: var(--color-primary);
+  color: #FFFFFF;
+}
+.admin-head__title {
+  color: #FFFFFF;
+}
+.admin-head__tag {
+  color: var(--color-primary);
+  background: #FFFFFF;
+  border-color: #FFFFFF;
+}
+.admin-head__out {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* ─── 대시보드 ────────────────────────────────────────────────
+   카드 넷. 손전화에서는 한 칸으로 쌓고 넓어지면 두 칸으로 접는다 — 씀씀이의
+   그림 칸(.chart-grid)이 두 칸이 되는 640px을 그대로 쓴다. */
+.admin-dash {
+  max-width: 784px;
+  margin-inline: auto;
+}
+
+/* 기간 고르개. 알약 셋이 한 줄에 선다. */
+.admin-days {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.admin-grid {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.card.admin-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.admin-card__title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* 그림이 서는 자리. 키를 못 박아야 카드가 들썩이지 않는다 — 씀씀이의
+   .chart-card__body와 같은 잣대다. */
+.admin-card__body {
+  height: 196px;
+}
+
+/* 오류와 느린 요청은 그림이 아니라 줄로 보인다. 경로와 수와 걸린 참 셋이
+   한 줄에 선다. */
+.admin-slow {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-slow__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.admin-slow__path {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.admin-slow__n {
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* 걸린 참과 응답 코드. 물린 것은 붉게 선다. */
+.admin-slow__ms {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.admin-slow__ms.is-bad {
+  color: var(--color-danger);
+}
+
+@media (min-width: 640px) {
+  .admin-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

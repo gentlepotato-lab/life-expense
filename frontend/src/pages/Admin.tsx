@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { say } from "../utils/notify";
 import { 자물쇠상태, 들어가기, 나가기, 토큰, 암호바꾸기 } from "../utils/adminAuth";
+import AdminDash from "./components/AdminDash";
 
 /**
  * 관리자 페이지.
@@ -131,7 +132,9 @@ export default function Admin() {
         ))}
       </nav>
 
-      {자리 === "pw" ? (
+      {자리 === "dash" ? (
+        <AdminDash />
+      ) : 자리 === "pw" ? (
         <AdminPassword />
       ) : (
         <div className="card admin-soon">

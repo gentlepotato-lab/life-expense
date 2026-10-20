@@ -47,7 +47,7 @@ PW_ALGO = "sha256"
 # 토큰이 사는 시간. 한나절을 넘기면 켜 놓은 창에서 그대로 열린다.
 TOKEN_HOURS = 8
 
-# 처음 들어갈 때 쓰는 암호. 환경 변수에 적어 두지 않았으면 이 값이다.
+# 처음 들어갈 때 쓰는 암호. 환경 변수에 적지 않았으면 들어갈 수 없다.
 # 들어가서 바꾸는 것이 먼저다.
 FIRST_PW_ENV = "EXPENSE_ADMIN_PW"
 
@@ -205,3 +205,69 @@ def set_admin_password(payload: dict, _: str = Depends(토큰), db: SessionDep =
     db.execute(text("DELETE FROM life_expense.admin_sessions"))
     db.commit()
     return {"ok": True}
+
+
+@router.get("/stats")
+def admin_stats(days: int = 30, _: str = Depends(토큰), db: SessionDep = Depends()):
+    """
+    대시보드가 볼 넷을 한 번에 돌려준다.
+
+    화면이 넷을 따로 물으면 기간을 바꿀 때마다 요청이 네 번 나간다. 셈이
+    싸므로 한 번에 모아 보낸다.
+
+    적고 고친 건수(write)만 action_logs가 아니라 entries에서 센다. 날짜 칸이
+    있어 거기서 셈하면 지난 것까지 소급해서 보인다.
+    """
+    날 = max(1, min(int(days or 30), 365))
+    틈 = {"days": 날}
+
+    화면 = db.execute(text("""
+        SELECT name, count(*) AS n
+          FROM life_expense.action_logs
+         WHERE kind = 'view'
+           AND created_at >= now() - make_interval(days => :days)
+      GROUP BY name
+      ORDER BY n DESC, name ASC
+         LIMIT 20
+    """), 틈).mappings().all()
+
+    기능 = db.execute(text("""
+        SELECT name, count(*) AS n
+          FROM life_expense.action_logs
+         WHERE kind = 'feature'
+           AND created_at >= now() - make_interval(days => :days)
+      GROUP BY name
+      ORDER BY n DESC, name ASC
+         LIMIT 20
+    """), 틈).mappings().all()
+
+    # 오래 걸리거나 물린 요청. 같은 길을 묶어 가장 느린 것부터 보인다.
+    탈 = db.execute(text("""
+        SELECT name
+             , count(*) AS n
+             , max(elapsed_ms) AS worst
+             , max(status) AS status
+          FROM life_expense.action_logs
+         WHERE kind = 'error'
+           AND created_at >= now() - make_interval(days => :days)
+      GROUP BY name
+      ORDER BY worst DESC NULLS LAST, n DESC
+         LIMIT 20
+    """), 틈).mappings().all()
+
+    # 적고 고친 건수 — 날짜별로 센다. 그림이 날마다 한 점씩 찍는다.
+    적음 = db.execute(text("""
+        SELECT e.tx_date AS d, count(*) AS n
+          FROM life_expense.entries e
+         WHERE e.tx_date >= CURRENT_DATE - make_interval(days => :days)
+      GROUP BY e.tx_date
+      ORDER BY e.tx_date ASC
+    """), 틈).mappings().all()
+
+    return {
+        "days": 날,
+        "view": [{"name": r["name"], "n": r["n"]} for r in 화면],
+        "feature": [{"name": r["name"], "n": r["n"]} for r in 기능],
+        "error": [{"name": r["name"], "n": r["n"], "worst": r["worst"], "status": r["status"]} for r in 탈],
+        "write": [{"date": str(r["d"]), "n": r["n"]} for r in 적음],
+    }
