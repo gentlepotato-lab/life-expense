@@ -93,7 +93,7 @@ export default function AdminNotices() {
   return (
     <div className="admin-edit">
       <section className="card admin-card">
-        <h3 className="admin-card__title">{고치는것 === null ? "새 공지" : "공지 고치기"}</h3>
+        <h3 className="admin-card__title">{고치는것 === null ? "새 공지" : "공지 편집"}</h3>
         <input
           className="ui-input"
           value={초안.title}
@@ -138,7 +138,7 @@ export default function AdminNotices() {
                 set초안({ ...빈것 });
               }}
             >
-              되돌리기
+              닫기
             </button>
           )}
         </div>
@@ -173,7 +173,7 @@ export default function AdminNotices() {
                     });
                   }}
                 >
-                  고치기
+                  편집
                 </button>
                 <button type="button" className="ui-btn small" onClick={() => void 지우기(n)}>
                   제거

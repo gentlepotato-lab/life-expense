@@ -20845,6 +20845,11 @@ html:has(.popup-overlay) .add-btn {
   --color-text-tertiary: #ADB5BD;
 
   background: var(--color-bg);
+  /* 포커스 테두리. :root에서 선언될 때 그때의 --color-primary가 이미 박히므로,
+     여기서 잉크를 다시 매겨도 그 값은 따라오지 않는다. 자식이 물려받는 것은
+     이미 셈이 끝난 글귀다. 그래서 여기서 한 번 더 적는다. */
+  --ring: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
+
   /* 네모 표시는 브라우저가 제 빛깔로 그린다. 사용자 화면은 그 기본 파랑을
      그대로 쓰므로 건드리지 않지만, 여기는 보라 한 결이라 파랑 네모만 남의
      것처럼 떠 보였다. 이 쪽 안에서만 잉크를 따르게 한다. */
@@ -21106,6 +21111,13 @@ textarea.admin-area:focus {
   background: var(--color-surface);
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
+}
+
+/* 고치는 중인 칸. 이름 자리를 그대로 차지한다. 줄 키(40px)보다 작아
+   윗줄과 아랫줄이 밀리지 않는다. */
+.admin-list__edit {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* 켜고 끄기. 함께한 상대 화면의 .cp-toggle을 그대로 쓰되, 오른쪽 끝으로

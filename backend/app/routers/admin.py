@@ -392,19 +392,40 @@ def admin_list_doodle(_: str = Depends(토큰), db: SessionDep = Depends()):
 
 
 @router.put("/doodle-items/{item_key}")
-def admin_toggle_doodle(item_key: str, payload: dict, _: str = Depends(토큰), db: SessionDep = Depends()):
+def admin_edit_doodle(item_key: str, payload: dict, _: str = Depends(토큰), db: SessionDep = Depends()):
     """
-    문구 하나를 켜거나 끈다.
+    문구 하나를 켜거나 끄거나, 이름을 고친다.
+
+    보낸 칸만 고친다. is_active만 보내면 이름은 그대로고, label만 보내면
+    켠 상태가 그대로다. 둘 다 보내면 둘 다 고친다. 화면이 끄기와 이름
+    고치기를 따로 부르므로, 안 보낸 칸까지 기본값으로 덮으면 하나를 고칠
+    때마다 다른 하나가 되돌아간다.
 
     모두 끄는 것도 막지 않는다. 화면이 그때는 코드에 있는 열 가지를 쓰므로
     쪽지가 빈 채로 돌지는 않는다(frontend/src/utils/doodlePool.ts).
+
+    모양의 이름도 고칠 수 있다. 화면은 이름이 아니라 열쇠로 그림을 고르므로
+    (components/MarkIcon.tsx) 이름을 바꿔도 그리는 것은 그대로다.
     """
-    켬 = 1 if payload.get("is_active", 1) else 0
-    바뀜 = db.execute(text("""
-        UPDATE life_expense.doodle_items
-           SET is_active = :on
-         WHERE item_key = :k
-    """), {"on": 켬, "k": item_key}).rowcount
+    칸 = []
+    값 = {"k": item_key}
+    if "is_active" in payload:
+        칸.append("is_active = :on")
+        값["on"] = 1 if payload.get("is_active") else 0
+    if "label" in payload:
+        글 = str(payload.get("label") or "").strip()
+        if not 글:
+            raise HTTPException(status_code=400, detail="이름을 적어 주세요.")
+        if len(글) > 40:
+            raise HTTPException(status_code=400, detail="이름은 마흔 자까지 적을 수 있습니다.")
+        칸.append("label = :l")
+        값["l"] = 글
+    if not 칸:
+        raise HTTPException(status_code=400, detail="고칠 것이 없습니다.")
+
+    바뀜 = db.execute(text(
+        "UPDATE life_expense.doodle_items SET " + ", ".join(칸) + " WHERE item_key = :k"
+    ), 값).rowcount
     db.commit()
     if not 바뀜:
         raise HTTPException(status_code=404, detail="그 문구가 없습니다.")

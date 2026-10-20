@@ -90,6 +90,9 @@ export function AdminMenu() {
 export function AdminDoodle() {
   const [목록, set목록] = useState<문구[] | null>(null);
   const [새글, set새글] = useState("");
+  /* 지금 고치는 줄의 열쇠와 적는 중인 이름. 한 번에 한 줄만 연다. */
+  const [고치는것, set고치는것] = useState<string | null>(null);
+  const [고친글, set고친글] = useState("");
 
   const 받기 = useCallback(() => {
     axios
@@ -116,7 +119,7 @@ export function AdminDoodle() {
     }
   };
 
-  const 더하기 = async () => {
+  const 추가 = async () => {
     const 글 = 새글.trim();
     if (!글) {
       say.warn("문구를 적어 주세요.");
@@ -124,12 +127,42 @@ export function AdminDoodle() {
     }
     try {
       await axios.post("/admin/doodle-items", { label: 글 }, { headers: 머리() });
-      say.ok("문구를 더했습니다.");
+      say.ok("문구를 추가했습니다.");
       set새글("");
       받기();
       다시읽히기();
     } catch {
-      say.bad("더하지 못했습니다.");
+      say.bad("추가하지 못했습니다.");
+    }
+  };
+
+  const 열기 = (it: 문구) => {
+    set고치는것(it.item_key);
+    set고친글(it.label);
+  };
+
+  const 닫기 = () => {
+    set고치는것(null);
+    set고친글("");
+  };
+
+  const 저장 = async (it: 문구) => {
+    const 글 = 고친글.trim();
+    if (!글) {
+      say.warn("이름을 적어 주세요.");
+      return;
+    }
+    if (글 === it.label) {
+      닫기();
+      return;
+    }
+    try {
+      await axios.put(`/admin/doodle-items/${it.item_key}`, { label: 글 }, { headers: 머리() });
+      set목록((v) => (v ?? []).map((x) => (x.item_key === it.item_key ? { ...x, label: 글 } : x)));
+      닫기();
+      다시읽히기();
+    } catch {
+      say.bad("고치지 못했습니다.");
     }
   };
 
@@ -170,11 +203,20 @@ export function AdminDoodle() {
                 <span className="admin-list__mark">
                   <MarkIcon itemKey={it.item_key} />
                 </span>
-                <span className="admin-list__name">{it.label}</span>
-                <label className="cp-toggle admin-switch">
-                  <input type="checkbox" checked={!!it.is_active} onChange={() => void 뒤집기(it)} />
-                  {it.is_active ? "켜짐" : "꺼짐"}
-                </label>
+                {고치는것 === it.item_key ? (
+                  <RowEdit 값={고친글} on바뀜={set고친글} on저장={() => void 저장(it)} on닫기={닫기} />
+                ) : (
+                  <>
+                    <span className="admin-list__name">{it.label}</span>
+                    <label className="cp-toggle admin-switch">
+                      <input type="checkbox" checked={!!it.is_active} onChange={() => void 뒤집기(it)} />
+                      {it.is_active ? "켜짐" : "꺼짐"}
+                    </label>
+                    <button type="button" className="ui-btn small" onClick={() => 열기(it)}>
+                      편집
+                    </button>
+                  </>
+                )}
               </li>
             ))}
           </ul>
@@ -190,13 +232,13 @@ export function AdminDoodle() {
             value={새글}
             onChange={(e) => set새글(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") void 더하기();
+              if (e.key === "Enter") void 추가();
             }}
             placeholder="적을 문구"
             maxLength={40}
           />
-          <button type="button" className="ui-btn primary" onClick={() => void 더하기()}>
-            더하기
+          <button type="button" className="ui-btn primary" onClick={() => void 추가()}>
+            추가
           </button>
         </div>
         {목록 === null ? (
@@ -207,14 +249,23 @@ export function AdminDoodle() {
           <ul className="admin-list">
             {문구들.map((it) => (
               <li key={it.item_key} className={`admin-list__row${it.is_active ? "" : " is-off"}`}>
-                <span className="admin-list__name">{it.label}</span>
-                <label className="cp-toggle admin-switch">
-                  <input type="checkbox" checked={!!it.is_active} onChange={() => void 뒤집기(it)} />
-                  {it.is_active ? "켜짐" : "꺼짐"}
-                </label>
-                <button type="button" className="ui-btn small" onClick={() => void 지우기(it)}>
-                  제거
-                </button>
+                {고치는것 === it.item_key ? (
+                  <RowEdit 값={고친글} on바뀜={set고친글} on저장={() => void 저장(it)} on닫기={닫기} />
+                ) : (
+                  <>
+                    <span className="admin-list__name">{it.label}</span>
+                    <label className="cp-toggle admin-switch">
+                      <input type="checkbox" checked={!!it.is_active} onChange={() => void 뒤집기(it)} />
+                      {it.is_active ? "켜짐" : "꺼짐"}
+                    </label>
+                    <button type="button" className="ui-btn small" onClick={() => 열기(it)}>
+                      편집
+                    </button>
+                    <button type="button" className="ui-btn small" onClick={() => void 지우기(it)}>
+                      제거
+                    </button>
+                  </>
+                )}
               </li>
             ))}
           </ul>
@@ -222,5 +273,48 @@ export function AdminDoodle() {
         <p className="admin-hint">지금 켜진 것은 모두 {켠수}가지입니다.</p>
       </section>
     </div>
+  );
+}
+
+/**
+ * 줄 하나를 고치는 꼴.
+ *
+ * 이름 자리에 입력 칸이 앉고, 켜고 끄기와 제거 자리에 저장과 닫기가
+ * 앉는다. 줄 키는 그대로다. 칸(32px)이 줄(40px) 안에 들어 윗줄과 아랫줄이
+ * 밀리지 않는다.
+ *
+ * 한 번에 한 줄만 연다. 여럿을 열어 두면 어느 것을 저장하는지 흐려진다.
+ */
+function RowEdit({
+  값,
+  on바뀜,
+  on저장,
+  on닫기,
+}: {
+  값: string;
+  on바뀜: (next: string) => void;
+  on저장: () => void;
+  on닫기: () => void;
+}) {
+  return (
+    <>
+      <input
+        className="ui-input admin-list__edit"
+        value={값}
+        onChange={(e) => on바뀜(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") on저장();
+          if (e.key === "Escape") on닫기();
+        }}
+        maxLength={40}
+        autoFocus
+      />
+      <button type="button" className="ui-btn small primary" onClick={on저장}>
+        저장
+      </button>
+      <button type="button" className="ui-btn small" onClick={on닫기}>
+        닫기
+      </button>
+    </>
   );
 }

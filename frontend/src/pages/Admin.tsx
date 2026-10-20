@@ -309,7 +309,7 @@ function AdminPassword() {
         autoComplete="new-password"
       />
       <button type="button" className="ui-btn primary" onClick={() => void 바꿈()}>
-        바꾸기
+        변경
       </button>
     </div>
   );
