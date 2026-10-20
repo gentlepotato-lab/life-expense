@@ -3,6 +3,7 @@ import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
 import { say } from "../../utils/notify";
 import { MENU_REGISTRY } from "../../utils/menuRegistry";
+import { PAGE_TITLE } from "../../utils/pageTitles";
 import { invalidateMenuOff, loadMenuOff } from "../../utils/menuOff";
 import { invalidateDoodlePool, loadDoodlePool } from "../../utils/doodlePool";
 
@@ -10,7 +11,12 @@ import { invalidateDoodlePool, loadDoodlePool } from "../../utils/doodlePool";
  * 메뉴 On/Off와 애니메이션 문구 — 켜고 끄는 두 자리.
  *
  * 메뉴는 등록부(utils/menuRegistry.ts)에 적힌 것을 늘어놓는다. 거기 한 줄
- * 더하면 여기 스위치가 하나 저절로 늘어난다.
+ * 더하면 여기 스위치가 하나 저절로 늘어난다. 이름은 사용자 화면이 쓰는
+ * 것을 그대로 꺼내 쓰고(utils/pageTitles.ts), 경로는 그 옆에 작게 붙인다.
+ *
+ * 켜고 끄는 꼴은 함께한 상대 화면의 것(.cp-toggle)을 그대로 쓴다. 처음에는
+ * 꽉 찬 단추를 줄마다 놓았는데, 아홉 개가 나란히 서니 머리띠와 서로
+ * 다투어 어느 쪽을 봐야 할지 흐려졌다.
  *
  * 고치고 나면 사용자 화면이 쥔 목록도 비운다. 그러지 않으면 같은 창에서
  * 홈으로 돌아갔을 때 옛 목록이 그대로 걸려 있다.
@@ -59,14 +65,12 @@ export function AdminMenu() {
                 const 꺼짐 = 꺼진것.includes(m.key);
                 return (
                   <li key={m.key} className={`admin-list__row${꺼짐 ? " is-off" : ""}`}>
-                    <span className="admin-list__name">{m.path}</span>
-                    <button
-                      type="button"
-                      className={`ui-btn small${꺼짐 ? "" : " primary"}`}
-                      onClick={() => void 뒤집기(m.key)}
-                    >
+                    <span className="admin-list__name">{PAGE_TITLE[m.path] ?? m.path}</span>
+                    <span className="admin-list__path">{m.path}</span>
+                    <label className="cp-toggle admin-switch">
+                      <input type="checkbox" checked={!꺼짐} onChange={() => void 뒤집기(m.key)} />
                       {꺼짐 ? "꺼짐" : "켜짐"}
-                    </button>
+                    </label>
                   </li>
                 );
               })}
@@ -122,13 +126,10 @@ export function AdminDoodle() {
               <li key={it.item_key} className={`admin-list__row${it.is_active ? "" : " is-off"}`}>
                 <span className="admin-list__kind">{it.kind === "mark" ? "그림" : "인사"}</span>
                 <span className="admin-list__name">{it.label}</span>
-                <button
-                  type="button"
-                  className={`ui-btn small${it.is_active ? " primary" : ""}`}
-                  onClick={() => void 뒤집기(it)}
-                >
+                <label className="cp-toggle admin-switch">
+                  <input type="checkbox" checked={!!it.is_active} onChange={() => void 뒤집기(it)} />
                   {it.is_active ? "켜짐" : "꺼짐"}
-                </button>
+                </label>
               </li>
             ))}
           </ul>

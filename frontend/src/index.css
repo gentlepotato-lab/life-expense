@@ -20616,6 +20616,13 @@ html:has(.popup-overlay) .add-btn {
 .page-wrap.admin {
   padding-bottom: var(--space-4);
   max-width: 100vw;
+  /* 바탕을 이 쪽에서만 다시 매기므로, 글이 짧으면 아래쪽에 html의 바탕이
+     드러나 띠처럼 보인다. 쪽 끝까지 깔아 그 이음매를 없앤다. */
+  min-height: 100dvh;
+  /* 사용자 화면은 위 여백을 머리말이 가진다(7349줄 .page-head). 그래서
+     .page-wrap의 위 여백은 0으로 꺼져 있는데, 여기에는 그 머리말이 없어
+     머리띠가 천장에 붙었다. 머리말이 주던 값과 같은 12px을 돌려준다. */
+  padding-top: var(--space-3);
 }
 
 /* 머리띠. 제목과 딱지와 나가기가 한 줄에 선다. */
@@ -20660,17 +20667,18 @@ html:has(.popup-overlay) .add-btn {
   cursor: pointer;
 }
 
-/* 자리 알약. 분류 화면의 갈래 알약을 그대로 쓰되, 다섯이 손전화 가로를
-   넘으므로 가로로 넘긴다. 막대는 숨긴다 — 알약 아래에 줄이 생기면
-   사용자 화면의 알약과 결이 달라진다. */
+/* 자리 알약. 사용자 화면의 갈래 알약을 값까지 그대로 쓴다. 칸 수만
+   화면 파일이 --tab-n으로 알려 주면 폭 나누기와 미끄러지는 조각이 저절로
+   따라온다. 여기서 더 적을 것은 가운데에 세우는 일뿐이다.
+
+   처음에는 긴 이름을 그대로 두고 가로로 넘겼는데, 손전화에서 다섯째
+   알약의 오른쪽이 잘려 덜 만든 것처럼 보였다. 이름을 줄여 다섯 칸에
+   앉혔다. */
 .subtabs.admin-tabs {
   max-width: 784px;
   margin-inline: auto;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.subtabs.admin-tabs::-webkit-scrollbar {
-  display: none;
+  /* 알약 바로 아래에 카드가 붙어 있었다. 머리띠가 아래에 두는 값과 같게 띄운다. */
+  margin-bottom: var(--space-3);
 }
 
 /* 암호를 묻는 자리. 카드 하나를 가운데 세운다. */
@@ -20701,45 +20709,21 @@ html:has(.popup-overlay) .add-btn {
   word-break: keep-all;
 }
 
-/* 암호 칸. 전역 input 규칙이 키와 테를 이미 잡으므로 폭만 편다. */
-.admin-gate__input {
-  width: 100%;
-}
+/* 암호 칸은 앱이 쓰는 .ui-input을 그대로 쓴다. 전역 규칙이 집는 것은
+   .ui-input과 input[type="text"]들이라 input[type="password"]에는 닿지
+   않는다. 그래서 전용 이름을 새로 짓지 않고 .ui-input을 붙인다. */
 
 /* 아직 비어 있는 자리. 빈 자리 문구는 앱이 쓰는 한 꼴(.page-empty)이다. */
 .card.admin-soon .page-empty {
   margin: 0;
 }
 
-/* 넓은 화면에서는 알약이 왼쪽으로 간다. 640px은 씀씀이의 그림 칸이 둘로
-   접히는 자리이고, 769px은 앱이 손전화와 넓은 화면을 가르는 자리다. */
-@media (min-width: 769px) {
-  .page-wrap.admin {
-    display: grid;
-    grid-template-columns: 180px 1fr;
-    grid-template-areas:
-      "head head"
-      "tabs body";
-    gap: var(--space-3);
-    align-content: start;
-    max-width: 1024px;
-    margin-inline: auto;
-  }
+/* 넓은 화면에서도 짜임을 바꾸지 않는다.
 
-  .admin-head { grid-area: head; margin-bottom: 0; }
-
-  .subtabs.admin-tabs {
-    grid-area: tabs;
-    flex-direction: column;
-    align-items: stretch;
-    overflow-x: visible;
-  }
-
-  .card.admin-gate,
-  .card.admin-pw,
-  .card.admin-soon { grid-area: body; margin-inline: 0; }
-}
-
+   처음에는 알약을 왼쪽 세로 레일로 세웠는데, 사용자 화면에는 그런 짜임이
+   없어서 같은 앱으로 읽히지 않았다. 레일이 차지한 180px 때문에 본문이
+   오른쪽으로 밀려 가운데도 어긋났다. 모든 너비에서 머리띠와 알약과 본문이
+   784px 한 기둥에 선다. 사용자 화면의 본문 폭과 같은 값이다. */
 
 /* ─── 관리자만의 빛깔 ─────────────────────────────────────────
    짜임과 부품은 사용자 화면 것을 그대로 쓰되, 빛깔만 다른 결로 간다.
@@ -20750,25 +20734,30 @@ html:has(.popup-overlay) .add-btn {
    매기면 그 아래에서는 자식 것이 이긴다. 그래서 .card와 .ui-btn과
    .subtabs를 고치지 않고도 결이 바뀐다 — 새 부품을 만들지 않는 까닭이다.
 
-   고른 결: 사용자 쪽이 남보라와 청록으로 밝고 톡톡 튄다면, 여기는 먹을
-   머금은 짙은 청록과 서늘한 잿빛이다. 종이가 아니라 책상이다. 빛깔 벌을
-   여섯 가운데 무엇으로 고르든, 밝기 칸을 어느 쪽으로 두든 관리자 화면은
-   늘 이 한 결로 선다 — 운영하는 자리가 날마다 달라 보일 까닭이 없다.
-   그래서 어두운 칸을 따로 두지 않는다. */
+   고른 결: 종이는 앱과 한 값이다. 바탕도 카드도 테두리도 글빛도 :root에
+   적힌 그대로 쓴다. 통일성이 사는 자리가 거기다. 다른 것은 잉크 한 가지,
+   남보라 대신 짙은 쪽빛이다. 같은 종이에 다른 펜으로 적은 꼴이다.
+
+   처음에는 바탕을 잿빛으로 깔고 글빛까지 죽여 봤는데, 세 가지를 한꺼번에
+   낮추니 결이 다른 게 아니라 그냥 칙칙했다. 낮추는 것은 하나로 족하다.
+
+   빛깔 벌을 여섯 가운데 무엇으로 고르든, 밝기 칸을 어느 쪽으로 두든
+   관리자 화면은 늘 이 한 결로 선다. 운영하는 자리가 날마다 달라 보일
+   까닭이 없어서 어두운 칸을 따로 두지 않는다. */
 .page-wrap.admin {
-  --color-primary: #2F6F7E;
-  --color-primary-dark: #24565F;
-  --color-primary-light: #E0EBEE;
-  --color-success: #3F7A5E;
-  --color-danger: #B04A3C;
+  --color-primary: #1C6FB8;
+  --color-primary-dark: #155792;
+  --color-primary-light: #E3EEF8;
+  --color-success: #00A89F;
+  --color-danger: #E64842;
 
-  --color-bg: #EDF0F1;
-  --color-surface: #FAFBFB;
-  --color-border: #D7DEE1;
+  --color-bg: #F8F9FA;
+  --color-surface: #FFFFFF;
+  --color-border: #E9ECEF;
 
-  --color-text-primary: #1B2426;
-  --color-text-secondary: #5A676B;
-  --color-text-tertiary: #97A3A7;
+  --color-text-primary: #212529;
+  --color-text-secondary: #6C757D;
+  --color-text-tertiary: #ADB5BD;
 
   background: var(--color-bg);
 }
@@ -20813,7 +20802,8 @@ html:has(.popup-overlay) .add-btn {
 .card.admin-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  padding-block: var(--space-4);
 }
 
 .admin-card__title {
@@ -20888,13 +20878,35 @@ html:has(.popup-overlay) .add-btn {
   gap: var(--space-3);
 }
 
-/* 여러 줄 칸. 전역 input 규칙이 키를 못 박으므로 여기서 푼다. */
-.admin-area {
-  min-height: 0;
-  height: auto;
-  padding: var(--space-2) var(--space-3);
-  line-height: 1.6;
-  resize: vertical;
+/* 여러 줄 칸. 전역 규칙은 input과 select만 집으므로 textarea에는 닿지
+   않는다. 저장소가 이미 쓰던 꼴(14542줄 textarea.benefit__desc)을 그대로
+   옮겨 적는다. 한 줄일 때 키가 입력칸과 한 치도 다르지 않아야 한다. */
+textarea.admin-area {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: var(--control-h);
+  padding: 5px var(--control-px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  line-height: 20px;
+  color: var(--color-text-primary);
+  /* 키는 글에 맞춰 화면이 잡는다(GrowArea.tsx). 손으로 끌어 늘이는
+     손잡이는 사용자 화면 어디에도 없으므로 여기서도 걷어 낸다. */
+  resize: none;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+/* 공통 초점 규칙이 textarea는 비켜 가므로 여기서도 적는다. */
+textarea.admin-area:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 /* 칸 둘이나 단추 둘이 한 줄에 선다. 좁으면 접힌다. */
@@ -20903,7 +20915,7 @@ html:has(.popup-overlay) .add-btn {
   flex-wrap: wrap;
   gap: var(--space-2);
 }
-.admin-row > .admin-gate__input {
+.admin-row > .ui-input {
   flex: 1 1 10rem;
 }
 
@@ -20917,12 +20929,20 @@ html:has(.popup-overlay) .add-btn {
 }
 
 /* 켜고 끄는 줄들. */
+/* 줄 사이. 앱의 목록은 한 줄이 52px인데(4495줄 .cp-card) 여기는 글 키만큼인
+   18px이라 천장에도 서로에게도 다닥다닥 붙었다. 한 줄을 40px로 세우고 사이를
+   4px 띄워 44px 되풀이로 간다. 카드 한 장에 담긴 줄들이라 앱의 카드 한 장짜리
+   줄보다는 촘촘해도 되지만, 글 키대로는 너무 좁았다. */
 .admin-list {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.admin-list__row {
+  min-height: 40px;
 }
 
 .admin-list__row {
@@ -20935,6 +20955,7 @@ html:has(.popup-overlay) .add-btn {
 /* 꺼진 줄은 옅게 둔다. 옅어진 것만으로는 읽히지 않으므로 단추에 글자로도
    적는다(켜짐, 꺼짐) — 돈쓴이의 잠긴 조각과 같은 잣대다. */
 .admin-list__row.is-off .admin-list__name,
+.admin-list__row.is-off .admin-list__path,
 .admin-list__row.is-off .admin-list__kind {
   color: var(--color-text-tertiary);
   text-decoration: line-through;
@@ -20947,6 +20968,22 @@ html:has(.popup-overlay) .add-btn {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-text-primary);
+}
+
+/* 경로. 이름 옆에 작게 붙여, 어느 주소를 끄는지 헷갈리지 않게 한다. */
+.admin-list__path {
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* 켜고 끄기. 함께한 상대 화면의 .cp-toggle을 그대로 쓰되, 오른쪽 끝으로
+   밀고 글자 폭을 못 박는다. 켜짐과 꺼짐의 글자 수가 같으므로 줄이 흔들릴
+   일은 없지만, 줄마다 네모가 같은 세로줄에 서야 눈이 편하다. */
+.admin-switch {
+  flex: 0 0 auto;
+  margin-left: auto;
+  gap: 5px;
 }
 
 /* 그림인지 인사인지. 딱지 꼴은 앱의 작은 딱지와 같다. */

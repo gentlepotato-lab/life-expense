@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
 import { say, ask } from "../../utils/notify";
+import GrowArea from "./GrowArea";
 
 /**
  * 공지사항 편집.
@@ -89,28 +90,28 @@ export default function AdminNotices() {
       <section className="card admin-card">
         <h3 className="admin-card__title">{고치는것 === null ? "새 공지" : "공지 고치기"}</h3>
         <input
-          className="admin-gate__input"
+          className="ui-input"
           value={초안.title}
           onChange={(e) => set초안({ ...초안, title: e.target.value })}
           placeholder="제목"
         />
-        <textarea
-          className="admin-gate__input admin-area"
+        {/* 사용자 화면이 메모에 쓰는 칸을 그대로 쓴다. 담긴 글만큼 키가 자란다. */}
+        <GrowArea
+          className="admin-area"
           value={초안.body}
-          onChange={(e) => set초안({ ...초안, body: e.target.value })}
+          onChange={(v) => set초안({ ...초안, body: v })}
           placeholder="본문"
-          rows={3}
         />
         <div className="admin-row">
           <input
             type="date"
-            className="admin-gate__input"
+            className="ui-input"
             value={초안.start_on}
             onChange={(e) => set초안({ ...초안, start_on: e.target.value })}
           />
           <input
             type="date"
-            className="admin-gate__input"
+            className="ui-input"
             value={초안.end_on}
             onChange={(e) => set초안({ ...초안, end_on: e.target.value })}
           />

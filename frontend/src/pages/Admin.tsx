@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type React from "react";
 import { say } from "../utils/notify";
 import { 자물쇠상태, 들어가기, 나가기, 토큰, 암호바꾸기 } from "../utils/adminAuth";
 import AdminDash from "./components/AdminDash";
@@ -18,17 +19,20 @@ import { AdminMenu, AdminDoodle } from "./components/AdminToggles";
  * 꺼내 쓰고, 카드는 .card, 단추는 .ui-btn, 알약은 .subtabs를 쓴다. 다른 것은
  * 넷뿐이다 — 머리띠, /admin 딱지, 떠 있는 단추 없음, 바닥 탭 없음.
  *
- * 손전화를 기준으로 짠다. 자리 다섯은 가로로 넘기는 알약이고, 넓어지면
- * 왼쪽으로 간다(index.css 186절).
+ * 손전화를 기준으로 짠다. 자리 다섯은 가로 알약 한 줄이고, 넓어져도 그대로
+ * 가운데에 선다(index.css 186절).
  */
 
-/** 관리자 페이지의 자리들. 더하면 알약이 하나 늘어난다. */
+/** 관리자 페이지의 자리들. 더하면 알약이 하나 늘어난다.
+ *
+ * 이름이 짧은 까닭은 알약이 가로를 똑같이 나눠 갖기 때문이다. 손전화에서
+ * 다섯 칸이면 한 칸이 75px이라, 긴 이름은 칸을 넘어 오른쪽이 잘린다. */
 const 자리들 = [
   { key: "dash", name: "대시보드" },
-  { key: "notice", name: "공지사항" },
-  { key: "doodle", name: "애니메이션 문구" },
-  { key: "menu", name: "메뉴 On/Off" },
-  { key: "pw", name: "암호 바꾸기" },
+  { key: "notice", name: "공지" },
+  { key: "doodle", name: "문구" },
+  { key: "menu", name: "메뉴" },
+  { key: "pw", name: "암호" },
 ] as const;
 
 type 자리 = (typeof 자리들)[number]["key"];
@@ -43,7 +47,7 @@ export default function Admin() {
   /* 브라우저 탭 제목도 맞춘다. 화면을 캡처해 놓고 나중에 볼 때 어느 쪽인지
      헷갈리지 않게 한다. */
   useEffect(() => {
-    document.title = "관리자 · 돈을 쓰다";
+    document.title = "돈을 쓰다 관리자";
   }, []);
 
   useEffect(() => {
@@ -99,7 +103,7 @@ export default function Admin() {
           </p>
           <input
             type="password"
-            className="admin-gate__input"
+            className="ui-input"
             value={암호}
             onChange={(e) => set암호(e.target.value)}
             onKeyDown={(e) => {
@@ -121,7 +125,19 @@ export default function Admin() {
     <div className="page-wrap admin">
       <AdminHead onLogout={() => void 나감()} />
 
-      <nav className="subtabs admin-tabs" aria-label="관리자 자리">
+      {/* 사용자 화면의 갈래 알약을 그대로 쓴다(PageHead.tsx 105줄). 칸 수를
+          --tab-n으로 알려 주면 CSS가 폭을 맞춰 나누고, 켜진 자리를 덮는
+          조각 하나가 미끄러진다. */}
+      <nav
+        className="subtabs admin-tabs"
+        aria-label="관리자 자리"
+        style={{ "--tab-n": 자리들.length } as React.CSSProperties}
+      >
+        <span
+          className="subtabs__thumb"
+          style={{ transform: `translate3d(${자리들.findIndex((t) => t.key === 자리) * 100}%, 0, 0)` }}
+          aria-hidden="true"
+        />
         {자리들.map((t) => (
           <button
             key={t.key}
@@ -153,7 +169,7 @@ export default function Admin() {
 function AdminHead({ onLogout }: { onLogout: (() => void) | null }) {
   return (
     <header className="admin-head">
-      <span className="admin-head__title">돈을 쓰다 · 관리자</span>
+      <span className="admin-head__title">돈을 쓰다 관리자</span>
       <span className="admin-head__tag">/admin</span>
       {onLogout && (
         <button type="button" className="admin-head__out" onClick={onLogout}>
@@ -194,7 +210,7 @@ function AdminPassword() {
       </p>
       <input
         type="password"
-        className="admin-gate__input"
+        className="ui-input"
         value={새것}
         onChange={(e) => set새것(e.target.value)}
         placeholder="새 암호"
@@ -202,7 +218,7 @@ function AdminPassword() {
       />
       <input
         type="password"
-        className="admin-gate__input"
+        className="ui-input"
         value={다시}
         onChange={(e) => set다시(e.target.value)}
         onKeyDown={(e) => {
