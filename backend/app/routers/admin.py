@@ -16,6 +16,7 @@ import hmac
 import json
 import os
 import secrets
+import uuid
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -407,4 +408,58 @@ def admin_toggle_doodle(item_key: str, payload: dict, _: str = Depends(토큰), 
     db.commit()
     if not 바뀜:
         raise HTTPException(status_code=404, detail="그 문구가 없습니다.")
+    return {"ok": True}
+
+
+@router.post("/doodle-items")
+def admin_add_doodle(payload: dict, _: str = Depends(토큰), db: SessionDep = Depends()):
+    """
+    인사 문구를 하나 더한다.
+
+    더할 수 있는 것은 kind가 hello인 것뿐이다. 모양(mark)은 화면이 손으로
+    그리는 그림이라(PenMark.tsx), 이름만 적어서는 그릴 것이 없다.
+
+    열쇠는 서버가 짓는다. 화면이 지으면 같은 열쇠를 두 번 보낼 수 있고,
+    그때 어느 쪽이 남는지가 손에 달린다.
+    """
+    글 = str(payload.get("label") or "").strip()
+    if not 글:
+        raise HTTPException(status_code=400, detail="문구를 적어 주세요.")
+    if len(글) > 40:
+        raise HTTPException(status_code=400, detail="문구는 마흔 자까지 적을 수 있습니다.")
+
+    뒷자리 = db.execute(text("""
+        SELECT coalesce(max(sort_order), 0) + 1 AS n
+          FROM life_expense.doodle_items
+         WHERE kind = 'hello'
+    """)).scalar_one()
+    열쇠 = f"hello-{uuid.uuid4().hex[:8]}"
+    db.execute(text("""
+        INSERT INTO life_expense.doodle_items (item_key, kind, label, sort_order, is_active)
+        VALUES (:k, 'hello', :l, :o, 1)
+    """), {"k": 열쇠, "l": 글, "o": 뒷자리})
+    db.commit()
+    return {"item_key": 열쇠}
+
+
+@router.delete("/doodle-items/{item_key}")
+def admin_del_doodle(item_key: str, _: str = Depends(토큰), db: SessionDep = Depends()):
+    """
+    인사 문구를 지운다.
+
+    모양(mark)은 지우지 못한다. 화면이 그 열쇠로 그림을 고르므로, 줄이
+    사라지면 그릴 수 없는 열쇠를 가리키게 된다. 쓰지 않으려면 끄면 된다.
+    """
+    갈래 = db.execute(text("""
+        SELECT kind FROM life_expense.doodle_items WHERE item_key = :k
+    """), {"k": item_key}).scalar_one_or_none()
+    if 갈래 is None:
+        raise HTTPException(status_code=404, detail="그 문구가 없습니다.")
+    if 갈래 != "hello":
+        raise HTTPException(status_code=400, detail="모양은 지울 수 없습니다. 끄면 안 쓰입니다.")
+
+    db.execute(text("""
+        DELETE FROM life_expense.doodle_items WHERE item_key = :k
+    """), {"k": item_key})
+    db.commit()
     return {"ok": True}
