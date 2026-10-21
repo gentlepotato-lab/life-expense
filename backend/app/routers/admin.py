@@ -17,7 +17,7 @@ import json
 import os
 import secrets
 import uuid
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import text
@@ -209,24 +209,59 @@ def set_admin_password(payload: dict, _: str = Depends(토큰), db: SessionDep =
 
 
 @router.get("/stats")
-def admin_stats(days: int = 30, _: str = Depends(토큰), db: SessionDep = Depends()):
+def admin_stats(
+    frm: str | None = None,
+    to: str | None = None,
+    days: int | None = None,
+    _: str = Depends(토큰),
+    db: SessionDep = Depends(),
+):
     """
-    대시보드가 볼 넷을 한 번에 돌려준다.
+    대시보드가 볼 것을 한 번에 돌려준다.
 
-    화면이 넷을 따로 물으면 기간을 바꿀 때마다 요청이 네 번 나간다. 셈이
+    화면이 따로따로 물으면 기간을 바꿀 때마다 요청이 그만큼 나간다. 셈이
     싸므로 한 번에 모아 보낸다.
 
-    적고 고친 건수(write)만 action_logs가 아니라 entries에서 센다. 날짜 칸이
+    기간은 날짜 두 개로 받는다(frm, to). 둘 다 그날을 품는다. 날짜로 받아야
+    화면이 고른 기간을 그대로 되비칠 수 있다. 예전처럼 days만 받으면 화면은
+    "최근 30일"이라고만 적을 수 있고, 그 서른 날이 언제부터 언제까지인지는
+    서버만 안다.
+
+    days도 그대로 받는다. 아직 날짜를 안 보내는 쪽이 있을 때를 위해서다. 둘 다
+    없으면 이번 달이다.
+
+    쓰고 수정한 건수(write)만 action_logs가 아니라 entries에서 센다. 날짜 칸이
     있어 거기서 셈하면 지난 것까지 소급해서 보인다.
     """
-    날 = max(1, min(int(days or 30), 365))
-    틈 = {"days": 날}
+    오늘 = date.today()
+    if frm and to:
+        try:
+            첫날 = date.fromisoformat(frm)
+            끝날 = date.fromisoformat(to)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="기간을 날짜로 보내 주세요.")
+        if 끝날 < 첫날:
+            raise HTTPException(status_code=400, detail="끝 날짜가 시작 날짜보다 앞섭니다.")
+    elif days:
+        날수 = max(1, min(int(days), 365))
+        끝날 = 오늘
+        첫날 = 오늘 - timedelta(days=날수 - 1)
+    else:
+        첫날 = 오늘.replace(day=1)
+        끝날 = 오늘
+
+    # 하루를 더해 끝날까지 품는다. created_at은 시각까지 있어 그냥 <= 로
+    # 견주면 그날 낮에 쌓인 것이 빠진다.
+    날 = (끝날 - 첫날).days + 1
+    틈 = {"frm": 첫날.isoformat(), "to": (끝날 + timedelta(days=1)).isoformat(),
+          "txto": 끝날.isoformat()}
 
     화면 = db.execute(text("""
         SELECT name, count(*) AS n
           FROM life_expense.action_logs
          WHERE kind = 'view'
-           AND created_at >= now() - make_interval(days => :days)
+           AND created_at >= CAST(:frm AS date)
+           AND created_at < CAST(:to AS date)
       GROUP BY name
       ORDER BY n DESC, name ASC
          LIMIT 20
@@ -236,7 +271,8 @@ def admin_stats(days: int = 30, _: str = Depends(토큰), db: SessionDep = Depen
         SELECT name, count(*) AS n
           FROM life_expense.action_logs
          WHERE kind = 'feature'
-           AND created_at >= now() - make_interval(days => :days)
+           AND created_at >= CAST(:frm AS date)
+           AND created_at < CAST(:to AS date)
       GROUP BY name
       ORDER BY n DESC, name ASC
          LIMIT 20
@@ -250,7 +286,8 @@ def admin_stats(days: int = 30, _: str = Depends(토큰), db: SessionDep = Depen
              , max(status) AS status
           FROM life_expense.action_logs
          WHERE kind = 'error'
-           AND created_at >= now() - make_interval(days => :days)
+           AND created_at >= CAST(:frm AS date)
+           AND created_at < CAST(:to AS date)
       GROUP BY name
       ORDER BY worst DESC NULLS LAST, n DESC
          LIMIT 20
@@ -260,17 +297,85 @@ def admin_stats(days: int = 30, _: str = Depends(토큰), db: SessionDep = Depen
     적음 = db.execute(text("""
         SELECT e.tx_date AS d, count(*) AS n
           FROM life_expense.entries e
-         WHERE e.tx_date >= CURRENT_DATE - make_interval(days => :days)
+         WHERE e.tx_date >= CAST(:frm AS date)
+           AND e.tx_date <= CAST(:txto AS date)
       GROUP BY e.tx_date
       ORDER BY e.tx_date ASC
     """), 틈).mappings().all()
 
+    # 날짜별 조회. 꺾은선이 날마다 한 점씩 찍는다.
+    날별 = db.execute(text("""
+        SELECT created_at::date AS d, count(*) AS n
+          FROM life_expense.action_logs
+         WHERE kind = 'view'
+           AND created_at >= CAST(:frm AS date)
+           AND created_at < CAST(:to AS date)
+      GROUP BY 1
+      ORDER BY 1 ASC
+    """), 틈).mappings().all()
+
+    # 요일별 조회. 0이 일요일이다(PostgreSQL의 dow).
+    요일 = db.execute(text("""
+        SELECT extract(dow from created_at)::int AS d, count(*) AS n
+          FROM life_expense.action_logs
+         WHERE kind = 'view'
+           AND created_at >= CAST(:frm AS date)
+           AND created_at < CAST(:to AS date)
+      GROUP BY 1
+      ORDER BY 1 ASC
+    """), 틈).mappings().all()
+
+    # 시간대별 조회. 스물넉 점은 손전화에서 너무 촘촘해 세 시간씩 묶는다.
+    시간 = db.execute(text("""
+        SELECT (extract(hour from created_at)::int / 3) * 3 AS h, count(*) AS n
+          FROM life_expense.action_logs
+         WHERE kind = 'view'
+           AND created_at >= CAST(:frm AS date)
+           AND created_at < CAST(:to AS date)
+      GROUP BY 1
+      ORDER BY 1 ASC
+    """), 틈).mappings().all()
+
+    # 갈래별 합계. 맨 위 칸이 이 수를 적는다.
+    갈래 = dict(db.execute(text("""
+        SELECT kind, count(*) AS n
+          FROM life_expense.action_logs
+         WHERE created_at >= CAST(:frm AS date)
+           AND created_at < CAST(:to AS date)
+      GROUP BY kind
+    """), 틈).all())
+
+    요일이름 = ["일", "월", "화", "수", "목", "금", "토"]
+    조회합 = int(갈래.get("view", 0))
+    적음합 = sum(int(r["n"]) for r in 적음)
+
     return {
         "days": 날,
+        "from": 첫날.isoformat(),
+        "to": 끝날.isoformat(),
         "view": [{"name": r["name"], "n": r["n"]} for r in 화면],
         "feature": [{"name": r["name"], "n": r["n"]} for r in 기능],
         "error": [{"name": r["name"], "n": r["n"], "worst": r["worst"], "status": r["status"]} for r in 탈],
         "write": [{"date": str(r["d"]), "n": r["n"]} for r in 적음],
+        "daily": [{"date": str(r["d"]), "n": r["n"]} for r in 날별],
+        # 빈 요일도 0으로 채운다. 그러지 않으면 막대가 일곱이 아니라 서넛만 선다.
+        "dow": [
+            {"name": 요일이름[i], "n": next((int(r["n"]) for r in 요일 if r["d"] == i), 0)}
+            for i in range(7)
+        ],
+        # 빈 시간대도 0으로 채운다. 같은 까닭이다.
+        "hour": [
+            {"name": f"{h}시", "n": next((int(r["n"]) for r in 시간 if int(r["h"]) == h), 0)}
+            for h in range(0, 24, 3)
+        ],
+        "kpi": {
+            "view": 조회합,
+            "feature": int(갈래.get("feature", 0)),
+            "error": int(갈래.get("error", 0)),
+            "write": 적음합,
+            # 하루 평균. 소수점은 한 자리까지만 쓴다.
+            "view_per_day": round(조회합 / 날, 1),
+        },
     }
 
 
@@ -298,9 +403,16 @@ def set_menu_off(payload: dict, _: str = Depends(토큰), db: SessionDep = Depen
 
 @router.get("/notices")
 def admin_list_notices(_: str = Depends(토큰), db: SessionDep = Depends()):
-    """적은 공지를 전부 돌려준다. 꺼 놓은 것과 지난 것도 함께 보인다."""
+    """
+    적은 공지를 전부 돌려준다. 꺼 놓은 것과 지난 것도 함께 보인다.
+
+    등록한 때와 고친 때도 함께 준다. 목록이 그 둘을 딱지로 보이기 때문이다.
+    고친 적이 없으면 updated_at이 비어 있으므로 화면이 등록한 때만 적는다.
+    날짜만 자른다. 시각까지는 목록에서 읽을 일이 없다.
+    """
     rows = db.execute(text("""
-        SELECT notice_id, title, body, start_on, end_on, sort_order, is_active
+        SELECT notice_id, title, body, start_on, end_on, sort_order, is_active,
+               created_at, updated_at
           FROM life_expense.notices
       ORDER BY sort_order ASC, notice_id DESC
     """)).mappings().all()
@@ -312,6 +424,14 @@ def admin_list_notices(_: str = Depends(토큰), db: SessionDep = Depends()):
         "end_on": str(r["end_on"]) if r["end_on"] else None,
         "sort_order": r["sort_order"],
         "is_active": r["is_active"],
+        "created_on": str(r["created_at"])[:10] if r["created_at"] else None,
+        # 적을 때 updated_at도 함께 채워지므로, 날짜만 견주면 그날 고치지
+        # 않은 공지도 고친 것처럼 보인다. 시각까지 견뤄 정말 손댄 것만 준다.
+        "updated_on": (
+            str(r["updated_at"])[:10]
+            if r["updated_at"] and r["created_at"] and r["updated_at"] > r["created_at"]
+            else None
+        ),
     } for r in rows]
 
 

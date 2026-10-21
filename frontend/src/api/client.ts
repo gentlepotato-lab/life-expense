@@ -1,5 +1,6 @@
 import axios from "axios";
 import { 요청적기, 느린참 } from "../utils/track";
+import { 끊겼다 } from "../utils/adminSession";
 
 /**
  * 서버로 나가는 모든 요청의 공통 앞자락.
@@ -62,6 +63,13 @@ api.interceptors.response.use(
       const cfg = (err as { config?: unknown })?.config;
       const status = (err as { response?: { status?: number } })?.response?.status;
       요청적기(길이름(cfg), 길이름(cfg), 걸린참(cfg), status);
+      /* 관리자 끝점이 401로 돌려보내면 토큰이 죽은 것이다. 걷어서 화면이
+         자물쇠로 돌아가게 한다. 그러지 않으면 부르는 쪽이 그 401을 "받아 온
+         것이 없다"로 받아, 목록을 빈 채로 그려 자료가 사라진 것처럼 보인다.
+         관리자 길만 본다. 사용자 화면은 401을 쓰지 않는다. */
+      if (status === 401 && String((cfg as { url?: string })?.url ?? "").startsWith("/admin")) {
+        끊겼다();
+      }
     } catch {
       /* 조용히 넘긴다. */
     }

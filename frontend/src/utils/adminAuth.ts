@@ -10,26 +10,9 @@
  */
 
 import axios from "../api/client";
+import { 담기, 토큰 } from "./adminSession";
 
-const 담는열쇠 = "life-expense:admin";
-
-/** 지금 든 토큰. 없으면 빈 글이다. */
-export function 토큰(): string {
-  try {
-    return window.sessionStorage.getItem(담는열쇠) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function 담기(값: string): void {
-  try {
-    if (값) window.sessionStorage.setItem(담는열쇠, 값);
-    else window.sessionStorage.removeItem(담는열쇠);
-  } catch {
-    /* 저장 공간이 막혀 있어도 이번 판은 그대로 돈다. */
-  }
-}
+export { 토큰, on끊김 } from "./adminSession";
 
 /** 관리자 끝점을 부를 때 얹는 머리. */
 export function 머리(): Record<string, string> {

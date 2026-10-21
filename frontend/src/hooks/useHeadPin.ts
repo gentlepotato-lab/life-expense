@@ -18,8 +18,14 @@ import { useLocation } from "react-router-dom";
  * 굴렸는지만 알려 준다(html.pin-off).
  */
 
-/** 붙일 도구 줄 — 본문 맨 앞에 오는 것만 고른다. */
+/** 붙일 도구 줄 — 본문 맨 앞에 오는 것만 고른다.
+ *
+ * 관리자 화면에는 .page-head가 없다. 머리띠와 자리 알약이 그 몫을 하므로
+ * 여기 함께 적는다. 둘 다 .page-wrap.admin의 바로 밑 자식이라 아래 셈이
+ * 그대로 돈다. 사용자 화면에는 이 두 이름이 없어 걸릴 일이 없다. */
 const TOOLS = [
+  ".admin-head",
+  ".subtabs.admin-tabs",
   ".toolbar-wrap",
   ".cat-toolbar",
   ".cal-sources",

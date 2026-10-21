@@ -20625,19 +20625,23 @@ html:has(.popup-overlay) .add-btn {
   padding-top: var(--space-3);
 }
 
-/* 머리띠. 제목과 딱지와 나가기가 한 줄에 선다.
-   오른쪽만 여백이 넓은 까닭은 떠 있는 새로 고침 단추(34px) 자리를 비우기
-   위해서다. 그러지 않으면 로그아웃이 그 단추 밑에 깔린다. 단추는 화면에
-   고정이라 띠의 여백으로만 피할 수 있다. */
+/* 붙박이로 설 때도 제 빛깔을 지킨다. 공용 규칙(.page-wrap > .is-pinned,
+   12211줄)이 바탕을 쪽 바탕으로 덮는데, 머리띠는 보라를 깔아야 한다.
+   알약은 덮여도 괜찮다. 사용자 화면에서도 쪽 바탕을 깔고 선다. */
+.page-wrap.admin > .admin-head.is-pinned {
+  background: var(--color-primary);
+}
+
+/* 머리띠. 제목과 갈래와 딱지가 왼쪽에 한 줄로 선다.
+   오른쪽은 비운다. 떠 있는 새로 고침 단추가 그 자리를 덮기 때문이다. */
 .admin-head {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  max-width: 784px;
+  max-width: 760px;
   margin-inline: auto;
   margin-bottom: var(--space-3);
   padding: var(--space-3);
-  padding-right: 46px;
   background: var(--color-primary-light);
   border-radius: var(--radius);
 }
@@ -20697,16 +20701,41 @@ html:has(.popup-overlay) .add-btn {
   padding: 1px var(--space-2);
 }
 
-.admin-head__out {
-  margin-left: auto;
-  min-height: 0;
-  height: auto;
-  padding: 0;
-  background: none;
-  border: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  cursor: pointer;
+
+/* 자리가 바뀔 때. 알맹이만 살짝 떠오르며 갈린다.
+
+   처음에는 아무것도 없어서 누르는 즉시 딴 화면이 툭 나타났다. 키가 다른
+   자리로 건너뛰면 그 폭이 커서 끊기는 느낌이 났다.
+
+   움직이는 것은 투명도뿐이다. 자리를 밀면 그것대로 흔들려 보이고, 더 큰
+   탈이 하나 있다. transform 이 걸린 조상은 그 안의 position: fixed 를 가두는
+   자리가 되어, 떠 있어야 할 단추가 판 안에 갇힌다. 키도 건드리지 않는다.
+   카드 키가 자리마다 다르므로 키까지 어르면 아래가 출렁인다.
+
+   움직임을 끈 설정이면 돌지 않는다(html[data-motion="off"]). 그 칸은
+   사용자 화면과 같은 한 곳에서 켜고 끈다. */
+.admin-pane {
+  animation: admin-pane-in 220ms var(--ease) both;
+}
+
+@keyframes admin-pane-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+html[data-motion="off"] .admin-pane,
+.admin-pane:has(.popup-overlay) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-pane {
+    animation: none;
+  }
 }
 
 /* 자리 알약. 사용자 화면의 갈래 알약을 값까지 그대로 쓴다. 칸 수만
@@ -20717,7 +20746,7 @@ html:has(.popup-overlay) .add-btn {
    알약의 오른쪽이 잘려 덜 만든 것처럼 보였다. 이름을 줄여 다섯 칸에
    앉혔다. */
 .subtabs.admin-tabs {
-  max-width: 784px;
+  max-width: 760px;
   margin-inline: auto;
   /* 알약 바로 아래에 카드가 붙어 있었다. 머리띠가 아래에 두는 값과 같게 띄운다. */
   margin-bottom: var(--space-3);
@@ -20725,9 +20754,8 @@ html:has(.popup-overlay) .add-btn {
 
 /* 암호를 묻는 자리. 카드 하나를 가운데 세운다. */
 .card.admin-gate,
-.card.admin-pw,
 .card.admin-soon {
-  max-width: 784px;
+  max-width: 760px;
   margin-inline: auto;
   display: flex;
   flex-direction: column;
@@ -20760,6 +20788,17 @@ html:has(.popup-overlay) .add-btn {
 /* 암호 칸은 앱이 쓰는 .ui-input을 그대로 쓴다. 전역 규칙이 집는 것은
    .ui-input과 input[type="text"]들이라 input[type="password"]에는 닿지
    않는다. 그래서 전용 이름을 새로 짓지 않고 .ui-input을 붙인다. */
+
+/* 누를 때 카드가 들썩이지 않게 한다.
+
+   앱의 .card는 누르면 scale(1.02)로 살짝 커진다(260줄). 홈이나 내역처럼
+   카드 자체가 눌러서 들어가는 자리를 위한 것이다. 관리자 카드는 폼과 목록을
+   담는 그릇이라 누를 일이 없는데, 안의 단추를 누르면 조상인 카드에도
+   :active가 걸려 카드가 통째로 커졌다. 400px 카드가 2%면 8px이라 눈에 띈다.
+   그릇은 가만히 있고, 눌린 티는 단추가 제 몫으로 낸다(.ui-btn:active). */
+.page-wrap.admin .card:active {
+  transform: none;
+}
 
 /* 비밀번호 칸과 그 끝에 앉는 눈.
    칸은 앱의 .ui-input 그대로이고, 오른쪽 안쪽만 눈 자리만큼 비운다.
@@ -20806,7 +20845,10 @@ html:has(.popup-overlay) .add-btn {
    처음에는 알약을 왼쪽 세로 레일로 세웠는데, 사용자 화면에는 그런 짜임이
    없어서 같은 앱으로 읽히지 않았다. 레일이 차지한 180px 때문에 본문이
    오른쪽으로 밀려 가운데도 어긋났다. 모든 너비에서 머리띠와 알약과 본문이
-   784px 한 기둥에 선다. 사용자 화면의 본문 폭과 같은 값이다. */
+   760px 한 기둥에 선다. 사용자 화면의 카드 폭과 같은 값이다(.card 250줄).
+   처음에는 784px을 썼는데, 그것은 사용자 화면에서 머리말 상자가 쓰는 값이고
+   눈에 보이는 본문 기둥은 760px이다. 24px 더 쓰는 바람에 같은 화면 너비에서
+   관리자 쪽만 더 넓어 보였다. */
 
 /* ─── 관리자만의 빛깔 ─────────────────────────────────────────
    짜임과 부품은 사용자 화면 것을 그대로 쓰되, 빛깔만 다른 결로 간다.
@@ -20866,35 +20908,54 @@ html:has(.popup-overlay) .add-btn {
   background: #FFFFFF;
   border-color: #FFFFFF;
 }
-.admin-head__out {
-  color: rgba(255, 255, 255, 0.82);
-}
 
 /* ─── 대시보드 ────────────────────────────────────────────────
    카드 넷. 손전화에서는 한 칸으로 쌓고 넓어지면 두 칸으로 접는다 — 씀씀이의
    그림 칸(.chart-grid)이 두 칸이 되는 640px을 그대로 쓴다. */
 .admin-dash {
-  max-width: 784px;
+  max-width: 760px;
   margin-inline: auto;
+  display: grid;
+  gap: var(--space-2);
 }
 
-/* 기간 고르개. 알약 셋이 한 줄에 선다. */
+/* 격자 칸이 제 안의 가장 넓은 것만큼 부풀지 않게 한다. 그러지 않으면 한 줄만
+   길어도 쪽 전체가 그 너비가 되어 가로로 넘친다. */
+.admin-dash > *,
+.admin-edit > *,
+.admin-grid > * {
+  min-width: 0;
+}
+
+/* 기간 고르개. 알약 셋이 한 줄에 선다. 아래 틈은 품는 줄이 대므로
+   제 몫으로는 두지 않는다. 여기에 margin-bottom 을 두었더니 24px 알약이
+   36px 줄을 만들어, 기간 딱지와 아래 칸 사이가 8px보다 멀어 보였다. */
 .admin-days {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-3);
 }
 
+/* 그림 칸들. 사이는 씀씀이의 그림 칸과 같은 8px이다(.chart-grid 8796줄). */
 .admin-grid {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
+/* 카드 안쪽. 간격을 한 단 줄여 촘촘하게 간다. 관리자 화면은 한 자리에
+   카드가 둘셋 쌓이므로, 사용자 화면의 간격을 그대로 쓰면 스크롤만 길어진다. */
 .card.admin-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding-block: var(--space-4);
+  gap: var(--space-2);
+  padding-block: var(--space-3);
+}
+
+/* 접을 수 있는 카드의 제목. 삼각형과 글이 한 줄에 선다. */
+.admin-card__title--fold {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 /* 카드 제목. 본문보다 한 단 크고 옅은 음영을 깐다. 카드가 여럿 쌓이는
@@ -20980,10 +21041,255 @@ html:has(.popup-overlay) .add-btn {
    카드 하나에 칸과 단추를 세로로 늘어놓는다. 넓어져도 두 칸으로 접지 않는다 —
    고치는 자리는 눈이 한 줄기로 내려가야 한다. */
 .admin-edit {
-  max-width: 784px;
+  max-width: 760px;
   margin-inline: auto;
   display: grid;
+  gap: var(--space-2);
+}
+
+/* 위 줄. 사용자 화면의 것을 그대로 쓴다(.pm-toolbar-row). 폭도 760px로
+   같으므로 다시 적을 것이 없고, 세로 가운데 맞추기만 더한다. */
+.admin-toolbar-row {
+  align-items: center;
+  /* 좁은 화면에서는 접는다. 달 막대와 알약 셋이 360px 화면에서 한 줄에
+     들지 않아, 격자 칸이 그 너비로 부풀면서 쪽 전체가 50px 삐져나갔다. */
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
+}
+
+/* 셋이 함께 이고 있는 말. 누르는 자리가 아니므로 글자로만 둔다. */
+.admin-days__all {
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* 기간 알약. 한 줄에 함께 서든 아래로 접히든 늘 오른쪽 끝에 붙는다.
+   접히면 빈자리 조각은 윗줄에 남으므로, 미는 일을 제가 맡아야 한다. */
+.admin-toolbar-row > .admin-days {
+  margin-left: auto;
+}
+
+/* 고른 기간을 적는 딱지. 달을 넘기든 알약을 누르든 실제로 보고 있는 날이
+   여기에 적힌다. 알약만 있을 때는 "최근 30일"이 언제부터 언제까지인지
+   화면에서 알 길이 없었다. */
+.admin-span__tag {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-right: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 오류 칸의 거드는 줄. 그림 자리가 키를 못 박으므로 그만큼 줄여 준다. */
+.admin-card:has(.admin-hint) > .admin-card__body--list {
+  height: 164px;
+}
+
+/* 떠 있는 단추들. 사용자 화면은 아래 이동 막대(52px) 위로 쌓는데, 이 쪽에는
+   그 막대가 없다. 그대로 두면 맨 위로 단추 아래에 76px이 비어 붕 떠 보인다.
+   막대 자리만큼 내려 바닥에 붙인다. 둘 사이 8px은 그대로다. */
+.page-wrap.admin ~ .scroll-top,
+.page-wrap.admin ~ .add-btn,
+.page-wrap.admin .scroll-top,
+.page-wrap.admin .add-btn {
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.page-wrap.admin ~ .add-btn,
+.page-wrap.admin .add-btn {
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+}
+
+/* 한 줄에 선 단추들을 오른쪽 끝으로 민다. */
+.admin-row--end {
+  justify-content: flex-end;
+}
+
+/* 맨 위 칸. 씀씀이의 것을 그대로 쓰되(.chart-tiles 8718줄) 넷이라 두 칸씩
+   접고, 넓어지면 넷이 한 줄에 선다. */
+/* 칸을 minmax(0, 1fr)로 둔다. 그냥 1fr이면 칸이 제 안의 가장 좁은 폭보다
+   작아지지 못해, 360px 화면에서 오른쪽으로 50px 넘쳤다. 0을 바닥으로 깔면
+   칸이 줄고, 넘치는 글은 제 안에서 꼬리를 자른다. */
+.admin-tiles {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+
+/* 칸을 몇 줄로 세울지는 딱지가 온전히 들어가느냐로 정한다. 수와 단위가 먼저
+   자리를 차지하므로 칸이 좁으면 딱지부터 꼬리가 잘린다. 재어 보니 한 칸에
+   170px은 있어야 가장 긴 딱지(평균 14.3회)가 온전하다.
+   어느 너비에서나 두 칸이다. 좁다고 한 칸으로 쌓으면 옆자리가 통째로 빈다.
+   대신 좁은 칸에 맞게 글자를 한 단 줄인다(아래 400px 미만 규칙).
+
+   넷으로 가르는 칸은 두지 않는다. 본문 기둥이 760px에서 멈추므로 넷이면
+   한 칸이 185px이고, 재어 보니 거기서 긴 딱지가 잘렸다. */
+
+/* 카드 사이. 씀씀이의 그림 칸(.chart-grid 8796줄)과 같은 8px이다.
+   .card 가 제 아래 여백 12px을 들고 있어, 격자 사이 8px에 얹혀 20px로
+   벌어졌다. 격자가 사이를 쥐므로 카드의 여백은 걷는다. */
+.admin-dash .card,
+.admin-grid > .card,
+.admin-edit .card {
+  margin-bottom: 0;
+}
+
+/* 칸 하나. 이름은 왼쪽 위, 값과 단위는 오른쪽, 거드는 말은 왼쪽 아래다.
+   값 옆에는 단위만 붙인다. 견주는 말까지 거기 두면 그것도 단위처럼 읽혀
+   무엇이 수인지 흐려진다. */
+.admin-tile {
+  align-items: stretch;
+  gap: 0;
+  padding: 6px 10px;
+}
+
+/* 윗줄. 이름과 딱지가 왼쪽부터 선다. 이름 오른쪽이 늘 비어 있으므로 딱지는
+   거기 들어간다. 좁아지면 줄어드는 쪽은 딱지다. */
+.admin-tile__head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 아랫줄. 수와 단위가 오른쪽 끝에 붙는다. */
+.admin-tile__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-tile .chart-tile__value,
+.admin-tile__unit {
+  flex: 0 0 auto;
+}
+
+.admin-tile .chart-tile__value {
+  font-size: var(--font-size-xl);
+  line-height: 1.15;
+}
+
+/* 단위. 수에 바싹 붙여 한 덩어리로 읽히게 한다. */
+.admin-tile__unit {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.admin-tile .chart-tile__label {
+  flex: 0 0 auto;
+  align-self: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* 거드는 딱지. 수와 같은 줄의 왼쪽 끝에 앉는다. 좁아지면 글자가 줄지 않고
+   꼬리를 자른다. 수는 끝까지 보여야 하므로 줄어드는 쪽은 딱지다. */
+.admin-tile__tag {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 달 막대. 줄 안에서 줄어들지 않게 못 박는다. 줄이면 연월 글씨가 두 줄로
+   접혀 그 줄만 키가 커지고 아래가 통째로 밀린다. */
+.admin-toolbar-row > .month-nav {
+  flex: 0 0 auto;
+}
+
+.admin-toolbar-row .month-nav__label {
+  white-space: nowrap;
+}
+
+/* 넓게 쓰는 그림. 날짜별처럼 가로로 길어야 읽히는 것만 두 칸을 다 쓴다. */
+@media (min-width: 640px) {
+  .admin-card--wide {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 줄을 감싼 자리. 바깥 여백(.cat-toolbar의 12px)을 걷는다. 이 쪽은 격자라
+   사이를 격자가 이미 주는데, 거기에 또 얹히면 단추와 그릇 사이만 20px로
+   벌어져 다른 간격들과 어긋난다.
+
+   줄 자신(.pm-toolbar-row)의 아래 여백도 함께 걷는다. 사용자 화면에서는
+   그 값이 --space-0이라 0으로 떨어지는데, 그 이름이 이 판에 없으면 값이
+   그대로 남아 또 벌어진다. */
+.admin-edit > .cat-toolbar {
+  margin-bottom: 0;
+  /* 아래 안쪽 여백 12px도 걷는다. 그것이 줄 아래에 슬랙으로 남아, 격자 사이
+     8px에 얹혀 단추와 그릇 사이만 20px로 벌어졌다. */
+  padding-bottom: 0;
+}
+
+.admin-edit .admin-toolbar-row {
+  margin-bottom: 0;
+}
+
+/* 묶음이 제 힘으로 못 밀 때를 대비해 여기서도 민다. */
+.admin-toolbar-row > .set-bulk {
+  margin-left: 0;
+}
+
+/* 빈자리를 모두 먹는 조각. 뒤에 오는 단추들이 오른쪽 끝에 모인다.
+   모두 펼치기 묶음(.set-bulk)은 제가 margin-left: auto를 가지므로 그 자리에는
+   이것을 두지 않는다. 둘이 겹치면 빈자리를 나눠 가져 가운데로 몰린다. */
+.admin-toolbar-row__gap {
+  flex: 1 1 auto;
+}
+
+/* 영역을 담는 자리. 사용자 화면의 설정 화면들과 같다(.cat-card 1047줄,
+   5194줄에서 바탕과 테와 그림자가 모두 걷힌다). 거기도 그릇을 그리지 않고
+   머리글과 줄만 쪽 바탕 위에 둔다. 카드 안에 카드가 들면 계층이 한 겹 늘어
+   무엇이 무엇을 품는지 흐려진다.
+
+   대시보드만 카드를 쓴다. 거기는 그림 일곱이 저마다 다른 것을 재므로
+   낱낱이 갈라야 한다. */
+.admin-box {
+  padding: 0;
+}
+
+/* 머리글 달린 영역. 테두리도 그림자도 바탕도 없다. 그릇이 이미 가졌다. */
+.admin-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* 카드 두 장을 넓은 화면에서 양옆으로 둔다. 640px은 씀씀이의 그림 칸이 둘로
+   접히는 자리이고, 대시보드도 그 값을 쓴다. */
+.admin-pair {
+  display: grid;
   gap: var(--space-3);
+  align-items: start;
+}
+
+@media (min-width: 640px) {
+  .admin-pair {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
 /* 여러 줄 칸. 전역 규칙은 input과 select만 집으므로 textarea에는 닿지
@@ -21031,32 +21337,59 @@ textarea.admin-area:focus {
 }
 
 /* 켜고 끄는 줄들. */
-/* 줄 사이. 앱의 목록은 한 줄이 52px인데(4495줄 .cp-card) 여기는 글 키만큼인
-   18px이라 천장에도 서로에게도 다닥다닥 붙었다. 한 줄을 40px로 세우고 사이를
-   4px 띄워 44px 되풀이로 간다. 카드 한 장에 담긴 줄들이라 앱의 카드 한 장짜리
-   줄보다는 촘촘해도 되지만, 글 키대로는 너무 좁았다. */
+/* 줄 사이. 한 줄을 36px로 세우고 사이를 2px 띄워 38px 되풀이로 간다.
+   카드 한 장에 담긴 줄들이라 앱의 카드 한 장짜리 줄(52px)보다 촘촘하다.
+   처음에는 글 키만큼인 18px이라 다닥다닥 붙었고, 44px로 벌렸더니 이번에는
+   한 화면에 너덧 줄밖에 안 들어왔다. */
 .admin-list {
   display: grid;
-  gap: var(--space-1);
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* 줄 하나하나가 낱낱의 것으로 보이게 한다. 글자만 띄우니 줄이
-   아니라 글 뭉치로 읽혀 휑했다. 옅은 바탕과 둥근 모서리를 주면 눈이 줄을
-   센다. 카드 안이므로 테두리와 그림자는 쓰지 않는다. 그 둘까지 주면 카드
-   안에 카드가 들어 계층이 한 겹 늘어난다. */
+/* 줄 하나하나가 낱낱의 것으로 선다. 사용자 화면의 설정 줄(.cp-card 4497줄)과
+   같은 꼴이다. 흰 바탕에 테 한 줄과 옅은 그림자다. 키만 36px로 줄였다.
+   거기는 52px인데, 관리자 줄은 이름과 딱지뿐이라 그만큼 쓸 일이 없다. */
 .admin-list__row {
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
 }
 
-/* 꺼진 줄은 바탕까지 걷어 한 단 물러선다. */
+.admin-list__row:hover {
+  border-color: #DDE1E6;
+  box-shadow: var(--shadow-md);
+}
+
+/* 눌러서 팝업이 열리는 줄. 편집 중이 아닐 때만 걸린다. */
+.admin-list__row.is-tappable {
+  cursor: pointer;
+}
+
+.admin-list__row.is-tappable:hover {
+  background: var(--color-primary-light);
+}
+
+/* 연번. 글자 폭이 달라도 자리가 흔들리지 않게 폭을 못 박는다. */
+.admin-list__no {
+  flex: 0 0 auto;
+  width: 20px;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+}
+
+/* 꺼진 줄은 한 단 물러선다. 사용자 화면의 .cp-card.inactive와 같은 값이다. */
 .admin-list__row.is-off {
-  background: transparent;
+  opacity: 0.55;
+  box-shadow: none;
 }
 
 /* 모양 그림. 이름 왼쪽에 선다. 빛깔은 이 쪽의 잉크를 따른다. */
@@ -21108,7 +21441,7 @@ textarea.admin-area:focus {
   flex: 0 0 auto;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  background: var(--color-bg);
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
 }
