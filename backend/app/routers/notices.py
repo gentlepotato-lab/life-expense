@@ -76,6 +76,51 @@ def list_notices(
     } for r in rows]
 
 
+@router.get("/all")
+def list_all_notices(
+    today: str = Query(..., min_length=10, max_length=10, description="YYYY-MM-DD — 부르는 쪽의 날짜"),
+    db: SessionDep = Depends(),
+):
+    """
+    지난 것까지 모두 돌려준다. 공지사항 화면이 쓴다.
+
+    읽었는지는 가리지 않는다. 읽고 나면 띠가 다시 뜨지 않으므로, 다시 읽을
+    자리가 따로 있어야 한다. 그 자리가 이 길이다.
+
+    끝 날짜는 보지 않는다. 뜨는 기간이 지난 공지도 여기서는 읽을 수 있어야
+    한다. 시작 날짜는 본다 — 아직 뜰 때가 아닌 공지를 미리 보일 까닭은
+    없다. 꺼 둔 공지는 내보내지 않는다.
+
+    차례는 새것부터다. 띠는 sort_order를 앞세우지만 여기는 읽어 둔 것을
+    되짚는 자리라, 최근 것이 위에 서는 쪽이 찾기 쉽다.
+
+    읽은 자리도 함께 적어 보낸다. 화면이 안 읽은 것에 표를 단다.
+    """
+    읽은것 = _읽은번호(db)
+    rows = db.execute(text("""
+        SELECT n.notice_id
+             , n.title
+             , n.body
+             , n.start_on
+             , n.end_on
+             , n.created_at::date AS created_on
+          FROM life_expense.notices n
+         WHERE n.is_active = 1
+           AND (n.start_on IS NULL OR n.start_on <= CAST(:today AS date))
+      ORDER BY n.notice_id DESC
+    """), {"today": today}).mappings().all()
+
+    return [{
+        "notice_id": r["notice_id"],
+        "title": r["title"],
+        "body": r["body"],
+        "start_on": str(r["start_on"]) if r["start_on"] else None,
+        "end_on": str(r["end_on"]) if r["end_on"] else None,
+        "created_on": str(r["created_on"]) if r["created_on"] else None,
+        "unread": r["notice_id"] > 읽은것,
+    } for r in rows]
+
+
 @router.put("/read")
 def mark_read(payload: dict, db: SessionDep = Depends()):
     """

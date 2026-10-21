@@ -15,6 +15,7 @@ import EntryGroups from "./pages/EntryGroups";
 import CalendarDetail from "./pages/CalendarDetail";
 import Home from "./pages/Home";
 import Nudges from "./pages/Nudges";
+import Notices from "./pages/Notices";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
 /* 씀씀이만 따로 떼어 낸다 — 그림 그리는 짐(Recharts)이 무거워서
@@ -186,6 +187,8 @@ function App() {
             묶음도 씀씀이 것이어야 한다. */}
         <Route path="/charts/detail" element={<CalendarDetail />} />
         <Route path="/nudges" element={<Nudges />} />
+        {/* 공지사항 — 홈의 띠가 띄우는 것까지 지난 것을 모두 모은다. */}
+        <Route path="/notices" element={<Notices />} />
 
         {/* 관리자 페이지. 메뉴에도 탭에도 띄우지 않는다 — 주소를 쳐야
             들어오고, 들어와서도 암호를 넣어야 열린다. */}

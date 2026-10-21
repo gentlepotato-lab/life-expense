@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import useBackClose from "../../hooks/useBackClose";
 import DayPicker from "./DayPicker";
 import { EditField, EditDivider } from "./CardEditModal";
@@ -30,6 +31,7 @@ export type 초안 = {
 export default function AdminNoticePopup({
   새것,
   값,
+  꾹눌러열림 = false,
   on바뀜,
   on저장,
   onClose,
@@ -37,16 +39,46 @@ export default function AdminNoticePopup({
   /** 새로 적는 중인가. 머리말과 하려던 것의 이름이 갈린다. */
   새것: boolean;
   값: 초안;
+  /** 꾹 눌러서 열렸나. 그때는 손이 아직 판 위에 닿아 있다. */
+  꾹눌러열림?: boolean;
   on바뀜: (next: 초안) => void;
   on저장: () => void;
   onClose: () => void;
 }) {
   useBackClose(true, onClose);
 
+  /**
+   * 손을 뗄 때까지 판을 손짓에서 비운다.
+   *
+   * 꾹 누르면 손이 아직 닿아 있는 자리에 이 판이 뜬다. 하필 그 자리에 제목
+   * 입력칸이 걸리면, 이어지는 누름을 그 칸이 받아 글이 잡히고 선택 손잡이가
+   * 떠 버렸다. 입력칸은 글을 고르라고 있는 자리라 user-select로는 못 막는다.
+   *
+   * 그래서 뜬 뒤 첫 손 뗌까지만 판을 손짓에서 비운다. 떼면 곧바로 돌려주므로
+   * 쓰는 데에는 아무 차이가 없다. 떼는 신호가 끝내 오지 않을 때를 대비해
+   * 시계도 함께 건다 — useLongPress의 손뗄때까지잠그기와 같은 잣대다.
+   */
+  const [손기다림, set손기다림] = useState(꾹눌러열림);
+
+  useEffect(() => {
+    if (!손기다림) return;
+    const 풀기 = () => set손기다림(false);
+    const 시계 = window.setTimeout(풀기, 3000);
+    window.addEventListener("pointerup", 풀기);
+    window.addEventListener("pointercancel", 풀기);
+    window.addEventListener("touchend", 풀기);
+    return () => {
+      window.clearTimeout(시계);
+      window.removeEventListener("pointerup", 풀기);
+      window.removeEventListener("pointercancel", 풀기);
+      window.removeEventListener("touchend", 풀기);
+    };
+  }, [손기다림]);
+
   return (
     <div className="popup-overlay" onClick={onClose}>
       <div
-        className="popup-panel popup-panel--framed"
+        className={`popup-panel popup-panel--framed${손기다림 ? " is-waiting-hand" : ""}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

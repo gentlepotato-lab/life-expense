@@ -6,6 +6,7 @@ import {
   ArtChart,
   ArtNudge,
   ArtPlaces,
+  ArtNotice,
 } from "./components/HomeArt";
 import QuickActions from "./components/QuickActions";
 import NoticeBand from "./components/NoticeBand";
@@ -64,6 +65,12 @@ const WIDE = [
     title: "어디 쓰나",
     desc: "장소와 가게",
     art: <ArtPlaces />,
+  },
+  {
+    to: "/notices",
+    title: "공지사항",
+    desc: "알립니다-!",
+    art: <ArtNotice />,
   },
 ];
 

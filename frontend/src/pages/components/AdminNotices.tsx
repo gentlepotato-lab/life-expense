@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import useLongPress from "../../hooks/useLongPress";
 import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
 import { say, ask } from "../../utils/notify";
@@ -6,6 +7,9 @@ import AdminNoticePopup, { type 초안 } from "./AdminNoticePopup";
 import AddButton from "./AddButton";
 import OnOffToggle from "./OnOffToggle";
 import AdminFilterPopup from "./AdminFilterPopup";
+import DateGroupHeader from "./DateGroupHeader";
+import Collapse from "./Collapse";
+import { formatDateLabel } from "../../utils/dateGroup";
 import DayPicker from "./DayPicker";
 import SingleSelect from "./SingleSelect";
 import { EditField, EditDivider } from "./CardEditModal";
@@ -80,6 +84,103 @@ function 골라내기(들: 공지[], f: 거름): 공지[] {
   });
 }
 
+/**
+ * 공지 한 줄.
+ *
+ * 꾹 누르면 편집 팝업이 열린다. 사용자 화면의 내역 카드와 같은 잣대다
+ * (hooks/useLongPress.ts). 톡 눌러 열게 두었더니 켜고 끄는 스위치를
+ * 누르려다 팝업이 열리는 일이 잦았다.
+ *
+ * 줄마다 훅을 하나씩 걸어야 하므로 부품으로 뗀다 — map() 안에서는 훅을
+ * 부를 수 없다. 이름을 영어로 적는 것은 한글 이름이면 react-hooks 규칙이
+ * 부품으로 알아보지 못하기 때문이다.
+ */
+function NoticeRow({
+  공지: n,
+  연번,
+  편집중,
+  on열기,
+  on끄고켜기,
+  on지우기,
+}: {
+  공지: 공지;
+  연번: number;
+  편집중: boolean;
+  on열기: () => void;
+  on끄고켜기: () => void;
+  on지우기: () => void;
+}) {
+  /* 편집 중에는 막는다. 그때는 스위치와 제거가 할 일이다. */
+  const { pressing, handlers } = useLongPress(on열기, { disabled: 편집중 });
+
+  /* 제목이 칸을 넘었나. 넘은 줄에만 자락과 (...)을 얹는다. 내역 화면의
+     메모가 끊기는 꼴과 같다(pages/components/MemoPad.tsx). CSS만으로는
+     넘쳤는지 알 수 없어 재 본다. */
+  const 이름칸 = useRef<HTMLSpanElement | null>(null);
+  const [잘렸나, set잘렸나] = useState(false);
+
+  useEffect(() => {
+    const 재기 = () => {
+      const e = 이름칸.current;
+      if (e) set잘렸나(e.scrollWidth > e.clientWidth + 1);
+    };
+    재기();
+    /* 창 폭이 바뀌면 끊기는 자리도 바뀐다. */
+    window.addEventListener("resize", 재기);
+    return () => window.removeEventListener("resize", 재기);
+  }, [n.title, 편집중]);
+
+  return (
+    <li
+      className={`admin-list__row${n.is_active ? "" : " is-off"}${
+        편집중 ? "" : " card--pressable"
+      }${pressing ? " pressing" : ""}`}
+      title={편집중 ? undefined : "꾹 눌러서 편집"}
+      {...handlers}
+    >
+      {/* 연번. 적힌 차례가 아니라 보이는 차례다. 몇 번째 줄인지 세는 데
+          쓰므로 공지 번호(notice_id)를 적지 않는다. */}
+      <span className="admin-list__no">{연번}</span>
+      <span ref={이름칸} className="admin-list__name admin-list__name--cut">
+        {n.title}
+        {/* 끊긴 끝 — 뒤쪽을 길게 걸쳐 옅어지다 (...)로 이어진다. 메모 판과
+            같은 꼴이다. 짧게 덮으면 끝이 딱 떨어져 테이프를 붙여 놓은 것처럼
+            보인다. */}
+        {잘렸나 && (
+          <span className="admin-list__fade" aria-hidden="true">
+            (...)
+          </span>
+        )}
+      </span>
+      {/* 등록한 날은 단 머리말이 말한다. 줄에는 고친 때만 적는다 — 고친
+          적이 없으면 아무것도 적지 않는다. 둘 다 딱지로 달았더니 긴 제목이
+          붙은 줄에서 스위치까지 밀려 났다. */}
+      {n.updated_on && n.updated_on !== n.created_on && (
+        <span className="admin-list__path">수정 {n.updated_on.slice(2)}</span>
+      )}
+      {/* 스위치는 늘 선다. 편집 중이 아니면 막혀 있을 뿐이다. */}
+      <OnOffToggle
+        이름={n.title}
+        켜짐={!!n.is_active}
+        막힘={!편집중}
+        켬말="켠다. 홈에 뜬다."
+        끔말="끈다. 홈에 안 뜬다."
+        on바뀜={(켠다) => {
+          /* 이미 그쪽이면 아무 일도 하지 않는다. 켠 쪽을 또 눌러 꺼지면
+             스위치가 아니라 뒤집개로 읽힌다. */
+          if (켠다 === !!n.is_active) return;
+          on끄고켜기();
+        }}
+      />
+      {편집중 && (
+        <button type="button" className="ui-btn small" onClick={on지우기}>
+          제거
+        </button>
+      )}
+    </li>
+  );
+}
+
 export default function AdminNotices() {
   const [목록, set목록] = useState<공지[] | null>(null);
   const [편집중, set편집중] = useState(false);
@@ -88,12 +189,14 @@ export default function AdminNotices() {
   const [편집전, set편집전] = useState("[]");
   /* 팝업이 쥔 것. 열쇠가 null이면 새로 적는 중이고, 수가 들어 있으면 그 줄을
      고치는 중이다. 팝업이 닫혀 있으면 아예 없다. */
-  const [연것, set연것] = useState<{ id: number | null; 값: 초안 } | null>(null);
+  const [연것, set연것] = useState<{ id: number | null; 값: 초안; 꾹?: boolean } | null>(null);
   /* 걸어 둔 조건과, 팝업 안에서 고치는 중인 조건. [적용]을 누르지 않고
      닫으면 고치던 것은 버린다. 사용자 화면의 거르기와 같다. */
   const [걸림, set걸림] = useState<거름>(안거름);
   const [초안, set초안] = useState<거름>(안거름);
   const [필터열림, set필터열림] = useState(false);
+  /* 접은 날. 내역 화면과 같은 꼴이다. */
+  const [접은날, set접은날] = useState<Set<string>>(new Set());
 
   const 받기 = useCallback(() => {
     axios
@@ -187,6 +290,21 @@ export default function AdminNotices() {
   /* 조건에 맞아 화면에 서는 줄. 연번도 이 차례로 센다. */
   const 보는것 = 목록 ? 골라내기(목록, 걸림) : [];
 
+  /* 등록한 날로 묶는다. 사용자 화면의 내역이 날짜마다 단을 세우는 것과 같은
+     꼴이다(pages/Entries.tsx). 날짜를 줄마다 딱지로 달았더니 긴 제목이
+     붙은 줄에서 잘렸고, 같은 날 적은 공지끼리 묶이지도 않았다.
+     목록이 이미 새것부터이므로 나오는 차례를 그대로 쓴다. */
+  const 날묶음 = (() => {
+    const 묶음: { date: string; label: string; items: 공지[] }[] = [];
+    for (const n of 보는것) {
+      const 날 = n.created_on ?? "";
+      const 끝 = 묶음[묶음.length - 1];
+      if (끝 && 끝.date === 날) 끝.items.push(n);
+      else 묶음.push({ date: 날, label: 날 ? formatDateLabel(날) : "날짜 없음", items: [n] });
+    }
+    return 묶음;
+  })();
+
   return (
     <div className="admin-edit">
       <div className="cat-toolbar">
@@ -241,57 +359,61 @@ export default function AdminNotices() {
         ) : 보는것.length === 0 ? (
           <p className="page-empty">조건에 맞는 공지가 없습니다.</p>
         ) : (
-          <ul className="admin-list">
-            {보는것.map((n, i) => (
-              <li
-                key={n.notice_id}
-                className={`admin-list__row${n.is_active ? "" : " is-off"}${편집중 ? "" : " is-tappable"}`}
-                onClick={() => {
-                  if (편집중) return;
-                  set연것({
-                    id: n.notice_id,
-                    값: {
-                      title: n.title,
-                      body: n.body ?? "",
-                      start_on: n.start_on ?? "",
-                      end_on: n.end_on ?? "",
-                      sort_order: n.sort_order,
-                      is_active: n.is_active,
-                    },
-                  });
-                }}
-              >
-                {/* 연번. 적힌 차례가 아니라 보이는 차례다. 몇 번째 줄인지
-                    세는 데 쓰므로 공지 번호(notice_id)를 적지 않는다. */}
-                <span className="admin-list__no">{보는것.length - i}</span>
-                <span className="admin-list__name">{n.title}</span>
-                {/* 등록한 때와 고친 때. 고친 적이 없으면 등록한 때만 적는다. */}
-                {n.created_on && <span className="admin-list__path">등록 {n.created_on.slice(2)}</span>}
-                {n.updated_on && n.updated_on !== n.created_on && (
-                  <span className="admin-list__path">수정 {n.updated_on.slice(2)}</span>
-                )}
-                {/* 스위치는 늘 선다. 편집 중이 아니면 막혀 있을 뿐이다. */}
-                <OnOffToggle
-                  이름={n.title}
-                  켜짐={!!n.is_active}
-                  막힘={!편집중}
-                  켬말="켠다. 홈에 뜬다."
-                  끔말="끈다. 홈에 안 뜬다."
-                  on바뀜={(켠다) => {
-                    /* 이미 그쪽이면 아무 일도 하지 않는다. 켠 쪽을 또 눌러
-                       꺼지면 스위치가 아니라 뒤집개로 읽힌다. */
-                    if (켠다 === !!n.is_active) return;
-                    끄고켜기(n);
-                  }}
-                />
-                {편집중 && (
-                  <button type="button" className="ui-btn small" onClick={() => void 지우기(n)}>
-                    제거
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
+          <div className="card-list admin-days-list">
+            {날묶음.map((묶음) => {
+              const 폈나 = !접은날.has(묶음.date);
+              return (
+                <section key={묶음.date || "날짜없음"} className="date-group">
+                  {/* 단 머리말은 내역 화면이 쓰는 그 부품이다. 셈할 돈이
+                      없으므로 합계는 접는다(hideSum). */}
+                  <DateGroupHeader
+                    label={묶음.label}
+                    summary={{ count: 묶음.items.length, inSum: 0, outSum: 0, net: 0 }}
+                    hideSum
+                    open={폈나}
+                    onToggle={() =>
+                      set접은날((v) => {
+                        const 다음 = new Set(v);
+                        if (다음.has(묶음.date)) 다음.delete(묶음.date);
+                        else 다음.add(묶음.date);
+                        return 다음;
+                      })
+                    }
+                  />
+                  <Collapse open={폈나}>
+                    <ul className="admin-list">
+                      {묶음.items.map((n) => (
+                        <NoticeRow
+                          key={n.notice_id}
+                          공지={n}
+                          연번={보는것.length - 보는것.indexOf(n)}
+                          편집중={편집중}
+                          on열기={() =>
+                            set연것({
+                              id: n.notice_id,
+                              /* 꾹 눌러 연 것이라 손이 아직 닿아 있다.
+                                 팝업이 손을 기다렸다 손짓을 받는다. */
+                              꾹: true,
+                              값: {
+                                title: n.title,
+                                body: n.body ?? "",
+                                start_on: n.start_on ?? "",
+                                end_on: n.end_on ?? "",
+                                sort_order: n.sort_order,
+                                is_active: n.is_active,
+                              },
+                            })
+                          }
+                          on끄고켜기={() => 끄고켜기(n)}
+                          on지우기={() => void 지우기(n)}
+                        />
+                      ))}
+                    </ul>
+                  </Collapse>
+                </section>
+              );
+            })}
+          </div>
         )}
       </section>
       </div>
@@ -389,6 +511,7 @@ export default function AdminNotices() {
         <AdminNoticePopup
           새것={연것.id === null}
           값={연것.값}
+          꾹눌러열림={!!연것.꾹}
           on바뀜={(값) => set연것({ ...연것, 값 })}
           on저장={() => void 담기()}
           onClose={() => set연것(null)}

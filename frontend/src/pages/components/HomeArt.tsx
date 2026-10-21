@@ -219,3 +219,60 @@ export function ArtPlaces() {
     </svg>
   );
 }
+
+/**
+ * 공지사항 — 확성기와 퍼지는 소리.
+ *
+ * 띠 안의 작은 확성기(MegaphoneIcon)와 같은 꼴을 홈 칸 크기로 다시 그린다.
+ * 작은 쪽은 12px이라 선 둘로 끝내지만, 여기서는 나팔에 흰 속을 넣고 소리
+ * 자국을 둘 둔다 — 다른 칸 그림들도 흰 속에 두 빛깔로 서 있다.
+ */
+export function ArtNotice() {
+  return (
+    <svg className="home-art" viewBox="0 0 140 72" aria-hidden="true">
+      {/* 다른 칸 그림과 같은 자리에 세운다. 그린 것의 테가 x 31~122였는데,
+         씀씀이는 14~100, 잔소리는 15~91, 어디 쓰나는 17~97이라 혼자
+         오른쪽으로 치우치고 컸다. 0.9로 줄이고 왼쪽으로 당겨 테를
+         x 15~96, 세로 복판 36에 맞춘다. */}
+      <g transform="translate(-12.7 2.6) scale(0.9)">
+      {/* 나팔. 벌어진 쪽이 왼쪽 위, 좁은 쪽이 오른쪽 아래다. */}
+      <g transform="rotate(-8 70 36)">
+        <path
+          d="M34 30.5 90 14v44L34 41.5Z"
+          fill="#FFFFFF"
+          stroke={INK}
+          strokeWidth="2.8"
+          strokeLinejoin="round"
+        />
+        {/* 손잡이. 나팔 좁은 쪽 아래로 짧게 뻗어 끝에서 꺾인다. */}
+        <path
+          d="M48 38v9a5 5 0 0 0 10 0v-5.8"
+          fill="none"
+          stroke={INK}
+          strokeWidth="2.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* 나팔 입을 막는 테. 벌어진 쪽이 뚫려 보이지 않게 한다. */}
+        <path d="M34 30.5 34 41.5" stroke={INK} strokeWidth="2.8" strokeLinecap="round" />
+      </g>
+
+      {/* 퍼지는 소리 둘. 바깥쪽이 더 옅게 선다. */}
+      <path
+        d="M100 24a16 16 0 0 1 0 24"
+        fill="none"
+        stroke={AQUA}
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M112 15a28 28 0 0 1 0 42"
+        fill="none"
+        stroke={TINT}
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      </g>
+    </svg>
+  );
+}

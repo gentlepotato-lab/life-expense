@@ -20508,13 +20508,104 @@ html:has(.popup-overlay) .add-btn {
 
    생김새는 홈 카드(.home-card)의 결을 그대로 쓴다. 테와 모서리와 그림자를
    같은 토큰에서 꺼내 쓰므로, 빛깔 벌을 바꾸면 띠도 함께 따라간다. */
+/* 띠를 받치는 조각. 키가 0이라 글 흐름에서 자리를 먹지 않는다 — 홈 카드는
+   공지가 있든 없든 제자리에 그대로 선다. 띠는 이 조각의 바닥에 맞춰
+   **위쪽으로** 떠오른다. */
+.notice-dock {
+  position: relative;
+  height: 0;
+}
+
+/* 접힌 띠는 머리말 자리 위에 뜬다. 아랫변이 카드 첫 줄의 윗변에 맞으므로
+   카드는 한 장도 가리지 않고, 가리는 것은 안내 한 줄과 그 옆 펜 그림뿐이다.
+   카드 위에 띄웠더니 쓰기와 돈쓴이 그림이 잘렸고, 흐름 안에 세웠더니
+   카드가 통째로 내려앉았다. 펼친 본문만 아래로 떠오른다. */
 .notice-band {
-  background: var(--color-surface);
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* 앱 이름의 글자가 50에서 끝나고 카드 첫 줄이 91에서 시작한다. 그 사이
+     41px에 35px짜리 띠를 세우면 위아래로 3px씩 남는다 — 그 한가운데다.
+     토막값을 그대로 적는 것은 두 끝이 글자와 카드라 어느 간격 토큰과도
+     맞아떨어지지 않기 때문이다. */
+  bottom: 3px;
+  /* 머리말(950)보다 위, 떠 있는 단추들(2001)보다 아래다. 5로 두었더니
+     머리말이 제 바탕빛으로 띠를 통째로 덮어 아예 안 보였다. 단추들 아래인
+     것은 공지를 치우기 전에도 쓰기와 계산기를 눌러야 하기 때문이다. */
+  z-index: 1000;
+  /* 게시판에 붙인 쪽지로 보이게 한다. 흰 카드 그대로 두었더니 홈의 다른
+     카드와 똑같아, 공지라는 것이 딱지 하나로만 갈렸다.
+     종이에 잉크가 한 방울 번진 빛을 깔고 왼쪽에 띠를 세운다. 띠는 붙여 둔
+     쪽이라는 표다 — 묶음 메모가 쓰는 그 잣대인데(.mk-memo, 171절), 거기는
+     오른쪽만 둥글고 여기는 띄워 둔 조각이라 네 귀가 다 둥글다. */
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
   border: 1px solid var(--color-border);
+  border-left: 3px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-soft);
-  margin-bottom: var(--space-3);
-  overflow: hidden;
+  /* 떠 있는 결을 지키려고 그림자를 한 단 올린다. */
+  box-shadow: 0 2px 6px rgba(16, 24, 40, .08), 0 10px 24px -10px rgba(16, 24, 40, .28);
+  /* 세로로 쓸면 띠는 가만있고 홈이 구른다. 가로만 띠가 먹는다. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  /* 뜰 때 위에서 미끄러져 내려온다. 공지는 서버에 물어본 뒤에야 뜨므로,
+     그냥 두면 홈에 들어선 뒤 한 박자 늦게 툭 나타난다.
+     채움(fill-mode)은 두지 않는다 — 끝난 뒤에도 값을 붙들고 있으면 손으로
+     미는 동안 걸어 주는 transform 을 덮어 띠가 손끝을 따라오지 않는다.
+     움직임을 끈 기기에서는 전역 규칙이 이 애니메이션을 끈다(161절). */
+  animation: notice-in 0.22s var(--ease);
+}
+
+/* 펼치면 제목을 다 보인다. 접혀 있을 때는 한 줄로 끊는 것이 맞지만, 펼친
+   것은 그 공지를 읽겠다는 뜻이라 제목부터 온전히 보여야 한다. 띠는 아랫변이
+   카드에 맞춰 붙박이므로 길어지면 위로 자란다 — 카드는 밀리지 않는다. */
+.notice-band.is-open .notice-band__title {
+  overflow: visible;
+  white-space: normal;
+  /* 우리말은 낱말 안에서 끊지 않고, 끊을 자리가 없는 긴 영문 덩어리만
+     어디서든 끊는다. 그러지 않으면 그 덩어리가 칸 밖으로 뻗어 +N 과
+     화살표를 덮는다. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.notice-band.is-open .notice-band__fade {
+  display: none;
+}
+
+/* 뒤에 더 있을 때 — 윗변에 한 장이 비죽 보인다. 여러 장을 겹쳐 붙여 둔
+   게시판처럼 읽힌다. +N 이 말하는 것을 모양으로도 한 번 더 말한다. */
+.notice-band.has-more::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 10px;
+  right: 10px;
+  height: 8px;
+  border: 1px solid var(--color-border);
+  border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  pointer-events: none;
+}
+
+@keyframes notice-in {
+  /* 서는 자리가 위쪽이라 위에서 내려온다 — 쪽지(.note)와 같은 결이다. */
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 펼치면 아랫변의 둥근 모서리를 편다. 본문이 바로 아래에 이어 붙으므로
+   거기가 둥글면 두 조각이 갈라져 보인다. */
+.notice-band.is-open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 /* 누르는 자리. 전역 button 규칙이 높이를 못 박으므로 여기서 푼다 —
@@ -20526,16 +20617,22 @@ html:has(.popup-overlay) .add-btn {
   width: 100%;
   min-height: 0;
   height: auto;
-  padding: var(--space-3);
+  /* 위아래 8px. 12px이던 때는 띠가 43px이라 머리말 자리(제목 아래 38px)를
+     넘어 앱 이름 아래쪽을 덮었다. */
+  padding: var(--space-2) var(--space-3);
   background: none;
   border: 0;
   text-align: left;
   cursor: pointer;
 }
 
-/* 공지라고 알리는 딱지. 앱이 쓰던 알림 빛깔(강조색) 그대로다. */
+/* 공지라고 알리는 딱지. 앱이 쓰던 알림 빛깔(강조색) 그대로다.
+   확성기 그림이 글자 앞에 선다 — 딱지가 작아 틈은 3px이면 넉넉하다. */
 .notice-band__tag {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: var(--font-size-xs);
   font-weight: 700;
   color: var(--color-primary);
@@ -20545,16 +20642,19 @@ html:has(.popup-overlay) .add-btn {
 }
 
 /* 제목은 한 줄로 끊는다. 두 줄이 되면 띠 높이가 공지마다 달라져 홈이
-   들썩인다. */
+   들썩인다. 끊긴 끝은 꼬리에 말줄임표를 다는 대신 뒤쪽이 옅어지다 (...)로
+   이어진다 — 내역 카드의 메모와 같은 꼴이다(.memo-fade, 152절). */
 .notice-band__title {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
   font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text-primary);
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   white-space: nowrap;
+  --row-bg: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
 }
 
 /* 뒤에 더 있을 때의 수. 띠는 하나만 띄우므로 몇이 남았는지 알린다. */
@@ -20579,14 +20679,118 @@ html:has(.popup-overlay) .add-btn {
 }
 
 /* 펼친 본문. 머리와 가르는 줄을 한 겹 둔다. */
+/* 펼친 본문. 띠 바로 아래로 떠오른다 — 흐름 안에 두면 펼칠 때마다 홈
+   카드가 100px 넘게 내려앉았다. 띠와 한 몸으로 보이도록 테와 그림자를
+   이어 받고 윗변만 각지게 둔다. */
 .notice-band__body {
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-top: 0;
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: 0 10px 24px -10px rgba(16, 24, 40, .28);
+}
+
+/* ── 공지사항 화면의 줄 ──────────────────────────────────────
+   홈의 띠와 같은 부품을 쓰되(딱지와 본문 글) 카드로 선다. 설정 탭의 목록
+   화면들과 같은 짜임이다 — 머리말을 누르면 접히고 펴진다. */
+.notice-card {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* 머리말. 묶음 머리말의 짜임(.set-group__head)을 그대로 쓰되 카드 안쪽
+   여백만 준다. 삼각형이 왼쪽 끝에 서고 그 옆에 글 칸이 온다. */
+.notice-card__head {
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+/* 글 칸. 눌러서 접고 편다. 전역 button 규칙이 키와 줄바꿈을 못 박으므로
+   여기서 푼다 — 제목이 두 줄이 되어도 줄이 그만큼 자라야 한다. */
+.notice-card__btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 0;
+  height: auto;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+}
+.notice-card__btn:hover {
+  background: none;
+  border-color: transparent;
+}
+
+/* 제목. 길면 한 줄에서 말줄임으로 끊는다. 두 줄로 흘리면 줄마다 머리말
+   키가 달라 목록이 들쭉날쭉해 보인다. 끊긴 제목은 눌러 펼치면 본문에서
+   무슨 말인지 알 수 있다. */
+.notice-card__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* 아직 안 읽은 것. 분류의 감춤 표(.set-hide-mark)와 같은 자리, 같은 꼴이다. */
+.notice-card__new {
+  flex: 0 0 auto;
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+/* 날짜 단 하나. 머리말 아래로 그날 공지가 쌓인다. 카드 사이는 목록이
+   쓰는 간격 그대로다. */
+.card-list > .date-group:has(.notice-card) {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* 펼친 본문. 머리와 가르는 줄을 한 겹 둔다 — 띠의 본문과 같다. */
+.notice-card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
   border-top: 1px solid var(--color-border);
-  padding-top: var(--space-3);
+}
+
+/* 등록한 때와 뜨는 기간. 딱지 줄은 앱이 쓰던 그 꼴이다(.tag-row). */
+.notice-card__tags {
+  flex-wrap: wrap;
+}
+
+/* 단추 줄. 본문 칸이 왼쪽으로 몰아 세우므로(align-items: flex-start) 이
+   줄만 칸 너비를 다 쓰게 한다. 그래야 팝업처럼 오른쪽 끝에 붙는다. */
+.notice-band__foot {
+  align-self: stretch;
 }
 
 /* 본문 글. 줄바꿈을 적은 그대로 살린다. */
@@ -21446,6 +21650,11 @@ textarea.admin-area:focus {
    같은 꼴이다. 흰 바탕에 테 한 줄과 옅은 그림자다. 키만 36px로 줄였다.
    거기는 52px인데, 관리자 줄은 이름과 딱지뿐이라 그만큼 쓸 일이 없다. */
 .admin-list__row {
+  /* 꾹 누르는 동안 윗변에 차오르는 진행 표시가 이 줄을 기준으로 선다
+     (.card--pressable.pressing::after). */
+  position: relative;
+  /* 끊긴 제목의 자락이 이 빛깔로 이어진다(.admin-list__fade). */
+  --row-bg: var(--color-surface);
   min-height: 36px;
   padding: 0 var(--space-3);
   border: 1px solid var(--color-border);
@@ -21460,13 +21669,117 @@ textarea.admin-area:focus {
   box-shadow: var(--shadow-md);
 }
 
-/* 눌러서 팝업이 열리는 줄. 편집 중이 아닐 때만 걸린다. */
-.admin-list__row.is-tappable {
-  cursor: pointer;
+/* 꾹 눌러 팝업이 열리는 줄. 편집 중이 아닐 때만 걸린다. 누르는 반응과
+   진행 표시는 내역 카드가 쓰는 것을 그대로 쓴다(.card--pressable, 29절). */
+.admin-list__row.card--pressable:hover {
+  --row-bg: var(--color-primary-light);
+  background: var(--color-primary-light);
 }
 
-.admin-list__row.is-tappable:hover {
-  background: var(--color-primary-light);
+/* 꾹 눌러 뜬 팝업이 손을 기다리는 동안. 판을 손짓에서 비워, 아직 닿아
+   있는 손가락이 판 안의 입력칸을 집지 못하게 한다. 손을 떼면 바로 풀린다
+   (pages/components/AdminNoticePopup.tsx). */
+.popup-panel.is-waiting-hand {
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 끊기는 제목. 꼬리에 말줄임표를 다는 대신, 메모 판처럼 뒤쪽이 길게
+   옅어지다 (...)로 이어진다(.memo-fade, 152절). 글이 한 글자에서 뚝
+   끊기지 않아 뒤에 더 있다는 것이 눈에 먼저 든다. */
+.admin-list__name--cut {
+  position: relative;
+  text-overflow: clip;
+}
+
+/* 공지사항 화면의 제목도 같은 꼴로 끊는다. 카드 바탕이 자락의 끝 빛깔이다. */
+.notice-card__title {
+  position: relative;
+  text-overflow: clip;
+  --row-bg: var(--color-surface);
+}
+
+/* 펼치면 제목을 다 보인다 — 띠와 같은 잣대다. 목록이라 줄마다 키가 달라져도
+   아래 카드가 들썩일 뿐 어긋나지는 않는다. */
+.notice-card.is-open .notice-card__title {
+  overflow: visible;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.notice-card.is-open .notice-card__fade {
+  display: none;
+}
+
+/* 펼친 카드의 머리말은 글이 여러 줄이 되므로 위로 붙여 세운다. 가운데로
+   묶으면 삼각형과 딱지가 둘째 줄 높이까지 내려온다. */
+.notice-card.is-open .notice-card__head {
+  align-items: flex-start;
+}
+
+.notice-card.is-open .notice-card__head > .set-toggle,
+.notice-card.is-open .notice-band__tag,
+.notice-card.is-open .notice-card__new {
+  margin-top: 1px;
+}
+
+.admin-list__fade,
+.notice-card__fade,
+.notice-band__fade {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 92px;
+  /* 자락은 줄의 바탕빛에서 만든다. 줄 위에 손을 얹으면 바탕이 바뀌므로
+     값을 박지 않고 줄이 쥔 변수를 따라간다. */
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--row-bg) 0%, transparent) 0%,
+    color-mix(in srgb, var(--row-bg) 30%, transparent) 30%,
+    color-mix(in srgb, var(--row-bg) 70%, transparent) 58%,
+    color-mix(in srgb, var(--row-bg) 93%, transparent) 78%,
+    var(--row-bg) 92%
+  );
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+/* 날짜로 묶은 공지 목록. 단 사이는 카드 사이와 같은 8px이다. 내역 화면의
+   .card-list는 더 넓게 벌리는데, 여기 줄은 36px이라 그만큼 벌리면 단
+   머리말만 둥둥 뜬다. */
+.admin-days-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.admin-days-list > .date-group {
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* 줄 안의 글은 집히지 않는다. 손전화에서 꾹 누르면 운영체제가 먼저 글을
+   집어 선택 손잡이를 띄우는 바람에 꾹 누르기가 터지기 전에 끊겼다.
+   .card--pressable이 줄에 걸어 주기는 하지만, 자식까지 하나하나 못 박아야
+   기기마다 다른 기본값에 흔들리지 않는다. */
+.admin-list__row.card--pressable,
+.admin-list__row.card--pressable * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* 스위치는 늘 보인다. 줄이 좁아도 이것만은 줄지 않는다 — 켜고 끄는
+   자리라 잘리면 끌 길이 없다. */
+.admin-list__row > .set-onoff {
+  flex: 0 0 auto;
 }
 
 /* 연번. 글자 폭이 달라도 자리가 흔들리지 않게 폭을 못 박는다. */
@@ -21542,8 +21855,15 @@ textarea.admin-area:focus {
 
 /* 경로. 이름 옆에 작게 붙여, 어느 주소를 끄는지 헷갈리지 않게 한다.
    딱지로 감싸 이름과 한 덩어리로 읽히지 않게 한다. */
+/* 길과 날짜 딱지. 이름이 다 줄어든 뒤에는 이쪽도 줄어든다. 줄지 못하게
+   두었더니 긴 제목에 딱지가 둘 붙는 줄에서 스위치가 줄 밖으로 밀려
+   (.card--pressable의 overflow: hidden에) 잘려 사라졌다. */
 .admin-list__path {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
   background: var(--color-bg);

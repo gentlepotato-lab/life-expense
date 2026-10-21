@@ -17,6 +17,7 @@ export const PAGE_TITLE: Record<string, string> = {
      고를 수 있는 것처럼 보인다. */
   "/charts/detail": "씀씀이 내역",
   "/nudges": "잔소리",
+  "/notices": "공지사항",
 
   /* 내역 탭 */
   "/history": "내역",
@@ -59,6 +60,7 @@ export const PAGE_NOTE: Record<string, string> = {
   "/charts": "지출 추이와 분석을 확인합니다.",
   "/charts/detail": "선택한 분류의 지출 내역을 확인합니다.",
   "/nudges": "알림과 추천을 확인합니다.",
+  "/notices": "지난 공지까지 모두 확인합니다.",
 
   /* 내역 탭 */
   "/history": "기록한 지출과 수입을 확인합니다.",
@@ -93,6 +95,7 @@ export const HOME_TABS = [
   "/places",
   "/charts",
   "/nudges",
+  "/notices",
 ];
 
 /** 내역 탭이 품는 화면들 */
