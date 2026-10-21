@@ -20601,9 +20601,15 @@ html:has(.popup-overlay) .add-btn {
   opacity: 0.75;
 }
 
-/* 자리를 옮겨 오는 동안만 미끄러진다. 맨 앞 장은 손끝을 따라와야 하므로
-   여기서 빼 둔다 — 그쪽은 미는 코드가 style로 직접 건다. */
-.notice-band--behind {
+/* 자리를 옮겨 오는 동안 미끄러진다.
+
+   뒤 장에만 걸었더니 앞자리로 올라오는 장이 툭 튀었다. 뒤 장이라는 표와
+   깊이가 한 번에 함께 바뀌는데, 미끄러짐은 바뀐 뒤의 값을 보므로 그때는
+   이미 없는 셈이기 때문이다. 그래서 장마다 걸어 둔다.
+
+   맨 앞 장은 손끝을 따라와야 하므로, 손을 대는 동안만 미는 코드가
+   transition: none 으로 끊는다(NoticeBand.tsx의 잡기). */
+.notice-band {
   transition: transform 0.22s var(--ease), opacity 0.22s var(--ease);
 }
 

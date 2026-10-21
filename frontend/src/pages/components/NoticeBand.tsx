@@ -143,21 +143,21 @@ export default function NoticeBand() {
   const 지금것 = 공지들[0];
   const 더있나 = 공지들.length - 1;
 
-  /** 띠를 손 떼기 전 자리로 되돌린다. */
-  const 되돌리기 = () => {
-    const 칸 = 띠칸.current;
-    if (!칸) return;
-    칸.style.transition = "";
-    칸.style.transform = "";
-    칸.style.opacity = "";
-  };
-
-  /** 한 장을 목록에서 뺀다. 다음 장이 있으면 그 자리에 올라선다. */
+  /**
+   * 한 장을 목록에서 뺀다. 다음 장이 있으면 그 자리에 올라선다.
+   *
+   * 날아간 장에 걸어 준 transform 과 opacity 는 풀지 않는다. 풀면 그 장이
+   * 제자리로 돌아와 멀쩡히 보이는데, 이 자리가 transitionend 에서 불리기
+   * 때문에 React 가 그 장을 거두는 것은 다음 차례로 미뤄진다. 그 사이에
+   * 브라우저가 한 번 그려, 민 공지가 깜빡 다시 떴다가 사라졌다.
+   *
+   * 풀어 줄 까닭도 없다. 장마다 key 가 공지 번호라, 맨 앞 장은 목록에서
+   * 빠지면서 그 조각째 거둬진다 — 다음 장은 저가 쓰던 다른 조각이다.
+   */
   const 다음장 = () => {
     set공지들((v) => v.slice(1));
     set펼침(false);
     set날림(false);
-    되돌리기();
   };
 
   const 읽음 = () => {
@@ -176,8 +176,6 @@ export default function NoticeBand() {
   const 잡기 = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     끌기.current = { x: e.clientX, y: e.clientY, 잡았나: true, 가로인가: null, id: e.pointerId };
-    /* 앞서 걸어 둔 미끄러짐을 푼다. 남겨 두면 손끝을 한 박자 늦게 따라온다. */
-    if (띠칸.current) 띠칸.current.style.transition = "";
   };
 
   const 끌리기 = (e: React.PointerEvent) => {
@@ -193,6 +191,12 @@ export default function NoticeBand() {
         손.잡았나 = false;
         return;
       }
+      /* 가로로 가는 것이 정해진 이 참에 미끄러짐을 끊는다. 남겨 두면 띠가
+         손끝을 0.22s 늦게 따라온다. 손을 뗄 때 놓기가 도로 걸어 준다.
+         잡을 때가 아니라 여기서 끊는 것은, 세로로 쓸고 만 손짓에까지
+         끊어 놓으면 그 장이 앞자리로 올라올 때 쓸 미끄러짐까지 없어지기
+         때문이다. */
+      칸.style.transition = "none";
       칸.setPointerCapture(손.id);
     }
     const 폭 = 칸.offsetWidth || 1;
