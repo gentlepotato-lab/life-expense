@@ -20927,6 +20927,18 @@ html[data-motion="off"] .admin-pane,
   min-width: 0;
 }
 
+/* 거르기 알약. 사용자 화면의 도구 줄이 쥐는 치수를 그대로 쓴다
+   (.toolbar .filter-pill, 7578줄). 바탕 규칙(.filter-pill, 6996줄)은 30px에
+   13px 글씨라, 같은 줄에 선 [편집](24px에 11px)보다 혼자 커 보였다.
+   사용자 화면도 도구 줄에서는 꼭 같이 줄여 쓴다. */
+.admin-toolbar-row .filter-pill {
+  height: 24px;
+  min-height: 24px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 /* 기간 고르개. 알약 셋이 한 줄에 선다. 아래 틈은 품는 줄이 대므로
    제 몫으로는 두지 않는다. 여기에 margin-bottom 을 두었더니 24px 알약이
    36px 줄을 만들어, 기간 딱지와 아래 칸 사이가 8px보다 멀어 보였다.
@@ -20987,7 +20999,9 @@ html[data-motion="off"] .admin-pane,
   justify-content: center;
 }
 
-/* 줄 목록이 드는 칸. 여덟 줄이 196px을 넘으므로 그 안에서 구른다. */
+/* 줄 목록이 드는 칸. 여덟 줄이 다 들도록 키를 잡았으므로 구르지 않는다.
+   overflow 를 남겨 두는 것은 글자 크기를 키운 기기에서 넘칠 때를 대비한
+   것이다. */
 .admin-card__body--list {
   justify-content: flex-start;
   overflow-y: auto;
@@ -21101,9 +21115,48 @@ html[data-motion="off"] .admin-pane,
   text-overflow: ellipsis;
 }
 
-/* 오류 칸의 거드는 줄. 그림 자리가 키를 못 박으므로 그만큼 줄여 준다. */
+/* 줄 목록 칸의 키. 여덟 줄이 들 만큼 잡는다. 한 줄이 18px이고 사이가
+   8px이라 여덟 줄이 202px이다. 164px이던 때는 여섯 줄 반만 들어, 일곱째
+   줄이 가로로 잘리고 구르는 막대가 걸린 참 위에 겹쳐 그려졌다.
+   줄이 모자라도 키는 그대로다. 거르는 기간을 바꿔도 칸이 들썩이지 않아야
+   한다. */
 .admin-card:has(.admin-hint) > .admin-card__body--list {
-  height: 164px;
+  height: 208px;
+}
+
+/* 한 칸이 묶음 둘을 품을 때. 머리말 둘과 줄 다섯씩이 든다.
+   머리 18 + 틈 8 + 줄 다섯(5×18) + 사이 넷(4×8) = 148, 묶음 둘에 사이
+   16을 더해 312다. */
+.admin-card:has(.admin-hint) > .admin-card__body--parts {
+  height: 312px;
+  gap: var(--space-4);
+}
+
+/* 묶음 하나. 머리말이 이고 그 아래 줄이 선다. */
+.admin-part {
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* 묶음 머리말. 칸 제목(.admin-card__title)보다 한 단 작고 옅다 — 칸 안의
+   갈래지 칸 제목이 아니라는 것이 한눈에 보여야 한다. */
+.admin-part__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* 그 묶음이 몇 번인지. 머리말 오른쪽 끝에 딱지로 붙는다. */
+.admin-part__n {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary);
 }
 
 /* 떠 있는 단추들. 사용자 화면은 아래 이동 막대(52px) 위로 쌓는데, 이 쪽에는

@@ -44,12 +44,20 @@ type 셈 = {
   to: string;
   view: { name: string; n: number }[];
   feature: { name: string; n: number }[];
-  error: { name: string; n: number; worst: number | null; status: number | null }[];
+  slow: { name: string; n: number; worst: number | null }[];
+  fail: { name: string; n: number; status: number | null }[];
   write: { date: string; n: number }[];
   daily: { date: string; n: number }[];
   dow: { name: string; n: number }[];
   hour: { name: string; n: number }[];
-  kpi: { view: number; feature: number; error: number; write: number; view_per_day: number };
+  kpi: {
+    view: number;
+    feature: number;
+    slow: number;
+    fail: number;
+    write: number;
+    view_per_day: number;
+  };
 };
 
 /** 가까운 며칠만 볼 때 쓰는 알약. 달 단위가 기본이고 이것은 곁길이다. */
@@ -182,9 +190,7 @@ export default function AdminDash() {
           있으면 달 단위가 아니므로 달 넘기개를 감춘다. 사용자 화면의
           지출 내역도 그렇게 한다(pages/Entries.tsx). */}
       <div className="pm-toolbar-row admin-toolbar-row">
-        {거른기간 ? (
-          <span className="admin-toolbar-row__gap" />
-        ) : (
+        {!거른기간 && (
           <MonthNav
             ym={ym}
             onChange={(v) => {
@@ -195,6 +201,9 @@ export default function AdminDash() {
             max={max}
           />
         )}
+        {/* 빈자리를 먹는 조각. 달 넘기개가 서든 안 서든 거르기를 오른쪽
+            끝까지 민다. 이것이 없던 때는 달 넘기개 바로 뒤에 붙어 섰다. */}
+        <span className="admin-toolbar-row__gap" />
         <button
           type="button"
           className={`filter-pill${거른기간 ? " on" : ""}`}
@@ -256,7 +265,11 @@ export default function AdminDash() {
               { 이름: "조회", 값: 셈.kpi.view, 단위: "회", 딱지: `평균 ${셈.kpi.view_per_day}회` },
               { 이름: "쓰고 수정", 값: 셈.kpi.write, 단위: "건", 딱지: `${셈.days}일` },
               { 이름: "사용 횟수", 값: 셈.kpi.feature, 단위: "회", 딱지: "기능" },
-              { 이름: "오류", 값: 셈.kpi.error, 단위: "회", 딱지: "느린 요청" },
+              /* 실패와 느린 요청은 다른 것이다. 하나로 세어 「오류 66회」로
+                 적었더니 무엇이 66인지 알 길이 없었다. 수는 실패가 쥐고,
+                 느린 쪽은 딱지로 적는다. 칸을 다섯으로 늘리지 않은 것은
+                 두 칸씩 서는 격자에서 다섯째가 혼자 남기 때문이다. */
+              { 이름: "실패", 값: 셈.kpi.fail, 단위: "회", 딱지: `느린 요청 ${셈.kpi.slow}회` },
             ].map((t) => (
               <div key={t.이름} className="chart-tile admin-tile">
                 {/* 딱지는 이름 옆에 선다. 칸은 두 줄 그대로이고, 아랫줄은
@@ -421,30 +434,52 @@ export default function AdminDash() {
               </ResponsiveContainer>,
             )}
 
-            <section className="card admin-card">
+            {/* 한 칸 안에서 둘을 가른다. 섞어 늘어놓으면 오른쪽 끝에 ms와
+                상태 번호가 번갈아 서서, 한 줄이 느린 것인지 물린 것인지를
+                그 번호를 읽어야 알았다. 칸을 둘로 쪼개는 대신 머리말을 둘
+                두어, 무엇을 보고 있는지 줄을 읽기 전에 알게 한다. */}
+            <section className="card admin-card admin-card--wide">
               <h3 className="admin-card__title">오류와 느린 요청</h3>
-              {/* 무엇을 모은 자리인지 적는다. 길과 횟수와 걸린 시간만 보고는
-                  이것이 무엇을 재는지 알 수 없다. 느린 잣대는 화면이 쥐고
-                  있다(utils/track.ts의 느린참, 1000ms). */}
-              <p className="admin-hint">1초를 넘겼거나 실패한 요청입니다.</p>
-              <div className="admin-card__body admin-card__body--list">
-                {셈.error.length === 0 ? (
-                  <p className="page-empty">아직 쌓인 것이 없습니다.</p>
-                ) : (
-                  <ul className="admin-slow">
-                    {셈.error.slice(0, 8).map((r) => (
-                      <li key={r.name} className="admin-slow__row">
-                        <span className="admin-slow__path">{r.name}</span>
-                        <span className="admin-slow__n">{r.n}번</span>
-                        <span className={`admin-slow__ms${r.status && r.status >= 400 ? " is-bad" : ""}`}>
-                          {r.status && r.status >= 400 ? r.status : `${r.worst ?? 0}ms`}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              {/* 느린 잣대는 화면이 쥐고 있다(utils/track.ts의 느린참). */}
+              <p className="admin-hint">1초를 넘긴 것과 실패한 것을 갈라 적습니다.</p>
+              <div className="admin-card__body admin-card__body--list admin-card__body--parts">
+                {[
+                  {
+                    이름: "1초를 넘긴 요청",
+                    셈: 셈.kpi.slow,
+                    들: 셈.slow.map((r) => ({ name: r.name, n: r.n, 끝: `${r.worst ?? 0}ms`, 물림: false })),
+                  },
+                  {
+                    이름: "실패한 요청",
+                    셈: 셈.kpi.fail,
+                    /* 닿지 못한 요청은 상태 번호가 없다. 빈자리를 두지 않고
+                       그렇게 적는다. */
+                    들: 셈.fail.map((r) => ({ name: r.name, n: r.n, 끝: r.status ? String(r.status) : "못 닿음", 물림: true })),
+                  },
+                ].map((묶음) => (
+                  <div key={묶음.이름} className="admin-part">
+                    <span className="admin-part__head">
+                      {묶음.이름}
+                      <span className="admin-part__n">{묶음.셈}회</span>
+                    </span>
+                    {묶음.들.length === 0 ? (
+                      <p className="page-empty">아직 쌓인 것이 없습니다.</p>
+                    ) : (
+                      <ul className="admin-slow">
+                        {묶음.들.slice(0, 5).map((r) => (
+                          <li key={r.name} className="admin-slow__row">
+                            <span className="admin-slow__path">{r.name}</span>
+                            <span className="admin-slow__n">{r.n}번</span>
+                            <span className={`admin-slow__ms${r.물림 ? " is-bad" : ""}`}>{r.끝}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
               </div>
             </section>
+
           </div>
         </>
       )}

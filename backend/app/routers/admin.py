@@ -278,20 +278,37 @@ def admin_stats(
          LIMIT 20
     """), 틈).mappings().all()
 
-    # 오래 걸리거나 물린 요청. 같은 길을 묶어 가장 느린 것부터 보인다.
-    탈 = db.execute(text("""
-        SELECT name
-             , count(*) AS n
-             , max(elapsed_ms) AS worst
-             , max(status) AS status
-          FROM life_expense.action_logs
-         WHERE kind = 'error'
-           AND created_at >= CAST(:frm AS date)
-           AND created_at < CAST(:to AS date)
-      GROUP BY name
-      ORDER BY worst DESC NULLS LAST, n DESC
-         LIMIT 20
-    """), 틈).mappings().all()
+    # 느린 요청과 실패한 요청. 둘을 갈라 센다.
+    #
+    # 가르는 잣대는 status 다. 화면 쪽 인터셉터가 둘을 다른 자리에서 적는다
+    # (frontend/src/api/client.ts). 끝난 요청이 1초를 넘기면 그때의 status 를
+    # 그대로 적으므로 200대가 들어오고, 물린 요청은 400대나 500대가 들어온다.
+    # 아예 닿지 못한 요청은 status 가 비어 있어 이쪽도 실패로 센다.
+    #
+    # 한 요청이 느리면서 물리기도 하면 실패 쪽으로만 간다. 적는 자리가 하나라
+    # 겹쳐 세지 않는다.
+    느림조건 = "status IS NOT NULL AND status < 400"
+    실패조건 = "status IS NULL OR status >= 400"
+
+    def 탈모으기(조건: str, 차례: str):
+        return db.execute(text(f"""
+            SELECT name
+                 , count(*) AS n
+                 , max(elapsed_ms) AS worst
+                 , max(status) AS status
+              FROM life_expense.action_logs
+             WHERE kind = 'error'
+               AND ({조건})
+               AND created_at >= CAST(:frm AS date)
+               AND created_at < CAST(:to AS date)
+          GROUP BY name
+          ORDER BY {차례}
+             LIMIT 20
+        """), 틈).mappings().all()
+
+    # 느린 쪽은 가장 느린 것부터, 실패한 쪽은 가장 잦은 것부터 본다.
+    느린것 = 탈모으기(느림조건, "worst DESC NULLS LAST, n DESC")
+    실패것 = 탈모으기(실패조건, "n DESC, name ASC")
 
     # 적고 고친 건수 — 날짜별로 센다. 그림이 날마다 한 점씩 찍는다.
     적음 = db.execute(text("""
@@ -355,7 +372,8 @@ def admin_stats(
         "to": 끝날.isoformat(),
         "view": [{"name": r["name"], "n": r["n"]} for r in 화면],
         "feature": [{"name": r["name"], "n": r["n"]} for r in 기능],
-        "error": [{"name": r["name"], "n": r["n"], "worst": r["worst"], "status": r["status"]} for r in 탈],
+        "slow": [{"name": r["name"], "n": r["n"], "worst": r["worst"]} for r in 느린것],
+        "fail": [{"name": r["name"], "n": r["n"], "status": r["status"]} for r in 실패것],
         "write": [{"date": str(r["d"]), "n": r["n"]} for r in 적음],
         "daily": [{"date": str(r["d"]), "n": r["n"]} for r in 날별],
         # 빈 요일도 0으로 채운다. 그러지 않으면 막대가 일곱이 아니라 서넛만 선다.
@@ -371,7 +389,8 @@ def admin_stats(
         "kpi": {
             "view": 조회합,
             "feature": int(갈래.get("feature", 0)),
-            "error": int(갈래.get("error", 0)),
+            "slow": sum(int(r["n"]) for r in 느린것),
+            "fail": sum(int(r["n"]) for r in 실패것),
             "write": 적음합,
             # 하루 평균. 소수점은 한 자리까지만 쓴다.
             "view_per_day": round(조회합 / 날, 1),
