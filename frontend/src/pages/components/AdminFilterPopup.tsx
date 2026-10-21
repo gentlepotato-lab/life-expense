@@ -1,4 +1,5 @@
 import useBackClose from "../../hooks/useBackClose";
+import useScrollLock from "../../hooks/useScrollLock";
 
 /**
  * 거르는 조건을 묻는 팝업의 껍데기.
@@ -23,6 +24,8 @@ export default function AdminFilterPopup({
   children: React.ReactNode;
 }) {
   useBackClose(true, onClose);
+  /* 열려 있는 동안 뒤쪽은 구르지 않는다. */
+  useScrollLock(true);
 
   return (
     <div className="popup-overlay" onClick={onClose}>

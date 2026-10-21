@@ -1,16 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import type React from "react";
+import { Outlet, useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { say, ask } from "../utils/notify";
 import { 자물쇠상태, 들어가기, 나가기, 토큰, 암호바꾸기, on끊김 } from "../utils/adminAuth";
 import { 관리자앱입히기, 관리자앱벗기기 } from "../utils/adminPwa";
-import AdminDash from "./components/AdminDash";
 import RefreshIcon from "./components/RefreshIcon";
 import EyeIcon from "./components/EyeIcon";
 import ScrollTopButton from "./components/ScrollTopButton";
 import useHeadPin from "../hooks/useHeadPin";
-import AdminNotices from "./components/AdminNotices";
-import { AdminMenu, AdminDoodle } from "./components/AdminToggles";
-import { 화면적기 } from "../utils/track";
 
 /**
  * 관리자 페이지.
@@ -34,29 +31,25 @@ import { 화면적기 } from "../utils/track";
  * 이름이 짧은 까닭은 알약이 가로를 똑같이 나눠 갖기 때문이다. 손전화에서
  * 다섯 칸이면 한 칸이 75px이라, 긴 이름은 칸을 넘어 오른쪽이 잘린다. */
 const 자리들 = [
-  { key: "dash", name: "대시보드" },
-  { key: "notice", name: "공지" },
-  { key: "doodle", name: "문구" },
-  { key: "menu", name: "메뉴" },
-  { key: "pw", name: "비밀번호" },
+  { key: "dash", name: "대시보드", path: "/admin/dash" },
+  { key: "notice", name: "공지", path: "/admin/notice" },
+  { key: "doodle", name: "문구", path: "/admin/doodle" },
+  { key: "menu", name: "메뉴", path: "/admin/menu" },
+  { key: "pw", name: "비밀번호", path: "/admin/pw" },
 ] as const;
-
-type 자리 = (typeof 자리들)[number]["key"];
 
 export default function Admin() {
   const [열림, set열림] = useState(() => !!토큰());
   const [걸림, set걸림] = useState<boolean | null>(null);
   const [첫암호있나, set첫암호있나] = useState(false);
   const [암호, set암호] = useState("");
-  const [자리, set자리] = useState<자리>("dash");
 
-  /* 어느 자리를 얼마나 보는지 적는다. ViewTracker가 /admin을 건너뛰므로
-     (pages/components/ViewTracker.tsx) 여기서 자리까지 붙여 적는다.
-     자물쇠가 풀린 뒤부터 센다 — 잠긴 화면은 자리가 아니다. */
-  useEffect(() => {
-    if (!열림) return;
-    화면적기(`/admin/${자리}`);
-  }, [열림, 자리]);
+  /* 지금 어느 자리인가는 주소가 쥔다. 상태로 들고 있던 때는 새로 고치면
+     첫 자리로 돌아갔고, 뒤로 가기도 관리자 화면을 통째로 떠났다.
+     자리마다 길이 있으므로 즐겨찾기도 걸리고 기록도 ViewTracker가 적는다. */
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const 자리 = 자리들.find((t) => t.path === pathname)?.key ?? "dash";
 
   /* 내릴 때 머리띠와 알약이 함께 올라가고, 올릴 때 다시 내려온다. 사용자
      화면과 같은 장치를 쓴다(hooks/useHeadPin.ts). 거기는 PageHead가 부르는데
@@ -64,10 +57,11 @@ export default function Admin() {
   useHeadPin();
 
   /* 브라우저 탭 제목도 맞춘다. 화면을 캡처해 놓고 나중에 볼 때 어느 쪽인지
-     헷갈리지 않게 한다. */
+     헷갈리지 않게 한다. 자리를 옮길 때마다 다시 적는다 — 한 번만 적어 두면
+     다른 자리가 덮어쓸 때 되돌릴 길이 없다. */
   useEffect(() => {
     document.title = "돈을 쓰다 관리자";
-  }, []);
+  }, [pathname]);
 
   /* 토큰이 죽으면 자물쇠로 돌아간다.
      서버가 401로 돌려보내면 api/client.ts가 토큰을 걷고 여기로 알린다.
@@ -176,7 +170,7 @@ export default function Admin() {
             key={t.key}
             type="button"
             className={`subtabs__item${자리 === t.key ? " on" : ""}`}
-            onClick={() => set자리(t.key)}
+            onClick={() => navigate(t.path)}
           >
             {t.name}
           </button>
@@ -187,21 +181,17 @@ export default function Admin() {
           사이에 끼면 useHeadPin이 거기서 셈을 멈춘다. */}
       <AdminRefresh />
 
-      {/* 자리를 옮길 때 알맹이만 살짝 갈린다. key를 걸면 자리가 바뀔
-          때마다 새로 그려지고, 그때 한 번 애니메이션이 돈다. 머리띠와
-          알약은 이 밖에 있으므로 흔들리지 않는다. */}
-      <div className="admin-pane" key={자리}>
-      {자리 === "dash" ? (
-        <AdminDash />
-      ) : 자리 === "notice" ? (
-        <AdminNotices />
-      ) : 자리 === "doodle" ? (
-        <AdminDoodle />
-      ) : 자리 === "menu" ? (
-        <AdminMenu />
-      ) : (
-        <AdminPassword onLogout={() => void 나감()} />
-      )}
+      {/* 자리를 옮길 때 알맹이만 살짝 갈린다. key를 걸면 길이 바뀔 때마다
+          새로 그려지고, 그때 한 번 애니메이션이 돈다. 머리띠와 알약은 이
+          밖에 있으므로 흔들리지 않는다.
+          자리마다 화면은 라우터가 꽂아 준다(App.tsx). 로그아웃은 비밀번호
+          자리만 쓰므로 바깥 맥락으로 내려보낸다. */}
+      <div className="admin-pane" key={pathname}>
+        {/* 자리마다 묶음을 따로 내려받으므로 기다리는 동안 빈 칸을 둔다.
+            키를 비워 두면 알약 아래가 접혔다 펴져 흔들린다. */}
+        <Suspense fallback={<div className="admin-wait" />}>
+          <Outlet context={{ onLogout: () => void 나감() }} />
+        </Suspense>
       </div>
 
       {/* 맨 위로. 사용자 화면과 같은 자리, 같은 생김새다. */}
@@ -308,8 +298,19 @@ function AdminHead() {
   );
 }
 
-/** 비밀번호 변경. 바꾸면 로그인해 있던 기기가 모두 로그아웃된다. */
-function AdminPassword({ onLogout }: { onLogout: () => void }) {
+/**
+ * 비밀번호 변경. 바꾸면 로그인해 있던 기기가 모두 로그아웃된다.
+ *
+ * 로그아웃은 자물쇠를 쥔 바깥 틀이 할 일이라 Outlet 맥락으로 받는다
+ * (react-router의 useOutletContext). 라우터가 이 화면을 꽂아 주므로
+ * props로는 받을 수 없다.
+ */
+export function AdminPassword() {
+  const { onLogout } = useOutletContext<{ onLogout: () => void }>();
+  return <AdminPasswordBody onLogout={onLogout} />;
+}
+
+function AdminPasswordBody({ onLogout }: { onLogout: () => void }) {
   const [새것, set새것] = useState("");
   const [다시, set다시] = useState("");
 

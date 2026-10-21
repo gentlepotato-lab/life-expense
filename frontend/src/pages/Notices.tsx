@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "../api/client";
+import { say } from "../utils/notify";
 import MegaphoneIcon from "./components/MegaphoneIcon";
 import CollapseToggle, { CollapseAllButtons } from "./components/CollapseToggle";
 import Collapse from "./components/Collapse";
@@ -48,10 +49,12 @@ function NoticeCard({
   공지: n,
   폈나,
   on접기,
+  on뒤집기,
 }: {
   공지: 공지;
   폈나: boolean;
   on접기: () => void;
+  on뒤집기: () => void;
 }) {
   /* 제목이 칸을 넘었나. 넘은 것에만 자락과 (...)을 얹는다. CSS만으로는
      넘쳤는지 알 수 없어 재 본다. */
@@ -100,8 +103,20 @@ function NoticeCard({
               </span>
             )}
           </span>
-          {n.unread && <span className="notice-card__new">안 읽음</span>}
+          {/* 안 읽음 딱지는 접혀 있을 때만. 펼치면 오른쪽 끝의 체크 상자가
+              같은 것을 말하므로 둘이 겹친다. */}
+          {n.unread && !폈나 && <span className="notice-card__new">안 읽음</span>}
         </button>
+        {/* 읽음 표를 뒤집는 체크 상자. 읽은 것은 홈의 띠에 다시 뜨지 않으므로,
+            다시 받아 보려면 여기서 되돌려야 한다. 펼쳤을 때만 선다 — 접힌
+            목록에 줄마다 상자가 서면 목록이 아니라 설정 화면처럼 읽힌다.
+            꼴은 앱이 쓰던 체크 상자 그대로다(.cp-toggle). */}
+        {폈나 && (
+          <label className="cp-toggle notice-card__mark">
+            <input type="checkbox" checked={!n.unread} onChange={on뒤집기} />
+            읽음
+          </label>
+        )}
       </div>
 
       {/* 접고 펴는 자리는 앱이 쓰는 부품에 맡긴다. 움직임을 끈 기기에서는
@@ -120,6 +135,29 @@ export default function Notices() {
   /* 접은 것을 든다. 설정 탭의 목록들과 같은 꼴이다. */
   const [접힘, set접힘] = useState<Set<string>>(new Set());
 
+  /**
+   * 읽음 표를 뒤집는다.
+   *
+   * 읽은 자리는 "여기까지"라는 금 하나뿐이라, 한 건만 안 읽음으로 돌리는
+   * 길을 서버가 따로 낸다(/notices/unread). 읽음으로 바꾸는 것은 금을
+   * 올리는 일이라 예전 길을 그대로 쓴다.
+   *
+   * 화면은 먼저 바꾼다. 서버가 받아들이는 것을 기다렸다 바꾸면 누른 뒤
+   * 한 박자 멈춘 것처럼 보인다. 못 적었으면 되돌리고 알린다.
+   */
+  const 뒤집기 = async (n: 공지) => {
+    const 다음 = !n.unread;
+    set목록((v) => (v ?? []).map((x) => (x.notice_id === n.notice_id ? { ...x, unread: 다음 } : x)));
+    try {
+      if (다음) await axios.put("/notices/unread", { notice_id: n.notice_id });
+      else await axios.put("/notices/read", { notice_id: n.notice_id });
+      say.ok(다음 ? "안 읽음으로 바꿨습니다." : "읽음으로 바꿨습니다.");
+    } catch {
+      set목록((v) => (v ?? []).map((x) => (x.notice_id === n.notice_id ? { ...x, unread: n.unread } : x)));
+      say.bad("바꾸지 못했습니다. 다시 시도해 주세요.");
+    }
+  };
+
   const 접기 = (열쇠: string) =>
     set접힘((v) => {
       const 다음 = new Set(v);
@@ -136,9 +174,9 @@ export default function Notices() {
         if (!살아있나) return;
         const 들 = (r.data as 공지[]) ?? [];
         set목록(들);
-        /* 안 읽은 것만 펼친 채로 연다. 읽은 것까지 펼쳐 있으면 스크롤만
-           길어지고, 처음 온 사람은 새 공지부터 읽어야 한다. */
-        set접힘(new Set(들.filter((n) => !n.unread).map((n) => String(n.notice_id))));
+        /* 모두 접은 채로 연다. 제목만 죽 훑고 볼 것만 펼치는 자리라,
+           펼쳐 놓고 열면 스크롤만 길어진다. 안 읽은 것은 딱지로 갈린다. */
+        set접힘(new Set(들.map((n) => String(n.notice_id))));
       })
       .catch(() => {
         if (살아있나) set목록([]);
@@ -201,6 +239,7 @@ export default function Notices() {
                   공지={n}
                   폈나={!접힘.has(String(n.notice_id))}
                   on접기={() => 접기(String(n.notice_id))}
+                  on뒤집기={() => void 뒤집기(n)}
                 />
               ))}
             </section>

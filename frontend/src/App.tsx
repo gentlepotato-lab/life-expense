@@ -24,6 +24,19 @@ const Charts = lazy(() => import("./pages/Charts"));
 /* 관리자 페이지도 따로 떼어 낸다 — 사용자가 쓰는 길에 짐을 더하지 않는다.
    이 화면에 들어갈 때만 받아 온다. */
 const Admin = lazy(() => import("./pages/Admin"));
+/* 관리자 자리 다섯도 늦게 불러 온다. 미리 불러 오면 그림 라이브러리까지
+   첫 묶음에 들어가, 관리자 화면에 들어오지 않는 사람도 그 짐을 진다. */
+const AdminDash = lazy(() => import("./pages/components/AdminDash"));
+const AdminNotices = lazy(() => import("./pages/components/AdminNotices"));
+const AdminDoodle = lazy(() =>
+  import("./pages/components/AdminToggles").then((m) => ({ default: m.AdminDoodle }))
+);
+const AdminMenu = lazy(() =>
+  import("./pages/components/AdminToggles").then((m) => ({ default: m.AdminMenu }))
+);
+const AdminPassword = lazy(() =>
+  import("./pages/Admin").then((m) => ({ default: m.AdminPassword }))
+);
 
 import PageHead from "./pages/components/PageHead";
 import TabBar from "./pages/components/TabBar";
@@ -191,7 +204,10 @@ function App() {
         <Route path="/notices" element={<Notices />} />
 
         {/* 관리자 페이지. 메뉴에도 탭에도 띄우지 않는다 — 주소를 쳐야
-            들어오고, 들어와서도 암호를 넣어야 열린다. */}
+            들어오고, 들어와서도 비밀번호를 넣어야 열린다.
+            자리 다섯을 길로 쪼갠다. 바깥 틀이 자물쇠와 머리띠와 알약을
+            쥐고, 알맹이만 자리마다 갈린다(Outlet). 상태로 들고 있던 때는
+            새로 고치면 첫 자리로 돌아갔다. */}
         <Route
           path="/admin"
           element={
@@ -199,7 +215,16 @@ function App() {
               <Admin />
             </Suspense>
           }
-        />
+        >
+          <Route index element={<Navigate to="/admin/dash" replace />} />
+          <Route path="dash" element={<AdminDash />} />
+          <Route path="notice" element={<AdminNotices />} />
+          <Route path="doodle" element={<AdminDoodle />} />
+          <Route path="menu" element={<AdminMenu />} />
+          <Route path="pw" element={<AdminPassword />} />
+          {/* 모르는 자리는 첫 자리로. */}
+          <Route path="*" element={<Navigate to="/admin/dash" replace />} />
+        </Route>
 
         {/* 존재하지 않는 경로 → 홈으로 */}
         <Route path="*" element={<Navigate to="/" replace />} />

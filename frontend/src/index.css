@@ -20573,20 +20573,58 @@ html:has(.popup-overlay) .add-btn {
   display: none;
 }
 
-/* 뒤에 더 있을 때 — 윗변에 한 장이 비죽 보인다. 여러 장을 겹쳐 붙여 둔
-   게시판처럼 읽힌다. +N 이 말하는 것을 모양으로도 한 번 더 말한다. */
-.notice-band.has-more::before {
-  content: "";
-  position: absolute;
-  top: -4px;
-  left: 10px;
-  right: 10px;
-  height: 8px;
-  border: 1px solid var(--color-border);
-  border-bottom: 0;
-  border-radius: var(--radius) var(--radius) 0 0;
-  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+/* 뒤에 겹쳐 선 장. 위로 밀리고 조금 작아져 테만 비죽 보인다. 여러 장을
+   겹쳐 붙여 둔 게시판처럼 읽힌다. 맨 앞 장을 밀어내면 이 장이 제 자리로
+   미끄러져 올라오는데, 그 움직임이 넘기는 손맛을 만든다.
+   글은 그리지 않는다 — 앞 장 글과 겹쳐 비친다. */
+.notice-band--behind {
   pointer-events: none;
+}
+
+/* 뒤 장의 글은 자리만 남기고 감춘다. 앞 장 글과 겹쳐 비치면 안 되고,
+   빼 버리면 키가 0이 되어 테가 실선 한 줄로만 보인다. */
+.notice-band--behind > .notice-band__top {
+  visibility: hidden;
+}
+
+/* 뒤 장은 옆으로만 물러선다. 위로 밀어 보았더니 윗변이 저마다 달라
+   층계처럼 보였다. 가로로만 좁히면 윗변과 아랫변이 앞 장과 나란하고,
+   좌우로 비죽 나온 테가 겹쳐 있다는 것을 말한다.
+   세로로도 미세하게 줄지만(35px의 4%면 1.4px) 눈에 띄지 않는다. */
+.notice-band[data-depth="1"] {
+  transform: scaleX(0.96);
+  opacity: 0.9;
+}
+
+.notice-band[data-depth="2"] {
+  transform: scaleX(0.92);
+  opacity: 0.75;
+}
+
+/* 자리를 옮겨 오는 동안만 미끄러진다. 맨 앞 장은 손끝을 따라와야 하므로
+   여기서 빼 둔다 — 그쪽은 미는 코드가 style로 직접 건다. */
+.notice-band--behind {
+  transition: transform 0.22s var(--ease), opacity 0.22s var(--ease);
+}
+
+/* 윗줄. 머리말 단추와 [읽음]이 나란히 선다. */
+.notice-band__top {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* 머리말 단추가 남는 자리를 다 쓴다. */
+.notice-band__top > .notice-band__head {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 읽음 단추. 제목 첫 줄에 눈을 맞춰 오른쪽 끝에 선다. 머리말 위 여백 8px에
+   글줄 21px과 단추 24px의 차를 더해 6px 내린다. */
+.notice-band__mark {
+  flex: 0 0 auto;
+  margin: 6px var(--space-3) 0 0;
+  white-space: nowrap;
 }
 
 @keyframes notice-in {
@@ -20710,10 +20748,20 @@ html:has(.popup-overlay) .add-btn {
 }
 
 /* 머리말. 묶음 머리말의 짜임(.set-group__head)을 그대로 쓰되 카드 안쪽
-   여백만 준다. 삼각형이 왼쪽 끝에 서고 그 옆에 글 칸이 온다. */
+   여백만 준다. 삼각형이 왼쪽 끝에 서고 그 옆에 글 칸이 온다.
+
+   키는 관리자 쪽 줄(36px)에 맞춘다 — 같은 공지를 세우는 두 자리가 키까지
+   같아야 한 결로 읽힌다. 테 두 줄이 2px이므로 34px을 바닥으로 둔다.
+   펼쳐 제목이 여러 줄이 되면 그만큼 자란다. */
 .notice-card__head {
   gap: var(--space-2);
-  padding: var(--space-3);
+  min-height: 34px;
+  padding: 0 var(--space-3);
+}
+
+/* 펼치면 글이 여러 줄이 되므로 위아래 숨통을 준다. 접힌 줄은 34px 그대로다. */
+.notice-card.is-open > .notice-card__head {
+  padding: var(--space-2) var(--space-3);
 }
 
 /* 글 칸. 눌러서 접고 편다. 전역 button 규칙이 키와 줄바꿈을 못 박으므로
@@ -20766,10 +20814,18 @@ html:has(.popup-overlay) .add-btn {
 }
 
 /* 날짜 단 하나. 머리말 아래로 그날 공지가 쌓인다. 카드 사이는 목록이
-   쓰는 간격 그대로다. */
+   쓰는 간격 그대로다.
+
+   아래 여백은 8px로 줄인다. 사용자 쪽 .date-group이 물려주는 12px로는
+   날짜와 날짜가 멀어, 한 목록이 아니라 따로 선 묶음들로 읽혔다. 내역 쪽은
+   하루에 카드가 여럿 쌓여 12px이 맞지만 여기는 하루에 한둘이다.
+   :has로 공지 카드가 든 단에만 건다 — 내역 쪽은 그대로 둔다. */
 .card-list > .date-group:has(.notice-card) {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  /* 품는 목록(.card-list)이 틈을 두지 않으므로 날짜 사이는 이 여백이
+     혼자 만든다. 관리자 쪽과 같은 4px이다. */
+  margin-bottom: var(--space-1);
 }
 
 /* 펼친 본문. 머리와 가르는 줄을 한 겹 둔다 — 띠의 본문과 같다. */
@@ -20787,10 +20843,15 @@ html:has(.popup-overlay) .add-btn {
   flex-wrap: wrap;
 }
 
-/* 단추 줄. 본문 칸이 왼쪽으로 몰아 세우므로(align-items: flex-start) 이
-   줄만 칸 너비를 다 쓰게 한다. 그래야 팝업처럼 오른쪽 끝에 붙는다. */
-.notice-band__foot {
-  align-self: stretch;
+/* 읽음 표를 뒤집는 체크 상자. 제목과 같은 줄 오른쪽 끝에 선다. 제목이 여러
+   줄로 흐르면 첫 줄에 맞춰 위로 붙는다 — 가운데로 묶으면 제목 한가운데에
+   떠서 어디에 딸린 것인지 흐려진다. 글줄 키가 19px이라 2px 내려야 제목
+   첫 줄과 눈이 맞는다. */
+.notice-card__mark {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-top: 2px;
+  white-space: nowrap;
 }
 
 /* 본문 글. 줄바꿈을 적은 그대로 살린다. */
@@ -20819,7 +20880,11 @@ html:has(.popup-overlay) .add-btn {
    .page-wrap에 64px을 비우는데(6515줄) 여기서는 되돌린다. */
 .page-wrap.admin {
   padding-bottom: var(--space-4);
-  max-width: 100vw;
+  /* 100vw로 두었더니 팝업이 열려 구르개가 사라질 때 이 값이 925에서 940으로
+     달라지고, 쪽이 910으로 좁아지며 글 전체가 왼쪽으로 8px 흔들렸다.
+     100%는 품는 칸을 따라가므로 구르개가 있고 없고에 흔들리지 않는다.
+     가로로 넘치지 않게 하는 일은 min-width: 0 쪽이 맡는다. */
+  max-width: 100%;
   /* 바탕을 이 쪽에서만 다시 매기므로, 글이 짧으면 아래쪽에 html의 바탕이
      드러나 띠처럼 보인다. 쪽 끝까지 깔아 그 이음매를 없앤다. */
   min-height: 100dvh;
@@ -21185,7 +21250,7 @@ html[data-motion="off"] .admin-pane,
    관리자 쪽에만 둔다. */
 .admin-card__title {
   margin: 0;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--color-text-primary);
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
@@ -21246,7 +21311,7 @@ html[data-motion="off"] .admin-pane,
 
 .admin-slow__n {
   flex: 0 0 auto;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   color: var(--color-text-tertiary);
 }
 
@@ -21326,31 +21391,37 @@ html[data-motion="off"] .admin-pane,
   text-overflow: ellipsis;
 }
 
-/* 줄 목록 칸의 키. 여덟 줄이 들 만큼 잡는다. 한 줄이 18px이고 사이가
-   8px이라 여덟 줄이 202px이다. 164px이던 때는 여섯 줄 반만 들어, 일곱째
-   줄이 가로로 잘리고 구르는 막대가 걸린 참 위에 겹쳐 그려졌다.
-   줄이 모자라도 키는 그대로다. 거르는 기간을 바꿔도 칸이 들썩이지 않아야
-   한다. */
-.admin-card:has(.admin-hint) > .admin-card__body--list {
-  height: 208px;
-}
+/* 줄 목록 칸의 키는 알맹이가 쥔다. 208px로 못 박아 두었던 때는 묶음 둘이
+   그 안에 다 들지 못해 세로로 굴러야 했고, 줄이 모자라는 날에는 아래쪽이
+   비었다. overflow 는 남겨 둔다 — 글자 크기를 키운 기기에서 넘칠 때를
+   대비한 것이다. */
 
 /* 한 칸이 묶음 둘을 품을 때. 머리말 둘과 줄 다섯씩이 든다.
    머리 18 + 틈 8 + 줄 다섯(5×18) + 사이 넷(4×8) = 148, 묶음 둘에 사이
    16을 더해 312다. */
+/* 묶음 둘이 드는 칸. 키는 알맹이가 쥔다(.admin-card__body--auto).
+   404px로 못 박아 두었더니 줄이 다섯에 못 미치는 날 아래쪽이 휑하게 비었고,
+   344px이던 때는 다 찬 날 세로로 굴러야 했다. 둘 다 아닌 쪽은 알맹이에
+   딱 맞추는 것뿐이다 — 대신 줄 수가 달라지면 칸 키도 따라 달라진다. */
 .admin-card:has(.admin-hint) > .admin-card__body--parts {
-  /* 묶음마다 안쪽 여백 16px이 더 들어가므로 그만큼 키운다. */
-  height: 344px;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
-/* 줄 수가 많아 키를 못 박지 않는 칸. 화면별 조회 수가 그렇다 — 사용자
-   화면 열아홉과 관리자 자리 다섯이 늘 함께 서므로 줄 수가 변하지 않는다.
-   그래서 키를 열어 두어도 기간을 바꿀 때 칸이 들썩이지 않는다.
-   바로 위 규칙과 셈이 같으므로 뒤에 와야 이긴다. */
-.admin-card:has(.admin-hint) > .admin-card__body--auto {
+/* 줄 수가 많아 키를 못 박지 않는 칸. 화면별 조회 수가 그렇다 — 화면 수는
+   정해져 있으므로 줄 수가 변하지 않고, 그래서 키를 열어 두어도 기간을 바꿀
+   때 칸이 들썩이지 않는다.
+
+   거드는 줄(.admin-hint)에 걸어 두었다가 그 줄을 걷으니 이 규칙이 함께
+   떨어져 나가, 칸이 196px로 접히며 알맹이가 잘렸다. 거드는 줄이 있든 없든
+   걸리도록 떼어 놓는다. 바탕 규칙(.admin-card__body)과 셈이 같으므로
+   파일에서 뒤에 와야 이긴다. */
+.admin-card__body--auto {
   height: auto;
   justify-content: flex-start;
+  /* 묶음 사이는 카드 사이와 같은 8px이다(.admin-grid). 16px로 벌려 두었더니
+     한 칸 안의 묶음이 카드끼리보다 멀어, 묶음이 저마다 다른 카드처럼
+     읽혔다. 안쪽 여백 12px이 숨통을 맡는다. */
+  gap: var(--space-2);
 }
 
 /* 묶음 하나.
@@ -21362,7 +21433,7 @@ html[data-motion="off"] .admin-pane,
 .admin-part {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-2);
+  padding: var(--space-3);
   border-radius: var(--radius-sm);
   background: var(--color-bg);
 }
@@ -21377,7 +21448,9 @@ html[data-motion="off"] .admin-pane,
   gap: var(--space-2);
   padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--color-border);
-  font-size: var(--font-size-xs);
+  /* 11px이던 때는 묶음 머리말이 줄과 같은 무게로 깔려, 어디서 갈리는지가
+     눈에 안 들어왔다. */
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--color-text-secondary);
 }
@@ -21386,7 +21459,8 @@ html[data-motion="off"] .admin-pane,
    바뀌었으므로 딱지는 흰 테를 두르지 않고 제 빛깔만으로 선다. */
 .admin-part__n {
   margin-left: auto;
-  padding: 1px 8px;
+  padding: 2px 9px;
+  font-size: var(--font-size-sm);
   border-radius: 999px;
   background: var(--color-primary-light);
   font-variant-numeric: tabular-nums;
@@ -21489,7 +21563,7 @@ html[data-motion="off"] .admin-pane,
 .admin-tile .chart-tile__label {
   flex: 0 0 auto;
   align-self: center;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
@@ -21498,10 +21572,10 @@ html[data-motion="off"] .admin-pane,
 .admin-tile__tag {
   flex: 0 1 auto;
   min-width: 0;
-  padding: 0 5px;
+  padding: 1px 6px;
   border-radius: 999px;
   background: var(--color-primary-light);
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--color-primary);
   white-space: nowrap;
@@ -21638,12 +21712,31 @@ textarea.admin-area:focus {
    카드 한 장에 담긴 줄들이라 앱의 카드 한 장짜리 줄(52px)보다 촘촘하다.
    처음에는 글 키만큼인 18px이라 다닥다닥 붙었고, 44px로 벌렸더니 이번에는
    한 화면에 너덧 줄밖에 안 들어왔다. */
+/* 자리를 내려받는 동안 세우는 빈 칸. 알약 아래가 접혔다 펴지지 않게
+   키만 잡아 둔다. */
+.admin-wait {
+  min-height: 60vh;
+}
+
+/* 줄 목록.
+ *
+ * 격자 칸과 줄 모두 `minmax(0, 1fr)`과 `min-width: 0`으로 바닥을 연다.
+ * 격자 칸과 flex 조각은 기본 최소 키가 min-content라, 길이 긴 제목이 든
+ * 줄에서 그 바닥이 칸보다 커져 목록이 통째로 화면 밖으로 뻗었다. 편집에
+ * 들어가면 [제거]가 한 조각 더 붙어 그만큼 더 뻗었다.
+ */
 .admin-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.admin-list > .admin-list__row {
+  min-width: 0;
 }
 
 /* 줄 하나하나가 낱낱의 것으로 선다. 사용자 화면의 설정 줄(.cp-card 4497줄)과
@@ -21757,12 +21850,22 @@ textarea.admin-area:focus {
    머리말만 둥둥 뜬다. */
 .admin-days-list {
   display: grid;
-  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  /* 날짜와 날짜 사이. 줄끼리는 2px이라 그보다 또렷하게 갈리되, 20px처럼
+     멀지는 않은 값이다. 공지사항 화면도 같은 4px을 쓴다. */
+  gap: var(--space-1);
 }
 
 .admin-days-list > .date-group {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: var(--space-1);
+  /* 사용자 쪽 .date-group이 물려주는 아래 여백 12px을 걷는다. 목록이 쥔
+     틈에 그것까지 더해져 날짜와 날짜 사이가 20px로 벌어졌다. 여기 줄은
+     36px이라 그만큼 벌리면 날짜가 저마다 다른 카드처럼 읽힌다. */
+  margin-bottom: 0;
 }
 
 /* 줄 안의 글은 집히지 않는다. 손전화에서 꾹 누르면 운영체제가 먼저 글을

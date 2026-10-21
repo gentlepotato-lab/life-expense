@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import useBackClose from "../../hooks/useBackClose";
+import useScrollLock from "../../hooks/useScrollLock";
 import DayPicker from "./DayPicker";
 import { EditField, EditDivider } from "./CardEditModal";
 
@@ -46,6 +47,8 @@ export default function AdminNoticePopup({
   onClose: () => void;
 }) {
   useBackClose(true, onClose);
+  /* 열려 있는 동안 뒤쪽은 구르지 않는다. */
+  useScrollLock(true);
 
   /**
    * 손을 뗄 때까지 판을 손짓에서 비운다.

@@ -85,8 +85,10 @@ export default function NoticeBand() {
      화면과 내역 카드의 메모가 끊기는 꼴 그대로다. */
   const 제목칸 = useRef<HTMLSpanElement | null>(null);
   const [잘렸나, set잘렸나] = useState(false);
-  /* 접혀 있을 때의 키. 펼치면 띠가 아래로 자라게 하는 데 쓴다. */
-  const 접힌키 = useRef(0);
+  /* 접혀 있을 때의 키. 두 군데에 쓴다 — 펼칠 때 윗변을 못 박는 자리와,
+     뒤 장의 키를 앞 장에 맞추는 자리다. 뒤 장에 쓰려면 다시 그려야 하므로
+     ref가 아니라 state로 든다. */
+  const [접힌키, set접힌키] = useState(0);
   /* 끄는 동안의 값. 다시 그릴 거리가 아니므로 state로 두지 않는다 —
      손끝을 따라 옮기는 일은 style로 직접 한다. */
   const 끌기 = useRef({ x: 0, y: 0, 잡았나: false, 가로인가: null as boolean | null, id: -1 });
@@ -129,7 +131,10 @@ export default function NoticeBand() {
      펼쳐 제목이 여러 줄이 되면 위로 자라 떠 있는 단추들과 겹쳤다. 펼칠 때
      이 키로 윗변을 그 자리에 못 박아 아래로 자라게 한다. */
   useEffect(() => {
-    if (!펼침 && 띠칸.current) 접힌키.current = 띠칸.current.offsetHeight;
+    if (펼침 || !띠칸.current) return;
+    const 잰것 = 띠칸.current.offsetHeight;
+    /* 같은 값이면 다시 그리지 않는다 — 그러지 않으면 재고 그리기를 되풀이한다. */
+    set접힌키((v) => (v === 잰것 ? v : 잰것));
   }, [펼침, 공지들, 잘렸나]);
 
   if (공지들.length === 0) return null;
@@ -223,69 +228,123 @@ export default function NoticeBand() {
     칸.style.opacity = "";
   };
 
+  /* 뒤 두 장까지만 겹쳐 세운다. 더 쌓으면 그림자가 뭉개져 몇 장인지도
+     알 수 없고, 맨 앞 장을 밀 때 뒤가 들썩여 보인다. 몇 장 남았는지는
+     +N 이 적는다. */
+  const 보일것 = 공지들.slice(0, 3);
+
   return (
     /* 받치는 조각. 접힌 띠는 이 안에 제 자리로 서서 카드를 덮지 않고,
        펼친 본문만 띠 아래로 떠오른다. 공지를 밀어 없애면 이 자리는
-       통째로 거둬진다. */
-    <div className="notice-dock">
-      <section
-        ref={띠칸}
-        className={`notice-band${펼침 ? " is-open" : ""}${더있나 > 0 ? " has-more" : ""}`}
-        aria-label="공지사항"
-        /* 펼치면 윗변을 접혀 있던 자리에 못 박는다. 받침 조각이 카드 윗변에
-           있으므로 그보다 (아래 틈 3px + 접힌 키)만큼 위다. */
-        style={
-          펼침 && 접힌키.current
-            ? { top: `${-(3 + 접힌키.current)}px`, bottom: "auto" }
-            : undefined
-        }
-        onPointerDown={잡기}
-        onPointerMove={끌리기}
-        onPointerUp={놓기}
-        onPointerCancel={놓기}
-        onTransitionEnd={(e) => {
-          /* transform 하나만 센다. opacity도 함께 걸려 있어 둘 다 받으면 한
-             번 민 것에 두 장이 날아가고, 화살표(.notice-band__arrow)의
-             움직임까지 올라오면 펼치기만 해도 띠가 사라진다. */
-          if (!날림 || e.propertyName !== "transform" || e.target !== 띠칸.current) return;
-          다음장();
-        }}
-      >
-        <button
-          type="button"
-          className="notice-band__head"
-          onClick={() => set펼침((v) => !v)}
-          aria-expanded={펼침}
-        >
-          <span className="notice-band__tag">
-            <MegaphoneIcon />
-            공지
-          </span>
-          <span ref={제목칸} className="notice-band__title">
-            {지금것.title}
-            {잘렸나 && (
-              <span className="notice-band__fade" aria-hidden="true">
-                (...)
-              </span>
-            )}
-          </span>
-          {더있나 > 0 && <span className="notice-band__more">+{더있나}</span>}
-          <span className="notice-band__arrow" aria-hidden="true" />
-        </button>
+       통째로 거둬진다.
 
-        {펼침 && (
-          <div className="notice-band__body">
-            {지금것.body && <p className="notice-band__text">{지금것.body}</p>}
-            {/* 단추 줄은 팝업 바닥과 같은 꼴, 같은 자리다(.btn-row.popup-foot).
-                오른쪽 끝에 붙고 폭도 팝업의 [적용]과 같다. */}
-            <div className="btn-row popup-foot notice-band__foot">
-              <button type="button" className="ui-btn primary" onClick={읽음}>
-                읽음
+       겹쳐 선 장들은 모두 이 조각을 기준으로 같은 자리에 뜨고, 뒤 장만
+       위로 밀려 테가 비죽 보인다. 맨 앞 장을 밀어내면 뒤 장이 제 자리로
+       미끄러져 올라온다 — 넘기는 손맛이 거기서 난다.
+       그리는 차례는 뒤 장부터다. 같은 자리에 겹치므로 나중에 그린 것이
+       위에 선다. */
+    <div className="notice-dock">
+      {[...보일것].reverse().map((공지, 뒤에서) => {
+        const 깊이 = 보일것.length - 1 - 뒤에서;
+        const 맨앞 = 깊이 === 0;
+        if (!맨앞) {
+          /* 뒤 장은 테와 바탕만 보인다. 글은 눈에 보이지 않게 깔아 두는데,
+             빈 조각으로 두면 키가 0이 되어 테가 실선 한 줄로만 보이기
+             때문이다. visibility 로 감추면 자리는 그대로 남는다. */
+          return (
+            <section
+              key={공지.notice_id}
+              className="notice-band notice-band--behind"
+              data-depth={깊이}
+              aria-hidden="true"
+              /* 키를 앞 장에서 잰 값으로 못 박는다. 글을 그대로 깔아도 단추와
+                 글줄 셈이 미세하게 달라 2px쯤 어긋났고, 아랫변이 붙박이라
+                 그만큼 윗변이 위로 올라가 층계처럼 보였다. */
+              style={접힌키 ? { height: `${접힌키}px` } : undefined}
+            >
+              <div className="notice-band__top">
+                {/* 앞 장과 같은 단추로 깔아야 키가 한 픽셀도 다르지 않다.
+                    span으로 두었더니 전역 button 규칙이 주는 글씨 크기를
+                    못 받아 2.6px 높아졌고, 아랫변이 붙박이라 그만큼 윗변이
+                    위로 올라가 층계처럼 보였다. */}
+                <button type="button" className="notice-band__head" disabled tabIndex={-1}>
+                  <span className="notice-band__tag">
+                    <MegaphoneIcon />
+                    공지
+                  </span>
+                  <span className="notice-band__title">{공지.title}</span>
+                </button>
+              </div>
+            </section>
+          );
+        }
+        return (
+          <section
+            key={공지.notice_id}
+            ref={띠칸}
+            className={`notice-band${펼침 ? " is-open" : ""}`}
+            data-depth={0}
+            aria-label="공지사항"
+            /* 펼치면 윗변을 접혀 있던 자리에 못 박는다. 받침 조각이 카드
+               윗변에 있으므로 그보다 (아래 틈 3px + 접힌 키)만큼 위다. */
+            style={
+              펼침 && 접힌키
+                ? { top: `${-(3 + 접힌키)}px`, bottom: "auto" }
+                : undefined
+            }
+            onPointerDown={잡기}
+            onPointerMove={끌리기}
+            onPointerUp={놓기}
+            onPointerCancel={놓기}
+            onTransitionEnd={(e) => {
+              /* transform 하나만 센다. opacity도 함께 걸려 있어 둘 다 받으면
+                 한 번 민 것에 두 장이 날아가고, 화살표의 움직임까지 올라오면
+                 펼치기만 해도 띠가 사라진다. */
+              if (!날림 || e.propertyName !== "transform" || e.target !== 띠칸.current) return;
+              다음장();
+            }}
+          >
+            {/* 윗줄. 머리말 단추와 [읽음]이 나란히 선다. 단추 안에 단추를
+                넣을 수 없어 형제로 뗀다. */}
+            <div className="notice-band__top">
+              <button
+                type="button"
+                className="notice-band__head"
+                onClick={() => set펼침((v) => !v)}
+                aria-expanded={펼침}
+              >
+                <span className="notice-band__tag">
+                  <MegaphoneIcon />
+                  공지
+                </span>
+                <span ref={제목칸} className="notice-band__title">
+                  {공지.title}
+                  {잘렸나 && (
+                    <span className="notice-band__fade" aria-hidden="true">
+                      (...)
+                    </span>
+                  )}
+                </span>
+                {더있나 > 0 && <span className="notice-band__more">+{더있나}</span>}
+                <span className="notice-band__arrow" aria-hidden="true" />
               </button>
+
+              {/* 펼쳤을 때만 선다. 접힌 띠에 단추가 서면 미는 자리가 좁아진다. */}
+              {펼침 && (
+                <button type="button" className="ui-btn small notice-band__mark" onClick={읽음}>
+                  읽음
+                </button>
+              )}
             </div>
-          </div>
-        )}
-      </section>
+
+            {펼침 && (
+              <div className="notice-band__body">
+                {공지.body && <p className="notice-band__text">{공지.body}</p>}
+              </div>
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }

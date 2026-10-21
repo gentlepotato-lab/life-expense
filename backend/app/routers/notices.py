@@ -27,17 +27,52 @@ router = APIRouter()
 # "아직 안 읽은 것"을 가릴 수 있다.
 READ_KEY = "notice_read"
 
+# 다시 안 읽음으로 돌린 공지 번호들. 읽은 자리는 "여기까지"라는 금 하나뿐이라
+# 한 건만 되돌릴 수가 없다. 그 금은 그대로 두고 예외만 여기 든다.
+#
+# 번호를 쉼표로 이어 담는다. JSON으로 담지 않는 까닭은 app_prefs가 글 한 줄을
+# 드는 자리이고, 여기 드는 것이 수 몇 개뿐이기 때문이다.
+UNREAD_KEY = "notice_unread"
 
-def _읽은번호(db) -> int:
+
+def _글꺼내기(db, 열쇠: str) -> str:
     row = db.execute(text("""
         SELECT pref_value
           FROM life_expense.app_prefs
          WHERE pref_key = :k
-    """), {"k": READ_KEY}).scalar()
+    """), {"k": 열쇠}).scalar()
+    return row or ""
+
+
+def _담기(db, 열쇠: str, 값: str) -> None:
+    db.execute(text("""
+        INSERT INTO life_expense.app_prefs (pref_key, pref_value)
+             VALUES (:k, :v)
+        ON CONFLICT (pref_key) DO UPDATE
+                SET pref_value = EXCLUDED.pref_value
+                  , updated_at = now()
+    """), {"k": 열쇠, "v": 값})
+
+
+def _읽은번호(db) -> int:
     try:
-        return int(row)
+        return int(_글꺼내기(db, READ_KEY))
     except (TypeError, ValueError):
         return 0
+
+
+def _안읽음들(db) -> set[int]:
+    """다시 안 읽음으로 돌린 번호들."""
+    난것 = set()
+    for 조각 in _글꺼내기(db, UNREAD_KEY).split(","):
+        조각 = 조각.strip()
+        if not 조각:
+            continue
+        try:
+            난것.add(int(조각))
+        except ValueError:
+            continue
+    return 난것
 
 
 @router.get("")
@@ -61,11 +96,16 @@ def list_notices(
              , n.end_on
           FROM life_expense.notices n
          WHERE n.is_active = 1
-           AND n.notice_id > :read
+           AND (n.notice_id > :read OR n.notice_id = ANY(:unread))
            AND (n.start_on IS NULL OR n.start_on <= CAST(:today AS date))
            AND (n.end_on   IS NULL OR n.end_on   >= CAST(:today AS date))
       ORDER BY n.sort_order ASC, n.notice_id DESC
-    """), {"today": today, "read": _읽은번호(db)}).mappings().all()
+    """), {
+        "today": today,
+        "read": _읽은번호(db),
+        # 다시 안 읽음으로 돌린 것은 금 아래여도 띄운다.
+        "unread": list(_안읽음들(db)) or [0],
+    }).mappings().all()
 
     return [{
         "notice_id": r["notice_id"],
@@ -97,6 +137,7 @@ def list_all_notices(
     읽은 자리도 함께 적어 보낸다. 화면이 안 읽은 것에 표를 단다.
     """
     읽은것 = _읽은번호(db)
+    안읽음 = _안읽음들(db)
     rows = db.execute(text("""
         SELECT n.notice_id
              , n.title
@@ -117,7 +158,7 @@ def list_all_notices(
         "start_on": str(r["start_on"]) if r["start_on"] else None,
         "end_on": str(r["end_on"]) if r["end_on"] else None,
         "created_on": str(r["created_on"]) if r["created_on"] else None,
-        "unread": r["notice_id"] > 읽은것,
+        "unread": r["notice_id"] > 읽은것 or r["notice_id"] in 안읽음,
     } for r in rows]
 
 
@@ -143,5 +184,29 @@ def mark_read(payload: dict, db: SessionDep = Depends()):
                     )::text
                   , updated_at = now()
     """), {"k": READ_KEY, "v": str(번호)})
+
+    # 그 번호까지의 예외는 걷는다. 읽었다고 적은 뒤에도 예외가 남아 있으면
+    # 띠가 그 공지를 다시 띄운다.
+    남은것 = {i for i in _안읽음들(db) if i > 번호}
+    _담기(db, UNREAD_KEY, ",".join(str(i) for i in sorted(남은것)))
     db.commit()
     return {"notice_read": _읽은번호(db)}
+
+
+@router.put("/unread")
+def mark_unread(payload: dict, db: SessionDep = Depends()):
+    """
+    한 건만 다시 안 읽음으로 돌린다.
+
+    읽은 자리는 "여기까지"라는 금 하나뿐이라, 그 금을 내리면 그보다 새로운
+    공지까지 함께 안 읽음이 된다. 그래서 금은 그대로 두고 이 번호만 예외로
+    적는다. 돌린 공지는 홈의 띠에 다시 뜬다.
+    """
+    try:
+        번호 = int(payload.get("notice_id"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="공지 번호가 없습니다.")
+
+    _담기(db, UNREAD_KEY, ",".join(str(i) for i in sorted(_안읽음들(db) | {번호})))
+    db.commit()
+    return {"ok": True}

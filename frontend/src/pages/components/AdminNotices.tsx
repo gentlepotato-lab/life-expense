@@ -97,14 +97,12 @@ function 골라내기(들: 공지[], f: 거름): 공지[] {
  */
 function NoticeRow({
   공지: n,
-  연번,
   편집중,
   on열기,
   on끄고켜기,
   on지우기,
 }: {
   공지: 공지;
-  연번: number;
   편집중: boolean;
   on열기: () => void;
   on끄고켜기: () => void;
@@ -138,9 +136,6 @@ function NoticeRow({
       title={편집중 ? undefined : "꾹 눌러서 편집"}
       {...handlers}
     >
-      {/* 연번. 적힌 차례가 아니라 보이는 차례다. 몇 번째 줄인지 세는 데
-          쓰므로 공지 번호(notice_id)를 적지 않는다. */}
-      <span className="admin-list__no">{연번}</span>
       <span ref={이름칸} className="admin-list__name admin-list__name--cut">
         {n.title}
         {/* 끊긴 끝 — 뒤쪽을 길게 걸쳐 옅어지다 (...)로 이어진다. 메모 판과
@@ -287,7 +282,7 @@ export default function AdminNotices() {
     }
   };
 
-  /* 조건에 맞아 화면에 서는 줄. 연번도 이 차례로 센다. */
+  /* 조건에 맞아 화면에 서는 줄. */
   const 보는것 = 목록 ? 골라내기(목록, 걸림) : [];
 
   /* 등록한 날로 묶는다. 사용자 화면의 내역이 날짜마다 단을 세우는 것과 같은
@@ -386,7 +381,6 @@ export default function AdminNotices() {
                         <NoticeRow
                           key={n.notice_id}
                           공지={n}
-                          연번={보는것.length - 보는것.indexOf(n)}
                           편집중={편집중}
                           on열기={() =>
                             set연것({

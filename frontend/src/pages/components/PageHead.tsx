@@ -4,6 +4,7 @@ import { PAGE_TITLE, PAGE_NOTE, ENTRY_TABS, SETTING_TABS } from "../../utils/pag
 import { keepOn, onMenuOff } from "../../utils/menuRegistry";
 import useHeadPin from "../../hooks/useHeadPin";
 import PenMark from "./PenMark";
+import { 관리자길 } from "../../utils/adminPath";
 
 /**
  * 모든 화면의 머리말.
@@ -55,8 +56,9 @@ export default function PageHead() {
   const { pathname } = useLocation();
 
   /* 관리자 페이지는 제 머리띠를 쓴다. 사용자 화면의 머리말이 함께 서면
-     제목이 둘이 된다(pages/Admin.tsx). */
-  const 관리자인가 = pathname === "/admin";
+     제목이 둘이 된다(pages/Admin.tsx). 자리가 /admin 아래로 쪼개져 있으므로
+     그 아래까지 본다(utils/adminPath.ts). */
+  const 관리자인가 = 관리자길(pathname);
 
   /* 꺼 놓은 메뉴 목록은 앱이 뜬 뒤에 도착한다. 그때 알약을 다시 그린다.
      아무것도 꺼져 있지 않으면 목록이 그대로라 한 줄도 달라지지 않는다. */
@@ -76,6 +78,10 @@ export default function PageHead() {
   const note = PAGE_NOTE[pathname];
 
   useEffect(() => {
+    /* 관리자 쪽 제목은 그쪽이 쥔다(pages/Admin.tsx). 여기서도 적으면 자리를
+       옮길 때마다 창 제목이 「돈을 쓰다 · 돈을 쓰다」로 덮였다. 훅은 조건
+       없이 돌려야 하므로 안에서 가른다. */
+    if (관리자길(pathname)) return;
     document.title = pathname === "/" ? "돈을 쓰다" : `${title} · 돈을 쓰다`;
   }, [pathname, title]);
 

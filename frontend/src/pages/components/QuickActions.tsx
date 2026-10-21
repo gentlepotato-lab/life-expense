@@ -22,7 +22,7 @@ const 단추이름 = {
   write: "쓰기",
   slide: "쓰기 슬라이드",
   calc: "계산기",
-  deck: "대기 내역 덱",
+  deck: "대기 내역",
   nudge: "잔소리",
 } as const;
 

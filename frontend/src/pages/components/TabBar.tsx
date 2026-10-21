@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { HOME_TABS, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
+import { 관리자길 } from "../../utils/adminPath";
 
 /**
  * 화면 아래에 늘 붙어 있는 이동 막대.
@@ -82,8 +83,9 @@ export default function TabBar() {
   const { pathname } = useLocation();
 
   /* 관리자 화면에서는 바닥 탭을 띄우지 않는다. 사용자 화면과 섞이면 거기서
-     내역을 적을 수 있게 된다(pages/Admin.tsx). */
-  if (pathname === "/admin") return null;
+     내역을 적을 수 있게 된다(pages/Admin.tsx). 자리가 /admin 아래로 쪼개져
+     있으므로 그 아래까지 본다(utils/adminPath.ts). */
+  if (관리자길(pathname)) return null;
 
   return (
     <nav className="tabbar" aria-label="주요 화면">
