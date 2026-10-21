@@ -327,10 +327,13 @@ export function AdminDoodle() {
                     <span className="admin-list__mark">
                       <MarkIcon itemKey={it.item_key} />
                     </span>
-                    <span className="admin-list__name">
-                      {it.label}
-                      {!it.is_active && !편집중 && <span className="set-hide-mark">꺼짐</span>}
-                    </span>
+                    <span className="admin-list__name">{it.label}</span>
+                    {/* 꺼짐 딱지는 줄의 오른쪽 끝에 선다. 이름 칸 안에 두었더니
+                        이름 바로 뒤에 붙어, 줄마다 딱지가 선 자리가 들쭉날쭉했다.
+                        줄의 직계 자식으로 내면 이름 칸이 남은 자리를 다 먹으므로
+                        저절로 끝으로 밀린다. 편집 중에는 그 자리에 스위치가
+                        서므로 딱지를 내리지 않는다. */}
+                    {!it.is_active && !편집중 && <span className="set-hide-mark">꺼짐</span>}
                     {편집중 && 끄기단추(it)}
                   </li>
                 ))}
@@ -361,10 +364,11 @@ export function AdminDoodle() {
                           maxLength={40}
                         />
                       ) : (
-                        <span className="admin-list__name">
-                          {it.label}
+                        <>
+                          <span className="admin-list__name">{it.label}</span>
+                          {/* 모양 줄과 같은 자리 — 줄의 오른쪽 끝이다. */}
                           {!it.is_active && <span className="set-hide-mark">꺼짐</span>}
-                        </span>
+                        </>
                       )}
                       {편집중 && 끄기단추(it)}
                       {편집중 && (

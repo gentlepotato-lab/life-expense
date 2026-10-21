@@ -21885,6 +21885,15 @@ textarea.admin-area:focus {
   flex: 0 0 auto;
 }
 
+/* 꺼짐 딱지. 줄의 오른쪽 끝에 서고, 줄이 좁아도 줄지 않는다. 앞선 이름 칸이
+   남은 자리를 다 먹으므로 따로 밀지 않아도 끝에 붙는다 — 32절이 걸어 둔
+   margin-left: auto는 이 줄에서 할 일이 없다. 10절의 margin-left: 6px이
+   다시 걸리는 일도 없도록 틈은 줄이 쥔 gap만 쓴다. */
+.admin-list__row > .set-hide-mark {
+  flex: 0 0 auto;
+  margin-left: 0;
+}
+
 /* 연번. 글자 폭이 달라도 자리가 흔들리지 않게 폭을 못 박는다. */
 .admin-list__no {
   flex: 0 0 auto;
