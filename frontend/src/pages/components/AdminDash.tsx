@@ -17,29 +17,11 @@ import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
 import MonthNav from "./MonthNav";
 import useMonthSpan from "../../hooks/useMonthSpan";
-import { formatDateLabel } from "../../utils/dateGroup";
-
-/**
- * 고른 기간을 한 줄로 적는다.
- *
- * 두 끝의 해가 같으면 뒤쪽 해는 뺀다. 같은 해를 두 번 적으면 360px 화면에서
- * 알약과 한 줄에 들지 못한다. 해가 갈리는 기간(12월에서 1월로 넘길 때)에는
- * 둘 다 적는다.
- */
-function 기간글(frm: string, to: string): string {
-  const 앞 = formatDateLabel(frm);
-  const 뒤 = formatDateLabel(to);
-  const 올해 = String(new Date().getFullYear());
-  /* 두 끝이 모두 올해면 해를 빼고 적는다. 바로 위 달 막대가 "2026년 10월"로
-     해를 이미 말하고 있어, 딱지까지 두 번 적으면 360px 화면에서 알약과 한
-     줄에 들지 못한다. 해가 갈리면 둘 다 적는다. */
-  const 벗기기 = (t: string) => t.replace(/^\d{4}\.\s*/, "");
-  if (frm.slice(0, 4) === 올해 && to.slice(0, 4) === 올해) {
-    return `${벗기기(앞)} ~ ${벗기기(뒤)}`;
-  }
-  if (frm.slice(0, 4) === to.slice(0, 4)) return `${앞} ~ ${벗기기(뒤)}`;
-  return `${앞} ~ ${뒤}`;
-}
+import { formatRangeLabel } from "../../utils/dateGroup";
+import AdminFilterPopup from "./AdminFilterPopup";
+import DayPicker from "./DayPicker";
+import { EditField } from "./CardEditModal";
+import { say } from "../../utils/notify";
 
 /**
  * 관리자 대시보드.
@@ -123,12 +105,47 @@ export default function AdminDash() {
   });
   /* 알약으로 고른 며칠. 달을 넘기면 풀린다. 둘 가운데 하나만 걸린다. */
   const [며칠고름, set며칠고름] = useState<number | null>(null);
+  /* 거르기로 걸어 둔 기간. 걸려 있으면 달도 알약도 보지 않고 이것만 본다.
+     달 단위나 최근 며칠로는 못 보는 자리를 보려고 거르는 것이기 때문이다. */
+  const [거른기간, set거른기간] = useState<{ frm: string; to: string } | null>(null);
+  /* 팝업 안에서 고치는 중인 조건. [적용]을 누르지 않고 닫으면 버린다.
+     사용자 화면의 거르기와 같다(pages/Entries.tsx의 filter/appliedFilter). */
+  const [초안, set초안] = useState({ frm: "", to: "" });
+  const [필터열림, set필터열림] = useState(false);
   const [셈, set셈] = useState<셈 | null>(null);
   const [탈, set탈] = useState(false);
   /* 넘겨 볼 수 있는 끝. 네 화면이 같은 바닥을 쓴다. */
   const { min, max } = useMonthSpan();
 
-  const 기간 = 며칠고름 ? 며칠(며칠고름) : 달기간(ym);
+  const 기간 = 거른기간 ?? (며칠고름 ? 며칠(며칠고름) : 달기간(ym));
+
+  /* 거르기를 연다. 지금 걸려 있는 조건을 그대로 띄운다. 걸린 것이 없으면
+     보고 있는 기간을 채워 둔다. 빈 칸부터 고르게 하면 날마다 두 번 고른다. */
+  const 필터열기 = () => {
+    set초안(거른기간 ?? { frm: 기간.frm, to: 기간.to });
+    set필터열림(true);
+  };
+
+  /* 거르기를 건다. 둘 다 비면 거르기를 풀고 달 단위로 돌아간다. */
+  const 적용 = () => {
+    const { frm, to } = 초안;
+    if (!frm && !to) {
+      set거른기간(null);
+      set필터열림(false);
+      return;
+    }
+    if (!frm || !to) {
+      say.warn("시작일과 종료일을 모두 입력해 주세요.");
+      return;
+    }
+    if (frm > to) {
+      say.warn("끝 날짜가 시작 날짜보다 앞섭니다.");
+      return;
+    }
+    set며칠고름(null);
+    set거른기간({ frm, to });
+    set필터열림(false);
+  };
 
   useEffect(() => {
     let 살아있나 = true;
@@ -161,23 +178,39 @@ export default function AdminDash() {
 
   return (
     <div className="admin-dash">
+      {/* 첫 줄. 달 넘기개가 왼쪽, 거르기가 오른쪽 끝이다. 거르기가 걸려
+          있으면 달 단위가 아니므로 달 넘기개를 감춘다. 사용자 화면의
+          지출 내역도 그렇게 한다(pages/Entries.tsx). */}
       <div className="pm-toolbar-row admin-toolbar-row">
-        <MonthNav
-          ym={ym}
-          onChange={(v) => {
-            set며칠고름(null);
-            setYm(v);
-          }}
-          min={min}
-          max={max}
-        />
+        {거른기간 ? (
+          <span className="admin-toolbar-row__gap" />
+        ) : (
+          <MonthNav
+            ym={ym}
+            onChange={(v) => {
+              set며칠고름(null);
+              setYm(v);
+            }}
+            min={min}
+            max={max}
+          />
+        )}
+        <button
+          type="button"
+          className={`filter-pill${거른기간 ? " on" : ""}`}
+          aria-pressed={!!거른기간}
+          title={거른기간 ? "필터가 걸려 있다. 눌러서 고친다." : "필터"}
+          onClick={필터열기}
+        >
+          필터
+        </button>
       </div>
 
       {/* 둘째 줄. 고른 기간과 알약이 한 벌로 선다. 딱지가 왼쪽 끝, 알약이
           오른쪽 끝이다. 딱지를 따로 떼어 두었더니 알약과 멀찍이 떨어져
           둘이 한 벌로 안 읽혔다. */}
       <div className="pm-toolbar-row admin-toolbar-row">
-        <span className="admin-span__tag">{기간글(기간.frm, 기간.to)}</span>
+        <span className="admin-span__tag">{formatRangeLabel(기간.frm, 기간.to)}</span>
         <nav className="admin-days" aria-label="기간">
           {/* 「최근」은 셋이 함께 이고 있는 말이라 글자로만 한 번 적는다.
               누르는 자리는 며칠인지뿐이다. 모두 펼치기 묶음과 같은 꼴이다
@@ -191,7 +224,10 @@ export default function AdminDash() {
               type="button"
               className={`ui-btn small${며칠고름 === d ? " primary" : ""}`}
               aria-label={`최근 ${d}일`}
-              onClick={() => set며칠고름(며칠고름 === d ? null : d)}
+              onClick={() => {
+                set거른기간(null);
+                set며칠고름(며칠고름 === d ? null : d);
+              }}
             >
               {d}일
             </button>
@@ -411,6 +447,38 @@ export default function AdminDash() {
             </section>
           </div>
         </>
+      )}
+
+      {필터열림 && (
+        <AdminFilterPopup
+          on초기화={() => set초안({ frm: "", to: "" })}
+          on적용={적용}
+          onClose={() => set필터열림(false)}
+        >
+          {/* 거르는 자리는 지난 어느 때로도 갈 수 있어야 한다. 머리의
+              연월을 누르면 한 해가 펼쳐진다(monthJump). */}
+          <EditField label="시작일" span={6}>
+            <DayPicker
+              monthJump
+              clearable
+              value={초안.frm}
+              onChange={(v) => set초안({ ...초안, frm: v })}
+            />
+          </EditField>
+
+          <EditField label="종료일" span={6}>
+            <DayPicker
+              monthJump
+              clearable
+              value={초안.to}
+              onChange={(v) => set초안({ ...초안, to: v })}
+            />
+          </EditField>
+
+          <EditField label="" span={12}>
+            <p className="admin-hint">기간을 비우고 적용하면 달 단위로 돌아갑니다.</p>
+          </EditField>
+        </AdminFilterPopup>
       )}
     </div>
   );

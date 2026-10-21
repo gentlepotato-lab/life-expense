@@ -27,7 +27,7 @@ import { EntryCard } from "./Entries";
 import type { GroupMeta } from "./components/GroupItemList";
 import { groupByDate } from "../utils/dateGroup";
 import { type EntryGroup, type GroupItem, type GroupKind } from "../utils/groups";
-import { formatDateLabel } from "../utils/dateGroup";
+import { formatDateLabel, formatRangeLabel } from "../utils/dateGroup";
 import { say } from "../utils/notify";
 import { apiErrorMessage } from "../utils/apiError";
 import Waiting from "./components/Waiting";
@@ -171,13 +171,10 @@ export default function EntryGroups() {
      아직 오지 않은 달이나 적은 것이 하나도 없는 달로는 넘어가지 않는다. */
   const { min: 달바닥, max: 달천장 } = useMonthSpan();
   /* 걸린 기간을 적는 한 줄. 지출 내역이 적는 꼴과 같다. */
-  const rangeLabel = useMemo(() => {
-    const 날 = (v: string) => new Date(v).toLocaleDateString("ko-KR");
-    if (applied.dateFrom && applied.dateTo) return `${날(applied.dateFrom)} ~ ${날(applied.dateTo)}`;
-    if (applied.dateFrom) return `${날(applied.dateFrom)} ~ `;
-    if (applied.dateTo) return ` ~ ${날(applied.dateTo)}`;
-    return "";
-  }, [applied]);
+  const rangeLabel = useMemo(
+    () => formatRangeLabel(applied.dateFrom, applied.dateTo),
+    [applied]
+  );
 
   const meta: GroupMeta = useMemo(
     () => ({ cat1List, cat2List, payList }),

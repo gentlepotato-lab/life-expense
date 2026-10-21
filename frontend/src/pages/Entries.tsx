@@ -11,7 +11,7 @@ import SingleSelect from "./components/SingleSelect";
 import CardEditModal, { EditField, EditDivider } from "./components/CardEditModal";
 import EntryEditFields from "./components/EntryEditFields";
 import type { SplitDraft } from "./components/SplitEditor";
-import { groupByDate } from "../utils/dateGroup";
+import { groupByDate, formatRangeLabel } from "../utils/dateGroup";
 import DateGroupHeader from "./components/DateGroupHeader";
 import { CollapseAllButtons } from "./components/CollapseToggle";
 import Collapse from "./components/Collapse";
@@ -449,14 +449,6 @@ export default function Entries() {
     setFilterOpen(false);
   };
 
-  /* 'YYYY-MM-DD' 둘로 도구 줄에 세울 기간 글을 짓는다. */
-  const 기간글 = (from: string, to: string) => {
-    const 날 = (v: string) => new Date(v).toLocaleDateString("ko-KR");
-    if (from && to) return `${날(from)} ~ ${날(to)}`;
-    if (from) return `${날(from)} ~ `;
-    if (to) return ` ~ ${날(to)}`;
-    return "";
-  };
 
   /**
    * 필터를 건다.
@@ -506,7 +498,7 @@ export default function Entries() {
 
     setAppliedFilter(filter);
     setRows(res.data.map((r: any)=>({...r, reveal_amount:false})));
-    setFilterRangeLabel(기간글(filter.dateFrom, filter.dateTo));
+    setFilterRangeLabel(formatRangeLabel(filter.dateFrom, filter.dateTo));
     setFilterOpen(false);
   };
 

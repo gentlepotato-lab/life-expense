@@ -6,6 +6,7 @@ import { MENU_REGISTRY } from "../../utils/menuRegistry";
 import { PAGE_TITLE } from "../../utils/pageTitles";
 import MarkIcon from "./MarkIcon";
 import AddButton from "./AddButton";
+import OnOffToggle from "./OnOffToggle";
 import CollapseToggle, { CollapseAllButtons } from "./CollapseToggle";
 import { invalidateMenuOff, loadMenuOff } from "../../utils/menuOff";
 import { invalidateDoodlePool, loadDoodlePool } from "../../utils/doodlePool";
@@ -127,19 +128,23 @@ export function AdminMenu() {
                       <li key={m.key} className={`admin-list__row${꺼짐 ? " is-off" : ""}`}>
                         <span className="admin-list__name">
                           {PAGE_TITLE[m.path] ?? m.path}
-                          {꺼짐 && !편집중 && <span className="set-hide-mark">꺼짐</span>}
                         </span>
                         <span className="admin-list__path">{m.path}</span>
-                        {편집중 && (
-                          <button
-                            type="button"
-                            className={`set-hide-btn ${꺼짐 ? "on" : ""}`}
-                            title={꺼짐 ? "다시 켠다." : "끈다. 메뉴에서 빠지고 주소로도 못 들어온다."}
-                            onClick={() => 뒤집기(m.key)}
-                          >
-                            {꺼짐 ? "꺼짐" : "끄기"}
-                          </button>
-                        )}
+                        {/* 스위치는 늘 선다. 편집 중이 아니면 막혀 있을
+                            뿐이다. 켜졌는지 보려고 편집에 들어가야 한다면
+                            목록으로서 제 몫을 못 한다. */}
+                        <OnOffToggle
+                          이름={PAGE_TITLE[m.path] ?? m.path}
+                          켜짐={!꺼짐}
+                          막힘={!편집중}
+                          켬말="켠다. 메뉴에 뜬다."
+                          끔말="끈다. 메뉴에서 빠지고 주소로도 못 들어온다."
+                          on바뀜={(켠다) => {
+                            /* 이미 그쪽이면 아무 일도 하지 않는다. */
+                            if (켠다 === !꺼짐) return;
+                            뒤집기(m.key);
+                          }}
+                        />
                       </li>
                     );
                   })}
@@ -263,14 +268,17 @@ export function AdminDoodle() {
     });
 
   const 끄기단추 = (it: 문구) => (
-    <button
-      type="button"
-      className={`set-hide-btn ${it.is_active ? "" : "on"}`}
-      title={it.is_active ? "끈다. 쪽지에 안 뜬다." : "다시 켠다."}
-      onClick={() => 고치기(it.item_key, { is_active: it.is_active ? 0 : 1 })}
-    >
-      {it.is_active ? "끄기" : "꺼짐"}
-    </button>
+    <OnOffToggle
+      이름={it.label}
+      켜짐={!!it.is_active}
+      막힘={!편집중}
+      켬말="켠다. 쪽지에 뜬다."
+      끔말="끈다. 쪽지에 안 뜬다."
+      on바뀜={(켠다) => {
+        if (켠다 === !!it.is_active) return;
+        고치기(it.item_key, { is_active: 켠다 ? 1 : 0 });
+      }}
+    />
   );
 
   return (

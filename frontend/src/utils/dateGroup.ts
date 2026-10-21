@@ -36,6 +36,37 @@ export function formatDateLabel(date: string): string {
   return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. (${WEEKDAYS[d.getDay()]})`;
 }
 
+/**
+ * 걸린 기간을 한 줄로 적는다. "2026. 8. 1. (토) ~ 10. 21. (수)"
+ *
+ * 날짜 하나를 적는 꼴은 formatDateLabel 하나로 모았으므로, 기간도 여기
+ * 한 곳에서 짓는다. 지출 내역과 묶음 내역과 관리자 대시보드가 같은
+ * 기간을 서로 다른 꼴로 적던 것을 여기로 모았다.
+ *
+ * 두 날의 연도가 같으면 뒤쪽 연도는 떼어 낸다. "2026. 8. 1. (토) ~
+ * 2026. 10. 21. (수)"처럼 같은 해를 두 번 적으면 줄만 길어지고, 긴 쪽은
+ * 좁은 화면에서 잘린다.
+ *
+ * 두 끝이 같은 날이면 날짜 하나만 적는다. 하루를 걸었는데 "10. 21. (수) ~
+ * 10. 21. (수)"로 같은 날이 두 번 적히면 기간처럼 읽힌다.
+ *
+ * 한쪽만 들어오면 그쪽만 적고 빈자리는 물결 옆을 비워 둔다. 지출 내역의
+ * 필터가 시작이나 끝 하나만 걸 수 있어서다.
+ */
+export function formatRangeLabel(from: string, to: string): string {
+  const 연도떼기 = (t: string) => t.replace(/^\d{4}\.\s*/, "");
+  if (from && from === to) return formatDateLabel(from);
+  if (from && to) {
+    const 뒤 = from.slice(0, 4) === to.slice(0, 4)
+      ? 연도떼기(formatDateLabel(to))
+      : formatDateLabel(to);
+    return `${formatDateLabel(from)} ~ ${뒤}`;
+  }
+  if (from) return `${formatDateLabel(from)} ~ `;
+  if (to) return ` ~ ${formatDateLabel(to)}`;
+  return "";
+}
+
 type Summarizable = {
   inout?: number | null;
   amount?: number | null;
