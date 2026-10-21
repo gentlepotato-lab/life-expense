@@ -10,6 +10,7 @@ import ScrollTopButton from "./components/ScrollTopButton";
 import useHeadPin from "../hooks/useHeadPin";
 import AdminNotices from "./components/AdminNotices";
 import { AdminMenu, AdminDoodle } from "./components/AdminToggles";
+import { 화면적기 } from "../utils/track";
 
 /**
  * 관리자 페이지.
@@ -48,6 +49,14 @@ export default function Admin() {
   const [첫암호있나, set첫암호있나] = useState(false);
   const [암호, set암호] = useState("");
   const [자리, set자리] = useState<자리>("dash");
+
+  /* 어느 자리를 얼마나 보는지 적는다. ViewTracker가 /admin을 건너뛰므로
+     (pages/components/ViewTracker.tsx) 여기서 자리까지 붙여 적는다.
+     자물쇠가 풀린 뒤부터 센다 — 잠긴 화면은 자리가 아니다. */
+  useEffect(() => {
+    if (!열림) return;
+    화면적기(`/admin/${자리}`);
+  }, [열림, 자리]);
 
   /* 내릴 때 머리띠와 알약이 함께 올라가고, 올릴 때 다시 내려온다. 사용자
      화면과 같은 장치를 쓴다(hooks/useHeadPin.ts). 거기는 PageHead가 부르는데

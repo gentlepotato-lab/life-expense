@@ -6,18 +6,21 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   Line,
   LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
+  type YAxisTickContentProps,
 } from "recharts";
 import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
 import MonthNav from "./MonthNav";
 import useMonthSpan from "../../hooks/useMonthSpan";
 import { formatRangeLabel } from "../../utils/dateGroup";
+import { PAGE_TITLE } from "../../utils/pageTitles";
 import AdminFilterPopup from "./AdminFilterPopup";
 import DayPicker from "./DayPicker";
 import { EditField } from "./CardEditModal";
@@ -102,6 +105,142 @@ const 축 = { fontSize: 11, fill: "var(--color-text-tertiary)" } as const;
  */
 const 파스텔 = ["#B9A4E6", "#9FC6E8", "#A6DACE", "#F2C7A3", "#E8A9C3"] as const;
 
+/**
+ * 관리자 화면의 자리 다섯.
+ *
+ * 주소는 /admin 하나지만 그 안에서 알약으로 자리를 옮긴다. 자리마다 따로
+ * 적히므로(pages/Admin.tsx) 여기서도 따로 센다. 이름을 여기 다시 적는 것은
+ * 그 목록이 Admin.tsx 안에만 있기 때문이다 — 자리를 늘리면 두 곳을 함께
+ * 고쳐야 한다.
+ */
+const 관리자자리 = [
+  { path: "/admin/dash", name: "대시보드" },
+  { path: "/admin/notice", name: "공지" },
+  { path: "/admin/doodle", name: "문구" },
+  { path: "/admin/menu", name: "메뉴" },
+  { path: "/admin/pw", name: "비밀번호" },
+] as const;
+
+/** 옛 기록. 자리를 따로 적기 전에는 다섯이 이 한 줄로 뭉쳐 쌓였다. */
+const 옛관리자 = "/admin";
+
+/**
+ * 기능 여덟과 그것이 무엇을 하는 자리인지.
+ *
+ * 기록을 남기는 자리가 넷뿐이라(utils/track.ts의 기능적기를 부르는 곳)
+ * 나올 수 있는 이름이 여덟이다. 한 번도 안 쓰인 것도 0으로 세워야 무엇을
+ * 쓰고 무엇을 안 쓰는지 읽힌다.
+ */
+const 기능들 = [
+  { name: "쓰기", desc: "떠 있는 만년필 단추" },
+  { name: "쓰기 슬라이드", desc: "한 장씩 넘기며 적기" },
+  { name: "계산기", desc: "떠 있는 계산기 단추" },
+  { name: "대기 내역 덱", desc: "한 장씩 넘겨 보내기" },
+  { name: "잔소리", desc: "떠 있는 종 단추" },
+  { name: "엑셀 내보내기", desc: "걸린 조건 그대로 내려받기" },
+  { name: "영수증", desc: "고른 내역 뽑기" },
+  { name: "묶기", desc: "고른 내역 묶기" },
+] as const;
+
+/**
+ * 딱지 폭 어림잡기.
+ *
+ * SVG 안에서는 글자 폭을 그리기 전에 알 수 없다. 11px 글씨에서 한글 한 자가
+ * 9.5px, 빈칸이 3px, 나머지가 6px로 나오므로 그렇게 어림잡고 좌우 여백 14px을
+ * 더한다. 한글을 11px로 잡았더니 테가 6px쯤 넓어 글이 헐렁해 보였다.
+ * 몇 px 어긋나도 글을 테 복판에 묶으므로 쏠려 보이지는 않는다.
+ */
+function 딱지폭(글: string): number {
+  let w = 0;
+  for (const ch of 글) {
+    if (/[가-힣]/.test(ch)) w += 9.5;
+    else if (ch === " ") w += 3;
+    else w += 6;
+  }
+  return Math.round(w) + 14;
+}
+
+/** 세로 막대 눈금이 쓰는 폭. YAxis의 width와 같아야 글이 왼쪽 끝에 선다. */
+const 눈금폭 = 116;
+
+/** 줄 하나가 먹는 키. 딱지 한 줄과 곁말 한 줄이 겹치지 않는 가장 작은 값이다. */
+const 줄키 = 31;
+
+/**
+ * 세로 막대의 눈금 — 두 줄로 적는다.
+ *
+ * 윗줄이 이름 딱지, 아랫줄이 그것이 무엇인지 적는 곁말이다. 한 줄에 둘을
+ * 나란히 두면 360px 화면에서 긴 글과 딱지가 서로를 밀어낸다.
+ *
+ * 자리 셈 — 줄 사이가 31px이므로 딱지는 복판 위 16px에 14px 키로 서고,
+ * 곁말은 복판 아래 10px에 앉는다. 이보다 벌리면 곁말 위로 다음 줄 딱지가
+ * 내려와 겹친다.
+ */
+function 두줄눈금(풀기: (v: string) => { 딱지: string; 곁말: string }) {
+  return function 눈금({ x, y, payload }: YAxisTickContentProps) {
+    const { 딱지, 곁말 } = 풀기(String(payload?.value ?? ""));
+    const 왼 = Number(x ?? 0) - 눈금폭;
+    const 복판 = Number(y ?? 0);
+    /* 딱지 안 글은 테 복판에 놓는다. 왼쪽에서 7px 띄우고 글을 흘리면, 테
+       폭을 어림잡은 값과 실제 글 폭이 어긋난 만큼 글이 한쪽으로 쏠린다.
+       가운데로 묶으면 어긋나도 좌우가 똑같이 남아 쏠려 보이지 않는다.
+       세로도 baseline 대신 테 복판(dominantBaseline)에 맞춘다. */
+    const 폭 = 딱지폭(딱지);
+    return (
+      <g>
+        <rect
+          x={왼}
+          y={복판 - 16}
+          width={폭}
+          height={14}
+          rx={7}
+          fill="var(--color-primary-light)"
+        />
+        <text
+          x={왼 + 폭 / 2}
+          y={복판 - 9}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={11}
+          fontWeight={600}
+          fill="var(--color-primary)"
+        >
+          {딱지}
+        </text>
+        <text x={왼} y={복판 + 10} fontSize={11} fill="var(--color-text-tertiary)">
+          {곁말}
+        </text>
+      </g>
+    );
+  };
+}
+
+/* 화면은 이름이 딱지, 길이 곁말이다. 기능은 이름이 딱지, 하는 일이 곁말이다. */
+const 화면눈금 = 두줄눈금((길) => ({
+  딱지:
+    관리자자리.find((z) => z.path === 길)?.name ??
+    (길 === 옛관리자 ? "관리자" : PAGE_TITLE[길] ?? 길),
+  곁말: 길,
+}));
+
+const 기능눈금 = 두줄눈금((이름) => ({
+  딱지: 이름,
+  곁말: 기능들.find((f) => f.name === 이름)?.desc ?? "",
+}));
+
+/**
+ * 쌓인 셈에 없는 줄을 0으로 채운다.
+ *
+ * 쌓인 것만 그리면 한 번도 안 쓰인 자리가 그래프에서 사라져, 안 쓰이는 것과
+ * 아예 없는 것이 구별되지 않는다. 차례는 많이 쓰인 것부터다.
+ */
+function 영채우기(들: { name: string; n: number }[], 이름들: readonly string[]) {
+  const 셈 = new Map(들.map((r) => [r.name, r.n]));
+  return 이름들
+    .map((name) => ({ name, n: 셈.get(name) ?? 0 }))
+    .sort((a, b) => b.n - a.n);
+}
+
 /** 짙게 그을 자리. 꺾은선과 테두리에 쓴다. */
 const 짙은빛 = "var(--color-primary)";
 
@@ -174,11 +313,33 @@ export default function AdminDash() {
     };
   }, [기간.frm, 기간.to]);
 
+  /* 화면 조회를 두 묶음으로 가르고, 빠진 화면은 0으로 채운다. 사용자 쪽
+     이름표는 앱이 쥔 목록에서 그대로 꺼낸다(utils/pageTitles.ts). 옛 기록의
+     /admin 한 줄은 관리자 묶음에 함께 세운다. */
+  const 사용자조회 = 셈 ? 영채우기(셈.view, Object.keys(PAGE_TITLE)) : [];
+  const 관리자조회 = 셈
+    ? 영채우기(셈.view, [...관리자자리.map((z) => z.path), 옛관리자]).filter(
+        (r) => r.name !== 옛관리자 || r.n > 0,
+      )
+    : [];
+  const 기능조회 = 셈 ? 영채우기(셈.feature, 기능들.map((f) => f.name)) : [];
+
   /** 그림 한 칸. 머리글과 몸을 늘 같은 꼴로 세운다. */
-  const 칸 = (제목: string, 비었나: boolean, 안: React.ReactNode, 넓게 = false) => (
+  const 칸 = (
+    제목: string,
+    비었나: boolean,
+    안: React.ReactNode,
+    넓게 = false,
+    /* 눈금이 두 줄인 칸. 여덟 줄이 한 줄일 때는 196px에 들었는데, 딱지가
+       한 줄 더 붙으면서 줄마다 28px이 든다. */
+    높게 = false,
+  ) => (
     <section className={`card admin-card${넓게 ? " admin-card--wide" : ""}`}>
       <h3 className="admin-card__title">{제목}</h3>
-      <div className="admin-card__body">
+      <div className={`admin-card__body${높게 ? " admin-card__body--tall" : ""}`}>
+        {/* 0이어도 그린다. 비었다고 글만 띄우면 그 기간에 아무 일도 없었다는
+            것과 아예 안 재고 있다는 것이 구별되지 않는다. 비었다는 알림은
+            그릴 거리 자체가 없을 때만 쓴다. */}
         {비었나 ? <p className="page-empty">아직 쌓인 것이 없습니다.</p> : 안}
       </div>
     </section>
@@ -290,7 +451,7 @@ export default function AdminDash() {
           <div className="admin-grid">
             {칸(
               "날짜별 조회",
-              셈.daily.length === 0,
+              false,
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={셈.daily} margin={{ top: 12, right: 12, bottom: 4, left: -8 }}>
                   <defs>
@@ -323,38 +484,73 @@ export default function AdminDash() {
               true,
             )}
 
-            {칸(
-              "화면별 조회 수",
-              셈.view.length === 0,
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={셈.view.slice(0, 8)}
-                  layout="vertical"
-                  margin={{ top: 4, right: 28, bottom: 4, left: 4 }}
-                >
-                  <XAxis type="number" hide />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    tick={축}
-                    tickLine={false}
-                    axisLine={false}
-                    width={116}
-                  />
-                  <Tooltip separator=": " cursor={{ fill: "var(--color-primary-light)" }} />
-                  <Bar dataKey="n" name="조회" radius={[0, 4, 4, 0]} maxBarSize={16}
-                    label={{ position: "right", fontSize: 11, fill: "var(--color-text-secondary)" }}>
-                    {셈.view.slice(0, 8).map((r, i) => (
-                      <Cell key={r.name} fill={파스텔[i % 파스텔.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>,
-            )}
+            {/* 사용자 쪽과 관리자 쪽을 한 칸 안에서 가른다. 섞어 세우면
+                /admin 자리들이 사용자 화면 사이에 끼어, 어느 쪽을 몇 번
+                보았는지 한눈에 안 읽힌다. */}
+            <section className="card admin-card admin-card--wide">
+              <h3 className="admin-card__title">화면별 조회 수</h3>
+              <p className="admin-hint">한 번도 안 들어간 화면도 0으로 세웁니다.</p>
+              <div className="admin-card__body admin-card__body--parts admin-card__body--auto">
+                {[
+                  { 이름: "사용자 화면", 들: 사용자조회 },
+                  { 이름: "관리자 화면", 들: 관리자조회 },
+                ].map((묶음, 몇) => (
+                  <div key={묶음.이름} className="admin-part">
+                    <span className="admin-part__head">
+                      {묶음.이름}
+                      <span className="admin-part__n">
+                        {묶음.들.reduce((a, r) => a + r.n, 0)}회
+                      </span>
+                    </span>
+                    {/* 키를 줄 수로 못 박는다. 줄 수는 화면 수라 늘 같으므로,
+                        기간을 바꿔도 칸이 들썩이지 않는다. */}
+                    <div style={{ height: 묶음.들.length * 줄키 + 8 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={묶음.들}
+                          layout="vertical"
+                          /* 왼쪽을 4px이 아니라 8px 비운다. 눈금 글이 왼쪽
+                             끝에 붙어 서는데, 4px이면 길 앞의 빗금이 카드
+                             안쪽 테에 1px 걸려 잘렸다. */
+                          margin={{ top: 4, right: 28, bottom: 4, left: 8 }}
+                        >
+                          <XAxis type="number" hide />
+                          <YAxis
+                            type="category"
+                            dataKey="name"
+                            tick={화면눈금}
+                            tickLine={false}
+                            axisLine={false}
+                            width={눈금폭}
+                          />
+                          <Tooltip separator=": " cursor={{ fill: "var(--color-primary-light)" }} />
+                          <Bar dataKey="n" name="조회" radius={[0, 4, 4, 0]} maxBarSize={16} minPointSize={1}>
+                            {/* 수를 Bar의 label이 아니라 LabelList로 적고,
+                                0인 줄에도 1px짜리 막대를 세운다(minPointSize).
+                                Recharts는 그려진 막대에 글을 붙이므로, 막대가
+                                아예 없으면 0도 적히지 않았다. 1px은 눈에 거의
+                                안 띄어 값이 있는 것처럼 읽히지 않는다. */}
+                            <LabelList
+                              dataKey="n"
+                              position="right"
+                              fontSize={11}
+                              fill="var(--color-text-secondary)"
+                            />
+                            {묶음.들.map((r, i) => (
+                              <Cell key={r.name} fill={파스텔[(i + 몇 * 2) % 파스텔.length]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
 
             {칸(
               "요일별 조회",
-              셈.dow.every((r) => r.n === 0),
+              false,
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={셈.dow} margin={{ top: 12, right: 8, bottom: 4, left: -8 }}>
                   <CartesianGrid stroke="var(--color-border)" vertical={false} />
@@ -372,7 +568,7 @@ export default function AdminDash() {
 
             {칸(
               "시간대별 조회",
-              셈.hour.every((r) => r.n === 0),
+              false,
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={셈.hour} margin={{ top: 12, right: 8, bottom: 4, left: -8 }}>
                   <CartesianGrid stroke="var(--color-border)" vertical={false} />
@@ -386,7 +582,7 @@ export default function AdminDash() {
 
             {칸(
               "쓰고 수정한 건수",
-              셈.write.length === 0,
+              false,
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={셈.write} margin={{ top: 12, right: 12, bottom: 4, left: -8 }}>
                   <CartesianGrid stroke="var(--color-border)" vertical={false} />
@@ -407,31 +603,42 @@ export default function AdminDash() {
 
             {칸(
               "기능별 사용 횟수",
-              셈.feature.length === 0,
+              false,
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={셈.feature.slice(0, 8)}
+                  data={기능조회}
                   layout="vertical"
-                  margin={{ top: 4, right: 28, bottom: 4, left: 4 }}
+                  /* 왼쪽을 4px이 아니라 8px 비운다. 눈금 글이 왼쪽 끝에
+                     붙어 서는데, 4px이면 길 앞의 빗금이 카드 안쪽 테에
+                     1px 걸려 잘렸다. */
+                  margin={{ top: 4, right: 28, bottom: 4, left: 8 }}
                 >
                   <XAxis type="number" hide />
                   <YAxis
                     type="category"
                     dataKey="name"
-                    tick={축}
+                    tick={기능눈금}
                     tickLine={false}
                     axisLine={false}
-                    width={116}
+                    width={눈금폭}
                   />
                   <Tooltip separator=": " cursor={{ fill: "var(--color-primary-light)" }} />
-                  <Bar dataKey="n" name="횟수" radius={[0, 4, 4, 0]} maxBarSize={16}
-                    label={{ position: "right", fontSize: 11, fill: "var(--color-text-secondary)" }}>
-                    {셈.feature.slice(0, 8).map((r, i) => (
+                  <Bar dataKey="n" name="횟수" radius={[0, 4, 4, 0]} maxBarSize={16} minPointSize={1}>
+                    {/* 0인 줄에도 수를 적는다. 위 화면별 칸과 같은 까닭이다. */}
+                    <LabelList
+                      dataKey="n"
+                      position="right"
+                      fontSize={11}
+                      fill="var(--color-text-secondary)"
+                    />
+                    {기능조회.map((r, i) => (
                       <Cell key={r.name} fill={파스텔[(i + 2) % 파스텔.length]} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>,
+              false,
+              true,
             )}
 
             {/* 한 칸 안에서 둘을 가른다. 섞어 늘어놓으면 오른쪽 끝에 ms와

@@ -20999,6 +20999,13 @@ html[data-motion="off"] .admin-pane,
   justify-content: center;
 }
 
+/* 눈금이 두 줄인 칸. 화면별 조회 수와 기능별 사용 횟수가 그렇다. 이름표
+   딱지가 한 줄 더 붙어, 여덟 줄이 196px에 들지 않고 줄마다 잘렸다.
+   줄 하나에 28px을 주어 여덟 줄을 담는다. */
+.admin-card__body--tall {
+  height: 256px;
+}
+
 /* 줄 목록이 드는 칸. 여덟 줄이 다 들도록 키를 잡았으므로 구르지 않는다.
    overflow 를 남겨 두는 것은 글자 크기를 키운 기기에서 넘칠 때를 대비한
    것이다. */
@@ -21128,28 +21135,51 @@ html[data-motion="off"] .admin-pane,
    머리 18 + 틈 8 + 줄 다섯(5×18) + 사이 넷(4×8) = 148, 묶음 둘에 사이
    16을 더해 312다. */
 .admin-card:has(.admin-hint) > .admin-card__body--parts {
-  height: 312px;
-  gap: var(--space-4);
+  /* 묶음마다 안쪽 여백 16px이 더 들어가므로 그만큼 키운다. */
+  height: 344px;
+  gap: var(--space-3);
 }
 
-/* 묶음 하나. 머리말이 이고 그 아래 줄이 선다. */
+/* 줄 수가 많아 키를 못 박지 않는 칸. 화면별 조회 수가 그렇다 — 사용자
+   화면 열아홉과 관리자 자리 다섯이 늘 함께 서므로 줄 수가 변하지 않는다.
+   그래서 키를 열어 두어도 기간을 바꿀 때 칸이 들썩이지 않는다.
+   바로 위 규칙과 셈이 같으므로 뒤에 와야 이긴다. */
+.admin-card:has(.admin-hint) > .admin-card__body--auto {
+  height: auto;
+  justify-content: flex-start;
+}
+
+/* 묶음 하나.
+ *
+ * 흰 카드 위에 쪽 바탕빛을 한 겹 깔아 제 자리를 긋는다. 머리말과 간격만으로
+ * 갈랐더니 둘이 한 묶음으로 이어 읽혔다. 관리자 화면이 잿빛 바탕에 흰 카드를
+ * 얹는 결 그대로, 흰 카드 안에 잿빛 조각을 얹는다.
+ */
 .admin-part {
   display: grid;
   gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
 }
 
 /* 묶음 머리말. 칸 제목(.admin-card__title)보다 한 단 작고 옅다 — 칸 안의
-   갈래지 칸 제목이 아니라는 것이 한눈에 보여야 한다. */
+   갈래지 칸 제목이 아니라는 것이 한눈에 보여야 한다.
+   아래로 실금을 긋는다. 머리말과 알맹이가 붙어 서면 머리말이 첫 줄처럼
+   읽힌다. */
 .admin-part__head {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
   font-size: var(--font-size-xs);
   font-weight: 700;
   color: var(--color-text-secondary);
 }
 
-/* 그 묶음이 몇 번인지. 머리말 오른쪽 끝에 딱지로 붙는다. */
+/* 그 묶음이 몇 번인지. 머리말 오른쪽 끝에 딱지로 붙는다. 바탕이 잿빛으로
+   바뀌었으므로 딱지는 흰 테를 두르지 않고 제 빛깔만으로 선다. */
 .admin-part__n {
   margin-left: auto;
   padding: 1px 8px;

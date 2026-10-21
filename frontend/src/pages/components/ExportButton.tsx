@@ -94,7 +94,9 @@ export default function ExportButton({ 길, params, 이름, 빔, 영수증 = tru
         ? await (async () => {
             const fd = new FormData();
             fd.append("receipt", 종이, "receipt.png");
-            기능적기("엑셀 " + 길);
+            /* 화면 이름을 붙이지 않는다. 붙이면 같은 기능이 화면 수만큼
+               갈라져, 어느 것도 몇 번 쓰였는지 읽히지 않는다. */
+            기능적기("엑셀 내보내기");
             return api.post(`/export/${길}`, fd, { params, responseType: "blob" });
           })()
         : await api.get(`/export/${길}`, { params, responseType: "blob" });

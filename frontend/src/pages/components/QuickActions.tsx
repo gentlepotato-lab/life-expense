@@ -17,6 +17,15 @@ import { PAGE_ICON } from "./MenuIcons";
 import { closeOverlays } from "../../hooks/useBackClose";
 import { prefOn } from "../../utils/prefs";
 
+/** 떠 있는 단추 다섯의 이름. 기록에 적히는 이름이기도 하다. */
+const 단추이름 = {
+  write: "쓰기",
+  slide: "쓰기 슬라이드",
+  calc: "계산기",
+  deck: "대기 내역 덱",
+  nudge: "잔소리",
+} as const;
+
 /**
  * 어느 화면에서나 오른쪽 위에 떠 있는 단추 넷 —
  * 새로 고침 · 만년필(쓰기) · 계산기 · 종(잔소리).
@@ -60,7 +69,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
    *
    * 같은 단추를 다시 누르면 닫기만 한다. 계산기가 원래 그랬다.
    */
-  const only = (which: "write" | "slide" | "calc" | "deck" | "nudge") => {
+  const only = (which: keyof typeof 단추이름) => {
     const already =
       (which === "write" && writeOpen) ||
       (which === "slide" && slideOpen) ||
@@ -68,8 +77,10 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
       (which === "deck" && deckOpen) ||
       (which === "nudge" && nudgeOpen);
     /* 어느 단추를 얼마나 쓰는지 적는다. 여는 누름만 센다 — 같은 단추를
-       다시 눌러 닫는 것까지 세면 쓰임이 배로 부풀어 보인다. */
-    if (!already) 기능적기("단추 " + which);
+       다시 눌러 닫는 것까지 세면 쓰임이 배로 부풀어 보인다.
+       적는 이름은 앱이 그 자리를 부르는 이름이다. 영어 열쇠를 그대로
+       적었더니 관리자 화면에 「단추 slide」로 떠서 무엇인지 알 수 없었다. */
+    if (!already) 기능적기(단추이름[which]);
     void closeOverlays().then(() => {
       setWriteOpen(!already && which === "write");
       setSlideOpen(!already && which === "slide");

@@ -264,7 +264,7 @@ def admin_stats(
            AND created_at < CAST(:to AS date)
       GROUP BY name
       ORDER BY n DESC, name ASC
-         LIMIT 20
+         LIMIT 60
     """), 틈).mappings().all()
 
     기능 = db.execute(text("""
@@ -366,6 +366,19 @@ def admin_stats(
     조회합 = int(갈래.get("view", 0))
     적음합 = sum(int(r["n"]) for r in 적음)
 
+    # 빈 날도 0으로 채운다. 쌓인 날만 보내면 꺾은선이 그 날들만 이어, 아무
+    # 일도 없던 날이 그래프에서 아예 사라진다. 요일과 시간대를 채우는 것과
+    # 같은 까닭이다.
+    def 날채우기(들, 열쇠: str = "d"):
+        있는것 = {str(r[열쇠]): int(r["n"]) for r in 들}
+        나올것 = []
+        날짜 = 첫날
+        while 날짜 <= 끝날:
+            글 = 날짜.isoformat()
+            나올것.append({"date": 글, "n": 있는것.get(글, 0)})
+            날짜 += timedelta(days=1)
+        return 나올것
+
     return {
         "days": 날,
         "from": 첫날.isoformat(),
@@ -374,8 +387,8 @@ def admin_stats(
         "feature": [{"name": r["name"], "n": r["n"]} for r in 기능],
         "slow": [{"name": r["name"], "n": r["n"], "worst": r["worst"]} for r in 느린것],
         "fail": [{"name": r["name"], "n": r["n"], "status": r["status"]} for r in 실패것],
-        "write": [{"date": str(r["d"]), "n": r["n"]} for r in 적음],
-        "daily": [{"date": str(r["d"]), "n": r["n"]} for r in 날별],
+        "write": 날채우기(적음),
+        "daily": 날채우기(날별),
         # 빈 요일도 0으로 채운다. 그러지 않으면 막대가 일곱이 아니라 서넛만 선다.
         "dow": [
             {"name": 요일이름[i], "n": next((int(r["n"]) for r in 요일 if r["d"] == i), 0)}
