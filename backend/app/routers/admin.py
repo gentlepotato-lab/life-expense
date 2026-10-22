@@ -1,7 +1,7 @@
 """
 관리자 페이지가 쓰는 자리.
 
-site_prefs를 읽고 적고, 대시보드가 볼 셈을 돌려준다. 읽는 길 하나만 암호
+site_prefs를 읽고 적고, 대시보드가 볼 집계를 돌려준다. 읽는 길 하나만 암호
 없이 연다 — 아래 GET /prefs가 그것이고, 공개 열쇠만 돌려준다. 꺼 놓은 메뉴
 목록을 사용자 화면이 알아야 메뉴를 거를 수 있기 때문이다.
 
@@ -19,7 +19,7 @@ import secrets
 import uuid
 from datetime import date, datetime, timedelta
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy import text
 
 from app.deps import SessionDep
@@ -146,8 +146,60 @@ def admin_state(db: SessionDep = Depends()):
     return {"걸림": bool(적힌것), "첫암호있나": bool(첫암호)}
 
 
+def _들어온자리(real_ip: str | None, forwarded: str | None, request: Request) -> str:
+    """
+    어디서 들어왔나.
+
+    앞에 선 nginx 가 X-Real-IP 로 넘겨준다(Gateway 의 snippets/proxy.conf).
+    그 머리를 먼저 보고, 없으면 X-Forwarded-For 의 맨 앞을 본다. 둘 다
+    없으면 붙은 자리를 그대로 적는데, 그때 적히는 것은 nginx 의 자리다.
+
+    맨 앞을 보는 까닭은 거쳐 온 자리가 쉼표로 이어 붙기 때문이다. 뒤쪽은
+    거쳐 온 길이고 맨 앞이 처음 보낸 자리다.
+    """
+    if real_ip and real_ip.strip():
+        return real_ip.strip()[:45]
+    if forwarded and forwarded.strip():
+        return forwarded.split(",")[0].strip()[:45]
+    붙은데 = request.client.host if request.client else ""
+    return (붙은데 or "")[:45]
+
+
+def _기기이름(agent: str | None) -> str:
+    """
+    브라우저가 밝힌 글에서 기기 이름을 짓는다.
+
+    담는 것은 그 글 한 줄뿐이고, 화면에는 이렇게 추린 이름만 띄운다. 긴
+    글을 그대로 띄우면 줄 하나가 화면을 다 먹는다.
+
+    바탕만 적는다. 보는 것까지 붙여 「Windows Chrome」으로 적던 때는 412px
+    에서 딱지가 「Windows Ch...」로 잘렸다. 칸 이름도 기기라, 무엇으로 보는지
+    보다 어느 기기인지가 먼저다. 보는 것은 agent 칸에 그대로 남아 있다.
+
+    가리지 못하면 「다른 기기」다. 틀린 이름을 지어 붙이느니 모른다고
+    적는 편이 낫다.
+    """
+    g = agent or ""
+    바탕 = (
+        "iPhone" if "iPhone" in g
+        else "iPad" if "iPad" in g
+        else "Android" if "Android" in g
+        else "Windows" if "Windows" in g
+        else "Mac" if "Macintosh" in g or "Mac OS" in g
+        else ""
+    )
+    return 바탕 or "다른 기기"
+
+
 @router.post("/login")
-def admin_login(payload: dict, db: SessionDep = Depends()):
+def admin_login(
+    payload: dict,
+    request: Request,
+    user_agent: str | None = Header(default=None),
+    x_real_ip: str | None = Header(default=None),
+    x_forwarded_for: str | None = Header(default=None),
+    db: SessionDep = Depends(),
+):
     """
     암호를 받고 토큰을 돌려준다.
 
@@ -169,13 +221,37 @@ def admin_login(payload: dict, db: SessionDep = Depends()):
     if not 맞음:
         raise HTTPException(status_code=401, detail="비밀번호가 맞지 않습니다.")
 
+    기기 = (user_agent or "")[:200]
+    자리 = _들어온자리(x_real_ip, x_forwarded_for, request)
+
+    # 같은 기기에서 열려 있던 줄은 닫는다. 한 기기에 여러 줄이 열려 있을
+    # 까닭이 없다. 지우지는 않는다. 줄 자체는 로그인 기록이라, 지우면 언제
+    # 들어왔는지가 함께 사라진다. 끝나는 때를 지금으로 당겨 닫힌 것으로
+    # 남긴다.
+    #
+    # 기기를 가리지 못하는 때(글이 비어 있을 때)는 건드리지 않는다. 그
+    # 하나로 다른 기기까지 함께 닫히기 때문이다.
+    if 기기:
+        db.execute(text("""
+            UPDATE life_expense.admin_sessions
+               SET expires_at = now()
+             WHERE agent = :a
+               AND expires_at > now()
+        """), {"a": 기기})
+
     새토큰 = secrets.token_urlsafe(32)[:64]
     db.execute(text("""
-        INSERT INTO life_expense.admin_sessions (token, expires_at)
-             VALUES (:t, :e)
-    """), {"t": 새토큰, "e": datetime.now() + timedelta(hours=TOKEN_HOURS)})
-    # 지난 토큰은 들어올 때마다 걷는다. 따로 청소를 돌릴 만큼 쌓이지 않는다.
-    db.execute(text("DELETE FROM life_expense.admin_sessions WHERE expires_at <= now()"))
+        INSERT INTO life_expense.admin_sessions (token, expires_at, agent, ip)
+             VALUES (:t, :e, :a, :ip)
+    """), {
+        "t": 새토큰,
+        "e": datetime.now() + timedelta(hours=TOKEN_HOURS),
+        "a": 기기 or None,
+        "ip": 자리 or None,
+    })
+    # 지난 토큰을 들어올 때마다 걷던 자리를 걷었다. 그 줄이 곧 로그인
+    # 기록이라, 걷으면 언제 들어왔는지가 함께 사라졌다. 묵은 줄은 달마다
+    # 도는 정리가 걷는다(app/scheduler/cleanup_job.py).
     db.commit()
     return {"token": 새토큰, "hours": TOKEN_HOURS}
 
@@ -219,7 +295,7 @@ def admin_stats(
     """
     대시보드가 볼 것을 한 번에 돌려준다.
 
-    화면이 따로따로 물으면 기간을 바꿀 때마다 요청이 그만큼 나간다. 셈이
+    화면이 따로따로 물으면 기간을 바꿀 때마다 요청이 그만큼 나간다. 집계가
     싸므로 한 번에 모아 보낸다.
 
     기간은 날짜 두 개로 받는다(frm, to). 둘 다 그날을 품는다. 날짜로 받아야
@@ -231,7 +307,7 @@ def admin_stats(
     없으면 이번 달이다.
 
     쓰고 수정한 건수(write)만 action_logs가 아니라 entries에서 센다. 날짜 칸이
-    있어 거기서 셈하면 지난 것까지 소급해서 보인다.
+    있어 거기서 세면 지난 것까지 소급해서 보인다.
     """
     오늘 = date.today()
     if frm and to:
@@ -408,6 +484,538 @@ def admin_stats(
             # 하루 평균. 소수점은 한 자리까지만 쓴다.
             "view_per_day": round(조회합 / 날, 1),
         },
+    }
+
+
+# ── 읽기만 하는 자리 ────────────────────────────────────────
+#
+# 아래 셋은 집계를 내놓기만 한다. 고치는 길은 두지 않는다.
+
+
+# 조회 기록에서 한 번에 내놓는 줄 수. 손전화에서 한 쪽에 담을 만큼이다.
+# 더 보려면 기간을 좁히거나 갈래로 거른다.
+기록한도 = 200
+
+
+@router.get("/logs")
+def admin_logs(
+    frm: str | None = None,
+    to: str | None = None,
+    kind: str | None = None,
+    _: str = Depends(토큰),
+    db: SessionDep = Depends(),
+):
+    """
+    쌓인 기록을 한 줄씩 내놓는다.
+
+    대시보드는 묶어서만 보여 준다. 그래서 "그 요청이 언제 몇 ms였는지"를 볼
+    자리가 없었다. 여기가 그 자리다.
+
+    묵은 기록은 달마다 지워진다(app/scheduler/cleanup_job.py). 그래서 아무리
+    거슬러 올라가도 90일 치뿐이다.
+    """
+    조건 = ["1 = 1"]
+    값: dict = {"한도": 기록한도}
+    if frm:
+        조건.append("a.created_at >= CAST(:frm AS date)")
+        값["frm"] = frm
+    if to:
+        # 끝 날짜를 담으려면 그 다음 날 0시 앞까지 본다.
+        조건.append("a.created_at < CAST(:to AS date) + INTERVAL '1 day'")
+        값["to"] = to
+    if kind in ("view", "feature", "error"):
+        조건.append("a.kind = :kind")
+        값["kind"] = kind
+
+    rows = db.execute(text(f"""
+        SELECT a.log_id
+             , a.kind
+             , a.name
+             , a.path
+             , a.elapsed_ms
+             , a.status
+             , to_char(a.created_at, 'YYYY-MM-DD') AS on_day
+             , to_char(a.created_at, 'HH24:MI:SS')  AS at_time
+          FROM life_expense.action_logs a
+         WHERE {' AND '.join(조건)}
+      ORDER BY a.log_id DESC
+         LIMIT :한도
+    """), 값).mappings().all()
+
+    return [{
+        "log_id": r["log_id"],
+        "kind": r["kind"],
+        "name": r["name"],
+        "path": r["path"],
+        "elapsed_ms": r["elapsed_ms"],
+        "status": r["status"],
+        "on_day": r["on_day"],
+        "at_time": r["at_time"],
+    } for r in rows]
+
+
+# 쌓인 양을 보여 줄 표와 그 이름.
+#
+# 이름은 사용자 사이트가 쓰는 화면 이름을 그대로 쓴다(utils/pageTitles.ts).
+# 표 이름을 그대로 띄우면 무엇이 쌓인 것인지 읽히지 않는다.
+표들 = [
+    ("entries", "지출 내역"),
+    ("pending_entries", "대기 내역"),
+    ("scheduled_entries", "정기 내역"),
+    ("entry_groups", "묶음 내역"),
+    ("places", "장소"),
+    ("counterparts", "함께한 상대"),
+    ("payment_methods", "결제 수단"),
+    ("notices", "공지"),
+    ("action_logs", "조회 기록"),
+    ("holidays", "공휴일"),
+]
+
+
+@router.get("/db")
+def admin_db(_: str = Depends(토큰), db: SessionDep = Depends()):
+    """
+    붙은 곳과 쌓인 양.
+
+    비밀은 내놓지 않는다. 사는 곳과 이름만 적고 비밀번호는 쳐다보지도
+    않는다(app/deps.py가 .env에서 읽어 쓴다).
+
+    차지한 자리는 여기서 재지 않는다. 그 한 질의가 400ms를 먹어 쪽 전체가
+    그만큼 늦게 떴다. 따로 묻는 길을 냈다(/admin/db-size).
+    """
+    판 = db.execute(text("SHOW server_version")).scalar() or ""
+
+    # 표마다 줄 수. 표 이름은 코드에 적힌 것만 쓰므로 바깥에서 들어온 글이
+    # 질의에 섞일 길이 없다.
+    #
+    # 한 번에 묻는다. 표마다 따로 물었더니 열 번을 오가느라 이 길 하나가
+    # 300ms를 넘겼다. 세는 일 자체는 같고 오가는 횟수만 줄어든다.
+    칸들 = ", ".join(
+        f"(SELECT count(*) FROM life_expense.{표}) AS {표}" for 표, _ in 표들
+    )
+    한줄 = db.execute(text(f"SELECT {칸들}")).mappings().one()
+    집계 = [{"table": 표, "name": 이름, "n": int(한줄[표])} for 표, 이름 in 표들]
+
+    return {
+        "server": {
+            # 종류와 버전을 갈라 내놓는다. 「PostgreSQL 17.6」 한 글로 묶어
+            # 보내면 화면이 한 줄에 둘을 적게 되고, 그 줄에 붙일 이름이
+            # 마땅치 않다.
+            "kind": "PostgreSQL",
+            "version": 판.split(" ")[0],
+            "host": f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}",
+            "db": os.getenv("DB_NAME") or "",
+            "schema": "life_expense",
+        },
+        "tables": 집계,
+    }
+
+
+# 바깥에 묻는 자리들.
+#
+# 열쇠 이름만 적는다. 값은 쳐다보지도 않는다. 꽂혀 있는지만 보고 내놓는다.
+# 쓰임은 사용자 사이트의 화면 이름으로 적는다(utils/pageTitles.ts).
+#
+# where 는 열쇠가 어디 꽂혀 있나다. 서버 것은 backend/.env 에 있어 여기서
+# 바로 보지만, 브라우저 것은 frontend/.env 에 있어 서버가 볼 수 없다. 그쪽은
+# 화면이 제 손으로 보고 채운다(AdminApis.tsx).
+#
+# 쓰임이 「아직 안 씀」인 것은 열쇠만 꽂혀 있고 부르는 데가 코드에 없다는
+# 뜻이다. 찾아보니 NAVER 와 오픈뱅킹과 Superset 셋이 그렇다.
+바깥들 = [
+    {
+        "key": "kasi",
+        "name": "한국천문연구원 특일 정보",
+        "use": "공휴일",
+        "where": "서버",
+        "envs": ["KASI_API_KEY"],
+        # 배치가 호출하는 자리라 바퀴 자국도 함께 읽는다. 바퀴는 하루에 한
+        # 번이고 그 안에서 두 달을 묻는데, 기록은 묻는 때마다 한 줄씩
+        # 쌓이므로 그쪽이 더 촘촘하다.
+        "job_key": "holiday_update_daily",
+        "log_name": "한국천문연구원 특일 정보",
+    },
+    {
+        "key": "kakao",
+        "name": "카카오 지도",
+        "use": "장소 찾기",
+        "where": "브라우저",
+        "envs": ["VITE_KAKAO_MAP_KEY"],
+        "job_key": None,
+        # 브라우저가 바로 부르므로 서버가 볼 수 없다. 화면이 적어 보낸 줄을
+        # 기록에서 읽는다(utils/track.ts 의 바깥적기).
+        "log_name": "카카오 지도",
+    },
+    {
+        "key": "naver",
+        "name": "NAVER 지도",
+        "use": "아직 안 씀",
+        "where": "서버",
+        "envs": ["NAVER_CLIENT_ID", "NAVER_CLIENT_SECRET"],
+        "job_key": None,
+        "log_name": None,
+    },
+    {
+        "key": "openbanking",
+        "name": "금융결제원 오픈뱅킹",
+        "use": "아직 안 씀",
+        "where": "서버",
+        "envs": ["OPENBANKING_CLIENT_ID", "OPENBANKING_CLIENT_SECRET"],
+        "job_key": None,
+        "log_name": None,
+    },
+    {
+        "key": "superset",
+        "name": "Superset",
+        "use": "아직 안 씀",
+        "where": "서버",
+        "envs": ["SUPERSET_URL", "SUPERSET_USERNAME", "SUPERSET_PASSWORD"],
+        "job_key": None,
+        "log_name": None,
+    },
+]
+
+
+@router.get("/apis")
+def admin_apis(_: str = Depends(토큰), db: SessionDep = Depends()):
+    """
+    바깥에 묻는 자리와 그 상태.
+
+    **열쇠 값은 내놓지 않는다.** 꽂혀 있는지(true/false)만 적는다. 값을 한 번
+    내보내면 그 뒤로는 어디에 남아 있는지 쫓을 길이 없다.
+
+    호출한 기록은 두 곳에서 쌓인다. 배치가 부르는 자리는 바퀴 자국에서
+    (job_runs), 브라우저가 바로 부르는 자리는 화면이 적어 보낸 줄에서
+    (action_logs의 api 갈래) 읽는다.
+    """
+    rows = db.execute(text("""
+        SELECT DISTINCT ON (r.job_key)
+               r.job_key
+             , to_char(r.started_at, 'YYYY-MM-DD') AS on_day
+             , to_char(r.started_at, 'HH24:MI')    AS at_time
+             , r.ok
+             , r.note
+          FROM life_expense.job_runs r
+      ORDER BY r.job_key, r.started_at DESC
+    """)).mappings().all()
+    마지막 = {r["job_key"]: r for r in rows}
+
+    # 브라우저가 바로 부르는 자리는 화면이 적어 보낸 줄에서 읽는다.
+    # 걸린 시간은 밀리초로, 상태는 400 아래면 잘된 것으로 본다.
+    적힌것 = db.execute(text("""
+        SELECT DISTINCT ON (a.name)
+               a.name
+             , to_char(a.created_at, 'YYYY-MM-DD') AS on_day
+             , to_char(a.created_at, 'HH24:MI')    AS at_time
+             , (a.status IS NULL OR a.status < 400) AS ok
+             , a.path
+             , a.elapsed_ms
+          FROM life_expense.action_logs a
+         WHERE a.kind = 'api'
+      ORDER BY a.name, a.created_at DESC
+    """)).mappings().all()
+    적힌마지막 = {r["name"]: r for r in 적힌것}
+
+    # 요즘 얼마나 불렀나. 묵은 기록은 달마다 지워지므로 아무리 거슬러도
+    # 90일 치뿐이다(app/scheduler/cleanup_job.py).
+    센것 = db.execute(text("""
+        SELECT a.name
+             , count(*) AS n
+          FROM life_expense.action_logs a
+         WHERE a.kind = 'api'
+           AND a.created_at >= now() - interval '30 days'
+      GROUP BY a.name
+    """)).mappings().all()
+    횟수 = {r["name"]: int(r["n"]) for r in 센것}
+
+    out = []
+    for b in 바깥들:
+        # 기록을 먼저 본다. 묻는 때마다 한 줄씩 쌓여 바퀴 자국보다 촘촘하다.
+        r = None
+        if b.get("log_name"):
+            l = 적힌마지막.get(b["log_name"])
+            if l:
+                r = {
+                    "on_day": l["on_day"],
+                    "at_time": l["at_time"],
+                    "ok": l["ok"],
+                    "ms": l["elapsed_ms"],
+                }
+        if r is None and b["job_key"]:
+            r = 마지막.get(b["job_key"])
+        out.append({
+            "key": b["key"],
+            "name": b["name"],
+            "use": b["use"],
+            "where": b["where"],
+            # 하나라도 비어 있으면 꽂히지 않은 것으로 본다. 브라우저에 꽂힌
+            # 것은 서버가 볼 수 없으므로 화면에 미룬다.
+            "ready": (
+                all(bool((os.getenv(e) or "").strip()) for e in b["envs"])
+                if b["where"] == "서버"
+                else None
+            ),
+            "last_day": r["on_day"] if r else None,
+            "last_time": r["at_time"] if r else None,
+            "last_ok": bool(r["ok"]) if r else None,
+            # 걸린 시간. 배치가 부른 자리는 잰 것이 없어 비운다.
+            "last_ms": r.get("ms") if r else None,
+            # 30일 동안 부른 횟수. 적힌 적이 없으면 0이다.
+            "hits": 횟수.get(b.get("log_name") or "", 0),
+        })
+    return out
+
+
+@router.get("/batch")
+def admin_batch(_: str = Depends(토큰), db: SessionDep = Depends()):
+    """
+    도는 일과 그 때.
+
+    때는 표가 쥐고, 다음에 돌 때는 스케줄러가 쥔다(app/scheduler/registry.py).
+    마지막으로 돈 때는 바퀴 자국에서 꺼낸다.
+    """
+    from app.scheduler.registry import 지금모습
+
+    일들 = 지금모습()
+
+    # 일마다 마지막 한 줄. 일이 셋뿐이라 한 번에 꺼내 짝짓는다.
+    rows = db.execute(text("""
+        SELECT DISTINCT ON (r.job_key)
+               r.job_key
+             , to_char(r.started_at, 'YYYY-MM-DD') AS on_day
+             , to_char(r.started_at, 'HH24:MI')    AS at_time
+             , r.ok
+             , r.note
+          FROM life_expense.job_runs r
+      ORDER BY r.job_key, r.started_at DESC
+    """)).mappings().all()
+    마지막 = {r["job_key"]: r for r in rows}
+
+    for 일 in 일들:
+        r = 마지막.get(일["key"])
+        일["last_day"] = r["on_day"] if r else None
+        일["last_time"] = r["at_time"] if r else None
+        일["last_ok"] = bool(r["ok"]) if r else None
+        일["last_note"] = (r["note"] or "") if r else ""
+
+    return 일들
+
+
+@router.get("/batch/runs")
+def admin_batch_runs(
+    key: str = "",
+    _: str = Depends(토큰),
+    db: SessionDep = Depends(),
+):
+    """
+    일이 실행된 기록.
+
+    카드에 서는 것은 마지막 한 줄뿐이라, 어제도 실행됐는지 며칠째 실패하는지는
+    카드만 보고 알 수 없다. 그 자리에서 이 쪽으로 들어온다
+    (frontend/src/pages/components/AdminBatchRuns.tsx).
+
+    열쇠를 주면 그 일만, 안 주면 모두 섞어 돌려준다. 바퀴 자국은 달마다
+    치우므로(app/scheduler/cleanup_job.py) 아무리 거슬러도 90일 치뿐이다.
+    """
+    rows = db.execute(text("""
+        SELECT r.job_key
+             , to_char(r.started_at, 'YYYY-MM-DD') AS on_day
+             , to_char(r.started_at, 'HH24:MI:SS') AS at_time
+             , r.ok
+             , r.note
+             , r.elapsed_ms
+          FROM life_expense.job_runs r
+         WHERE (:key = '' OR r.job_key = :key)
+      ORDER BY r.started_at DESC
+         LIMIT 200
+    """), {"key": key}).mappings().all()
+
+    from app.scheduler.registry import 이름들
+
+    이름 = 이름들()
+    return [
+        {
+            "job_key": r["job_key"],
+            "name": 이름.get(r["job_key"], r["job_key"]),
+            "on_day": r["on_day"],
+            "at_time": r["at_time"],
+            "ok": bool(r["ok"]),
+            "note": r["note"] or "",
+            "ms": r["elapsed_ms"],
+        }
+        for r in rows
+    ]
+
+
+@router.put("/batch/{job_key}")
+def admin_set_batch(job_key: str, payload: dict, _: str = Depends(토큰), db: SessionDep = Depends()):
+    """
+    도는 때를 고친다.
+
+    고치고 나서 그 자리에서 다시 건다. 서버를 다시 띄워야 바뀐다면 「고쳤다」가
+    말이 되지 않는다.
+
+    받는 값은 셋뿐이다. 그 밖의 꼴은 돌려보낸다 — 표에도 같은 가름이 걸려
+    있지만(job_schedules_kind_chk), 틀린 값으로 스케줄러를 건드리면 그 일이
+    아예 안 돌게 된다.
+    """
+    kind = str(payload.get("kind") or "").strip()
+    if kind not in ("minute", "daily", "monthly"):
+        raise HTTPException(status_code=400, detail="도는 꼴이 올바르지 않습니다.")
+
+    def _수(열쇠: str, 낮: int, 높: int):
+        값 = payload.get(열쇠)
+        if 값 is None or 값 == "":
+            return None
+        try:
+            n = int(값)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="시간이 올바르지 않습니다.")
+        if n < 낮 or n > 높:
+            raise HTTPException(status_code=400, detail="시간이 올바르지 않습니다.")
+        return n
+
+    시 = _수("hour", 0, 23)
+    분 = _수("minute", 0, 59)
+    날 = _수("day_of_month", 1, 28)
+
+    # 꼴마다 있어야 할 값이 다르다. 없으면 받지 않는다 — 비운 채 걸면
+    # 0시 0분으로 돌아 엉뚱한 때에 돈다.
+    if kind in ("daily", "monthly") and (시 is None or 분 is None):
+        raise HTTPException(status_code=400, detail="시간을 입력해 주세요.")
+    if kind == "monthly" and 날 is None:
+        raise HTTPException(status_code=400, detail="날짜를 입력해 주세요.")
+    if kind == "minute":
+        시 = 분 = 날 = None
+
+    낸것 = db.execute(text("""
+        UPDATE life_expense.job_schedules
+           SET kind = :kind
+             , day_of_month = :날
+             , hour = :시
+             , minute = :분
+             , updated_at = now()
+         WHERE job_key = :k
+    """), {"kind": kind, "날": 날, "시": 시, "분": 분, "k": job_key})
+    if 낸것.rowcount == 0:
+        raise HTTPException(status_code=404, detail="그런 작업이 없습니다.")
+    db.commit()
+
+    from app.scheduler.registry import reschedule
+
+    reschedule(job_key)
+    return {"ok": True}
+
+
+@router.get("/db-size")
+def admin_db_size(_: str = Depends(토큰), db: SessionDep = Depends()):
+    """
+    차지한 자리.
+
+    /admin/db에서 떼어 낸 까닭은 이 한 질의가 400ms를 먹기 때문이다. 표와
+    딸린 것을 모두 더하느라 파일 크기를 하나하나 묻는데, 그동안 쪽 전체가
+    기다렸다. 화면은 먼저 서고 이 값만 뒤늦게 채워진다.
+    """
+    크기 = db.execute(text("""
+        SELECT pg_size_pretty(COALESCE(SUM(pg_total_relation_size(c.oid)), 0))
+          FROM pg_class c
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE n.nspname = 'life_expense'
+    """)).scalar() or "-"
+    return {"size": 크기}
+
+
+@router.get("/sessions")
+def admin_sessions(
+    frm: str | None = None,
+    to: str | None = None,
+    ok: str | None = None,
+    x_admin_token: str | None = Header(default=None),
+    _: str = Depends(토큰),
+    db: SessionDep = Depends(),
+):
+    """
+    로그인한 때를 한 줄씩.
+
+    성공과 실패를 한 줄로 합쳐 내놓는다. 둘을 따로 두니 누가 자꾸
+    들어오려 하는지 보려면 두 목록을 눈으로 맞춰 가며 읽어야 했다.
+
+    성공은 토큰이 생긴 때고(admin_sessions), 실패는 기록에 401로 남은
+    줄이다(action_logs). 아직 안 지난 토큰은 열려 있는 것으로 보고, 지금
+    보고 있는 기기의 것만 제 것으로 표시한다.
+
+    어느 기기인지는 적지 않는다. 담아 본 적이 없다.
+    """
+    조건 = ["1 = 1"]
+    값: dict = {"tok": x_admin_token or ""}
+    if frm:
+        조건.append("t.at >= CAST(:frm AS date)")
+        값["frm"] = frm
+    if to:
+        조건.append("t.at < CAST(:to AS date) + INTERVAL '1 day'")
+        값["to"] = to
+    if ok == "1":
+        조건.append("t.ok")
+    elif ok == "0":
+        조건.append("NOT t.ok")
+
+    rows = db.execute(text(f"""
+        WITH t AS (
+            SELECT s.created_at                 AS at
+                 , TRUE                         AS ok
+                 , (s.expires_at > now())       AS alive
+                 , (s.token = :tok)             AS mine
+                 , s.agent                      AS agent
+                 , s.ip                         AS ip
+                 -- 얼마나 열려 있었나. 열려 있는 줄은 지금까지, 닫힌 줄은
+                 -- 닫힌 때까지다. 둘을 한 가지로 적는 까닭은 뜻이 같기
+                 -- 때문이다. 「이 자리가 쓸 수 있던 동안」이다.
+                 , EXTRACT(EPOCH FROM (LEAST(s.expires_at, now()) - s.created_at)) AS held
+              FROM life_expense.admin_sessions s
+             UNION ALL
+            SELECT a.created_at                 AS at
+                 , FALSE                        AS ok
+                 , FALSE                        AS alive
+                 , FALSE                        AS mine
+                 , NULL                         AS agent
+                 , NULL                         AS ip
+                 , NULL                         AS held
+              FROM life_expense.action_logs a
+             WHERE a.kind = 'error'
+               AND a.name = '/admin/login'
+               AND a.status = 401
+        )
+        SELECT to_char(t.at, 'YYYY-MM-DD')      AS on_day
+             -- 초까지 적는다. 같은 분에 두 번 들어오면 분까지로는 두 줄이
+             -- 똑같이 보여, 어느 것이 먼저인지 알 길이 없었다.
+             , to_char(t.at, 'HH24:MI:SS')      AS at_time
+             , t.ok
+             , t.alive
+             , t.mine
+             , t.agent
+             , t.ip
+             , t.held
+          FROM t
+         WHERE {' AND '.join(조건)}
+      ORDER BY t.at DESC
+         LIMIT 200
+    """), 값).mappings().all()
+
+    return {
+        # 지금 열려 있는 기기 수. 거르기와 상관없이 늘 같은 값이라 따로 센다.
+        "live": db.execute(text("""
+            SELECT count(*) FROM life_expense.admin_sessions WHERE expires_at > now()
+        """)).scalar() or 0,
+        "rows": [{
+            "on_day": r["on_day"],
+            "at_time": r["at_time"],
+            "ok": bool(r["ok"]),
+            "alive": bool(r["alive"]),
+            "mine": bool(r["mine"]),
+            "device": _기기이름(r["agent"]) if r["ok"] else "",
+            "ip": r["ip"] or "",
+            "held": int(r["held"]) if r["held"] is not None else None,
+        } for r in rows],
     }
 
 
