@@ -59,7 +59,7 @@ export default function AdminNoticePopup({
    *
    * 그래서 뜬 뒤 첫 손 뗌까지만 판을 손짓에서 비운다. 떼면 곧바로 돌려주므로
    * 쓰는 데에는 아무 차이가 없다. 떼는 신호가 끝내 오지 않을 때를 대비해
-   * 시계도 함께 건다 — useLongPress의 손뗄때까지잠그기와 같은 잣대다.
+   * 시계도 함께 건다. useLongPress의 손뗄때까지잠그기와 같은 잣대다.
    */
   const [손기다림, set손기다림] = useState(꾹눌러열림);
 

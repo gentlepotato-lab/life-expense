@@ -217,7 +217,7 @@ export default function Notices() {
       )}
 
       {목록 === null ? (
-        <p className="page-empty">불러오고 있습니다.</p>
+        <p className="page-empty">불러오는 중입니다.</p>
       ) : 목록.length === 0 ? (
         <p className="page-empty">등록된 공지가 없습니다.</p>
       ) : (
