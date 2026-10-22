@@ -27,6 +27,14 @@
   
   /* Typography */
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Noto Sans KR", sans-serif;
+  /* 코드와 경로와 IP 주소에 쓰는 벌. 정기 내역 카드가 시각에 쓰던 것과
+     같은 값이라, 두 사이트가 같은 글씨로 선다(1504줄 .schedule-card__time). */
+  /* 코드와 경로와 IP 주소를 적는 벌.
+     Courier 대신 코딩 글꼴을 앞에 세운다. Courier는 같은 치수에서 글자가
+     한 단 작아 보이면서도 자리는 더 넓게 먹는다(13px에서 자당 7.8px,
+     Consolas는 7.15px). 윈도에는 Consolas, 맥과 아이폰에는 SF Mono와
+     Menlo가 깔려 있다. */
+  --font-mono: Consolas, "SF Mono", Menlo, "DejaVu Sans Mono", monospace;
   --font-size-xs: 11px;
   --font-size-sm: 13px;
   --font-size-base: 14px;
@@ -6691,6 +6699,13 @@ textarea::placeholder {
 /* 사람 그림은 좁고 키가 커서 혼자 커 보인다. 이쪽은 여백이 없으므로 68이 곧 획
    키이고, 아래 넓은 칸 그림과 눈높이가 한 자리에 선다. */
 .home-art--profile {
+  max-height: 68px;
+}
+
+/* 관리자 쪽 반 칸의 그림도 68px에서 멈춘다. 돈쓴이 그림과 같은 값이라
+   아래 넓은 칸 그림과 눈높이가 한 자리에 선다
+   (pages/components/AdminArt.tsx). */
+.home-art--admin {
   max-height: 68px;
 }
 
@@ -20535,9 +20550,9 @@ html:has(.popup-overlay) .add-btn {
   z-index: 1000;
   /* 게시판에 붙인 쪽지로 보이게 한다. 흰 카드 그대로 두었더니 홈의 다른
      카드와 똑같아, 공지라는 것이 딱지 하나로만 갈렸다.
-     종이에 잉크가 한 방울 번진 빛을 깔고 왼쪽에 띠를 세운다. 띠는 붙여 둔
+     종이에 잉크가 한 방울 번진 빛을 깔고 왼쪽에 띠를 세운다. 띠는 붙인
      쪽이라는 표다 — 묶음 메모가 쓰는 그 잣대인데(.mk-memo, 171절), 거기는
-     오른쪽만 둥글고 여기는 띄워 둔 조각이라 네 귀가 다 둥글다. */
+     오른쪽만 둥글고 여기는 띄운 조각이라 네 귀가 다 둥글다. */
   background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
   border: 1px solid var(--color-border);
   border-left: 3px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
@@ -20605,7 +20620,7 @@ html:has(.popup-overlay) .add-btn {
 
    뒤 장에만 걸었더니 앞자리로 올라오는 장이 툭 튀었다. 뒤 장이라는 표와
    깊이가 한 번에 함께 바뀌는데, 미끄러짐은 바뀐 뒤의 값을 보므로 그때는
-   이미 없는 셈이기 때문이다. 그래서 장마다 걸어 둔다.
+   이미 지나간 값이기 때문이다. 그래서 장마다 건다.
 
    맨 앞 장은 손끝을 따라와야 하므로, 손을 대는 동안만 미는 코드가
    transition: none 으로 끊는다(NoticeBand.tsx의 잡기). */
@@ -20875,17 +20890,20 @@ html:has(.popup-overlay) .add-btn {
    186. 관리자 페이지(2026-10-20)
    ───────────────────────────────────────────── */
 
-/* 사용자 화면과 결을 같게 쓰되 넷만 다르다 — 머리띠, /admin 딱지,
-   떠 있는 단추 없음, 바닥 탭 없음.
+/* 사용자 사이트와 결을 같게 쓴다. 다른 것은 셋이다. 잉크가 남보라가 아니라
+   진한 보라이고, 제목을 묶는 네모가 잿빛이 아니라 연보라이고, 제목 오른쪽
+   끝에 /admin 딱지가 선다.
 
    그래서 새 부품을 거의 만들지 않는다. 카드는 .card, 단추는 .ui-btn,
-   알약은 .subtabs를 그대로 쓰고, 여기서는 그 넷과 자리만 적는다.
-   관리자 전용 이름은 전부 .admin-으로 시작하므로 몇 줄인지 한눈에 센다. */
+   알약은 .subtabs, 바닥 막대는 .tabbar를 그대로 쓰고, 여기서는 빛깔과
+   자리만 적는다. 관리자 전용 이름은 전부 .admin-으로 시작하므로 몇 줄인지
+   한눈에 센다. */
 
-/* 바닥 탭이 없으므로 그만큼 비울 까닭도 없다. 사용자 화면은
-   .page-wrap에 64px을 비우는데(6515줄) 여기서는 되돌린다. */
+/* 바닥 막대가 가리는 만큼 아래를 비운다. 사용자 쪽과 같은 값이다(6515줄).
+   한동안 관리자 쪽에는 막대가 없어 이 값을 되돌려 놓았는데, 탭 넷을 막대로
+   세우면서 다시 비운다. 비우지 않으면 마지막 카드가 막대에 깔린다. */
 .page-wrap.admin {
-  padding-bottom: var(--space-4);
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   /* 100vw로 두었더니 팝업이 열려 구르개가 사라질 때 이 값이 925에서 940으로
      달라지고, 쪽이 910으로 좁아지며 글 전체가 왼쪽으로 8px 흔들렸다.
      100%는 품는 칸을 따라가므로 구르개가 있고 없고에 흔들리지 않는다.
@@ -20894,79 +20912,522 @@ html:has(.popup-overlay) .add-btn {
   /* 바탕을 이 쪽에서만 다시 매기므로, 글이 짧으면 아래쪽에 html의 바탕이
      드러나 띠처럼 보인다. 쪽 끝까지 깔아 그 이음매를 없앤다. */
   min-height: 100dvh;
-  /* 사용자 화면은 위 여백을 머리말이 가진다(7349줄 .page-head). 그래서
-     .page-wrap의 위 여백은 0으로 꺼져 있는데, 여기에는 그 머리말이 없어
-     머리띠가 천장에 붙었다. 머리말이 주던 값과 같은 12px을 돌려준다. */
+  /* 사용자 쪽은 위 여백을 머리말이 가진다(7349줄 .page-head). 그래서
+     .page-wrap의 위 여백은 0으로 꺼져 있다. 관리자 쪽은 머리말이 쪽 안에
+     있어 그 값을 쪽이 쥐고, 머리말 제 여백은 끈다
+     (아래 .page-wrap.admin > .page-head). 둘 다 켜면 두 번 먹는다. */
   padding-top: var(--space-3);
 }
 
-/* 붙박이로 설 때도 제 빛깔을 지킨다. 공용 규칙(.page-wrap > .is-pinned,
-   12211줄)이 바탕을 쪽 바탕으로 덮는데, 머리띠는 보라를 깔아야 한다.
-   알약은 덮여도 괜찮다. 사용자 화면에서도 쪽 바탕을 깔고 선다. */
-.page-wrap.admin > .admin-head.is-pinned {
+/* 제목 옆의 갈래. 음영과 밑줄은 서비스 이름에만 들고, 이쪽은 본문 글꼴로
+   선다. 짙은 띠를 깔던 때는 흰 글씨였는데, 띠를 걷으면서 글빛으로 되돌린다. */
+.page-wrap.admin .admin-head__kind {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* 코드와 경로와 IP 주소. 글자 폭이 고른 벌로 적어 자릿수가 눈에 맞는다.
+
+   치수는 옆칸의 본문 글씨와 같게 두고, x높이만 본문 글꼴에 맞춰 올린다.
+   고른 폭 글꼴은 같은 13px에서도 소문자 키가 6px, 숫자 키가 8px이라
+   본문 글꼴(7px과 10px)보다 한 단 작아 보인다. 한 줄에 글과 수가 나란히
+   서는 자리라 수 쪽만 작아 보이면 글이 먼저 읽힌다.
+
+   font-size-adjust는 x높이를 치수로 나눈 값을 맞춘다. 본문 글꼴
+   (Pretendard)이 13px에서 x높이 7px이므로 0.54다. 이 성질을 모르는 판에서는
+   그냥 제 크기로 선다 — 전까지 보이던 그 크기다. */
+.admin-mono {
+  font-family: var(--font-mono);
+  font-size-adjust: 0.54;
+  letter-spacing: -0.02em;
+}
+
+/* 표 안에서는 칸 규칙(.admin-tbl td, 0-1-1)이 더 세므로 칸 이름을 앞에
+   겹쳐 적어야 이 치수가 먹는다. */
+.admin-tbl td.admin-mono {
+  font-size: var(--font-size-sm);
+}
+
+.admin-tbl tbody th.admin-mono {
+  font-size: var(--font-size-sm);
+}
+
+/* 딱지 안의 수는 딱지 치수를 따른다. 줄 키를 올리지 않으려고 깎은 자리다.
+   칸 규칙을 이기려면 이름을 셋 겹쳐야 한다. */
+.admin-tbl td .admin-tbl__chip.admin-mono,
+.admin-tbl th .admin-tbl__chip.admin-mono {
+  font-size: var(--font-size-xs);
+}
+
+/* ─── 딱지 빛깔 ──────────────────────────────────────────────
+   값이 다르면 음영도 달라야 한 눈에 갈린다. 잉크 한 결만 쓰면 딱지가 모두
+   같은 보라라, 「조회」와 「요청」이 같은 것처럼 읽혔다.
+
+   일곱 벌 모두 파스텔이다. 바탕이 옅어 글씨가 묻히지 않도록 글빛은 그
+   빛깔의 짙은 쪽을 쓴다. 잿빛은 「없음」과 「아직 안 씀」처럼 값이 아닌
+   것에 쓴다. */
+.tint-보라 { background: #EFE7F9; color: #6B2CB8; }
+.tint-청록 { background: #DCF2F0; color: #0B7D77; }
+.tint-하늘 { background: #E2EEFA; color: #1E6AA8; }
+.tint-살구 { background: #FBEADF; color: #A4572B; }
+.tint-분홍 { background: #F8E4EC; color: #A33963; }
+.tint-풀빛 { background: #E6F1DF; color: #4A7A2E; }
+.tint-잿빛 { background: #EDEFF2; color: #6C757D; }
+
+/* ─── 카드 없이 서는 묶음 ─────────────────────────────────────
+   표가 제 테두리를 가졌으므로, 그 위에 카드를 한 번 더 감싸면 금이 두 겹으로
+   겹치고 안쪽 여백도 두 번 든다. 머리말 한 줄만 두고 표를 그대로 세운다. */
+.admin-sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* 묶음 이름. 카드 제목(.admin-card__title)보다 한 단 작고 옅다. 카드가
+   없으므로 이 줄이 곧 묶음이 갈리는 자리다. */
+.admin-sec__head {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* ─── 표 꼴 ──────────────────────────────────────────────────
+   로그인 기록과 조회 기록이 쓴다. 줄마다 카드를 세우면 한 줄에 담긴 것이
+   몇 가지뿐인데도 카드가 쌓여, 훑어 내리기보다 한 장씩 읽게 된다. 표는 눈이
+   세로줄을 따라 내려간다.
+
+   표답게 보이려면 셋이 있어야 한다. 머리말 줄이 바탕으로 갈리고, 칸과 칸
+   사이에 금이 있고, 줄이 한 칸 걸러 옅게 깔리는 것이다. 금 하나만 그었더니
+   줄만 쌓인 목록으로 읽혔다.
+
+   한 줄은 한 줄로 적는다. 칸을 좁혀 두 줄로 접었더니 줄 키가 배로 뛰고
+   읽는 차례도 꺾였다. 좁은 화면에서도 다섯 칸이 한 줄에 서도록 폭을
+   나눈다. */
+.admin-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  /* 칸을 알맹이가 아니라 적어 준 폭으로 나눈다. 알맹이에 맡기면 한 칸이
+     남는 폭을 통째로 먹고 그 자리가 빈 채로 벌어진다. */
+  table-layout: fixed;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  /* 모서리를 둥글게 깎으려면 넘치는 것을 잘라야 한다. 머리말 줄의 바탕이
+     네 귀를 덮기 때문이다. */
+  overflow: hidden;
+}
+
+.admin-tbl th,
+.admin-tbl td {
+  padding: 5px 5px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 머리말 줄. 이 쪽 잉크의 옅은 벌을 깔아 본문과 갈린다. */
+.admin-tbl thead th {
+  padding: 4px 5px;
+  background: var(--color-primary-light);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* 줄과 줄 사이. */
+.admin-tbl tbody tr + tr th,
+.admin-tbl tbody tr + tr td {
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+/* 칸과 칸 사이. 이것이 있어야 표로 읽힌다. */
+.admin-tbl th + th,
+.admin-tbl td + td,
+.admin-tbl th + td,
+.admin-tbl td + th {
+  border-left: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+/* 한 칸 걸러 옅게 깐다. 눈이 가로줄을 따라갈 때 줄을 건너뛰지 않는다. */
+.admin-tbl tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--color-bg) 55%, transparent);
+}
+
+/* 줄의 알맹이. 사용자 쪽 목록의 둘째 이름과 같은 크기다(.cat2-name은 16px
+   700인데, 거기는 카드 제목 자리이고 여기는 줄이라 한 단 낮춘다). */
+.admin-tbl tbody th {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-tbl td {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* 오른쪽에 맞추는 칸. 수가 선 칸은 세로줄이 맞아야 읽힌다.
+
+   칸 이름을 앞에 겹쳐 적는다. 칸 규칙(.admin-tbl td, 0-1-1)이 왼쪽으로
+   맞춰 두므로, 한 겹으로는 이 쏠림이 먹지 않는다. */
+.admin-tbl th.admin-tbl__right,
+.admin-tbl td.admin-tbl__right {
+  text-align: right;
+}
+
+/* 가운데에 세우는 칸. */
+.admin-tbl th.admin-tbl__center,
+.admin-tbl td.admin-tbl__center {
+  text-align: center;
+}
+
+/* 닫힌 줄은 글씨도 한 단 물러선다. 자물쇠를 못 봐도 줄 전체가 옅어 갈린다. */
+.admin-tbl tbody tr.is-off th,
+.admin-tbl tbody tr.is-off td {
+  color: var(--color-text-tertiary);
+}
+
+/* 줄 안의 딱지. 줄 키를 올리지 않도록 위아래를 깎는다. */
+.admin-tbl__tag,
+.admin-tbl__chip {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* 둥근 딱지. 이름처럼 글인 값에 쓴다. */
+.admin-tbl__tag {
+  padding: 0 7px;
+  border-radius: 999px;
+}
+
+/* 네모 딱지. 시간이나 수처럼 재어 적은 값에 쓴다. */
+.admin-tbl__chip {
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+}
+
+/* 한 칸에 글과 딱지를 나란히 담을 때. 둘 사이만 띄운다. */
+.admin-tbl__pair {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.admin-tbl__pair > .admin-tbl__chip {
+  flex: 0 0 auto;
+}
+
+.admin-tbl tbody tr.is-off .admin-tbl__tag,
+.admin-tbl tbody tr.is-off .admin-tbl__chip {
+  background: var(--color-bg);
+  color: var(--color-text-tertiary);
+}
+
+/* 지금 보고 있는 기기. 줄 왼쪽에 띠를 세운다. */
+.admin-tbl tbody tr.is-here th:first-child,
+.admin-tbl tbody tr.is-here td:first-child {
+  position: relative;
+}
+
+.admin-tbl tbody tr.is-here th:first-child::before,
+.admin-tbl tbody tr.is-here td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
   background: var(--color-primary);
 }
 
-/* 머리띠. 제목과 갈래와 딱지가 왼쪽에 한 줄로 선다.
-   오른쪽은 비운다. 떠 있는 새로 고침 단추가 그 자리를 덮기 때문이다. */
-.admin-head {
+/* 상태 칸. 자물쇠 하나가 가운데 선다.
+   안쪽 여백을 줄이고 기호를 조각으로 감싼다. 글자처럼 두면 줄간과 글자
+   사이의 빈틈이 붙어 칸이 10px 더 넓어야 했다. */
+.admin-tbl__mark {
+  padding-left: 4px;
+  padding-right: 4px;
+  text-align: center;
+}
+
+.admin-tbl__mark > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-tbl__mark svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+/* 열렸나 닫혔나 실패했나. 셋을 빛깔로도 가른다. */
+.admin-tbl td.admin-tbl__mark--open,
+.admin-legend .admin-tbl__mark--open { color: var(--color-success); }
+.admin-tbl td.admin-tbl__mark--shut,
+.admin-legend .admin-tbl__mark--shut { color: var(--color-text-tertiary); }
+.admin-tbl td.admin-tbl__mark--bad,
+.admin-legend .admin-tbl__mark--bad { color: var(--color-danger); }
+
+/* 칸이 다섯인 로그인 기록은 못 박은 네 칸의 폭을 여기서 쥔다. 좁은 화면에서
+   그 값을 줄여 다섯이 한 줄에 서게 한다.
+
+   옆으로 미는 상자를 두었다가 걷었다. 표만 미는 것이라 쪽이 흔들리지는
+   않았지만, 손으로 밀어야 IP 주소가 보이는 표가 됐다. 칸을 줄이는 쪽이 낫다. */
+.admin-tbl--login {
+  --c-at: 78px;
+  --c-held: 62px;
+  --c-ip: 129px;
+  --c-lock: 32px;
+}
+
+/* 412px보다 좁은 화면. 고른 폭 글꼴을 본디 치수로 되돌리고 그만큼 칸을
+   줄인다. x높이를 올려 둔 채로는 IP 주소 열넉 자가 129px을 먹어, 다섯 칸이
+   360px 한 줄에 들어가지 않는다. 글이 잘리느니 이 화면에서만 수가 한 단
+   작아지는 쪽이 낫다. */
+@media (max-width: 404px) {
+  .admin-tbl--login {
+    --c-at: 64px;
+    --c-held: 58px;
+    --c-ip: 108px;
+    --c-lock: 28px;
+  }
+
+  .admin-tbl--login .admin-mono {
+    font-size-adjust: none;
+  }
+
+  /* 칸 안쪽 여백도 두 뼘 깎는다. 다섯 칸이니 이것만으로 20px이 난다.
+     글씨는 그대로 두고 여백만 줄이는 쪽이, 글을 잘라 내는 것보다 낫다. */
+  .admin-tbl--login th,
+  .admin-tbl--login td {
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+}
+
+/* 칸 안에 딱지만 선 자리는 가운데로 모은다. 왼쪽에 붙여 두면 딱지 폭이
+   줄마다 달라 세로줄이 들쭉날쭉해, 표가 어긋나 보인다. 글과 나란히 담은
+   딱지(.admin-tbl__pair)는 글에 붙어 서야 하므로 집지 않는다.
+
+   머리말은 함께 집히지 않는다. 칸에 .admin-tbl__center를 적어 맞춘다 —
+   세로 칸(<col>)에는 글 쏠림을 걸 수 없다. */
+.admin-tbl td:has(> .admin-tbl__tag),
+.admin-tbl td:has(> .admin-tbl__chip) {
+  text-align: center;
+}
+
+/* 말줄임 대신 줄을 바꾸는 칸. 길이가 정해지지 않은 글이 드는 자리다.
+   잘려 사라지는 것보다 두 줄이 되는 쪽이 낫다 — 꼬리가 잘린 글은 아무
+   말도 아니다. 우리말은 낱말째로 넘기고, 길 이름처럼 넘길 자리가 없는
+   글은 아무 데서나 넘긴다. */
+.admin-tbl th.admin-tbl__wrap,
+.admin-tbl td.admin-tbl__wrap {
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* ─── 몫 띠 ──────────────────────────────────────────────────
+   쌓인 줄이 어느 표에 몰려 있는지를 넓이로 보인다. 수만 늘어놓으면 3,024와
+   2,752와 395가 모두 「많다」로 읽힌다.
+
+   칸 사이는 바탕빛 금으로 가른다. 틈(gap)으로 벌리면 백분으로 적은 칸 폭에
+   틈이 더해져 띠가 100%를 넘고, 마지막 칸이 잘린다. */
+.admin-share {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.admin-share__part {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  min-width: 3px;
+  border-right: 2px solid var(--color-surface);
+}
+
+.admin-share__part:last-child {
+  border-right: 0;
+}
+
+/* 어느 빛깔이 어느 표인지. 띠 안에 적으면 좁은 칸의 글이 잘린다. */
+.admin-share__keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.admin-share__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.admin-share__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+/* ─── 카드에서 들어가는 단추 ──────────────────────────────────
+   줄 오른쪽 끝에 선다. 딱지와 같은 키로 적어 한 줄에 선 것들과 결이 맞는다.
+   화살 하나를 붙인다 — 글만 두면 눌러 보라는 것인지 읽히지 않는다. */
+.admin-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  flex: 0 0 auto;
+  height: 21px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.admin-go:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+/* 배치 카드의 이름. 카드의 알맹이라 굵게 적는다. 내역 카드는 분류가 그
+   자리에 서는데, 거기는 같은 줄에 금액이 굵게 서 있어 분류까지 굵으면 둘이
+   다툰다. 이 카드에는 금액이 없다. */
+.page-wrap.admin .schedule-card .cat-text {
+  font-weight: 700;
+}
+
+/* 마지막으로 돌고 남긴 글. 금액이 아니므로 금액 크기로 적지 않는다.
+   .amount-text를 그대로 쓰던 때는 「0건」이 카드에서 가장 큰 글씨였다. */
+.admin-batch__note {
+  flex: 0 0 auto;
+  max-width: 50%;
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 단추를 줄 오른쪽 끝으로 미는 빈 자리. */
+.admin-batch__gap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 마지막 실행과 다음 실행이 서는 줄. 둘이 나란히 오른쪽 끝에 붙는다.
+
+   폭이 모자라면 아래로 접힌다. 한 줄에 못 들어가는 것을 깎아 내면 「마지막
+   실행 10. 22. (목) 7:5…」처럼 시각이 잘려, 아무 말도 아닌 딱지가 된다. */
+.admin-batch__runs {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+/* 접혀 내려온 딱지도 제 글을 다 보인다. 딱지에 걸린 말줄임은 줄이 모자랄
+   때를 받는 것인데, 여기는 줄을 더 쓰는 쪽으로 받는다. */
+.admin-batch__runs > .admin-tbl__chip {
+  max-width: none;
+  overflow: visible;
+}
+
+/* 첫 카드만 한 뼘 내린다.
+
+   책갈피는 카드 위로 9px 나온다. 내역 쪽은 카드 위에 날짜 단 머리말이 서서
+   그 자리가 비어 있는데, 배치 쪽은 머리말 바로 밑에 카드가 붙어 나온 만큼이
+   머리말 상자에 들어간다. 머리말이 위에 깔리므로(z-index 950) 책갈피 머리가
+   그 바탕에 가렸다.
+
+   머리말을 카드 밑으로 내리지 않는 까닭은, 굴릴 때 카드가 머리말을 덮고
+   지나가기 때문이다. 머리말은 위에 붙어 있어야 한다.
+
+   10px이면 책갈피 머리(카드 위 9px)가 머리말 상자 밖으로 나온다. 카드와
+   카드 사이는 8px 그대로다. */
+.page-wrap.admin .admin-edit > .card--entry:first-child {
+  margin-top: 10px;
+}
+
+/* 책갈피 빛깔. 수입도 지출도 아닌 카드라 풀빛도 벽돌빛도 설 까닭이 없다.
+   내역 카드보다 한 결 묽힌다(거기는 56%다) — 이 카드에는 같은 줄에 금액
+   딱지가 없어, 같은 몫으로 칠하면 책갈피만 먼저 눈에 든다. */
+.page-wrap.admin .card--entry > .inout-bar {
+  background: color-mix(in srgb, var(--color-primary) 40%, var(--color-surface));
+}
+
+/* 기호가 무엇을 뜻하는지 적는 줄. 표 바로 위에 선다. */
+.admin-legend {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  max-width: 760px;
-  margin-inline: auto;
-  margin-bottom: var(--space-3);
-  padding: var(--space-3);
-  background: var(--color-primary-light);
-  border-radius: var(--radius);
+  gap: 8px;
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
 }
 
-/* 제목. 사용자 화면의 머리말 제목(6391줄 .page-title)을 그대로 옮긴다.
-   고운바탕 19px 700에 비스듬한 밑줄까지 같은 값이다. 다른 것은 바탕이
-   짙어서 네모와 밑줄을 흰빛 쪽으로 뒤집은 것뿐이다.
-
-   고운바탕은 앱 이름에만 쓴다. 처음에는 「돈을 쓰다 관리자」를 통째로
-   입혔는데, 「관리자」까지 멋 부린 글씨가 되니 이름인지 갈래인지 흐려졌다.
-   이름만 네모에 넣고 갈래는 본문 글꼴로 뗀다.
-
-   글꼴은 index.html이 400과 700을 미리 받으므로 여기서 더 받을 것은 없다. */
-.admin-head__title {
-  display: inline-block;
-  margin: 0;
-  padding: 3px 11px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.12);
-  font-family: "Gowun Batang", serif;
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.4;
-  color: #FFFFFF;
+.admin-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-/* 글자만 기울이고 네모는 반듯하게 둔다. 바탕까지 기울면 평행사변형이 된다.
-   사용자 화면은 밝은 네모에 옅은 빛깔을 깔지만, 여기는 바탕이 짙어 흰 글씨를
-   쓴다. 밑줄까지 흰빛으로 깔았더니 글씨와 겹쳐 또렷함이 깎여서 짙은 쪽으로
-   뒤집었다. */
-.admin-head__title .admin-head__in {
-  display: inline-block;
-  padding: 0 2px;
-  background: linear-gradient(
-    transparent 62%,
-    rgba(0, 0, 0, 0.18) 62%
-  );
-  transform: skewX(-7deg);
+.admin-legend svg {
+  width: 14px;
+  height: 14px;
 }
 
-/* 갈래. 이름 옆에 본문 글꼴로 선다. */
-.admin-head__kind {
-  font-size: var(--font-size-base);
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+.admin-legend__here {
+  width: 3px;
+  height: 12px;
+  background: var(--color-primary);
 }
 
-/* 붉은 딱지. 화면을 캡처해 놓고 나중에 볼 때 어느 쪽인지 알아보게 한다. */
-.admin-head__tag {
+/* 배치 카드 사이. 정기 내역 카드는 제 아래 여백으로 12px씩 벌리는데
+   (1399줄 .schedule-card), 여기는 카드를 품은 격자가 이미 틈을 쥐고 있어
+   그 둘이 더해져 20px로 벌어졌다. 카드가 쥔 여백을 걷고 격자의 틈만 쓴다. */
+.page-wrap.admin .schedule-card {
+  margin-bottom: 0;
+}
+
+/* 주소 딱지. 메인 탭의 제목 오른쪽 끝에 선다. 화면을 캡처해 놓고 나중에
+   볼 때 어느 사이트인지 알아보게 하는 표다.
+
+   전에는 보라 띠를 깔고 그 안에 제목과 갈래와 이 딱지를 함께 세웠다. 띠를
+   걷은 까닭은 그 쪽만 제목이 선 자리가 다른 쪽들과 어긋났기 때문이다. 이제
+   제목은 다른 쪽과 같은 머리말에 서고, 남는 것은 이 딱지 하나다. */
+/* 주소 딱지. 안내 줄 오른쪽 끝에 띄워서 얹는다.
+
+   줄 안에 끼워 세우지 않는 까닭은 탭마다 앞에 선 글의 폭이 달라 딱지가
+   그만큼씩 옮겨 다녔기 때문이다. 띄워 얹으면 어느 탭에서나 같은 자리다.
+   줄 흐름에서 빠지므로 머리말 키도, 안내 줄도, 그 아래 칸도 그대로다. */
+.admin-path-tag {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: var(--font-size-xs);
   font-weight: 700;
   color: var(--color-danger);
@@ -20974,6 +21435,12 @@ html:has(.popup-overlay) .add-btn {
   border: 1px solid var(--color-danger);
   border-radius: var(--radius-sm);
   padding: 1px var(--space-2);
+}
+
+/* 딱지가 설 자리를 비워 둔다. 안내 글이 길어도 딱지 밑으로 들어가지 않는다.
+   사용자 사이트의 만년필 자국이 쓰는 그 변수다(.page-note). */
+.page-wrap.admin .page-head .page-note {
+  --doodle-room: 62px;
 }
 
 
@@ -21020,11 +21487,39 @@ html[data-motion="off"] .admin-pane,
    처음에는 긴 이름을 그대로 두고 가로로 넘겼는데, 손전화에서 다섯째
    알약의 오른쪽이 잘려 덜 만든 것처럼 보였다. 이름을 줄여 다섯 칸에
    앉혔다. */
-.subtabs.admin-tabs {
+/* 머리말은 본문과 같은 기둥 안에 선다. 본문이 760px에서 멈추므로
+   (.admin-dash) 머리말만 끝까지 뻗으면 넓은 화면에서 제목과 알약이 카드
+   왼쪽 바깥에 홀로 선다.
+
+   위와 옆 여백은 끈다. 사용자 쪽에서는 머리말이 .page-wrap 바깥에 서서 그
+   여백을 저가 쥐는데(7349줄), 관리자 쪽은 쪽 안에 있어 쪽의 여백 위에 제
+   여백이 한 번 더 얹혔다. 그래서 제목이 사용자 쪽보다 오른쪽으로 8px,
+   아래로 12px 밀려 있었다. 아래 여백은 그대로 둔다. 머리말과 본문 사이를
+   벌리는 값이라 사용자 쪽과 같아야 한다. */
+.page-wrap.admin > .page-head {
   max-width: 760px;
   margin-inline: auto;
-  /* 알약 바로 아래에 카드가 붙어 있었다. 머리띠가 아래에 두는 값과 같게 띄운다. */
-  margin-bottom: var(--space-3);
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* 딱지도 이 쪽 잉크를 따른다. 사용자 쪽 딱지는 초록 한 벌을 쓰는데
+   (.tag, 97절), 보라 한 결로 세운 쪽에 초록이 끼면 그 결이 깨진다. 빛깔만
+   바꾸고 꼴은 그대로 둔다. 대시보드의 칸 딱지가 쓰는 그 두 값이다
+   (.admin-tile__tag). */
+.page-wrap.admin .tag {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+/* 관리자 쪽 그림도 잉크 한 결로 세운다. 빛깔 벌이 내려 주는 세 값은 사용자
+   쪽의 것이라, 그대로 두면 보라 틈에 청록이 끼어 결이 깨진다
+   (utils/palettes.ts, pages/components/AdminArt.tsx). */
+.page-wrap.admin {
+  --art-ink: #6B2CB8;
+  --art-aqua: #9A6BD6;
+  --art-tint: #DCCBF1;
 }
 
 /* 암호를 묻는 자리. 카드 하나를 가운데 세운다. */
@@ -21038,13 +21533,13 @@ html[data-motion="off"] .admin-pane,
   gap: var(--space-3);
 }
 
-/* 잠긴 화면의 제목. 카드 제목과 같은 음영을 깐다. */
+/* 잠긴 화면의 제목. 이 쪽에서 가장 큰 글씨다 — 그 화면에는 제목 하나뿐이다. */
 .admin-gate__title {
   margin: 0;
   font-size: var(--font-size-lg);
   font-weight: 700;
   color: var(--color-text-primary);
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+  letter-spacing: -0.01em;
 }
 
 /* 안내 문구를 한 꼴로 모은다. 잠긴 화면과 비밀번호 바꾸기와 카드 안의
@@ -21132,7 +21627,7 @@ html[data-motion="off"] .admin-pane,
    방법은 토큰을 이 subtree에서만 다시 매기는 것이다. 사용자 쪽 빛깔 벌은
    html에 인라인으로 적히는데(utils/palettes.ts), 자식이 같은 이름을 다시
    매기면 그 아래에서는 자식 것이 이긴다. 그래서 .card와 .ui-btn과
-   .subtabs를 고치지 않고도 결이 바뀐다 — 새 부품을 만들지 않는 까닭이다.
+   .subtabs를 고치지 않고도 결이 바뀐다. 새 부품을 만들지 않는 까닭이다.
 
    고른 결: 종이는 앱과 한 값이다. 바탕도 카드도 테두리도 글빛도 :root에
    적힌 그대로 쓴다. 통일성이 사는 자리가 거기다. 다른 것은 잉크 한 가지,
@@ -21173,19 +21668,15 @@ html[data-motion="off"] .admin-pane,
   accent-color: var(--color-primary);
 }
 
-/* 머리띠는 짙게 깐다. 띠 하나로 "여기는 다른 자리"가 읽힌다. */
-.admin-head {
-  background: var(--color-primary);
-  color: #FFFFFF;
-}
-.admin-head__tag {
-  color: var(--color-primary);
-  background: #FFFFFF;
-  border-color: #FFFFFF;
+/* 제목을 묶는 네모는 연보라로 깐다. 사용자 쪽은 옅은 잿빛을 깔지만
+   (6391줄 .page-head .page-title), 보라 한 결로 선 쪽에 잿빛이 끼면 그
+   결이 깨진다. 전에 머리띠 안의 제목에 깔던 그 빛깔이다. */
+.page-wrap.admin .page-head .page-title {
+  background: var(--color-primary-light);
 }
 
 /* ─── 대시보드 ────────────────────────────────────────────────
-   카드 넷. 손전화에서는 한 칸으로 쌓고 넓어지면 두 칸으로 접는다 — 씀씀이의
+   카드 넷. 손전화에서는 한 칸으로 쌓고 넓어지면 두 칸으로 접는다. 씀씀이의
    그림 칸(.chart-grid)이 두 칸이 되는 640px을 그대로 쓴다. */
 .admin-dash {
   max-width: 760px;
@@ -21250,16 +21741,18 @@ html[data-motion="off"] .admin-pane,
   gap: 2px;
 }
 
-/* 카드 제목. 본문보다 한 단 크고 옅은 음영을 깐다. 카드가 여럿 쌓이는
-   화면이라 제목 줄이 먼저 읽혀야 눈이 어디쯤인지 안다. 음영은 글자가
-   도드라지는 정도까지만 준다. 사용자 화면에는 음영을 쓰는 자리가 없으므로
-   관리자 쪽에만 둔다. */
+/* 카드 제목. 사용자 사이트의 그림 카드 제목과 같은 크기, 같은 무게다
+   (.chart-card__title, 8829줄).
+
+   전에는 한 단 크게(16px) 적고 글자에 음영까지 깔았다. 사용자 사이트에는
+   글자 음영을 쓰는 자리가 한 곳도 없어, 두 사이트를 오가면 이 쪽만 글씨가
+   굵고 떠 보였다. */
 .admin-card__title {
   margin: 0;
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--color-text-primary);
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+  letter-spacing: -0.01em;
 }
 
 /* 그림이 서는 자리. 키를 못 박아야 카드가 들썩이지 않는다. 씀씀이의
@@ -21339,7 +21832,7 @@ html[data-motion="off"] .admin-pane,
 }
 
 /* ─── 공지와 문구와 메뉴를 고치는 자리 ────────────────────────
-   카드 하나에 칸과 단추를 세로로 늘어놓는다. 넓어져도 두 칸으로 접지 않는다 —
+   카드 하나에 칸과 단추를 세로로 늘어놓는다. 넓어져도 두 칸으로 접지 않는다.
    고치는 자리는 눈이 한 줄기로 내려가야 한다. */
 .admin-edit {
   max-width: 760px;
@@ -21397,34 +21890,34 @@ html[data-motion="off"] .admin-pane,
   text-overflow: ellipsis;
 }
 
-/* 줄 목록 칸의 키는 알맹이가 쥔다. 208px로 못 박아 두었던 때는 묶음 둘이
+/* 줄 목록 칸의 키는 알맹이가 쥔다. 208px로 못 박았던 때는 묶음 둘이
    그 안에 다 들지 못해 세로로 굴러야 했고, 줄이 모자라는 날에는 아래쪽이
-   비었다. overflow 는 남겨 둔다 — 글자 크기를 키운 기기에서 넘칠 때를
+   비었다. overflow 는 그대로 남긴다. 글자 크기를 키운 기기에서 넘칠 때를
    대비한 것이다. */
 
 /* 한 칸이 묶음 둘을 품을 때. 머리말 둘과 줄 다섯씩이 든다.
    머리 18 + 틈 8 + 줄 다섯(5×18) + 사이 넷(4×8) = 148, 묶음 둘에 사이
    16을 더해 312다. */
 /* 묶음 둘이 드는 칸. 키는 알맹이가 쥔다(.admin-card__body--auto).
-   404px로 못 박아 두었더니 줄이 다섯에 못 미치는 날 아래쪽이 휑하게 비었고,
+   404px로 못 박았더니 줄이 다섯에 못 미치는 날 아래쪽이 휑하게 비었고,
    344px이던 때는 다 찬 날 세로로 굴러야 했다. 둘 다 아닌 쪽은 알맹이에
-   딱 맞추는 것뿐이다 — 대신 줄 수가 달라지면 칸 키도 따라 달라진다. */
+   딱 맞추는 것뿐이다. 대신 줄 수가 달라지면 칸 키도 따라 달라진다. */
 .admin-card:has(.admin-hint) > .admin-card__body--parts {
   gap: var(--space-2);
 }
 
-/* 줄 수가 많아 키를 못 박지 않는 칸. 화면별 조회 수가 그렇다 — 화면 수는
-   정해져 있으므로 줄 수가 변하지 않고, 그래서 키를 열어 두어도 기간을 바꿀
+/* 줄 수가 많아 키를 못 박지 않는 칸. 화면별 조회 수가 그렇다. 화면 수는
+   정해져 있으므로 줄 수가 변하지 않고, 그래서 키를 열어도 기간을 바꿀
    때 칸이 들썩이지 않는다.
 
-   거드는 줄(.admin-hint)에 걸어 두었다가 그 줄을 걷으니 이 규칙이 함께
+   거드는 줄(.admin-hint)에 걸었다가 그 줄을 걷으니 이 규칙이 함께
    떨어져 나가, 칸이 196px로 접히며 알맹이가 잘렸다. 거드는 줄이 있든 없든
    걸리도록 떼어 놓는다. 바탕 규칙(.admin-card__body)과 셈이 같으므로
    파일에서 뒤에 와야 이긴다. */
 .admin-card__body--auto {
   height: auto;
   justify-content: flex-start;
-  /* 묶음 사이는 카드 사이와 같은 8px이다(.admin-grid). 16px로 벌려 두었더니
+  /* 묶음 사이는 카드 사이와 같은 8px이다(.admin-grid). 16px로 벌렸더니
      한 칸 안의 묶음이 카드끼리보다 멀어, 묶음이 저마다 다른 카드처럼
      읽혔다. 안쪽 여백 12px이 숨통을 맡는다. */
   gap: var(--space-2);
@@ -21444,7 +21937,7 @@ html[data-motion="off"] .admin-pane,
   background: var(--color-bg);
 }
 
-/* 묶음 머리말. 칸 제목(.admin-card__title)보다 한 단 작고 옅다 — 칸 안의
+/* 묶음 머리말. 칸 제목(.admin-card__title)보다 한 단 작고 옅다. 칸 안의
    갈래지 칸 제목이 아니라는 것이 한눈에 보여야 한다.
    아래로 실금을 긋는다. 머리말과 알맹이가 붙어 서면 머리말이 첫 줄처럼
    읽힌다. */
@@ -21473,20 +21966,12 @@ html[data-motion="off"] .admin-pane,
   color: var(--color-primary);
 }
 
-/* 떠 있는 단추들. 사용자 화면은 아래 이동 막대(52px) 위로 쌓는데, 이 쪽에는
-   그 막대가 없다. 그대로 두면 맨 위로 단추 아래에 76px이 비어 붕 떠 보인다.
-   막대 자리만큼 내려 바닥에 붙인다. 둘 사이 8px은 그대로다. */
-.page-wrap.admin ~ .scroll-top,
-.page-wrap.admin ~ .add-btn,
-.page-wrap.admin .scroll-top,
-.page-wrap.admin .add-btn {
-  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-}
+/* 떠 있는 단추들은 사용자 사이트의 자리를 그대로 쓴다. 맨 위로가 아래
+   이동 막대 위에 76px, 더하기가 그 위에 128px이다(.scroll-top, .add-btn).
 
-.page-wrap.admin ~ .add-btn,
-.page-wrap.admin .add-btn {
-  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
-}
+   전에는 이 쪽만 24px과 76px로 내려 바닥에 붙였다. 그때는 관리자 쪽에
+   이동 막대가 없어 단추 아래가 비어 붕 떠 보였기 때문이다. 바닥 막대를
+   세우면서(AdminTabBar.tsx) 맨 위로가 그 막대를 덮었다. */
 
 /* 한 줄에 선 단추들을 오른쪽 끝으로 민다. */
 .admin-row--end {
@@ -21719,7 +22204,7 @@ textarea.admin-area:focus {
    처음에는 글 키만큼인 18px이라 다닥다닥 붙었고, 44px로 벌렸더니 이번에는
    한 화면에 너덧 줄밖에 안 들어왔다. */
 /* 자리를 내려받는 동안 세우는 빈 칸. 알약 아래가 접혔다 펴지지 않게
-   키만 잡아 둔다. */
+   키만 잡는다. */
 .admin-wait {
   min-height: 60vh;
 }
@@ -21799,7 +22284,7 @@ textarea.admin-area:focus {
   --row-bg: var(--color-surface);
 }
 
-/* 펼치면 제목을 다 보인다 — 띠와 같은 잣대다. 목록이라 줄마다 키가 달라져도
+/* 펼치면 제목을 다 보인다. 띠와 같은 잣대다. 목록이라 줄마다 키가 달라져도
    아래 카드가 들썩일 뿐 어긋나지는 않는다. */
 .notice-card.is-open .notice-card__title {
   overflow: visible;
@@ -21885,14 +22370,23 @@ textarea.admin-area:focus {
   -webkit-touch-callout: none;
 }
 
-/* 스위치는 늘 보인다. 줄이 좁아도 이것만은 줄지 않는다 — 켜고 끄는
+/* 스위치는 늘 보인다. 줄이 좁아도 이것만은 줄지 않는다. 켜고 끄는
    자리라 잘리면 끌 길이 없다. */
 .admin-list__row > .set-onoff {
   flex: 0 0 auto;
 }
 
+/* 조회 기록의 딱지는 줄지 않는다. 길과 수와 시각이 함께 줄어 「1,101...」과
+   「09:...」처럼 잘렸는데, 꼬리가 잘린 수는 아무 말도 아니다. 줄어드는 것은
+   이름 하나로 족하다. 거기는 본디 말줄임이 붙는 자리다.
+   공지 쪽은 이 규칙을 받지 않는다. 거기는 줄 끝에 스위치가 서므로 딱지가
+   줄어 주지 않으면 그 스위치가 줄 밖으로 밀린다(21905줄). */
+.admin-list--log > .admin-list__row > .admin-list__path {
+  flex: 0 0 auto;
+}
+
 /* 꺼짐 딱지. 줄의 오른쪽 끝에 서고, 줄이 좁아도 줄지 않는다. 앞선 이름 칸이
-   남은 자리를 다 먹으므로 따로 밀지 않아도 끝에 붙는다 — 32절이 걸어 둔
+   남은 자리를 다 먹으므로 따로 밀지 않아도 끝에 붙는다. 32절이 건
    margin-left: auto는 이 줄에서 할 일이 없다. 10절의 margin-left: 6px이
    다시 걸리는 일도 없도록 틈은 줄이 쥔 gap만 쓴다. */
 .admin-list__row > .set-hide-mark {

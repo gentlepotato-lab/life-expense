@@ -26,17 +26,6 @@ const Charts = lazy(() => import("./pages/Charts"));
 const Admin = lazy(() => import("./pages/Admin"));
 /* 관리자 자리 다섯도 늦게 불러 온다. 미리 불러 오면 그림 라이브러리까지
    첫 묶음에 들어가, 관리자 화면에 들어오지 않는 사람도 그 짐을 진다. */
-const AdminDash = lazy(() => import("./pages/components/AdminDash"));
-const AdminNotices = lazy(() => import("./pages/components/AdminNotices"));
-const AdminDoodle = lazy(() =>
-  import("./pages/components/AdminToggles").then((m) => ({ default: m.AdminDoodle }))
-);
-const AdminMenu = lazy(() =>
-  import("./pages/components/AdminToggles").then((m) => ({ default: m.AdminMenu }))
-);
-const AdminPassword = lazy(() =>
-  import("./pages/Admin").then((m) => ({ default: m.AdminPassword }))
-);
 
 import PageHead from "./pages/components/PageHead";
 import TabBar from "./pages/components/TabBar";
@@ -203,28 +192,23 @@ function App() {
         {/* 공지사항 — 홈의 띠가 띄우는 것까지 지난 것을 모두 모은다. */}
         <Route path="/notices" element={<Notices />} />
 
-        {/* 관리자 페이지. 메뉴에도 탭에도 띄우지 않는다 — 주소를 쳐야
+        {/* 관리자 사이트. 메뉴에도 탭에도 띄우지 않는다. 주소를 쳐야
             들어오고, 들어와서도 비밀번호를 넣어야 열린다.
-            자리 다섯을 길로 쪼갠다. 바깥 틀이 자물쇠와 머리띠와 알약을
-            쥐고, 알맹이만 자리마다 갈린다(Outlet). 상태로 들고 있던 때는
-            새로 고치면 첫 자리로 돌아갔다. */}
+
+            길 하나만 둔다. 탭과 쪽은 관리자 틀이 제 안에서 가른다
+            (pages/Admin.tsx). 여기서 쪽마다 lazy로 쪼갰더니 어느 쪽에 처음
+            들어갈 때마다 320ms씩 멈췄다. 받는 데 걸린 참이 아니라, 기다리는
+            자리(Suspense)가 한 번 뜨고 나면 React가 알맹이를 300ms 뒤에야
+            보여 주기 때문이다. 쪽들을 관리자 묶음 하나에 담으면 기다리는
+            자리가 아예 뜨지 않는다. */}
         <Route
-          path="/admin"
+          path="/admin/*"
           element={
             <Suspense fallback={<div className="page-wrap" />}>
               <Admin />
             </Suspense>
           }
-        >
-          <Route index element={<Navigate to="/admin/dash" replace />} />
-          <Route path="dash" element={<AdminDash />} />
-          <Route path="notice" element={<AdminNotices />} />
-          <Route path="doodle" element={<AdminDoodle />} />
-          <Route path="menu" element={<AdminMenu />} />
-          <Route path="pw" element={<AdminPassword />} />
-          {/* 모르는 자리는 첫 자리로. */}
-          <Route path="*" element={<Navigate to="/admin/dash" replace />} />
-        </Route>
+        />
 
         {/* 존재하지 않는 경로 → 홈으로 */}
         <Route path="*" element={<Navigate to="/" replace />} />

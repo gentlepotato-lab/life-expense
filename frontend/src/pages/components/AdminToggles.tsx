@@ -10,6 +10,9 @@ import OnOffToggle from "./OnOffToggle";
 import CollapseToggle, { CollapseAllButtons } from "./CollapseToggle";
 import { invalidateMenuOff, loadMenuOff } from "../../utils/menuOff";
 import { invalidateDoodlePool, loadDoodlePool } from "../../utils/doodlePool";
+import AdminFilterPopup from "./AdminFilterPopup";
+import SingleSelect from "./SingleSelect";
+import { EditField } from "./CardEditModal";
 
 /**
  * 메뉴 On/Off와 애니메이션 문구. 켜고 끄는 두 자리다.
@@ -119,7 +122,7 @@ export function AdminMenu() {
             </h3>
             {!접힘.has(g) &&
               (꺼진것 === null ? (
-                <p className="page-empty">불러오고 있습니다.</p>
+                <p className="page-empty">불러오는 중입니다.</p>
               ) : (
                 <ul className="admin-list">
                   {MENU_REGISTRY.filter((m) => m.group === g).map((m) => {
@@ -157,6 +160,19 @@ export function AdminMenu() {
   );
 }
 
+/**
+ * 문구를 거르는 조건.
+ *
+ * 켜짐은 ""이 전체, "1"이 켜진 것, "0"이 꺼진 것이다. 글은 든 글자로 찾는다.
+ * 공지의 거르기와 같은 꼴이다(AdminNotices.tsx).
+ *
+ * 서버에 묻지 않고 받은 목록에서 골라낸다. 모양 여덟에 문구 몇이라,
+ * 조건마다 요청을 새로 내는 쪽이 오히려 더 느리다.
+ */
+type 거름 = { 켜짐: string; 글: string };
+const 안거름: 거름 = { 켜짐: "", 글: "" };
+const 걸렸나 = (f: 거름) => !!(f.켜짐 || f.글.trim());
+
 export function AdminDoodle() {
   const [목록, set목록] = useState<문구[] | null>(null);
   const [편집중, set편집중] = useState(false);
@@ -166,6 +182,10 @@ export function AdminDoodle() {
   const [새글, set새글] = useState("");
   /* 담는 칸을 열었나. 떠 있는 단추를 누르면 열린다. */
   const [담는중, set담는중] = useState(false);
+  const [걸림, set걸림] = useState<거름>(안거름);
+  /* 팝업 안에서 고치는 중인 조건. [적용]을 누르지 않고 닫으면 버린다. */
+  const [초안, set초안] = useState<거름>(안거름);
+  const [필터열림, set필터열림] = useState(false);
 
   const 받기 = useCallback(() => {
     axios
@@ -256,8 +276,21 @@ export function AdminDoodle() {
     }
   };
 
-  const 모양들 = (목록 ?? []).filter((x) => x.kind === "mark");
-  const 문구들 = (목록 ?? []).filter((x) => x.kind !== "mark");
+  /* 거른 뒤의 목록. 편집 중에도 거른 채로 둔다. 저장은 바뀐 줄만 보내므로
+     가려진 줄이 함께 지워지거나 덮이는 일은 없다. */
+  const 걸러낸것 = (들: 문구[]) =>
+    들.filter((x) => {
+      if (걸림.켜짐 === "1" && !x.is_active) return false;
+      if (걸림.켜짐 === "0" && x.is_active) return false;
+      const 글 = 걸림.글.trim();
+      if (글 && !x.label.includes(글)) return false;
+      return true;
+    });
+
+  const 모양들 = 걸러낸것((목록 ?? []).filter((x) => x.kind === "mark"));
+  const 문구들 = 걸러낸것((목록 ?? []).filter((x) => x.kind !== "mark"));
+  const 다해서 = (목록 ?? []).length;
+  const 보는것 = 모양들.length + 문구들.length;
 
   const 접기 = (이름: string) =>
     set접힘((v) => {
@@ -289,11 +322,31 @@ export function AdminDoodle() {
               .set-bulk가 제 margin-left: auto로 밀기도 하는데, 이 줄에서는
               그 값이 먹지 않아 왼쪽에 남았다. 빈자리를 먹는 조각을 앞에
               세우면 어느 판에서나 오른쪽에 붙는다. */}
+          {/* 거른 집계는 왼쪽 끝에 딱지로 적는다. 걸면 목록에서 줄이
+              빠지는데, 몇 줄 가운데 몇 줄을 보고 있는지 적지 않으면
+              줄이 사라진 것처럼 읽힌다. 공지와 같은 자리, 같은 꼴이다. */}
+          {걸렸나(걸림) && 목록 && (
+            <span className="admin-span__tag">
+              {보는것}건 / 전체 {다해서}건
+            </span>
+          )}
           <span className="admin-toolbar-row__gap" />
           <CollapseAllButtons
             onExpandAll={() => set접힘(new Set())}
             onCollapseAll={() => set접힘(new Set(["모양", "문구"]))}
           />
+          <button
+            type="button"
+            className={`filter-pill${걸렸나(걸림) ? " on" : ""}`}
+            aria-pressed={걸렸나(걸림)}
+            title={걸렸나(걸림) ? "필터가 걸려 있다. 눌러서 고친다." : "필터"}
+            onClick={() => {
+              set초안(걸림);
+              set필터열림(true);
+            }}
+          >
+            필터
+          </button>
           <button
             type="button"
             className="ui-btn primary"
@@ -319,7 +372,9 @@ export function AdminDoodle() {
           </h3>
           {!접힘.has("모양") &&
             (목록 === null ? (
-              <p className="page-empty">불러오고 있습니다.</p>
+              <p className="page-empty">불러오는 중입니다.</p>
+            ) : 모양들.length === 0 ? (
+              <p className="page-empty">조건에 맞는 모양이 없습니다.</p>
             ) : (
               <ul className="admin-list">
                 {모양들.map((it) => (
@@ -328,7 +383,7 @@ export function AdminDoodle() {
                       <MarkIcon itemKey={it.item_key} />
                     </span>
                     <span className="admin-list__name">{it.label}</span>
-                    {/* 꺼짐 딱지는 줄의 오른쪽 끝에 선다. 이름 칸 안에 두었더니
+                    {/* 꺼짐 딱지는 줄의 오른쪽 끝에 선다. 이름 칸 안에 두니
                         이름 바로 뒤에 붙어, 줄마다 딱지가 선 자리가 들쭉날쭉했다.
                         줄의 직계 자식으로 내면 이름 칸이 남은 자리를 다 먹으므로
                         저절로 끝으로 밀린다. 편집 중에는 그 자리에 스위치가
@@ -349,9 +404,11 @@ export function AdminDoodle() {
           {!접힘.has("문구") && (
             <>
               {목록 === null ? (
-                <p className="page-empty">불러오고 있습니다.</p>
+                <p className="page-empty">불러오는 중입니다.</p>
               ) : 문구들.length === 0 ? (
-                <p className="page-empty">등록한 문구가 없습니다.</p>
+                <p className="page-empty">
+                  {걸렸나(걸림) ? "조건에 맞는 문구가 없습니다." : "등록한 문구가 없습니다."}
+                </p>
               ) : (
                 <ul className="admin-list">
                   {문구들.map((it) => (
@@ -366,7 +423,7 @@ export function AdminDoodle() {
                       ) : (
                         <>
                           <span className="admin-list__name">{it.label}</span>
-                          {/* 모양 줄과 같은 자리 — 줄의 오른쪽 끝이다. */}
+                          {/* 모양 줄과 같은 자리. 줄의 오른쪽 끝이다. */}
                           {!it.is_active && <span className="set-hide-mark">꺼짐</span>}
                         </>
                       )}
@@ -408,6 +465,44 @@ export function AdminDoodle() {
           )}
         </section>
       </div>
+
+      {필터열림 && (
+        <AdminFilterPopup
+          on초기화={() => set초안(안거름)}
+          on적용={() => {
+            set걸림(초안);
+            set필터열림(false);
+          }}
+          onClose={() => set필터열림(false)}
+        >
+          <EditField label="켜짐" span={6}>
+            <SingleSelect
+              noun="상태"
+              options={[
+                { value: "", label: "(전체)" },
+                { value: "1", label: "켜짐" },
+                { value: "0", label: "꺼짐" },
+              ]}
+              selected={초안.켜짐}
+              onChange={(v) => set초안({ ...초안, 켜짐: v })}
+              placeholder="(전체)"
+            />
+          </EditField>
+
+          <EditField label="글" span={6}>
+            <input
+              type="text"
+              value={초안.글}
+              placeholder="(글)"
+              onChange={(e) => set초안({ ...초안, 글: e.target.value })}
+            />
+          </EditField>
+
+          <EditField label="" span={12}>
+            <p className="admin-hint">모양과 문구를 함께 찾습니다.</p>
+          </EditField>
+        </AdminFilterPopup>
+      )}
 
       {/* 담기. 누르면 문구 칸이 열린다. 접혀 있으면 함께 펼친다. */}
       <AddButton

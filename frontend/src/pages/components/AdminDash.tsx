@@ -21,6 +21,7 @@ import MonthNav from "./MonthNav";
 import useMonthSpan from "../../hooks/useMonthSpan";
 import { formatRangeLabel } from "../../utils/dateGroup";
 import { PAGE_TITLE, HOME_TABS, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
+import { ADMIN_TABS } from "../../utils/adminTabs";
 import AdminFilterPopup from "./AdminFilterPopup";
 import DayPicker from "./DayPicker";
 import { EditField } from "./CardEditModal";
@@ -30,7 +31,7 @@ import { say } from "../../utils/notify";
  * 관리자 대시보드.
  *
  * 한 번에 다 묻는다(GET /api/admin/stats). 화면이 따로따로 물으면 기간을
- * 바꿀 때마다 요청이 그만큼 나간다. 셈이 싸므로 한 번에 모아 받는다.
+ * 바꿀 때마다 요청이 그만큼 나간다. 집계가 싸므로 한 번에 모아 받는다.
  *
  * 그림은 씀씀이가 쓰는 Recharts를 그대로 쓴다. 그려 본 적 없는 차트
  * 라이브러리를 새로 들이지 않는다. 맨 위 칸도 씀씀이의 것(.chart-tiles,
@@ -41,7 +42,7 @@ import { say } from "../../utils/notify";
  * 함께 적는다. 눌러야 값이 보이는 것은 손전화에서 안 보인다.
  */
 
-type 셈 = {
+type 집계 = {
   days: number;
   from: string;
   to: string;
@@ -112,22 +113,27 @@ const 축 = { fontSize: 축글씨, fill: "var(--color-text-tertiary)" } as const
 const 파스텔 = ["#B9A4E6", "#9FC6E8", "#A6DACE", "#F2C7A3", "#E8A9C3"] as const;
 
 /**
- * 관리자 화면의 자리 다섯.
+ * 관리자 사이트의 자리들.
  *
- * 주소는 /admin 하나지만 그 안에서 알약으로 자리를 옮긴다. 자리마다 따로
- * 적히므로(pages/Admin.tsx) 여기서도 따로 센다. 이름을 여기 다시 적는 것은
- * 그 목록이 Admin.tsx 안에만 있기 때문이다 — 자리를 늘리면 두 곳을 함께
- * 고쳐야 한다.
+ * 탭마다 첫 쪽이 있고 그 안에 페이지가 있다. 자리마다 따로 적히므로
+ * (pages/Admin.tsx) 여기서도 따로 센다. 목록은 등록부에서 꺼내 쓴다
+ * (utils/adminTabs.ts). 전에는 이름을 여기 다시 적어서, 자리를 하나
+ * 늘리면 두 곳을 함께 고쳐야 했다.
+ *
+ * 탭 첫 쪽도 함께 넣는다. 들어가는 문이라 따로 떼면 그 탭에 몇 번 들렀는지가
+ * 사라진다. 사용자 쪽 탭을 묶을 때와 같은 잣대다.
  */
-const 관리자자리 = [
-  { path: "/admin/dash", name: "대시보드" },
-  { path: "/admin/notice", name: "공지" },
-  { path: "/admin/doodle", name: "문구" },
-  { path: "/admin/menu", name: "메뉴" },
-  { path: "/admin/pw", name: "비밀번호" },
-] as const;
+const 관리자자리 = ADMIN_TABS.flatMap((t) => [
+  { path: t.path, name: t.name },
+  ...t.pages.map((p) => ({ path: p.path, name: p.name })),
+]);
 
-/** 옛 기록. 자리를 따로 적기 전에는 다섯이 이 한 줄로 뭉쳐 쌓였다. */
+/**
+ * 옛 기록. 자리를 따로 적기 전에는 다섯이 이 한 줄로 뭉쳐 쌓였다.
+ *
+ * 메인 탭의 길도 /admin 이라 등록부에 이미 들어 있다. 그래서 따로 세우지
+ * 않고, 딱지 이름만 그때의 뜻으로 적는다.
+ */
 const 옛관리자 = "/admin";
 
 /**
@@ -139,7 +145,7 @@ const 옛관리자 = "/admin";
  *
  * 탭의 첫 화면도 그 탭에 함께 넣는다. 들어가는 문이라 따로 떼면 그 탭에
  * 몇 번 들렀는지가 사라진다. 곁가지 화면(씀씀이 내역, 기간 내역)은 어느
- * 탭에 딸린 것인지 여기서 적는다 — 탭 목록에는 들지 않기 때문이다.
+ * 탭에 딸린 것인지 여기서 적는다. 탭 목록에는 들지 않기 때문이다.
  */
 const 탭묶음 = [
   { 이름: "홈 탭", 길: [...HOME_TABS, "/charts/detail"] },
@@ -191,12 +197,12 @@ const 눈금폭 = 128;
 const 줄키 = 33;
 
 /**
- * 세로 막대의 눈금 — 두 줄로 적는다.
+ * 세로 막대의 눈금. 두 줄로 적는다.
  *
  * 윗줄이 이름 딱지, 아랫줄이 그것이 무엇인지 적는 곁말이다. 한 줄에 둘을
  * 나란히 두면 360px 화면에서 긴 글과 딱지가 서로를 밀어낸다.
  *
- * 자리 셈 — 줄 사이가 31px이므로 딱지는 복판 위 16px에 14px 키로 서고,
+ * 자리를 센다. 줄 사이가 31px이므로 딱지는 복판 위 16px에 14px 키로 서고,
  * 곁말은 복판 아래 10px에 앉는다. 이보다 벌리면 곁말 위로 다음 줄 딱지가
  * 내려와 겹친다.
  */
@@ -253,15 +259,15 @@ const 기능눈금 = 두줄눈금((이름) => ({
 }));
 
 /**
- * 쌓인 셈에 없는 줄을 0으로 채운다.
+ * 쌓인 집계에 없는 줄을 0으로 채운다.
  *
  * 쌓인 것만 그리면 한 번도 안 쓰인 자리가 그래프에서 사라져, 안 쓰이는 것과
  * 아예 없는 것이 구별되지 않는다. 차례는 많이 쓰인 것부터다.
  */
 function 영채우기(들: { name: string; n: number }[], 이름들: readonly string[]) {
-  const 셈 = new Map(들.map((r) => [r.name, r.n]));
+  const 집계 = new Map(들.map((r) => [r.name, r.n]));
   return 이름들
-    .map((name) => ({ name, n: 셈.get(name) ?? 0 }))
+    .map((name) => ({ name, n: 집계.get(name) ?? 0 }))
     .sort((a, b) => b.n - a.n);
 }
 
@@ -276,14 +282,14 @@ export default function AdminDash() {
   });
   /* 알약으로 고른 며칠. 달을 넘기면 풀린다. 둘 가운데 하나만 걸린다. */
   const [며칠고름, set며칠고름] = useState<number | null>(null);
-  /* 거르기로 걸어 둔 기간. 걸려 있으면 달도 알약도 보지 않고 이것만 본다.
+  /* 거르기로 걸린 기간. 걸려 있으면 달도 알약도 보지 않고 이것만 본다.
      달 단위나 최근 며칠로는 못 보는 자리를 보려고 거르는 것이기 때문이다. */
   const [거른기간, set거른기간] = useState<{ frm: string; to: string } | null>(null);
   /* 팝업 안에서 고치는 중인 조건. [적용]을 누르지 않고 닫으면 버린다.
      사용자 화면의 거르기와 같다(pages/Entries.tsx의 filter/appliedFilter). */
   const [초안, set초안] = useState({ frm: "", to: "" });
   const [필터열림, set필터열림] = useState(false);
-  const [셈, set셈] = useState<셈 | null>(null);
+  const [집계, set집계] = useState<집계 | null>(null);
   const [탈, set탈] = useState(false);
   /* 넘겨 볼 수 있는 끝. 네 화면이 같은 바닥을 쓴다. */
   const { min, max } = useMonthSpan();
@@ -291,7 +297,7 @@ export default function AdminDash() {
   const 기간 = 거른기간 ?? (며칠고름 ? 며칠(며칠고름) : 달기간(ym));
 
   /* 거르기를 연다. 지금 걸려 있는 조건을 그대로 띄운다. 걸린 것이 없으면
-     보고 있는 기간을 채워 둔다. 빈 칸부터 고르게 하면 날마다 두 번 고른다. */
+     보고 있는 기간을 채운다. 빈 칸부터 고르게 하면 날마다 두 번 고른다. */
   const 필터열기 = () => {
     set초안(거른기간 ?? { frm: 기간.frm, to: 기간.to });
     set필터열림(true);
@@ -320,14 +326,14 @@ export default function AdminDash() {
 
   useEffect(() => {
     let 살아있나 = true;
-    /* 앞서 받은 셈을 비우지 않는다. 비우면 격자가 통째로 사라졌다가 다시
+    /* 앞서 받은 집계를 비우지 않는다. 비우면 격자가 통째로 사라졌다가 다시
        서면서 카드 키가 크게 튄다. 기간을 바꾸는 동안에는 옛 값을 그대로
        두고, 새 값이 오면 조용히 갈아 끼운다. */
     set탈(false);
     axios
       .get("/admin/stats", { params: { frm: 기간.frm, to: 기간.to }, headers: 머리() })
       .then((r) => {
-        if (살아있나) set셈(r.data as 셈);
+        if (살아있나) set집계(r.data as 집계);
       })
       .catch(() => {
         if (살아있나) set탈(true);
@@ -342,27 +348,27 @@ export default function AdminDash() {
      관리자 묶음에 함께 세운다. */
   const 관리자조회 = useMemo(
     () =>
-      셈
-        ? 영채우기(셈.view, [...관리자자리.map((z) => z.path), 옛관리자]).filter(
+      집계
+        ? 영채우기(집계.view, 관리자자리.map((z) => z.path)).filter(
             (r) => r.name !== 옛관리자 || r.n > 0,
           )
         : [],
-    [셈],
+    [집계],
   );
-  /* 그림에 먹이는 목록은 셈이 바뀔 때만 새로 짓는다.
+  /* 그림에 먹이는 목록은 집계가 바뀔 때만 새로 짓는다.
      그릴 때마다 새 배열을 지었더니 Recharts가 값이 바뀐 줄 알고 막대를
      처음부터 다시 그렸다. 거르기 팝업이 이 화면 안에 살아서, 날짜 한 번
      고를 때마다 뒤쪽 그림 일곱이 통째로 깜빡였다. */
   const 조회묶음 = useMemo(
     () => [
-      ...탭묶음.map((탭) => ({ 이름: 탭.이름, 들: 셈 ? 영채우기(셈.view, 탭.길) : [] })),
+      ...탭묶음.map((탭) => ({ 이름: 탭.이름, 들: 집계 ? 영채우기(집계.view, 탭.길) : [] })),
       { 이름: "관리자 화면", 들: 관리자조회 },
     ],
-    [셈, 관리자조회],
+    [집계, 관리자조회],
   );
   const 기능조회 = useMemo(
-    () => (셈 ? 영채우기(셈.feature, 기능들.map((f) => f.name)) : []),
-    [셈],
+    () => (집계 ? 영채우기(집계.feature, 기능들.map((f) => f.name)) : []),
+    [집계],
   );
 
   /** 그림 한 칸. 머리글과 몸을 늘 같은 꼴로 세운다. */
@@ -418,7 +424,7 @@ export default function AdminDash() {
       </div>
 
       {/* 둘째 줄. 고른 기간과 알약이 한 벌로 선다. 딱지가 왼쪽 끝, 알약이
-          오른쪽 끝이다. 딱지를 따로 떼어 두었더니 알약과 멀찍이 떨어져
+          오른쪽 끝이다. 딱지를 따로 떼어 놓으니 알약과 멀찍이 떨어져
           둘이 한 벌로 안 읽혔다. */}
       <div className="pm-toolbar-row admin-toolbar-row">
         <span className="admin-span__tag">{formatRangeLabel(기간.frm, 기간.to)}</span>
@@ -448,11 +454,11 @@ export default function AdminDash() {
 
       {탈 ? (
         <div className="card admin-soon">
-          <p className="page-empty">셈을 불러오지 못했습니다.</p>
+          <p className="page-empty">불러오지 못했습니다.</p>
         </div>
-      ) : !셈 ? (
+      ) : !집계 ? (
         <div className="card admin-soon">
-          <p className="page-empty">셈을 불러오고 있습니다.</p>
+          <p className="page-empty">불러오는 중입니다.</p>
         </div>
       ) : (
         <>
@@ -464,18 +470,18 @@ export default function AdminDash() {
               /* 딱지는 짧게 적는다. 360px 화면에서 칸 하나가 162px이고, 수와
                  단위가 먼저 자리를 차지한 뒤 딱지에 남는 폭이 80px 남짓이다.
                  길게 적으면 꼬리가 잘려 아무 말도 아니게 된다. */
-              { 이름: "조회", 값: 셈.kpi.view, 단위: "회", 딱지: `평균 ${셈.kpi.view_per_day}회` },
-              { 이름: "쓰고 수정", 값: 셈.kpi.write, 단위: "건", 딱지: `${셈.days}일` },
-              { 이름: "사용 횟수", 값: 셈.kpi.feature, 단위: "회", 딱지: "기능" },
+              { 이름: "조회", 값: 집계.kpi.view, 단위: "회", 딱지: `평균 ${집계.kpi.view_per_day}회` },
+              { 이름: "쓰고 수정", 값: 집계.kpi.write, 단위: "건", 딱지: `${집계.days}일` },
+              { 이름: "사용 횟수", 값: 집계.kpi.feature, 단위: "회", 딱지: "기능" },
               /* 실패와 느린 요청은 다른 것이다. 하나로 세어 「오류 66회」로
                  적었더니 무엇이 66인지 알 길이 없었다. 수는 실패가 쥐고,
                  느린 쪽은 딱지로 적는다. 칸을 다섯으로 늘리지 않은 것은
                  두 칸씩 서는 격자에서 다섯째가 혼자 남기 때문이다. */
-              { 이름: "실패", 값: 셈.kpi.fail, 단위: "회", 딱지: `느린 요청 ${셈.kpi.slow}회` },
+              { 이름: "실패", 값: 집계.kpi.fail, 단위: "회", 딱지: `느린 요청 ${집계.kpi.slow}회` },
             ].map((t) => (
               <div key={t.이름} className="chart-tile admin-tile">
                 {/* 딱지는 이름 옆에 선다. 칸은 두 줄 그대로이고, 아랫줄은
-                    수가 통째로 쓴다. 딱지를 수와 한 줄에 두었더니 360px
+                    수가 통째로 쓴다. 딱지를 수와 한 줄에 두니 360px
                     화면에서 셋이 140px을 나눠 가지느라 딱지가 잘렸다. */}
                 <span className="admin-tile__head">
                   <span className="chart-tile__label">{t.이름}</span>
@@ -494,7 +500,7 @@ export default function AdminDash() {
               "날짜별 조회 수",
               false,
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={셈.daily} margin={{ top: 12, right: 12, bottom: 4, left: -8 }}>
+                <AreaChart data={집계.daily} margin={{ top: 12, right: 12, bottom: 4, left: -8 }}>
                   <defs>
                     <linearGradient id="admin-area" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={파스텔[0]} stopOpacity={0.8} />
@@ -590,13 +596,13 @@ export default function AdminDash() {
               "요일별 조회 수",
               false,
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={셈.dow} margin={{ top: 12, right: 8, bottom: 4, left: -8 }}>
+                <BarChart data={집계.dow} margin={{ top: 12, right: 8, bottom: 4, left: -8 }}>
                   <CartesianGrid stroke="var(--color-border)" vertical={false} />
                   <XAxis dataKey="name" tick={축} tickLine={false} axisLine={false} />
                   <YAxis tick={축} tickLine={false} axisLine={false} width={44} allowDecimals={false} />
                   <Tooltip separator=": " cursor={{ fill: "var(--color-primary-light)" }} />
                   <Bar dataKey="n" name="조회 수" radius={[4, 4, 0, 0]} maxBarSize={22} isAnimationActive={false}>
-                    {셈.dow.map((r, i) => (
+                    {집계.dow.map((r, i) => (
                       <Cell key={r.name} fill={파스텔[i % 파스텔.length]} />
                     ))}
                   </Bar>
@@ -608,7 +614,7 @@ export default function AdminDash() {
               "시간대별 조회 수",
               false,
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={셈.hour} margin={{ top: 12, right: 8, bottom: 4, left: -8 }}>
+                <BarChart data={집계.hour} margin={{ top: 12, right: 8, bottom: 4, left: -8 }}>
                   <CartesianGrid stroke="var(--color-border)" vertical={false} />
                   <XAxis dataKey="name" tick={축} tickLine={false} axisLine={false} />
                   <YAxis tick={축} tickLine={false} axisLine={false} width={44} allowDecimals={false} />
@@ -622,7 +628,7 @@ export default function AdminDash() {
               "쓰고 수정한 건수",
               false,
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={셈.write} margin={{ top: 12, right: 12, bottom: 4, left: -8 }}>
+                <LineChart data={집계.write} margin={{ top: 12, right: 12, bottom: 4, left: -8 }}>
                   <CartesianGrid stroke="var(--color-border)" vertical={false} />
                   <XAxis
                     dataKey="date"
@@ -691,21 +697,21 @@ export default function AdminDash() {
                 {[
                   {
                     이름: "1초를 넘긴 요청",
-                    셈: 셈.kpi.slow,
-                    들: 셈.slow.map((r) => ({ name: r.name, n: r.n, 끝: `${r.worst ?? 0}ms`, 물림: false })),
+                    집계: 집계.kpi.slow,
+                    들: 집계.slow.map((r) => ({ name: r.name, n: r.n, 끝: `${r.worst ?? 0}ms`, 물림: false })),
                   },
                   {
                     이름: "실패한 요청",
-                    셈: 셈.kpi.fail,
+                    집계: 집계.kpi.fail,
                     /* 닿지 못한 요청은 상태 번호가 없다. 빈자리를 두지 않고
                        그렇게 적는다. */
-                    들: 셈.fail.map((r) => ({ name: r.name, n: r.n, 끝: r.status ? String(r.status) : "못 닿음", 물림: true })),
+                    들: 집계.fail.map((r) => ({ name: r.name, n: r.n, 끝: r.status ? String(r.status) : "못 닿음", 물림: true })),
                   },
                 ].map((묶음) => (
                   <div key={묶음.이름} className="admin-part">
                     <span className="admin-part__head">
                       {묶음.이름}
-                      <span className="admin-part__n">{묶음.셈}회</span>
+                      <span className="admin-part__n">{묶음.집계}회</span>
                     </span>
                     {묶음.들.length === 0 ? (
                       <p className="page-empty">아직 쌓인 것이 없습니다.</p>

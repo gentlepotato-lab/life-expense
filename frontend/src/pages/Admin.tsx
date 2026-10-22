@@ -1,42 +1,48 @@
-import { Suspense, useCallback, useEffect, useState } from "react";
-import type React from "react";
-import { Outlet, useLocation, useNavigate, useOutletContext } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { say, ask } from "../utils/notify";
 import { 자물쇠상태, 들어가기, 나가기, 토큰, 암호바꾸기, on끊김 } from "../utils/adminAuth";
 import { 관리자앱입히기, 관리자앱벗기기 } from "../utils/adminPwa";
 import RefreshIcon from "./components/RefreshIcon";
 import EyeIcon from "./components/EyeIcon";
 import ScrollTopButton from "./components/ScrollTopButton";
+import AdminPageHead from "./components/AdminPageHead";
+import AdminTabBar from "./components/AdminTabBar";
+import { 쪽찾기 } from "../utils/adminTabs";
 import useHeadPin from "../hooks/useHeadPin";
+/* 쪽들은 이 묶음에 함께 담는다. 쪽마다 따로 쪼개면 어느 쪽에 처음 들어갈
+   때마다 기다리는 자리가 한 번 뜨고, 그러면 React 가 알맹이를 300ms 뒤에야
+   보여 준다. 관리자 쪽은 들어오는 사람이 하나뿐이라 한 묶음으로 받는 편이
+   낫다(App.tsx). */
+import AdminMain from "./AdminMain";
+import AdminTabHome from "./AdminTabHome";
+import AdminDash from "./components/AdminDash";
+import AdminLogs from "./components/AdminLogs";
+import AdminNotices from "./components/AdminNotices";
+import { AdminDoodle, AdminMenu } from "./components/AdminToggles";
+import AdminBatch from "./components/AdminBatch";
+import AdminBatchRuns from "./components/AdminBatchRuns";
+import AdminApis from "./components/AdminApis";
+import AdminDb from "./components/AdminDb";
+import AdminLoginLog from "./components/AdminLoginLog";
+import AdminSoon from "./components/AdminSoon";
 
 /**
  * 관리자 페이지.
  *
  * 메뉴에 띄우지 않는다. 주소를 치고 들어와 비밀번호를 넣어야 열린다.
  *
- * 사용자 화면과 섞이지 않게 틀을 따로 둔다 — 떠 있는 단추 넷도 아래 이동
+ * 사용자 화면과 섞이지 않게 틀을 따로 둔다. 떠 있는 단추 넷도 아래 이동
  * 막대도 띄우지 않는다. 같은 틀을 쓰면 잔소리 종이 관리자 화면 위에도 떠서,
  * 거기서 내역을 적을 수 있게 된다.
  *
  * 생김새는 앱 것을 그대로 쓴다. 빛깔과 글꼴과 여백과 모서리를 같은 토큰에서
  * 꺼내 쓰고, 카드는 .card, 단추는 .ui-btn, 알약은 .subtabs를 쓴다. 다른 것은
- * 넷뿐이다 — 머리띠, /admin 딱지, 떠 있는 단추 없음, 바닥 탭 없음.
+ * 셋뿐이다. 제목을 묶는 연보라 네모와 /admin 딱지와 떠 있는 단추다.
  *
  * 손전화를 기준으로 짠다. 자리 다섯은 가로 알약 한 줄이고, 넓어져도 그대로
  * 가운데에 선다(index.css 186절).
  */
-
-/** 관리자 페이지의 자리들. 더하면 알약이 하나 늘어난다.
- *
- * 이름이 짧은 까닭은 알약이 가로를 똑같이 나눠 갖기 때문이다. 손전화에서
- * 다섯 칸이면 한 칸이 75px이라, 긴 이름은 칸을 넘어 오른쪽이 잘린다. */
-const 자리들 = [
-  { key: "dash", name: "대시보드", path: "/admin/dash" },
-  { key: "notice", name: "공지", path: "/admin/notice" },
-  { key: "doodle", name: "문구", path: "/admin/doodle" },
-  { key: "menu", name: "메뉴", path: "/admin/menu" },
-  { key: "pw", name: "비밀번호", path: "/admin/pw" },
-] as const;
 
 export default function Admin() {
   const [열림, set열림] = useState(() => !!토큰());
@@ -48,8 +54,11 @@ export default function Admin() {
      첫 자리로 돌아갔고, 뒤로 가기도 관리자 화면을 통째로 떠났다.
      자리마다 길이 있으므로 즐겨찾기도 걸리고 기록도 ViewTracker가 적는다. */
   const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const 자리 = 자리들.find((t) => t.path === pathname)?.key ?? "dash";
+  /* 지금 어느 탭의 어느 쪽인가는 등록부가 길로 알려 준다
+     (utils/adminTabs.ts). 머리말과 바닥 막대가 그것을 함께 본다. */
+  const 쪽 = 쪽찾기(pathname);
+  /* 메인 탭의 첫 쪽인가. 홈 표가 여기에 걸린다. */
+  const 메인쪽 = pathname === "/admin";
 
   /* 내릴 때 머리띠와 알약이 함께 올라가고, 올릴 때 다시 내려온다. 사용자
      화면과 같은 장치를 쓴다(hooks/useHeadPin.ts). 거기는 PageHead가 부르는데
@@ -57,11 +66,13 @@ export default function Admin() {
   useHeadPin();
 
   /* 브라우저 탭 제목도 맞춘다. 화면을 캡처해 놓고 나중에 볼 때 어느 쪽인지
-     헷갈리지 않게 한다. 자리를 옮길 때마다 다시 적는다 — 한 번만 적어 두면
+     헷갈리지 않게 한다. 자리를 옮길 때마다 다시 적는다. 한 번만 적으면
      다른 자리가 덮어쓸 때 되돌릴 길이 없다. */
   useEffect(() => {
-    document.title = "돈을 쓰다 관리자";
-  }, [pathname]);
+    /* 사용자 사이트와 같은 꼴이다. 첫 쪽은 서비스 이름만, 나머지는
+       「쪽 이름 다음에 서비스 이름」이다(PageHead.tsx). */
+    document.title = 쪽 ? `${쪽.name} · 돈을 쓰다 관리자` : "돈을 쓰다 관리자";
+  }, [pathname, 쪽]);
 
   /* 토큰이 죽으면 자물쇠로 돌아간다.
      서버가 401로 돌려보내면 api/client.ts가 토큰을 걷고 여기로 알린다.
@@ -125,7 +136,7 @@ export default function Admin() {
           <h2 className="admin-gate__title">관리자 페이지</h2>
           <p className="admin-gate__note">
             {걸림 === null
-              ? "확인하고 있습니다."
+              ? "확인하는 중입니다."
               : 걸림
                 ? "비밀번호를 넣어 주세요."
                 : 첫암호있나
@@ -149,53 +160,62 @@ export default function Admin() {
 
   /* ── 들어온 뒤 ─────────────────────────────────────── */
   return (
-    <div className="page-wrap admin">
-      <AdminHead />
+    <div className={`page-wrap admin${메인쪽 ? " home" : ""}`}>
+      {/* 제목과 안내 한 줄과 갈래 알약. 사용자 사이트의 머리말과 같은
+          조각, 같은 차례다(AdminPageHead.tsx). 메인 탭의 첫 쪽에는 서비스
+          이름이 제목으로 선다. */}
+      <AdminPageHead />
 
-      {/* 사용자 화면의 갈래 알약을 그대로 쓴다(PageHead.tsx 105줄). 칸 수를
-          --tab-n으로 알려 주면 CSS가 폭을 맞춰 나누고, 켜진 자리를 덮는
-          조각 하나가 미끄러진다. */}
-      <nav
-        className="subtabs admin-tabs"
-        aria-label="관리자 메뉴"
-        style={{ "--tab-n": 자리들.length } as React.CSSProperties}
-      >
-        <span
-          className="subtabs__thumb"
-          style={{ transform: `translate3d(${자리들.findIndex((t) => t.key === 자리) * 100}%, 0, 0)` }}
-          aria-hidden="true"
-        />
-        {자리들.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            className={`subtabs__item${자리 === t.key ? " on" : ""}`}
-            onClick={() => navigate(t.path)}
-          >
-            {t.name}
-          </button>
-        ))}
-      </nav>
-
-      {/* 떠 있는 단추는 붙박이로 셈하는 것들 뒤에 둔다. 머리띠와 알약
-          사이에 끼면 useHeadPin이 거기서 셈을 멈춘다. */}
+      {/* 떠 있는 단추는 붙박이로 세는 것들 뒤에 둔다. 머리띠와 머리말
+          사이에 끼면 useHeadPin이 거기서 집계를 멈춘다. */}
       <AdminRefresh />
 
       {/* 자리를 옮길 때 알맹이만 살짝 갈린다. key를 걸면 길이 바뀔 때마다
-          새로 그려지고, 그때 한 번 애니메이션이 돈다. 머리띠와 알약은 이
+          새로 그려지고, 그때 한 번 애니메이션이 돈다. 머리말과 알약은 이
           밖에 있으므로 흔들리지 않는다.
-          자리마다 화면은 라우터가 꽂아 준다(App.tsx). 로그아웃은 비밀번호
-          자리만 쓰므로 바깥 맥락으로 내려보낸다. */}
+
+          쪽을 여기서 가른다. 바깥(App.tsx)이 /admin/* 하나만 들고 있으므로
+          아래 길은 /admin 에서부터 센다. 로그아웃은 비밀번호 쪽만 쓰므로
+          그 쪽에만 내려보낸다. */}
       <div className="admin-pane" key={pathname}>
-        {/* 자리마다 묶음을 따로 내려받으므로 기다리는 동안 빈 칸을 둔다.
-            키를 비워 두면 알약 아래가 접혔다 펴져 흔들린다. */}
-        <Suspense fallback={<div className="admin-wait" />}>
-          <Outlet context={{ onLogout: () => void 나감() }} />
-        </Suspense>
+        <Routes>
+          {/* 메인 탭(사용)의 첫 쪽. 홈처럼 생겼고 서비스 이름이 제목으로 선다. */}
+          <Route path="/" element={<AdminMain />} />
+          <Route path="dash" element={<AdminDash />} />
+          <Route path="logs" element={<AdminLogs />} />
+          <Route path="users" element={<AdminSoon />} />
+
+          {/* 화면 탭 */}
+          <Route path="screen" element={<AdminTabHome />} />
+          <Route path="notice" element={<AdminNotices />} />
+          <Route path="doodle" element={<AdminDoodle />} />
+          <Route path="menu" element={<AdminMenu />} />
+
+          {/* 서버 탭 */}
+          <Route path="server" element={<AdminTabHome />} />
+          <Route path="batch" element={<AdminBatch />} />
+          {/* 배치 카드에서만 들어가는 곁가지. 갈래 알약에는 서지 않는다
+              (utils/adminTabs.ts의 곁가지). */}
+          <Route path="batch-runs" element={<AdminBatchRuns />} />
+          <Route path="api" element={<AdminApis />} />
+          <Route path="db" element={<AdminDb />} />
+
+          {/* 계정 탭 */}
+          <Route path="account" element={<AdminTabHome />} />
+          <Route path="pw" element={<AdminPasswordBody onLogout={() => void 나감()} />} />
+          <Route path="login-log" element={<AdminLoginLog />} />
+
+          {/* 모르는 자리는 메인 탭으로. */}
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
       </div>
 
       {/* 맨 위로. 사용자 화면과 같은 자리, 같은 생김새다. */}
       <ScrollTopButton />
+
+      {/* 아래 이동 막대. 사용자 사이트의 것과 같은 조각이다(AdminTabBar.tsx).
+          막대에 가려지는 만큼 쪽 아래를 비우는 일은 CSS가 맡는다. */}
+      <AdminTabBar />
     </div>
   );
 }
@@ -279,35 +299,28 @@ function AdminRefresh() {
 }
 
 /**
- * 머리띠. 사용자 화면과 가르는 유일한 표시다.
+ * 자물쇠 화면의 머리말.
  *
- * 로그아웃은 여기 두지 않는다. 떠 있는 새로 고침 단추가 띠 오른쪽을 덮어서,
- * 자리를 내주려면 띠 여백을 벌려야 했고 그러면 로그아웃이 오른쪽 끝에서
- * 멀찍이 떨어져 어중간하게 섰다. 비밀번호 자리로 옮겼다. 하루에 한 번
- * 누를까 말까 한 단추라 늘 떠 있을 까닭도 없다.
+ * 들어오고 나면 등록부를 보고 그 쪽의 제목을 그리는 조각이 맡는다
+ * (AdminPageHead.tsx). 자물쇠 화면은 어느 쪽도 아니라 거기 기댈 수 없어
+ * 여기서 서비스 이름을 적는다.
+ *
+ * 생김새는 다른 쪽의 제목과 같다. 전에는 보라 띠를 깔고 흰 글씨를 썼는데,
+ * 그 띠만 다른 쪽과 달라 제목이 선 자리도 함께 어긋났다.
  */
 function AdminHead() {
   return (
-    <header className="admin-head">
-      <span className="admin-head__title">
-        <span className="admin-head__in">돈을 쓰다</span>
-      </span>
-      <span className="admin-head__kind">관리자</span>
-      <span className="admin-head__tag">/admin</span>
+    <header className="page-head">
+      <div className="page-head__row">
+        <h1 className="page-title">
+          <span className="page-title__in">돈을 쓰다</span>
+        </h1>
+        <span className="admin-head__kind">관리자</span>
+        {/* 줄 오른쪽 끝은 비운다. 떠 있는 새로 고침 단추가 그 자리를 덮는다. */}
+        <span className="admin-path-tag">/admin</span>
+      </div>
     </header>
   );
-}
-
-/**
- * 비밀번호 변경. 바꾸면 로그인해 있던 기기가 모두 로그아웃된다.
- *
- * 로그아웃은 자물쇠를 쥔 바깥 틀이 할 일이라 Outlet 맥락으로 받는다
- * (react-router의 useOutletContext). 라우터가 이 화면을 꽂아 주므로
- * props로는 받을 수 없다.
- */
-export function AdminPassword() {
-  const { onLogout } = useOutletContext<{ onLogout: () => void }>();
-  return <AdminPasswordBody onLogout={onLogout} />;
 }
 
 function AdminPasswordBody({ onLogout }: { onLogout: () => void }) {

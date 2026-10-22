@@ -12,15 +12,15 @@ import { 화면적기 } from "../../utils/track";
  * 같은 경로로 다시 들어온 것도 센다. "몇 번 드나들었나"가 물음이지
  * "몇 가지 화면을 보았나"가 아니기 때문이다.
  *
- * /admin 하나만 건너뛴다. 거기는 첫 자리(/admin/dash)로 넘겨 주기만 하는
- * 자리라, 적으면 자리를 옮길 때마다 두 줄이 쌓인다. 자리 다섯은 저마다
- * 길이 있으므로 여기서 그대로 적는다(App.tsx).
+ * 관리자 쪽도 그대로 적는다. 전에는 /admin 하나를 건너뛰었다 — 거기가 첫
+ * 자리로 넘겨 주기만 하는 자리였기 때문이다. 이제 /admin은 메인 탭의 첫
+ * 쪽이라 제 알맹이가 있어, 건너뛰면 그 탭에 몇 번 들렀는지가 사라진다
+ * (utils/adminTabs.ts).
  */
 export default function ViewTracker() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    if (pathname === "/admin") return;
     화면적기(pathname);
   }, [pathname]);
 

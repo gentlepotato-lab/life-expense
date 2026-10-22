@@ -19,7 +19,7 @@ import { EditField, EditDivider } from "./CardEditModal";
  *
  * 화면은 목록 하나다. 적는 것도 고치는 것도 팝업에서 한다. 내역 카드와 같은
  * 결이다. 목록에서 한 줄을 누르면 그 줄이 팝업으로 열린다. 적는 칸을 목록
- * 위에 붙박이로 두었더니, 손전화에서 목록 아래쪽 줄의 편집을 눌러도 화면
+ * 위에 붙박이로 두니, 손전화에서 목록 아래쪽 줄의 편집을 눌러도 화면
  * 위쪽만 바뀌어 아무 일도 안 일어난 것처럼 보였다.
  *
  * 켜고 끄기와 제거는 편집 중에만 나온다. 설정 탭의 화면들과 같다
@@ -45,7 +45,7 @@ const 빈것: 초안 = { title: "", body: "", start_on: "", end_on: "", sort_ord
  * 거르는 조건.
  *
  * 켜짐은 "" 이 전체, "1" 이 켜진 것, "0" 이 꺼진 것이다. 나머지는 빈 글이면
- * 안 거른다. 서버에 묻지 않고 받아 둔 목록에서 골라낸다. 공지는 많아도
+ * 안 거른다. 서버에 묻지 않고 받은 목록에서 골라낸다. 공지는 많아도
  * 수백 줄이라, 조건마다 요청을 새로 내는 쪽이 오히려 더 느리다.
  */
 type 거름 = {
@@ -88,10 +88,10 @@ function 골라내기(들: 공지[], f: 거름): 공지[] {
  * 공지 한 줄.
  *
  * 꾹 누르면 편집 팝업이 열린다. 사용자 화면의 내역 카드와 같은 잣대다
- * (hooks/useLongPress.ts). 톡 눌러 열게 두었더니 켜고 끄는 스위치를
+ * (hooks/useLongPress.ts). 톡 눌러 열게 두니 켜고 끄는 스위치를
  * 누르려다 팝업이 열리는 일이 잦았다.
  *
- * 줄마다 훅을 하나씩 걸어야 하므로 부품으로 뗀다 — map() 안에서는 훅을
+ * 줄마다 훅을 하나씩 걸어야 하므로 부품으로 뗀다. map() 안에서는 훅을
  * 부를 수 없다. 이름을 영어로 적는 것은 한글 이름이면 react-hooks 규칙이
  * 부품으로 알아보지 못하기 때문이다.
  */
@@ -138,7 +138,7 @@ function NoticeRow({
     >
       <span ref={이름칸} className="admin-list__name admin-list__name--cut">
         {n.title}
-        {/* 끊긴 끝 — 뒤쪽을 길게 걸쳐 옅어지다 (...)로 이어진다. 메모 판과
+        {/* 끊긴 끝. 뒤쪽을 길게 걸쳐 옅어지다 (...)로 이어진다. 메모 판과
             같은 꼴이다. 짧게 덮으면 끝이 딱 떨어져 테이프를 붙여 놓은 것처럼
             보인다. */}
         {잘렸나 && (
@@ -147,7 +147,7 @@ function NoticeRow({
           </span>
         )}
       </span>
-      {/* 등록한 날은 단 머리말이 말한다. 줄에는 고친 때만 적는다 — 고친
+      {/* 등록한 날은 단 머리말이 말한다. 줄에는 고친 때만 적는다. 고친
           적이 없으면 아무것도 적지 않는다. 둘 다 딱지로 달았더니 긴 제목이
           붙은 줄에서 스위치까지 밀려 났다. */}
       {n.updated_on && n.updated_on !== n.created_on && (
@@ -185,7 +185,7 @@ export default function AdminNotices() {
   /* 팝업이 쥔 것. 열쇠가 null이면 새로 적는 중이고, 수가 들어 있으면 그 줄을
      고치는 중이다. 팝업이 닫혀 있으면 아예 없다. */
   const [연것, set연것] = useState<{ id: number | null; 값: 초안; 꾹?: boolean } | null>(null);
-  /* 걸어 둔 조건과, 팝업 안에서 고치는 중인 조건. [적용]을 누르지 않고
+  /* 걸린 조건과, 팝업 안에서 고치는 중인 조건. [적용]을 누르지 않고
      닫으면 고치던 것은 버린다. 사용자 화면의 거르기와 같다. */
   const [걸림, set걸림] = useState<거름>(안거름);
   const [초안, set초안] = useState<거름>(안거름);
@@ -304,8 +304,8 @@ export default function AdminNotices() {
     <div className="admin-edit">
       <div className="cat-toolbar">
         <div className="pm-toolbar-row admin-toolbar-row">
-          {/* 거른 셈은 왼쪽 끝에 딱지로 적는다. 걸어 두면 목록에서 줄이
-              빠지는데, 몇 줄 가운데 몇 줄을 보고 있는지 적어 두지 않으면
+          {/* 거른 집계는 왼쪽 끝에 딱지로 적는다. 걸면 목록에서 줄이
+              빠지는데, 몇 줄 가운데 몇 줄을 보고 있는지 적지 않으면
               줄이 사라진 것처럼 읽힌다. */}
           {걸렸나(걸림) && 목록 && (
             <span className="admin-span__tag">
@@ -348,7 +348,7 @@ export default function AdminNotices() {
       <section className="admin-group">
         <h3 className="admin-card__title">등록한 공지</h3>
         {목록 === null ? (
-          <p className="page-empty">불러오고 있습니다.</p>
+          <p className="page-empty">불러오는 중입니다.</p>
         ) : 목록.length === 0 ? (
           <p className="page-empty">등록한 공지가 없습니다.</p>
         ) : 보는것.length === 0 ? (
@@ -359,7 +359,7 @@ export default function AdminNotices() {
               const 폈나 = !접은날.has(묶음.date);
               return (
                 <section key={묶음.date || "날짜없음"} className="date-group">
-                  {/* 단 머리말은 내역 화면이 쓰는 그 부품이다. 셈할 돈이
+                  {/* 단 머리말은 내역 화면이 쓰는 그 부품이다. 셀 돈이
                       없으므로 합계는 접는다(hideSum). */}
                   <DateGroupHeader
                     label={묶음.label}

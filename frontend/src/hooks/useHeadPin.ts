@@ -20,12 +20,12 @@ import { useLocation } from "react-router-dom";
 
 /** 붙일 도구 줄 — 본문 맨 앞에 오는 것만 고른다.
  *
- * 관리자 화면에는 .page-head가 없다. 머리띠와 자리 알약이 그 몫을 하므로
- * 여기 함께 적는다. 둘 다 .page-wrap.admin의 바로 밑 자식이라 아래 셈이
- * 그대로 돈다. 사용자 화면에는 이 두 이름이 없어 걸릴 일이 없다. */
+ * 관리자 쪽은 머리말이 쪽 안에 있다. 사용자 쪽은 .page-wrap 바깥에 서는데
+ * (App.tsx), 관리자 쪽은 틀이 쪽 안에서 그리기 때문이다(pages/Admin.tsx).
+ * 그래서 .page-head도 여기 적고 DOM 차례대로 모은다. 바깥에 선 것을 먼저
+ * 밀어 넣고 그다음에 자식을 훑으면, 관리자 쪽에서 머리말이 두 번 잡힌다. */
 const TOOLS = [
-  ".admin-head",
-  ".subtabs.admin-tabs",
+  ".page-head",
   ".toolbar-wrap",
   ".cat-toolbar",
   ".cal-sources",
@@ -42,8 +42,10 @@ const PIN_OFF = "pin-off";
 /** 머리말 다음에 붙일 것들을 위에서부터 차례로 모은다. */
 function pinnedNow(): HTMLElement[] {
   const out: HTMLElement[] = [];
+  /* 쪽 바깥에 선 머리말만 먼저 밀어 넣는다. 쪽 안에 있는 것(관리자 쪽)은
+     아래 자식 훑기가 DOM 차례대로 잡는다. */
   const head = document.querySelector<HTMLElement>(".page-head");
-  if (head) out.push(head);
+  if (head && !head.closest(".page-wrap")) out.push(head);
 
   const wrap = document.querySelector<HTMLElement>(".page-wrap");
   if (!wrap) return out;
