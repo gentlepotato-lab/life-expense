@@ -21,8 +21,8 @@ import { EditField, EditDivider } from "./CardEditModal";
  * 묶은 목록이다. 날짜는 카드 밖 단 머리말이 말하고, 줄에는 이름과 딱지만
  * 선다. 사용자 사이트의 내역 화면과 같은 결이다.
  *
- * 갈래는 넷이다. 조회와 기능과 요청은 앱이 저절로 적고, 바깥은 브라우저가
- * 바로 부르는 바깥에 물어본 자국이다(utils/track.ts의 바깥적기).
+ * 구분은 넷이다. 조회와 기능과 요청은 앱이 저절로 적고, 외부는 브라우저가
+ * 바깥에 바로 물어본 자국이다(utils/track.ts의 바깥적기).
  *
  * 묵은 기록은 달마다 지워진다(app/scheduler/cleanup_job.py). 아무리 거슬러
  * 올라가도 90일 치뿐이다.
@@ -40,25 +40,25 @@ type 기록 = {
 };
 
 /** 거르는 조건. 빈 글이면 안 거른다. */
-type 거름 = { 갈래: string; frm: string; to: string };
-const 안거름: 거름 = { 갈래: "", frm: "", to: "" };
-const 걸렸나 = (f: 거름) => !!(f.갈래 || f.frm || f.to);
+type 거름 = { 구분: string; frm: string; to: string };
+const 안거름: 거름 = { 구분: "", frm: "", to: "" };
+const 걸렸나 = (f: 거름) => !!(f.구분 || f.frm || f.to);
 
-/** 갈래마다의 이름. 서버가 쥔 값은 영문 한 낱말이다. */
-const 갈래이름: Record<string, string> = {
+/** 구분마다의 이름. 서버가 쥔 값은 영문 한 낱말이다. */
+const 구분이름: Record<string, string> = {
   view: "조회",
   feature: "기능",
   error: "요청",
-  api: "바깥",
+  api: "외부",
 };
 
 /**
- * 갈래마다의 딱지 빛깔.
+ * 구분마다의 딱지 빛깔.
  *
  * 값이 다르면 음영도 달라야 한 눈에 갈린다. 넷을 모두 보라로 두었더니
  * 「조회」와 「요청」이 같은 것처럼 읽혔다.
  */
-const 갈래빛: Record<string, string> = {
+const 구분빛: Record<string, string> = {
   view: "tint-하늘",
   feature: "tint-풀빛",
   error: "tint-살구",
@@ -69,7 +69,7 @@ const 갈래빛: Record<string, string> = {
  * 한 줄의 이름.
  *
  * 조회는 길이 곧 이름이라, 그 길이 가리키는 화면 이름으로 바꿔 적는다.
- * 기능과 바깥은 적힌 이름이 곧 이름이다. 요청은 어느 길을 부른 것인지가
+ * 기능과 외부는 적힌 이름이 곧 이름이다. 요청은 어느 길을 부른 것인지가
  * 알맹이라 길을 그대로 쓴다.
  */
 function 줄이름(r: 기록): string {
@@ -114,7 +114,7 @@ export default function AdminLogs() {
       .get("/admin/logs", {
         headers: 머리(),
         params: {
-          ...(f.갈래 ? { kind: f.갈래 } : {}),
+          ...(f.구분 ? { kind: f.구분 } : {}),
           ...(f.frm ? { frm: f.frm } : {}),
           ...(f.to ? { to: f.to } : {}),
         },
@@ -189,7 +189,7 @@ export default function AdminLogs() {
               />
               <table className="admin-tbl">
                 <colgroup>
-                  {/* 시각과 갈래와 값은 글이 정해져 있어 폭을 못 박고,
+                  {/* 시각과 구분과 값은 글이 정해져 있어 폭을 못 박고,
                       남는 폭은 이름이 쓴다. */}
                   <col style={{ width: "78px" }} />
                   <col style={{ width: "54px" }} />
@@ -199,7 +199,7 @@ export default function AdminLogs() {
                 <thead>
                   <tr>
                     <th>시각</th>
-                    <th>갈래</th>
+                    <th>구분</th>
                     <th className="admin-tbl__wrap">이름</th>
                     <th>값</th>
                   </tr>
@@ -209,8 +209,8 @@ export default function AdminLogs() {
                     <tr key={r.log_id}>
                       <th className="admin-mono">{r.at_time}</th>
                       <td>
-                        <span className={`admin-tbl__tag ${갈래빛[r.kind] ?? "tint-잿빛"}`}>
-                          {갈래이름[r.kind] ?? r.kind}
+                        <span className={`admin-tbl__tag ${구분빛[r.kind] ?? "tint-잿빛"}`}>
+                          {구분이름[r.kind] ?? r.kind}
                         </span>
                       </td>
                       {/* 길은 고른 폭 글꼴로, 화면 이름은 본문 글꼴로 적는다.
@@ -222,7 +222,7 @@ export default function AdminLogs() {
                       >
                         {줄이름(r)}
                       </td>
-                      {/* 값은 요청과 바깥에만 붙는다. 실패한 줄은 상태가,
+                      {/* 값은 요청과 외부에만 붙는다. 실패한 줄은 상태가,
                           멀쩡히 끝난 줄은 걸린 시간이 알맹이다. */}
                       <td className="admin-tbl__center">{값딱지(r)}</td>
                     </tr>
@@ -247,18 +247,18 @@ export default function AdminLogs() {
           }}
           onClose={() => set필터열림(false)}
         >
-          <EditField label="갈래" span={12}>
+          <EditField label="구분" span={12}>
             <SingleSelect
-              noun="갈래"
+              noun="구분"
               options={[
                 { value: "", label: "(전체)" },
                 { value: "view", label: "조회" },
                 { value: "feature", label: "기능" },
                 { value: "error", label: "요청" },
-                { value: "api", label: "바깥" },
+                { value: "api", label: "외부" },
               ]}
-              selected={초안.갈래}
-              onChange={(v) => set초안({ ...초안, 갈래: v })}
+              selected={초안.구분}
+              onChange={(v) => set초안({ ...초안, 구분: v })}
               placeholder="(전체)"
             />
           </EditField>
