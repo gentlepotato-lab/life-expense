@@ -3,7 +3,8 @@ import axios from "../../api/client";
 import useBackClose from "../../hooks/useBackClose";
 import { visible } from "../../utils/visible";
 import { apiErrorMessage } from "../../utils/apiError";
-import { loadKakaoMap } from "../../utils/kakaoMap";
+import { 바깥적기 } from "../../utils/track";
+import { loadKakaoMap, 카카오 } from "../../utils/kakaoMap";
 import DayGrid from "./DayGrid";
 import { todayStr, viewOf, type View } from "../../utils/day";
 import { formatDateLabel } from "../../utils/dateGroup";
@@ -194,8 +195,12 @@ export default function WriteSlideModal({
       return;
     }
     const ps = new kakao.maps.services.Places();
+    /* 찾는 데 걸린 참을 잰다. 장소 고르개와 같은 잣대다(PlacePicker.tsx). */
+    const 시작 = performance.now();
     ps.keywordSearch(keyword, (data: KakaoPlace[], status: string) => {
-      setKakaoRows(status === kakao.maps.services.Status.OK ? data : []);
+      const 됐나 = status === kakao.maps.services.Status.OK;
+      바깥적기(카카오, "장소 찾기", Math.round(performance.now() - 시작), 됐나 ? 200 : 204);
+      setKakaoRows(됐나 ? data : []);
     });
   }, [keyword]);
 

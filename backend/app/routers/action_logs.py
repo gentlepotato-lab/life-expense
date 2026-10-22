@@ -5,12 +5,14 @@
 페이지가 암호 뒤에서 맡는다(app/routers/admin.py). 적기만 열려 있으므로
 주소를 아는 사람이 할 수 있는 일은 쓸데없는 줄을 보태는 것뿐이다.
 
-갈래 셋만 받는다.
-  view    화면별 드나든 수 — 라우터가 경로 바뀔 때 보낸다.
-  feature 기능별 쓰임 — 영수증, 묶음, 엑셀을 쓸 때 보낸다.
-  error   오류와 느린 요청 — axios 인터셉터가 보낸다.
+갈래 넷만 받는다.
+  view    화면별 드나든 수. 라우터가 경로 바뀔 때 보낸다.
+  feature 기능별 쓰임. 영수증, 묶음, 엑셀을 쓸 때 보낸다.
+  error   오류와 느린 요청. axios 인터셉터가 보낸다.
+  api     바깥에 묻는 요청. 브라우저가 바로 부르는 것만 보낸다(카카오 지도).
+          서버를 거치는 요청은 서버가 저가 알므로 여기 오지 않는다.
 
-적고 고친 건수(write)는 받지 않는다. entries에 날짜 칸이 있어 거기서 셈하면
+적고 고친 건수(write)는 받지 않는다. entries에 날짜 칸이 있어 거기서 세면
 되고, 그래야 지난 것까지 소급해서 보인다.
 
 기록 때문에 화면이 느려지거나 멈추면 안 된다. 그래서 한 번에 여럿을 받고,
@@ -26,11 +28,40 @@ from app.deps import SessionDep
 router = APIRouter()
 
 # 받는 갈래. 여기 없는 것은 조용히 버린다 — 테이블의 제약과 같은 목록이다.
-KINDS = {"view", "feature", "error"}
+KINDS = {"view", "feature", "error", "api"}
 
 # 한 번에 받는 줄의 상한. 화면은 스무 줄마다 보내므로 넉넉하다. 이보다 많이
 # 오면 앞에서부터 이만큼만 적는다.
 MAX_ROWS = 100
+
+
+def 바깥적기(db, name: str, 한일: str, elapsed_ms: int | None, status: int | None) -> None:
+    """
+    서버가 바깥에 물어본 것을 적는다.
+
+    브라우저가 바로 부르는 바깥은 화면이 적어 보내지만(utils/track.ts의
+    바깥적기), 서버가 부르는 바깥은 여기서 적는다. 둘이 같은 갈래(api)로
+    같은 표에 쌓여야 관리자 사이트가 한자리에서 센다.
+
+    적다가 터져도 부르는 쪽 일은 이미 끝난 뒤다. 그래서 탈을 삼킨다. 기록
+    때문에 공휴일을 못 받는 일이 있어서는 안 된다.
+    """
+    try:
+        db.execute(text("""
+            INSERT INTO life_expense.action_logs (kind, name, path, elapsed_ms, status)
+                 VALUES ('api', :n, :p, :e, :s)
+        """), {
+            "n": name[:100],
+            "p": 한일[:200],
+            "e": elapsed_ms,
+            "s": status,
+        })
+        db.commit()
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 def _다듬기(줄: dict) -> dict | None:

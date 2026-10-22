@@ -16,7 +16,7 @@
  */
 
 /** 적는 갈래. 서버가 받는 것과 같은 목록이다(app/routers/action_logs.py). */
-export type 갈래 = "view" | "feature" | "error";
+export type 갈래 = "view" | "feature" | "error" | "api";
 
 type 줄 = {
   kind: 갈래;
@@ -98,6 +98,22 @@ export function 화면적기(path: string): void {
 /** 기능을 썼다고 적는다. */
 export function 기능적기(name: string): void {
   적기({ kind: "feature", name });
+}
+
+/**
+ * 바깥에 물어본 것을 적는다.
+ *
+ * 브라우저가 바로 부르는 바깥만 여기로 온다. 지금은 카카오 지도 하나다.
+ * 서버를 거치는 바깥은 서버가 저가 아니까 적을 일이 없다.
+ *
+ * feature 로 적지 않는 까닭은 대시보드의 기능별 사용 횟수가 그 갈래를 세기
+ * 때문이다. 바깥에 묻는 일이 기능 목록에 섞이면 그 셈이 흐려진다.
+ *
+ * 상태는 HTTP 의 수를 흉내 낸다. 카카오가 돌려주는 것은 OK 와 ZERO_RESULT 와
+ * ERROR 뿐이라, 400 아래면 잘된 것으로 보는 관리자 쪽 잣대에 맞춰 옮긴다.
+ */
+export function 바깥적기(name: string, 한일: string, elapsed_ms: number, status: number): void {
+  적기({ kind: "api", name, path: 한일, elapsed_ms, status });
 }
 
 /** 물린 요청이나 오래 걸린 요청을 적는다. */

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "../../api/client";
-import { loadKakaoMap } from "../../utils/kakaoMap";
+import { loadKakaoMap, 카카오 } from "../../utils/kakaoMap";
+import { 바깥적기 } from "../../utils/track";
 
 /**
  * 장소 고르기 팝업.
@@ -120,8 +121,13 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
     await loadKakaoMap();
     const { kakao } = window as any;
     const ps = new kakao.maps.services.Places();
+    /* 찾는 데 걸린 참을 잰다. 브라우저가 바깥을 바로 부르므로, 적어 보내지
+       않으면 관리자 사이트의 외부 API 쪽에 아무것도 남지 않는다. */
+    const 시작 = performance.now();
     ps.keywordSearch(keyword, (data: any, status: any) => {
-      if (status === kakao.maps.services.Status.OK) {
+      const 됐나 = status === kakao.maps.services.Status.OK;
+      바깥적기(카카오, "장소 찾기", Math.round(performance.now() - 시작), 됐나 ? 200 : 204);
+      if (됐나) {
         setApiResults(data);
       } else {
         setApiResults([]);

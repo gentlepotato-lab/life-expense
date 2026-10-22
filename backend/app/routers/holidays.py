@@ -5,13 +5,20 @@ from datetime import date
 from calendar import monthrange
 from app.deps import get_db
 from app.models import Holiday
+from app.routers.action_logs import 바깥적기
 import os
+import time
 import xml.etree.ElementTree as ET
 import urllib.parse
 
 router = APIRouter()
 
 KASI_KEY = os.getenv("KASI_API_KEY")
+
+# 기록에 적는 이름. 관리자 사이트의 외부 API 목록과 같은 글이어야 한다
+# (app/routers/admin.py의 바깥들).
+특일정보 = "한국천문연구원 특일 정보"
+
 
 def fetch_kasi_holidays(year: int, month: int):
     """공공데이터에서 그 달의 공휴일을 받는다.
@@ -95,7 +102,18 @@ def update_holidays_core(db: Session, year: int, month: int) -> bool:
     print(f"\n[update_holidays_core] Starting update for {year}-{month:02d}")
     days = monthrange(year, month)[1]
 
+    # 바깥에 묻는 자리라 걸린 시간과 결과를 적는다. 관리자 사이트의 외부 API가
+    # 이것을 센다(app/routers/action_logs.py의 바깥적기). 적는 일은 탈을
+    # 삼키므로 여기서 더 살필 것이 없다.
+    잰때 = time.monotonic()
     ok, items = fetch_kasi_holidays(year, month)
+    바깥적기(
+        db,
+        특일정보,
+        f"{year}-{month:02d} 공휴일 받기",
+        int((time.monotonic() - 잰때) * 1000),
+        200 if ok else 500,
+    )
 
     if not ok:
         # 조회가 안 되면 알고 있던 것을 그대로 둔다. 다만 아직 한 줄도 없는
