@@ -1,4 +1,3 @@
-from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.deps import SessionLocal
@@ -28,24 +27,19 @@ def run_holiday_update():
         else:
             ok_next = update_holidays_core(db, year, month + 1)
 
+        # 다음 달까지 채웠으면 어디까지 받았는지를 한 줄로 적는다.
+        끝달 = 1 if month == 12 else month + 1
         if not (ok_now and ok_next):
             # 다음 날 다시 돌면서 채운다. 그때까지는 알고 있던 값을 쓴다.
             print("[run_holiday_update] 조회 실패한 달이 있다. 다음 실행에서 다시 받는다.")
+            return False, f"{끝달}월까지 받지 못했다"
+        return True, f"{끝달}월까지"
     except Exception as e:
         print(f"[run_holiday_update] 실패: {str(e)}")
+        return False, str(e)
     finally:
         db.close()
 
 
-def start_scheduler():
-    scheduler = BackgroundScheduler()
-
-    # 매일 오전 9시 20분
-    scheduler.add_job(run_holiday_update,
-                      trigger="cron",
-                      hour=9,
-                      minute=20,
-                      id="holiday_update_daily",
-                      replace_existing=True)
-
-    scheduler.start()
+# 스케줄러는 등록부 하나가 쥔다(app/scheduler/registry.py). 전에는 여기서
+# 제 BackgroundScheduler를 세웠는데, 그러면 도는 때를 바깥에서 고칠 길이 없다.

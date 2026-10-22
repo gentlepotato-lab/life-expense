@@ -24,6 +24,26 @@ export function dateLabel(v: string): string {
   return `${Number(m[1])}. ${Number(m[2])}. ${Number(m[3])}.`;
 }
 
+/**
+ * 시각을 12시간제로 적는다 — `14:15` → `2:15 p.m.`
+ *
+ * "아침인가 밤인가"가 눈에 들어와야 하는데, 24시간제 숫자는 한 번 셈을 해야
+ * 알 수 있다. 담는 값과 고치는 칸은 24시간제 그대로 두고 적을 때만 바꾼다.
+ *
+ * 정기 내역 카드와 관리자 사이트의 배치 카드가 함께 쓴다. 정기 내역 안에만
+ * 있던 것을 여기로 옮겼다 — 두 곳이 저마다 적으면 같은 시각이 화면마다 다른
+ * 꼴로 적힌다.
+ */
+export function hour12(v: string): string {
+  const m = /^(\d{1,2}):(\d{2})/.exec(v);
+  if (!m) return v;
+  const h = Number(m[1]);
+  const noon = h >= 12;
+  /* 0시는 12 a.m., 12시는 12 p.m. — 0으로 적는 시계는 없다. */
+  const shown = h % 12 === 0 ? 12 : h % 12;
+  return `${shown}:${m[2]} ${noon ? "p.m." : "a.m."}`;
+}
+
 /** 오늘을 'YYYY-MM-DD'로. 기기의 시각을 그대로 쓴다. */
 export function todayStr(): string {
   const d = new Date();

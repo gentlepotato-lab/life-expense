@@ -26,9 +26,8 @@ from app.routers import (
     splits,
     write_slide,
 )
-from app.scheduler.holiday_job import start_scheduler
-from app.scheduler.scheduled_entry_job import start_scheduled_entry_scheduler
-from app.scheduler.cleanup_job import start_cleanup_scheduler
+# 도는 일 셋을 등록부 하나가 건다. 전에는 모듈마다 스케줄러를 따로 세웠다.
+from app.scheduler.registry import start_all
 from app.deps import engine
 from sqlalchemy import text
 
@@ -175,6 +174,4 @@ app.include_router(splits.scheduled_router, prefix=f"{API}/scheduled-entries", t
 app.include_router(write_slide.router, prefix=f"{API}/write-slide", tags=["write_slide"])
 
 # 앱 실행 시 스케줄러 시작
-start_scheduler()
-start_scheduled_entry_scheduler()
-start_cleanup_scheduler()
+start_all()

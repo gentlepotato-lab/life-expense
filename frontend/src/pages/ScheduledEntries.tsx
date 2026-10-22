@@ -28,6 +28,7 @@ import PerfExcludeButton from "./components/PerfExcludeButton";
 import FixedMark from "./components/FixedMark";
 import { BulbOnIcon, BulbOffIcon } from "./components/SkipIcons";
 import MonthPicker from "./components/MonthPicker";
+import { hour12 } from "../utils/day";
 import GrowArea from "./components/GrowArea";
 import { groupByDate } from "../utils/dateGroup";
 import { apiErrorMessage } from "../utils/apiError";
@@ -69,23 +70,6 @@ export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?
  * 정하고 서버가 셈할 때 그 달의 끝 날로 바꿔 쓴다.
  */
 const LAST_DAY = 32;
-
-/**
- * 시각을 12시간제로 적는다 — `14:15` → `2:15 p.m.`
- *
- * 정기는 "아침에 빠져나가는가 밤에 빠져나가는가"가 눈에 들어와야 하는데,
- * 24시간제 숫자는 한 번 셈을 해야 알 수 있다. 담는 값과 고치는 칸은
- * 24시간제 그대로 두고 적을 때만 바꾼다.
- */
-function hour12(v: string): string {
-  const m = /^(\d{1,2}):(\d{2})/.exec(v);
-  if (!m) return v;
-  const h = Number(m[1]);
-  const noon = h >= 12;
-  /* 0시는 12 a.m., 12시는 12 p.m. — 0으로 적는 시계는 없다. */
-  const shown = h % 12 === 0 ? 12 : h % 12;
-  return `${shown}:${m[2]} ${noon ? "p.m." : "a.m."}`;
-}
 
 /** 며칠인지 적는 말. 말일은 숫자 대신 그 말로 적는다. */
 function dayLabel(day: number | string | null | undefined): string {
