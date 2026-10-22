@@ -199,9 +199,9 @@ export default function AdminLogs() {
                 <thead>
                   <tr>
                     <th>시각</th>
-                    <th className="admin-tbl__center">갈래</th>
+                    <th>갈래</th>
                     <th className="admin-tbl__wrap">이름</th>
-                    <th className="admin-tbl__center">값</th>
+                    <th>값</th>
                   </tr>
                 </thead>
                 <tbody>

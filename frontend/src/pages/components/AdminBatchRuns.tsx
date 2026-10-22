@@ -164,7 +164,7 @@ export default function AdminBatchRuns() {
                       <tr>
                         <th>시각</th>
                         <th className="admin-tbl__mark" />
-                        <th className="admin-tbl__center">걸린 시간</th>
+                        <th>걸린 시간</th>
                         <th>{열쇠 ? "결과" : "작업"}</th>
                       </tr>
                     </thead>

@@ -29,7 +29,7 @@ import { EditField, EditDivider } from "./CardEditModal";
  * 줄은 걷히므로, 열려 있는 줄은 기기마다 하나뿐이다
  * (app/routers/admin.py의 /admin/login).
  *
- * 한 줄에 다섯 칸이다. 시각, 유지, 기기, IP 주소, 상태다. 기기 이름을
+ * 한 줄에 여섯 칸이다. 이 기기 표, 시각, 유지, 기기, IP 주소, 상태다. 기기 이름을
  * 바탕만 적으면서 다섯이 412px 한 줄에 들어간다. 「Windows Chrome」으로
  * 적던 때는 들어가지 않아 시각과 유지를 한 칸에 담았다
  * (app/routers/admin.py의 _기기이름).
@@ -61,6 +61,19 @@ const 선 = {
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
 };
+
+/**
+ * 지금 보고 있는 기기에 서는 표. 동그라미 안에 체크다.
+ *
+ * 줄 맨 앞 칸에 선다. 자물쇠와 같은 결로 그린다. 같은 16칸, 같은 굵기, 같은
+ * 둥근 끝이다. 이모지를 쓰지 않는 까닭은 기기마다 다른 얼굴로 떠서다.
+ */
+const 이기기표 = (
+  <svg viewBox="0 0 16 16" aria-hidden="true">
+    <circle cx="8" cy="8" r="6.4" {...선} />
+    <path d="M5.2 8.2 7.1 10.1 10.8 6.1" {...선} />
+  </svg>
+);
 
 /**
  * 상태를 말하는 자물쇠.
@@ -209,9 +222,7 @@ export default function AdminLoginLog() {
           <span>닫힘</span>
           <span className="admin-tbl__mark--bad">{자물쇠.실패}</span>
           <span>실패</span>
-          <span>
-            <span className="admin-legend__here" />
-          </span>
+          <span className="admin-tbl__here">{이기기표}</span>
           <span>이 기기</span>
         </div>
       )}
@@ -253,10 +264,11 @@ export default function AdminLoginLog() {
                 <Collapse open={폈나}>
                   <table className="admin-tbl admin-tbl--login">
                     <colgroup>
-                      {/* 시각과 유지와 상태는 글이 정해져 있어 못 박고,
-                          남는 폭을 기기가 쓴다. 못 박은 값은 CSS가 쥔다
-                          (.admin-tbl--login) — 좁은 화면에서 그 값이
-                          줄어야 다섯이 한 줄에 선다. */}
+                      {/* 맨 앞은 이 기기 표가 서는 칸이다. 시각과 유지와
+                          상태는 글이 정해져 있어 못 박고, 남는 폭을 기기가
+                          쓴다. 못 박은 값은 CSS가 쥔다(.admin-tbl--login) —
+                          좁은 화면에서 그 값이 줄어야 여섯이 한 줄에 선다. */}
+                      <col style={{ width: "var(--c-here)" }} />
                       <col style={{ width: "var(--c-at)" }} />
                       <col style={{ width: "var(--c-held)" }} />
                       <col />
@@ -269,10 +281,11 @@ export default function AdminLoginLog() {
                     </colgroup>
                     <thead>
                       <tr>
+                        <th className="admin-tbl__here" />
                         <th>시각</th>
-                        <th className="admin-tbl__center">유지</th>
-                        <th className="admin-tbl__center">기기</th>
-                        <th className="admin-tbl__right">IP 주소</th>
+                        <th>유지</th>
+                        <th>기기</th>
+                        <th>IP 주소</th>
                         <th className="admin-tbl__mark" />
                       </tr>
                     </thead>
@@ -282,6 +295,10 @@ export default function AdminLoginLog() {
                           key={`${묶음.date}-${r.at_time}-${i}`}
                           className={`${r.alive ? "" : "is-off"}${r.mine ? " is-here" : ""}`}
                         >
+                          {/* 지금 보고 있는 기기에만 표가 선다. */}
+                          <td className="admin-tbl__here">
+                            {r.mine ? 이기기표 : null}
+                          </td>
                           {/* 들어온 시각. 줄의 알맹이라 칸 이름으로 세운다. */}
                           <th className="admin-mono">{r.at_time}</th>
                           {/* 열려 있던 시간. 재어 적은 값이라 네모 딱지다. */}

@@ -21030,9 +21030,14 @@ html:has(.popup-overlay) .add-btn {
   text-overflow: ellipsis;
 }
 
-/* 머리말 줄. 이 쪽 잉크의 옅은 벌을 깔아 본문과 갈린다. */
+/* 머리말 줄. 이 쪽 잉크의 옅은 벌을 깔아 본문과 갈린다.
+
+   글은 가운데에 세운다. 칸마다 아래 줄의 쏠림을 따라가게 두었더니 머리말이
+   왼쪽과 가운데와 오른쪽에 뒤섞여 섰다. 머리말은 그 칸이 무엇인지 적는
+   줄이지 값이 아니므로, 한 줄 전체가 같은 결로 서는 쪽이 읽기에 낫다. */
 .admin-tbl thead th {
   padding: 4px 5px;
+  text-align: center;
   background: var(--color-primary-light);
   font-size: var(--font-size-xs);
   font-weight: 700;
@@ -21136,21 +21141,34 @@ html:has(.popup-overlay) .add-btn {
   color: var(--color-text-tertiary);
 }
 
-/* 지금 보고 있는 기기. 줄 왼쪽에 띠를 세운다. */
-.admin-tbl tbody tr.is-here th:first-child,
-.admin-tbl tbody tr.is-here td:first-child {
-  position: relative;
+/* 지금 보고 있는 기기를 가리키는 손. 줄 맨 앞 칸에 선다.
+
+   전에는 줄 왼쪽에 3px 띠를 세웠다. 띠가 시각 숫자에 바싹 붙어 서서 수의
+   일부처럼 읽혔다. 칸을 따로 두면 숫자와 떨어지고, 손이 어느 줄을 가리키는지도
+   바로 보인다.
+
+   손은 2초에 한 번 떠올랐다 스러진다. 늘 켜 두면 줄 하나가 그냥 그렇게
+   생긴 것으로 보이는데, 깜박이면 눈이 거기로 간다. */
+/* 이 기기 표가 서는 칸. 칸 이름을 앞에 겹쳐 적는다 — 칸 규칙
+   (.admin-tbl td, 0-1-1)이 안쪽 여백을 5px씩 두므로, 한 겹으로는 그 여백이
+   걷히지 않아 표가 칸 밖으로 비어져 나가 잘렸다. */
+.admin-tbl th.admin-tbl__here,
+.admin-tbl td.admin-tbl__here,
+.admin-legend .admin-tbl__here {
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+  line-height: 0;
+  color: var(--color-primary);
 }
 
-.admin-tbl tbody tr.is-here th:first-child::before,
-.admin-tbl tbody tr.is-here td:first-child::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--color-primary);
+.admin-tbl__here svg {
+  display: inline-block;
+  /* 크기는 여기서 준다. 칸이 좁아지는 화면에서 함께 줄어야 칸 밖으로
+     비어져 나가지 않는다. */
+  width: 15px;
+  height: 15px;
+  vertical-align: middle;
 }
 
 /* 상태 칸. 자물쇠 하나가 가운데 선다.
@@ -21188,10 +21206,11 @@ html:has(.popup-overlay) .add-btn {
    옆으로 미는 상자를 두었다가 걷었다. 표만 미는 것이라 쪽이 흔들리지는
    않았지만, 손으로 밀어야 IP 주소가 보이는 표가 됐다. 칸을 줄이는 쪽이 낫다. */
 .admin-tbl--login {
+  --c-here: 24px;
   --c-at: 78px;
-  --c-held: 62px;
-  --c-ip: 129px;
-  --c-lock: 32px;
+  --c-held: 54px;
+  --c-ip: 119px;
+  --c-lock: 26px;
 }
 
 /* 412px보다 좁은 화면. 고른 폭 글꼴을 본디 치수로 되돌리고 그만큼 칸을
@@ -21200,22 +21219,28 @@ html:has(.popup-overlay) .add-btn {
    작아지는 쪽이 낫다. */
 @media (max-width: 404px) {
   .admin-tbl--login {
+    --c-here: 16px;
     --c-at: 64px;
-    --c-held: 58px;
-    --c-ip: 108px;
-    --c-lock: 28px;
+    --c-held: 48px;
+    --c-ip: 113px;
+    --c-lock: 20px;
   }
 
   .admin-tbl--login .admin-mono {
     font-size-adjust: none;
   }
 
-  /* 칸 안쪽 여백도 두 뼘 깎는다. 다섯 칸이니 이것만으로 20px이 난다.
+  /* 칸 안쪽 여백도 두 뼘 깎는다. 여섯 칸이니 이것만으로 20px이 난다.
      글씨는 그대로 두고 여백만 줄이는 쪽이, 글을 잘라 내는 것보다 낫다. */
   .admin-tbl--login th,
   .admin-tbl--login td {
     padding-left: 3px;
     padding-right: 3px;
+  }
+
+  .admin-tbl--login .admin-tbl__here svg {
+    width: 12px;
+    height: 12px;
   }
 }
 
@@ -21399,11 +21424,7 @@ html:has(.popup-overlay) .add-btn {
   height: 14px;
 }
 
-.admin-legend__here {
-  width: 3px;
-  height: 12px;
-  background: var(--color-primary);
-}
+
 
 /* 배치 카드 사이. 정기 내역 카드는 제 아래 여백으로 12px씩 벌리는데
    (1399줄 .schedule-card), 여기는 카드를 품은 격자가 이미 틈을 쥐고 있어

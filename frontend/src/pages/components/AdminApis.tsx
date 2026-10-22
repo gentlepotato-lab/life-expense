@@ -116,9 +116,9 @@ export default function AdminApis() {
           <thead>
             <tr>
               <th>이름</th>
-              <th className="admin-tbl__center">쓰임</th>
-              <th className="admin-tbl__center">열쇠</th>
-              <th className="admin-tbl__center">30일</th>
+              <th>쓰임</th>
+              <th>열쇠</th>
+              <th>30일</th>
             </tr>
           </thead>
           <tbody>

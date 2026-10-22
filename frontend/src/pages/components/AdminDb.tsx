@@ -111,15 +111,16 @@ export default function AdminDb() {
     ...(그밖 > 0 ? [{ key: "etc", name: "그 밖", n: 그밖, color: 그밖빛 }] : []),
   ];
 
-  /* 이름은 서버가 쥔 말을 그대로 쓴다(app/routers/admin.py의 /admin/db가
-     「사는 곳과 이름만 적고」라 한 그 둘이다). */
+  /* 줄 이름은 서버가 쥔 말을 그대로 쓴다(app/routers/admin.py의 /admin/db).
+     주소는 IP 주소에 문이 붙은 꼴이라(127.0.0.1:5432) 「IP 주소」가 아니라
+     「주소」다(AdminLoginLog.tsx의 IP 주소 칸과 가려 적는다). */
   const 서버줄 = [
     /* 버전은 종류 옆에 딱지로 붙인다. 줄을 따로 세우면 「PostgreSQL」과
        「17.6」이 떨어져 앉아 서로 다른 것처럼 읽힌다. */
     { 이름: "종류", 값: 집계.server.kind, 글꼴: false, 딱지: 집계.server.version },
     { 이름: "DB", 값: 집계.server.db, 글꼴: true },
     { 이름: "스키마", 값: 집계.server.schema, 글꼴: true },
-    { 이름: "사는 곳", 값: 집계.server.host, 글꼴: true },
+    { 이름: "주소", 값: 집계.server.host, 글꼴: true },
     { 이름: "크기", 값: 크기 || "", 글꼴: false },
   ];
 
@@ -162,7 +163,7 @@ export default function AdminDb() {
           <thead>
             <tr>
               <th>표</th>
-              <th className="admin-tbl__right">줄 수</th>
+              <th>줄 수</th>
             </tr>
           </thead>
           <tbody>
@@ -192,7 +193,7 @@ export default function AdminDb() {
             {서버줄.map((r) => (
               <tr key={r.이름}>
                 <th>{r.이름}</th>
-                {/* 사는 곳과 이름은 글자 폭이 고른 벌로 적는다. 사람 말이
+                {/* 주소와 이름은 글자 폭이 고른 벌로 적는다. 사람 말이
                     아니라 그대로 옮겨 쓰는 글이다. */}
                 <td className={r.글꼴 ? "admin-mono" : undefined}>
                   {r.딱지 ? (
