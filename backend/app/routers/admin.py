@@ -860,10 +860,22 @@ def admin_api_runs(
 
     브라우저가 적어 보낸 줄에서 읽는다. 배치가 부르는 자리도 같은 표에 쌓이므로
     한자리에서 본다(action_logs의 api 갈래).
+
+    줄만 내놓지 않고 그 API의 이름도 함께 싣는다. 상세 쪽은 주소에 실린 열쇠
+    하나만 쥐고 들어오는데(?key=kasi), 그것만으로는 「kasi」라고밖에 적을 수
+    없어 외부 API 쪽 표와 다른 말로 같은 API를 부르게 된다. 꾹 누를 때 이름을
+    함께 실어 보낼 수도 있지만, 그러면 주소로 바로 들어오거나 새로 고친
+    때에는 이름이 없다.
     """
-    이름 = next((b["log_name"] for b in 바깥들 if b["key"] == key), None)
+    바깥 = next((b for b in 바깥들 if b["key"] == key), None)
+    머리 = {
+        "key": key,
+        "name": 바깥["name"] if 바깥 else "",
+        "use": 바깥["use"] if 바깥 else "",
+    }
+    이름 = 바깥["log_name"] if 바깥 else None
     if not 이름:
-        return []
+        return {**머리, "rows": []}
 
     조건 = ["a.kind = 'api'", "a.name = :name"]
     값: dict = {"name": 이름, "한도": 기록한도}
@@ -887,14 +899,14 @@ def admin_api_runs(
          LIMIT :한도
     """), 값).mappings().all()
 
-    return [{
+    return {**머리, "rows": [{
         "log_id": r["log_id"],
         "on_day": r["on_day"],
         "at_time": r["at_time"],
         "path": r["path"],
         "ms": r["elapsed_ms"],
         "status": r["status"],
-    } for r in rows]
+    } for r in rows]}
 
 
 @router.get("/batch")

@@ -30,6 +30,9 @@ import { 값딱지, 먼저펼칠줄, 스르륵한도 } from "./adminLogBits";
  * 값으로 안 읽힌다.
  */
 
+/** 서버가 내놓는 것. 줄과 함께 그 API의 이름이 온다. */
+type 받은것 = { key: string; name: string; use: string; rows: 줄[] };
+
 type 줄 = {
   log_id: number;
   on_day: string;
@@ -52,7 +55,7 @@ export default function AdminApiDetail() {
 
   const [초안, set초안] = useState({ frm: "", to: "" });
   const [필터열림, set필터열림] = useState(false);
-  const [목록, set목록] = useState<줄[] | null>(null);
+  const [받은것, set받은것] = useState<받은것 | null>(null);
   const [탈, set탈] = useState(false);
   const [접은날, set접은날] = useState<Set<string>>(new Set());
   /* 긴 날의 나머지를 펼치고 접는 자리. 한 번 펼친 날은 줄을 세운 채
@@ -61,7 +64,7 @@ export default function AdminApiDetail() {
 
   const 받기 = useCallback(() => {
     if (!열쇠) {
-      set목록([]);
+      set받은것({ key: "", name: "", use: "", rows: [] });
       return;
     }
     set탈(false);
@@ -70,9 +73,9 @@ export default function AdminApiDetail() {
         headers: 머리(),
         params: { key: 열쇠, frm: 때.기간.frm, to: 때.기간.to },
       })
-      .then((r) => set목록(r.data as 줄[]))
+      .then((r) => set받은것(r.data as 받은것))
       .catch(() => {
-        set목록([]);
+        set받은것({ key: 열쇠, name: "", use: "", rows: [] });
         set탈(true);
       });
   }, [때.기간.frm, 때.기간.to, 열쇠]);
@@ -91,7 +94,7 @@ export default function AdminApiDetail() {
 
   const 날묶음 = (() => {
     const 묶음: { date: string; label: string; items: 줄[] }[] = [];
-    for (const r of 목록 ?? []) {
+    for (const r of 받은것?.rows ?? []) {
       const 끝 = 묶음[묶음.length - 1];
       if (끝 && 끝.date === r.on_day) 끝.items.push(r);
       else 묶음.push({ date: r.on_day, label: formatDateLabel(r.on_day), items: [r] });
@@ -99,7 +102,7 @@ export default function AdminApiDetail() {
     return 묶음;
   })();
 
-  const 센것 = 목록?.length ?? 0;
+  const 센것 = 받은것?.rows.length ?? 0;
 
   return (
     <div className="admin-edit">
@@ -118,14 +121,28 @@ export default function AdminApiDetail() {
         </AdminPeriodBar>
       </div>
 
-      {/* 어느 API를 보고 있는지. 열쇠는 주소에만 실려 있다. */}
+      {/* 어느 API를 보고 있는지. 이름과 열쇠를 한 알약에 나란히 담는다.
+
+          열쇠만 적던 때는 외부 API 쪽 표가 「한국천문연구원 특일 정보」라
+          부르는 것을 이 쪽은 「kasi」라 불러, 같은 API가 두 이름으로 섰다.
+          이름만 적으면 주소에 실린 열쇠와 화면에 보이는 말이 달라 어느
+          줄에서 들어왔는지 짚기 어렵다.
+
+          빛깔은 청록이다. 관리자 사이트가 보라 한 결로 서므로 보라 알약을
+          하나 더 두면 이 줄이 눈에 안 걸린다. 표 안에서 걸린 시간을 적는
+          딱지가 쓰는 그 빛이다(utils/adminFmt.ts의 걸린빛). */}
       <div className="pm-toolbar-row admin-toolbar-row">
-        <span className="admin-span__tag admin-mono">{열쇠 || "-"}</span>
+        <span className="admin-api-name tint-청록">
+          <span className="admin-api-name__what">
+            {받은것?.name || 열쇠 || "-"}
+          </span>
+          {받은것?.name && <span className="admin-api-name__key">{열쇠}</span>}
+        </span>
         <span className="admin-toolbar-row__gap" />
-        {목록 && <span className="admin-span__tag">{센것.toLocaleString("ko-KR")}회</span>}
+        {받은것 && <span className="admin-span__tag">{센것.toLocaleString("ko-KR")}회</span>}
       </div>
 
-      {목록 === null ? (
+      {받은것 === null ? (
         <div className="card admin-soon">
           <p className="page-empty">불러오는 중입니다.</p>
         </div>
