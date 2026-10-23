@@ -22514,8 +22514,40 @@ textarea.admin-area:focus {
   flex-wrap: wrap;
   gap: var(--space-2);
 }
+
 .admin-row > .ui-input {
   flex: 1 1 10rem;
+}
+
+/* 항목을 담는 줄.
+
+   단추는 쪽 위의 [편집]과 같은 치수로 세운다. 기본 치수(32px)로 두었더니
+   바로 위 줄의 단추(24px)보다 커서, 담는 줄만 따로 노는 것으로 보였다.
+   칸은 글을 치는 자리라 24px이면 답답해 28px로 세운다. --control-h-sm은
+   13762줄에서 24px로 다시 적히므로 숫자를 그대로 쓴다. 가운데를 맞추면
+   칸과 단추의 4px 차는 눈에 걸리지 않는다.
+
+   계정 쪽의 [변경]과 [로그아웃]도 같은 줄을 쓰므로(.admin-row--end),
+   치수는 담는 줄에만 건다. */
+.admin-row--add {
+  align-items: center;
+}
+
+.admin-row--add > .ui-input {
+  height: 28px;
+  min-height: 28px;
+  font-size: var(--font-size-sm);
+}
+
+.admin-row--add > .ui-btn {
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  min-width: 0;
+  padding: 0 12px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  border-radius: 999px;
 }
 
 /* 켜고 끄는 줄들. */

@@ -445,7 +445,7 @@ export function AdminDoodle() {
               {/* 적는 칸은 담을 때만 연다. 늘 떠 있으면 목록 아래에 빈 칸이
                   늘 한 줄 붙어 있어 어디까지가 목록인지 흐려진다. */}
               {담는중 && (
-                <div className="admin-row">
+                <div className="admin-row admin-row--add">
                   <input
                     className="ui-input"
                     value={새글}
