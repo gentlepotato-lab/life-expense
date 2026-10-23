@@ -21585,10 +21585,17 @@ html:has(.note-pop) .add-btn {
    세로 칸(<col>)에는 글 쏠림을 걸 수 없다. */
 .admin-tbl td:has(> .admin-tbl__tag),
 .admin-tbl td:has(> .admin-tbl__chip),
-.admin-tbl td.admin-mono:not(.admin-tbl__right),
-.admin-tbl tbody th.admin-mono:not(.admin-tbl__right) {
+.admin-tbl td.admin-mono:not(.admin-tbl__right):not(.admin-tbl__left),
+.admin-tbl tbody th.admin-mono:not(.admin-tbl__right):not(.admin-tbl__left) {
   text-align: center;
 }
+
+/* 왼쪽에 맞추라고 따로 적은 칸.
+
+   조회 기록의 이름 칸이 그렇다. 한 칸에 화면 이름과 길이 섞여 드는데, 길만
+   고른 폭 글꼴이라 그 줄만 가운데로 모여 한 칸 안에서 쏠림이 두 가지가
+   됐다. 칸 이름을 앞에 겹쳐 적지 않아도 되는 것은 위 규칙에서 이 이름을
+   덜어 냈기 때문이다 — 집히지 않으면 칸의 기본 쏠림인 왼쪽으로 선다. */
 
 /* 이름과 값이 마주 보는 표는 값을 왼쪽에 둔다. 줄마다 값 하나뿐이라 세로줄을
    맞출 일이 없고, 가운데로 모으면 이름과 값 사이가 멀찍이 벌어져 어느 이름의

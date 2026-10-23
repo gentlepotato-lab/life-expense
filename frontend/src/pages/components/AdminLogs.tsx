@@ -220,9 +220,15 @@ export default function AdminLogs() {
                             </span>
                           </td>
                           {/* 길은 고른 폭 글꼴로, 화면 이름은 본문 글꼴로 적는다.
-                              길은 글자 수를 세며 읽는 글이다. */}
+                              길은 글자 수를 세며 읽는 글이다.
+
+                              쏠림은 둘 다 왼쪽이다. 고른 폭 글꼴은 표에서
+                              가운데로 모으는 것이 기본인데(index.css의
+                              .admin-tbl td.admin-mono), 이 칸은 한 칸에 두
+                              가지가 섞여 들어 그대로 두면 줄마다 쏠림이
+                              달라진다. */}
                           <td
-                            className={`admin-tbl__wrap${
+                            className={`admin-tbl__wrap admin-tbl__left${
                               줄이름(r).startsWith("/") ? " admin-mono" : ""
                             }`}
                           >

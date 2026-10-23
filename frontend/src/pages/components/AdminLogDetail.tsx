@@ -203,8 +203,11 @@ export default function AdminLogDetail() {
                           </td>
                           {/* 같은 이름이라도 부른 길은 줄마다 다를 수 있다.
                               조회는 이름이 곧 길이라 그 자리가 비면 이름을
-                              그대로 적는다. */}
-                          <td className="admin-tbl__wrap admin-mono">{r.path || r.name}</td>
+                              그대로 적는다. 쏠림은 조회 기록의 이름 칸과
+                              같이 왼쪽이다(AdminLogs.tsx). */}
+                          <td className="admin-tbl__wrap admin-tbl__left admin-mono">
+                            {r.path || r.name}
+                          </td>
                           <td>{값딱지(r)}</td>
                         </tr>
                       ))}
