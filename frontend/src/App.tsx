@@ -27,6 +27,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 /* 관리자 자리 다섯도 늦게 불러 온다. 미리 불러 오면 그림 라이브러리까지
    첫 묶음에 들어가, 관리자 화면에 들어오지 않는 사람도 그 짐을 진다. */
 
+import useCardPress from "./hooks/useCardPress";
 import PageHead from "./pages/components/PageHead";
 import TabBar from "./pages/components/TabBar";
 import NotifyHost from "./pages/components/NotifyHost";
@@ -93,6 +94,9 @@ function HomeGate() {
 
 function App() {
   useSplashDismiss();
+  /* 칸을 누르는 동안의 표. 브라우저가 쥔 :active 는 누른 자리의 칸이 바뀌면
+     새 칸에 걸린 채로 굳는다(hooks/useCardPress.ts). */
+  useCardPress();
 
   /* 설정은 화면이 뜨기 전에 있어야 하므로 브라우저에 남은 것으로 먼저 그리고,
      서버에서 받아 온 것은 다음에 열 때부터 쓴다.

@@ -6606,7 +6606,9 @@ textarea::placeholder {
   box-shadow: var(--shadow-lift);
 }
 
-.home-card:active {
+/* 누르는 동안은 떠 있던 것을 내려놓는다. 브라우저가 쥔 :active 가 아니라
+   우리가 붙이는 표를 본다(hooks/useCardPress.ts). */
+.home-card.is-pressed {
   transform: translateY(0);
 }
 
@@ -7319,8 +7321,10 @@ body {
    눌린 동안 살짝 눌러앉게 해서 손끝에 닿는 느낌을 만든다.
    ════════════════════════════════════════════════════════════ */
 
-.home-card:active,
-.menu-card:active {
+/* 누른 티. :active 를 쓰지 않는 까닭은 188절과 hooks/useCardPress.ts 에
+   적었다 — 누른 자리의 칸이 사라지면 그 상태가 새 칸에 걸린 채로 굳는다.
+   메뉴 칸도 같은 칸이므로(.home-card .menu-card) 함께 따라온다. */
+.home-card.is-pressed {
   transform: scale(0.985);
   box-shadow: var(--shadow-sm);
   transition-duration: 80ms;
@@ -23169,4 +23173,48 @@ textarea.admin-area:focus {
 :root[data-motion="off"] .note-pop,
 :root[data-motion="off"] .note-sheet {
   animation: none;
+}
+
+/* ─────────────────────────────────────────────
+   188. 손가락이 떼고 간 머무름(2026-10-24)
+   ─────────────────────────────────────────────
+   관리자 사이트에 들어가고 나면 대시보드 칸이 눌린 채로 굳어 있었다.
+
+   비밀번호 칸은 412px 화면에서 118px 자리에 서고, 들어간 뒤 그 자리에는
+   대시보드 칸이 선다(92..256px). 손가락이 마지막으로 닿은 자리에 새 칸이
+   들어서면서, 브라우저가 쥐고 있던 머무름(:hover)이 그 칸에 걸린다. 손가락은
+   마우스처럼 자리를 떠나지 못하므로 다른 데를 한 번 더 짚어야 풀린다.
+   고른 상자(.pe-pick)에서 한 번 겪은 그 탈이다.
+
+   마우스가 있는 기기의 결은 그대로 둔다. 손가락만 머무름을 못 떼므로
+   그쪽에서만 제자리에 세운다. 셈값이 위 규칙(.home-card:hover)과 같으므로
+   파일에서 뒤에 서야 이긴다.
+
+   누르는 동안의 반응(.home-card:active)은 그대로다. 그것은 손가락을 떼면
+   브라우저가 스스로 거둔다.
+   ───────────────────────────────────────────── */
+@media (hover: none) {
+  .home-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+    /* 바탕과 테까지 되돌린다. 칸은 button 이라 전역 규칙(228줄의
+       button:hover)이 함께 걸려 바탕을 쪽 바탕빛으로 깔고 테를 강조색으로
+       바꾼다. 셈값이 (0,1,1)이라 .home-card(0,1,0)의 제 빛을 덮는다. 들림과
+       그림자만 되돌렸을 때 보라 테와 잿빛 바탕이 그대로 남아, 칸이 여전히
+       눌린 것으로 보였다. 이 규칙은 (0,2,0)이라 그 전역 규칙을 덮는다. */
+    background: var(--color-surface);
+    border-color: var(--color-border);
+  }
+}
+
+/* 마우스가 있는 기기에서는 브라우저가 쥔 누름을 그대로 쓴다. 손을 떼면
+   반드시 풀리므로 굳을 일이 없고, 글쇠(Enter)로 누를 때도 티가 난다.
+   손가락 기기에서는 쓰지 않는다 — 누른 자리의 칸이 바뀌면 그 상태가 새 칸에
+   걸린 채로 남는다(hooks/useCardPress.ts). */
+@media (hover: hover) and (pointer: fine) {
+  .home-card:active {
+    transform: scale(0.985);
+    box-shadow: var(--shadow-sm);
+    transition-duration: 80ms;
+  }
 }
