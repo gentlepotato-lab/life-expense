@@ -1,6 +1,6 @@
 import MonthNav from "./MonthNav";
 import useMonthSpan from "../../hooks/useMonthSpan";
-import { formatRangeLabel } from "../../utils/dateGroup";
+import { 기간글 } from "../../utils/adminFmt";
 import type useAdminPeriod from "../../hooks/useAdminPeriod";
 
 /**
@@ -9,11 +9,19 @@ import type useAdminPeriod from "../../hooks/useAdminPeriod";
  * 달 넘기개가 왼쪽, 필터가 오른쪽 끝이다. 조회 기록과 공지와 배치 이력과
  * 외부 API와 DB가 함께 쓴다.
  *
- * 거르기가 걸려 있으면 달 넘기개 자리에 고른 기간을 글로 적는다. 달 단위가
- * 아닌 기간을 보는 중이라 ‹ › 가 가리킬 달이 없다. 글꼴과 자리는 사용자
- * 사이트의 기간 상세와 같다(pages/CalendarDetail.tsx의 .cal-back__range).
- * 달 단위로 보는 동안에는 적지 않는다. 달 넘기개가 이미 어느 달인지 말하고
- * 있어, 그 옆에 날짜를 또 적으면 같은 말이 두 번 선다.
+ * 달 넘기개 자리에 기간을 글로 적는 자리가 둘이다. 거르기가 걸려 있을 때와,
+ * 상세 쪽일 때다. 거르기가 걸리면 달 단위가 아닌 기간을 보는 중이라 ‹ › 가
+ * 가리킬 달이 없고, 상세 쪽은 들어올 때 실려 온 기간을 그대로 보는 자리라
+ * 거기서 달을 넘길 까닭이 없다. 다른 기간은 필터로 고른다.
+ *
+ * 상세 쪽에서 달 넘기개를 세웠더니 한 줄에 네 가지(되돌아가기, 넘기개,
+ * 펼치개, 필터)가 서서 412px 화면에서 필터가 다음 줄로 밀렸다. 넘기개가
+ * 157px, 기간 글이 85px이다.
+ *
+ * 글꼴과 자리는 사용자 사이트의 기간 상세와 같다(pages/CalendarDetail.tsx의
+ * .cal-back__range). 달 단위로 보는 동안 달 넘기개 옆에는 적지 않는다. 그
+ * 넘기개가 이미 어느 달인지 말하고 있어, 옆에 날짜를 또 적으면 같은 말이
+ * 두 번 선다.
  *
  * 최근 며칠 알약은 걷었다. 달 단위가 기본이고 그 밖은 필터로 고르므로,
  * 가운데 자리가 하나 더 있을 까닭이 없다.
@@ -55,10 +63,8 @@ export default function AdminPeriodBar({
             {뒤로.이름}
           </button>
         )}
-        {때.거른기간 ? (
-          <span className="admin-range">
-            {formatRangeLabel(때.기간.frm, 때.기간.to)}
-          </span>
+        {뒤로 || 때.거른기간 ? (
+          <span className="admin-range">{기간글(때.기간.frm, 때.기간.to)}</span>
         ) : (
           <MonthNav ym={때.ym} onChange={때.달바꾸기} min={min} max={max} />
         )}

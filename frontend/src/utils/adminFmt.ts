@@ -46,3 +46,26 @@ export function 걸린빛(ms: number | null | undefined): string {
   if (ms >= 1000) return "tint-살구";
   return "tint-청록";
 }
+
+/**
+ * 보고 있는 기간. "2026-10-01", "2026-10-23" → "10. 1. ~ 10. 23."
+ *
+ * 사용자 사이트의 기간 상세가 적는 그 꼴이다(pages/CalendarDetail.tsx의
+ * shortDate). 해와 요일까지 적던 꼴(formatRangeLabel)은 230px이 들어, 상세
+ * 쪽의 한 줄에 되돌아가는 단추와 펼치개와 필터가 함께 서면 필터가 다음
+ * 줄로 밀렸다. 이 꼴은 85px이다.
+ *
+ * 해가 다른 두 날을 묶을 때만 해를 적는다. 12월에서 1월로 넘어가는 기간을
+ * 해 없이 적으면 어느 해 것인지 알 길이 없다.
+ */
+export function 기간글(frm: string, to: string): string {
+  const 짧게 = (v: string) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+    return m ? `${Number(m[2])}. ${Number(m[3])}.` : v;
+  };
+  const 해붙여 = (v: string) => `${v.slice(0, 4)}. ${짧게(v)}`;
+  if (!frm || !to) return "";
+  if (frm === to) return 짧게(frm);
+  if (frm.slice(0, 4) !== to.slice(0, 4)) return `${해붙여(frm)} ~ ${해붙여(to)}`;
+  return `${짧게(frm)} ~ ${짧게(to)}`;
+}
