@@ -6,6 +6,8 @@ import { MENU_REGISTRY } from "../../utils/menuRegistry";
 import { PAGE_TITLE } from "../../utils/pageTitles";
 import MarkIcon from "./MarkIcon";
 import AddButton from "./AddButton";
+import useEditLock from "../../hooks/useEditLock";
+import { EditLockTip } from "./EditLock";
 import OnOffToggle from "./OnOffToggle";
 import CollapseToggle, { CollapseAllButtons } from "./CollapseToggle";
 import { invalidateMenuOff, loadMenuOff } from "../../utils/menuOff";
@@ -176,6 +178,9 @@ const 걸렸나 = (f: 거름) => !!(f.켜짐 || f.글.trim());
 export function AdminDoodle() {
   const [목록, set목록] = useState<문구[] | null>(null);
   const [편집중, set편집중] = useState(false);
+  /* 편집 중에 담기를 누르면 왜 안 되는지 그 자리에 띄운다. 사용자 사이트의
+     다섯 화면이 쓰는 것을 그대로 쓴다(hooks/useEditLock.ts). */
+  const { lockAt, showLock, tipRef } = useEditLock(편집중);
   const [편집전, set편집전] = useState("[]");
   /* 접은 카드의 이름. 두 장뿐이라 집합 하나로 넉넉하다. */
   const [접힘, set접힘] = useState<Set<string>>(new Set());
@@ -504,10 +509,19 @@ export function AdminDoodle() {
         </AdminFilterPopup>
       )}
 
-      {/* 담기. 누르면 문구 칸이 열린다. 접혀 있으면 함께 펼친다. */}
+      {/* 담기. 누르면 문구 칸이 열린다. 접혀 있으면 함께 펼친다.
+
+          편집 중에는 막는다. 고치던 것을 저장하지 않은 채로 새 줄을 담으면
+          어느 것이 담긴 것인지 흐려진다. 사용자 사이트의 분류와 결제 수단도
+          그렇게 막는다(pages/Categories.tsx). */}
       <AddButton
         이름="새 문구"
-        onClick={() => {
+        잠김={편집중}
+        onClick={(e) => {
+          if (편집중) {
+            showLock(e, "편집을 마친 후 추가하세요.");
+            return;
+          }
           set접힘((v) => {
             const 다음 = new Set(v);
             다음.delete("문구");
@@ -516,6 +530,8 @@ export function AdminDoodle() {
           set담는중(true);
         }}
       />
+
+      <EditLockTip lockAt={lockAt} tipRef={tipRef} />
     </div>
   );
 }

@@ -6,6 +6,8 @@ import { 머리 } from "../../utils/adminAuth";
 import { say, ask } from "../../utils/notify";
 import AdminNoticePopup, { type 초안 } from "./AdminNoticePopup";
 import AddButton from "./AddButton";
+import useEditLock from "../../hooks/useEditLock";
+import { EditLockTip } from "./EditLock";
 import OnOffToggle from "./OnOffToggle";
 import AdminFilterPopup from "./AdminFilterPopup";
 import DateGroupHeader from "./DateGroupHeader";
@@ -217,6 +219,9 @@ export default function AdminNotices() {
   const 때 = useAdminPeriod();
   const [목록, set목록] = useState<공지[] | null>(null);
   const [편집중, set편집중] = useState(false);
+  /* 편집 중에 담기를 누르면 왜 안 되는지 그 자리에 띄운다. 사용자 사이트의
+     다섯 화면이 쓰는 것을 그대로 쓴다(hooks/useEditLock.ts). */
+  const { lockAt, showLock, tipRef } = useEditLock(편집중);
   /* 편집에 들어갈 때의 켜짐 상태. 저장할 때 바뀐 줄만 가려내는 데 쓴다.
      문구와 메뉴도 같은 꼴이다(AdminToggles.tsx). */
   const [편집전, set편집전] = useState("[]");
@@ -462,7 +467,20 @@ export default function AdminNotices() {
       </div>
 
       {/* 담기. 사용자 화면의 다섯 자리와 같은 단추, 같은 자리다. */}
-      <AddButton 이름="새 공지" onClick={() => set연것({ id: null, 값: { ...빈것 } })} />
+      {/* 담기. 편집 중에는 막는다. 고치던 것을 저장하지 않은 채로 새 줄을
+          담으면 어느 것이 담긴 것인지 흐려진다. 사용자 사이트의 분류와
+          결제 수단도 그렇게 막는다(pages/Categories.tsx). */}
+      <AddButton
+        이름="새 공지"
+        잠김={편집중}
+        onClick={(e) =>
+          편집중
+            ? showLock(e, "편집을 마친 후 추가하세요.")
+            : set연것({ id: null, 값: { ...빈것 } })
+        }
+      />
+
+      <EditLockTip lockAt={lockAt} tipRef={tipRef} />
 
       {필터열림 && (
         <AdminFilterPopup
