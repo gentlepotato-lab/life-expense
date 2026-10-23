@@ -67,7 +67,7 @@ export const PAGE_NOTE: Record<string, string> = {
   "/entries": "기록을 마친 지출과 수입을 확인합니다.",
   "/pending-entries": "확정 전에 검수하는 내역을 관리합니다.",
   "/scheduled-entries": "정기적으로 반복되는 내역을 관리합니다.",
-  "/calendar": "한 달을 한눈에 확인합니다.",
+  "/calendar": "한 달의 지출과 수입을 한눈에 확인합니다.",
   "/entry-groups": "묶음별로 내역을 확인합니다.",
   "/calendar/detail": "선택한 기간의 지출과 수입을 확인합니다.",
 
