@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
 import { formatDateLabel } from "../../utils/dateGroup";
 import { 걸린빛 } from "../../utils/adminFmt";
+import useAdminFold from "../../hooks/useAdminFold";
+import useAdminPeriod, { type 기간짐 } from "../../hooks/useAdminPeriod";
+import AdminPeriodBar from "./AdminPeriodBar";
+import AdminPeriodFields from "./AdminPeriodFields";
+import AdminMoreRow from "./AdminMoreRow";
+import AdminFilterPopup from "./AdminFilterPopup";
 import DateGroupHeader from "./DateGroupHeader";
 import Collapse from "./Collapse";
 import { CollapseAllButtons } from "./CollapseToggle";
+import { EditField } from "./CardEditModal";
+import { 먼저펼칠줄, 스르륵한도 } from "./adminLogBits";
 
 /**
  * 배치 이력.
@@ -21,6 +29,12 @@ import { CollapseAllButtons } from "./CollapseToggle";
  *
  * 열쇠를 들고 들어오면 그 일만 본다. 없으면 모두 섞어 보되 어느 일인지를
  * 칸으로 적는다.
+ *
+ * 맨 위에서 달을 넘기고 기간을 거른다(AdminPeriodBar). 기간은 들어올 때
+ * 실려 오고, 되돌아가는 단추는 바로 앞 쪽으로 돌아간다.
+ *
+ * 하루에 쌓인 바퀴가 많아 먼저 몇 줄만 펼친다. 매분 도는 일은 하루에 천
+ * 줄이 넘는다. 나머지는 표 아래 (...)를 눌러 편다(AdminMoreRow.tsx).
  */
 
 type 줄 = {
@@ -66,25 +80,50 @@ const 걸린글 = (ms: number | null) =>
   ms === null ? "-" : `${ms.toLocaleString("ko-KR")}ms`;
 
 export default function AdminBatchRuns() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [찾기] = useSearchParams();
   const 열쇠 = 찾기.get("key") || "";
+
+  const 실린것 = (location.state as { 때?: 기간짐; back?: string } | null) ?? null;
+  const 때 = useAdminPeriod(실린것?.때 ?? null);
+  const 돌아갈곳 = 실린것?.back ?? "배치";
+
+  const [초안, set초안] = useState({ frm: "", to: "" });
+  const [필터열림, set필터열림] = useState(false);
   const [목록, set목록] = useState<줄[] | null>(null);
   const [탈, set탈] = useState(false);
-  /* 접은 날. 기본은 모두 펼침이다. */
+  /* 접은 날과, 나머지까지 펼친 날. 기본은 모두 펼침이되 앞 몇 줄만이다. */
   const [접은날, set접은날] = useState<Set<string>>(new Set());
+  /* 긴 날의 나머지를 펼치고 접는 자리. 한 번 펼친 날은 줄을 세운 채
+     접었다 폈다 하므로 스르륵 닫힌다(hooks/useAdminFold.ts). */
+  const 펼침 = useAdminFold();
 
   const 받기 = useCallback(() => {
     set탈(false);
     axios
-      .get("/admin/batch/runs", { headers: 머리(), params: 열쇠 ? { key: 열쇠 } : {} })
+      .get("/admin/batch/runs", {
+        headers: 머리(),
+        params: { frm: 때.기간.frm, to: 때.기간.to, ...(열쇠 ? { key: 열쇠 } : {}) },
+      })
       .then((r) => set목록(r.data as 줄[]))
       .catch(() => {
         set목록([]);
         set탈(true);
       });
-  }, [열쇠]);
+  }, [때.기간.frm, 때.기간.to, 열쇠]);
 
   useEffect(받기, [받기]);
+
+  const 필터열기 = () => {
+    set초안({ frm: 때.거른기간?.frm ?? "", to: 때.거른기간?.to ?? "" });
+    set필터열림(true);
+  };
+
+  const 적용 = () => {
+    if (!때.기간걸기(초안.frm, 초안.to)) return;
+    set필터열림(false);
+  };
 
   /* 날로 묶는다. 서버가 이미 새것부터 보내므로 나오는 차례를 그대로 쓴다. */
   const 날묶음 = (() => {
@@ -104,17 +143,36 @@ export default function AdminBatchRuns() {
   return (
     <div className="admin-edit">
       <div className="cat-toolbar">
-        <div className="pm-toolbar-row admin-toolbar-row">
-          {일이름 && <span className="admin-span__tag">{일이름}</span>}
-          <span className="admin-toolbar-row__gap" />
+        <AdminPeriodBar
+          때={때}
+          on필터={필터열기}
+          뒤로={{
+            이름: 돌아갈곳,
+            on누름: () =>
+              실린것 ? navigate(-1) : navigate("/admin/batch", { replace: true }),
+          }}
+        >
           {날묶음.length > 0 && (
             <CollapseAllButtons
               onExpandAll={() => set접은날(new Set())}
               onCollapseAll={() => set접은날(new Set(날묶음.map((g) => g.date)))}
             />
           )}
-        </div>
+        </AdminPeriodBar>
       </div>
+
+      {/* 어느 일을 보고 있는지. 열쇠는 주소에만 실려 있다. */}
+      {일이름 && (
+        <div className="pm-toolbar-row admin-toolbar-row">
+          <span className="admin-span__tag">{일이름}</span>
+          <span className="admin-toolbar-row__gap" />
+          {목록 && (
+            <span className="admin-span__tag">
+              {목록.length.toLocaleString("ko-KR")}회
+            </span>
+          )}
+        </div>
+      )}
 
       {목록 === null ? (
         <div className="card admin-soon">
@@ -132,6 +190,12 @@ export default function AdminBatchRuns() {
         <div className="admin-days-list">
           {날묶음.map((묶음) => {
             const 폈나 = !접은날.has(묶음.date);
+            const 다폈나 = 펼침.폈나(묶음.date);
+            /* 나머지가 많으면 스르륵 없이 한 번에 펼치고 접는다. 줄마다
+               키를 어르는 일이라 많으면 뚝뚝 끊긴다(adminLogBits.tsx). */
+            const 스르륵 = 묶음.items.length - 먼저펼칠줄 <= 스르륵한도;
+            const 세울것 = 스르륵 ? 펼침.담겼나(묶음.date) : 다폈나;
+            const 보일것 = 세울것 ? 묶음.items : 묶음.items.slice(0, 먼저펼칠줄);
             return (
               <section key={묶음.date} className="date-group">
                 {/* 날짜는 표 밖, 단 머리말이 말한다. 셀 돈이 없으므로
@@ -169,8 +233,15 @@ export default function AdminBatchRuns() {
                       </tr>
                     </thead>
                     <tbody>
-                      {묶음.items.map((r, i) => (
-                        <tr key={`${r.on_day}-${r.at_time}-${i}`} className={r.ok ? "" : "is-off"}>
+                      {보일것.map((r, i) => (
+                        <tr
+                          key={`${r.on_day}-${r.at_time}-${i}`}
+                          className={`${r.ok ? "" : "is-off"}${
+                            스르륵 && i >= 먼저펼칠줄
+                              ? ` admin-tbl__extra${다폈나 ? "" : " is-folded"}`
+                              : ""
+                          }`.trim()}
+                        >
                           <th className="admin-mono">{r.at_time}</th>
                           <td
                             className={`admin-tbl__mark admin-tbl__mark--${r.ok ? "open" : "bad"}`}
@@ -189,6 +260,14 @@ export default function AdminBatchRuns() {
                           <td className="admin-tbl__wrap">{열쇠 ? r.note || "-" : r.name}</td>
                         </tr>
                       ))}
+                      {묶음.items.length > 먼저펼칠줄 && (
+                        <AdminMoreRow
+                          칸수={4}
+                          남은수={묶음.items.length - 먼저펼칠줄}
+                          폈나={다폈나}
+                          on바꾸기={() => 펼침.바꾸기(묶음.date)}
+                        />
+                      )}
                     </tbody>
                   </table>
                 </Collapse>
@@ -202,6 +281,20 @@ export default function AdminBatchRuns() {
       <p className="admin-hint">
         실행 기록은 90일까지 남고, 최근 200줄까지 보입니다.
       </p>
+
+      {필터열림 && (
+        <AdminFilterPopup
+          on초기화={() => set초안({ frm: "", to: "" })}
+          on적용={적용}
+          onClose={() => set필터열림(false)}
+        >
+          <AdminPeriodFields frm={초안.frm} to={초안.to} on바뀜={set초안} />
+
+          <EditField label="" span={12}>
+            <p className="admin-hint">날짜를 둘 다 비우면 달 단위로 돌아갑니다.</p>
+          </EditField>
+        </AdminFilterPopup>
+      )}
     </div>
   );
 }

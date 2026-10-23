@@ -18,12 +18,16 @@ import AdminMain from "./AdminMain";
 import AdminTabHome from "./AdminTabHome";
 import AdminDash from "./components/AdminDash";
 import AdminLogs from "./components/AdminLogs";
+import AdminLogDetail from "./components/AdminLogDetail";
 import AdminNotices from "./components/AdminNotices";
+import AdminNoticeDetail from "./components/AdminNoticeDetail";
 import { AdminDoodle, AdminMenu } from "./components/AdminToggles";
 import AdminBatch from "./components/AdminBatch";
 import AdminBatchRuns from "./components/AdminBatchRuns";
 import AdminApis from "./components/AdminApis";
+import AdminApiDetail from "./components/AdminApiDetail";
 import AdminDb from "./components/AdminDb";
+import AdminDbDetail from "./components/AdminDbDetail";
 import AdminLoginLog from "./components/AdminLoginLog";
 import AdminSoon from "./components/AdminSoon";
 
@@ -183,11 +187,15 @@ export default function Admin() {
           <Route path="/" element={<AdminMain />} />
           <Route path="dash" element={<AdminDash />} />
           <Route path="logs" element={<AdminLogs />} />
+          {/* 줄을 눌러 들어가는 곁가지. 갈래 알약에는 서지 않는다
+              (utils/adminTabs.ts의 곁가지). */}
+          <Route path="log-detail" element={<AdminLogDetail />} />
           <Route path="users" element={<AdminSoon />} />
 
           {/* 화면 탭 */}
           <Route path="screen" element={<AdminTabHome />} />
           <Route path="notice" element={<AdminNotices />} />
+          <Route path="notice-detail" element={<AdminNoticeDetail />} />
           <Route path="doodle" element={<AdminDoodle />} />
           <Route path="menu" element={<AdminMenu />} />
 
@@ -198,7 +206,9 @@ export default function Admin() {
               (utils/adminTabs.ts의 곁가지). */}
           <Route path="batch-runs" element={<AdminBatchRuns />} />
           <Route path="api" element={<AdminApis />} />
+          <Route path="api-detail" element={<AdminApiDetail />} />
           <Route path="db" element={<AdminDb />} />
+          <Route path="db-detail" element={<AdminDbDetail />} />
 
           {/* 계정 탭 */}
           <Route path="account" element={<AdminTabHome />} />

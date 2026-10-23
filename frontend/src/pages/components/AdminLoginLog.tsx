@@ -3,13 +3,16 @@ import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
 import { say } from "../../utils/notify";
 import { formatDateLabel } from "../../utils/dateGroup";
+import useAdminFold from "../../hooks/useAdminFold";
 import AdminFilterPopup from "./AdminFilterPopup";
+import AdminMoreRow from "./AdminMoreRow";
 import DateGroupHeader from "./DateGroupHeader";
 import Collapse from "./Collapse";
 import { CollapseAllButtons } from "./CollapseToggle";
 import DayPicker from "./DayPicker";
 import SingleSelect from "./SingleSelect";
 import { EditField, EditDivider } from "./CardEditModal";
+import { 먼저펼칠줄, 스르륵한도 } from "./adminLogBits";
 
 /**
  * 로그인 기록.
@@ -28,6 +31,9 @@ import { EditField, EditDivider } from "./CardEditModal";
  * nginx 가 넘겨주는 것을 적는다. 한 기기에서 다시 들어오면 그 기기의 옛
  * 줄은 걷히므로, 열려 있는 줄은 기기마다 하나뿐이다
  * (app/routers/admin.py의 /admin/login).
+ *
+ * 하루에 여러 번 들어온 날이 있어 먼저 몇 줄만 펼친다. 나머지는 표 아래
+ * (...)를 눌러 펴고, 다시 눌러 접는다(AdminMoreRow.tsx).
  *
  * 한 줄에 여섯 칸이다. 이 기기 표, 시각, 유지, 기기, IP 주소, 상태다. 기기 이름을
  * 바탕만 적으면서 다섯이 412px 한 줄에 들어간다. 「Windows Chrome」으로
@@ -151,6 +157,9 @@ export default function AdminLoginLog() {
   /* 접은 날. 공지와 같은 꼴이다. 기본은 모두 펼침이다. 로그인은 하루에
      몇 줄뿐이라 접으면 볼 것이 없다. */
   const [접은날, set접은날] = useState<Set<string>>(new Set());
+  /* 긴 날의 나머지를 펼치고 접는 자리. 한 번 펼친 날은 줄을 세운 채
+     접었다 폈다 하므로 스르륵 닫힌다(hooks/useAdminFold.ts). */
+  const 펼침 = useAdminFold();
 
   const 받기 = useCallback((f: 거름) => {
     set탈(false);
@@ -243,6 +252,12 @@ export default function AdminLoginLog() {
         <div className="admin-days-list">
           {날묶음.map((묶음) => {
             const 폈나 = !접은날.has(묶음.date);
+            const 다폈나 = 펼침.폈나(묶음.date);
+            /* 나머지가 많으면 스르륵 없이 한 번에 펼치고 접는다. 줄마다
+               키를 어르는 일이라 많으면 뚝뚝 끊긴다(adminLogBits.tsx). */
+            const 스르륵 = 묶음.items.length - 먼저펼칠줄 <= 스르륵한도;
+            const 세울것 = 스르륵 ? 펼침.담겼나(묶음.date) : 다폈나;
+            const 보일것 = 세울것 ? 묶음.items : 묶음.items.slice(0, 먼저펼칠줄);
             return (
               <section key={묶음.date} className="date-group">
                 {/* 날짜는 카드 밖, 단 머리말이 말한다. 셀 돈이 없으므로
@@ -290,10 +305,16 @@ export default function AdminLoginLog() {
                       </tr>
                     </thead>
                     <tbody>
-                      {묶음.items.map((r, i) => (
+                      {보일것.map((r, i) => (
                         <tr
                           key={`${묶음.date}-${r.at_time}-${i}`}
-                          className={`${r.alive ? "" : "is-off"}${r.mine ? " is-here" : ""}`}
+                          className={`${r.alive ? "" : "is-off"}${
+                            r.mine ? " is-here" : ""
+                          }${
+                            스르륵 && i >= 먼저펼칠줄
+                              ? ` admin-tbl__extra${다폈나 ? "" : " is-folded"}`
+                              : ""
+                          }`.trim()}
                         >
                           {/* 지금 보고 있는 기기에만 표가 선다. */}
                           <td className="admin-tbl__here">
@@ -337,6 +358,14 @@ export default function AdminLoginLog() {
                           </td>
                         </tr>
                       ))}
+                      {묶음.items.length > 먼저펼칠줄 && (
+                        <AdminMoreRow
+                          칸수={6}
+                          남은수={묶음.items.length - 먼저펼칠줄}
+                          폈나={다폈나}
+                          on바꾸기={() => 펼침.바꾸기(묶음.date)}
+                        />
+                      )}
                     </tbody>
                   </table>
                 </Collapse>

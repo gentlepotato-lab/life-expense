@@ -249,7 +249,11 @@ export default function AdminBatch() {
             key={j.key}
             일={j}
             on열기={() => 열기(j)}
-            on이력={() => navigate(`/admin/batch-runs?key=${j.key}`)}
+            on이력={() =>
+              navigate(`/admin/batch-runs?key=${j.key}`, {
+                state: { back: "배치" },
+              })
+            }
           />
         ))
       )}

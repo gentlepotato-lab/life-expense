@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useLongPress from "../../hooks/useLongPress";
 import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
@@ -8,6 +9,9 @@ import AddButton from "./AddButton";
 import OnOffToggle from "./OnOffToggle";
 import AdminFilterPopup from "./AdminFilterPopup";
 import DateGroupHeader from "./DateGroupHeader";
+import useAdminPeriod from "../../hooks/useAdminPeriod";
+import AdminPeriodBar from "./AdminPeriodBar";
+import { CollapseAllButtons } from "./CollapseToggle";
 import Collapse from "./Collapse";
 import { formatDateLabel } from "../../utils/dateGroup";
 import DayPicker from "./DayPicker";
@@ -54,12 +58,9 @@ type 거름 = {
   /** 공지가 뜨는 기간(start_on~end_on)과 이 기간이 겹치는 것만 본다. */
   뜨는frm: string;
   뜨는to: string;
-  /** 등록한 날이 이 사이에 드는 것만 본다. */
-  등록frm: string;
-  등록to: string;
 };
 
-const 안거름: 거름 = { 켜짐: "", 제목: "", 뜨는frm: "", 뜨는to: "", 등록frm: "", 등록to: "" };
+const 안거름: 거름 = { 켜짐: "", 제목: "", 뜨는frm: "", 뜨는to: "" };
 
 /** 조건이 하나라도 걸려 있나. */
 const 걸렸나 = (f: 거름) => Object.values(f).some((v) => v !== "");
@@ -78,8 +79,22 @@ function 골라내기(들: 공지[], f: 거름): 공지[] {
     if (말 && !n.title.toLowerCase().includes(말)) return false;
     if (f.뜨는frm && n.end_on && n.end_on < f.뜨는frm) return false;
     if (f.뜨는to && n.start_on && n.start_on > f.뜨는to) return false;
-    if (f.등록frm && (!n.created_on || n.created_on < f.등록frm)) return false;
-    if (f.등록to && (!n.created_on || n.created_on > f.등록to)) return false;
+    return true;
+  });
+}
+
+/**
+ * 고른 기간에 등록한 것만 골라낸다.
+ *
+ * 등록일은 날 하나뿐이므로 사이에 드나로 본다. 등록일이 없는 줄(옛 줄)은
+ * 기간을 걸면 빠진다. 언제 올린 것인지 모르는 줄이라 어느 달에 넣을지
+ * 가릴 수 없다.
+ */
+function 기간골라내기(들: 공지[], frm: string, to: string): 공지[] {
+  return 들.filter((n) => {
+    if (!n.created_on) return false;
+    if (n.created_on < frm) return false;
+    if (n.created_on > to) return false;
     return true;
   });
 }
@@ -101,12 +116,14 @@ function NoticeRow({
   on열기,
   on끄고켜기,
   on지우기,
+  on상세,
 }: {
   공지: 공지;
   편집중: boolean;
   on열기: () => void;
   on끄고켜기: () => void;
   on지우기: () => void;
+  on상세: () => void;
 }) {
   /* 편집 중에는 막는다. 그때는 스위치와 제거가 할 일이다. */
   const { pressing, handlers } = useLongPress(on열기, { disabled: 편집중 });
@@ -167,9 +184,26 @@ function NoticeRow({
           on끄고켜기();
         }}
       />
-      {편집중 && (
+      {/* 고친 적과 뜨는 기간까지 한자리에서 보는 쪽으로 간다. 편집 중에는
+          제거가 그 자리에 서므로 함께 세우지 않는다. 단추에서 시작한 누름은
+          꾹 누르기가 받지 않는다(hooks/useLongPress.ts). */}
+      {편집중 ? (
         <button type="button" className="ui-btn small" onClick={on지우기}>
           제거
+        </button>
+      ) : (
+        <button type="button" className="admin-go" onClick={on상세}>
+          상세
+          <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+            <path
+              d="M6 4l4 4-4 4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.7}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
       )}
     </li>
@@ -177,6 +211,10 @@ function NoticeRow({
 }
 
 export default function AdminNotices() {
+  const navigate = useNavigate();
+  /* 등록한 때로 달을 넘긴다. 다른 관리자 쪽과 같은 막대를 쓴다
+     (AdminPeriodBar.tsx). */
+  const 때 = useAdminPeriod();
   const [목록, set목록] = useState<공지[] | null>(null);
   const [편집중, set편집중] = useState(false);
   /* 편집에 들어갈 때의 켜짐 상태. 저장할 때 바뀐 줄만 가려내는 데 쓴다.
@@ -282,8 +320,9 @@ export default function AdminNotices() {
     }
   };
 
-  /* 조건에 맞아 화면에 서는 줄. */
-  const 보는것 = 목록 ? 골라내기(목록, 걸림) : [];
+  /* 조건에 맞아 화면에 서는 줄. 기간을 먼저 거르고 조건을 건다. */
+  const 기간것 = 목록 ? 기간골라내기(목록, 때.기간.frm, 때.기간.to) : [];
+  const 보는것 = 골라내기(기간것, 걸림);
 
   /* 등록한 날로 묶는다. 사용자 화면의 내역이 날짜마다 단을 세우는 것과 같은
      꼴이다(pages/Entries.tsx). 날짜를 줄마다 딱지로 달았더니 긴 제목이
@@ -303,30 +342,35 @@ export default function AdminNotices() {
   return (
     <div className="admin-edit">
       <div className="cat-toolbar">
+        <AdminPeriodBar
+          때={때}
+          on필터={() => {
+            set초안(걸림);
+            set필터열림(true);
+          }}
+        >
+          {날묶음.length > 0 && (
+            <CollapseAllButtons
+              onExpandAll={() => set접은날(new Set())}
+              onCollapseAll={() => set접은날(new Set(날묶음.map((g) => g.date)))}
+            />
+          )}
+        </AdminPeriodBar>
+
         <div className="pm-toolbar-row admin-toolbar-row">
           {/* 거른 집계는 왼쪽 끝에 딱지로 적는다. 걸면 목록에서 줄이
               빠지는데, 몇 줄 가운데 몇 줄을 보고 있는지 적지 않으면
               줄이 사라진 것처럼 읽힌다. */}
-          {걸렸나(걸림) && 목록 && (
+          {목록 && (
             <span className="admin-span__tag">
-              {보는것.length}건 / 전체 {목록.length}건
+              {걸렸나(걸림)
+                ? `${보는것.length}건 / ${기간것.length}건`
+                : `${기간것.length}건`}
             </span>
           )}
           {/* 할 일 단추는 오른쪽 끝에 모은다. 사용자 화면도 거기에 둔다.
               담기는 떠 있는 동그란 단추가 맡는다(AddButton). */}
           <span className="admin-toolbar-row__gap" />
-          <button
-            type="button"
-            className={`filter-pill${걸렸나(걸림) ? " on" : ""}`}
-            aria-pressed={걸렸나(걸림)}
-            title={걸렸나(걸림) ? "필터가 걸려 있다. 눌러서 고친다." : "필터"}
-            onClick={() => {
-              set초안(걸림);
-              set필터열림(true);
-            }}
-          >
-            필터
-          </button>
           <button
             type="button"
             className="ui-btn primary"
@@ -400,6 +444,11 @@ export default function AdminNotices() {
                           }
                           on끄고켜기={() => 끄고켜기(n)}
                           on지우기={() => void 지우기(n)}
+                          on상세={() =>
+                            navigate(`/admin/notice-detail?id=${n.notice_id}`, {
+                              state: { back: "공지" },
+                            })
+                          }
                         />
                       ))}
                     </ul>
@@ -420,10 +469,6 @@ export default function AdminNotices() {
           on초기화={() => set초안(안거름)}
           on적용={() => {
             if (초안.뜨는frm && 초안.뜨는to && 초안.뜨는frm > 초안.뜨는to) {
-              say.warn("끝 날짜가 시작 날짜보다 앞섭니다.");
-              return;
-            }
-            if (초안.등록frm && 초안.등록to && 초안.등록frm > 초안.등록to) {
               say.warn("끝 날짜가 시작 날짜보다 앞섭니다.");
               return;
             }
@@ -476,27 +521,10 @@ export default function AdminNotices() {
           </EditField>
 
           <EditField label="" span={12}>
-            <p className="admin-hint">고른 기간에 걸쳐 뜨는 공지를 찾습니다.</p>
-          </EditField>
-
-          <EditDivider />
-
-          <EditField label="등록일 시작" span={6}>
-            <DayPicker
-              monthJump
-              clearable
-              value={초안.등록frm}
-              onChange={(v) => set초안({ ...초안, 등록frm: v })}
-            />
-          </EditField>
-
-          <EditField label="등록일 종료" span={6}>
-            <DayPicker
-              monthJump
-              clearable
-              value={초안.등록to}
-              onChange={(v) => set초안({ ...초안, 등록to: v })}
-            />
+            <p className="admin-hint">
+              고른 기간에 걸쳐 뜨는 공지를 찾습니다. 등록한 때는 위에서 달로
+              넘겨 봅니다.
+            </p>
           </EditField>
         </AdminFilterPopup>
       )}

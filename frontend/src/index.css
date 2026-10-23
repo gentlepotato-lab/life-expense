@@ -20955,8 +20955,11 @@ html:has(.popup-overlay) .add-btn {
   font-size: var(--font-size-sm);
 }
 
+/* 줄의 알맹이 자리에 선 시각. 굵게 적지 않는다. 고른 폭 글꼴은 같은 굵기
+   에서도 획이 또렷해, 줄 이름처럼 700으로 적으면 그 칸만 먼저 읽힌다. */
 .admin-tbl tbody th.admin-mono {
   font-size: var(--font-size-sm);
+  font-weight: 400;
 }
 
 /* 딱지 안의 수는 딱지 치수를 따른다. 줄 키를 올리지 않으려고 깎은 자리다.
@@ -20989,6 +20992,23 @@ html:has(.popup-overlay) .add-btn {
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;
+}
+
+/* 묶음 안의 갈래. 표 하나에 머리말 한 줄씩이다. */
+.admin-sec__part {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* 갈래 이름. 묶음 이름보다 한 단 더 물러선다. 굵기는 그대로 두고 빛만
+   낮춘다 — 셋을 한꺼번에 낮추면 결이 다른 게 아니라 그냥 흐릿해진다. */
+.admin-sec__sub {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-text-tertiary);
 }
 
 /* 묶음 이름. 카드 제목(.admin-card__title)보다 한 단 작고 옅다. 카드가
@@ -21062,6 +21082,213 @@ html:has(.popup-overlay) .add-btn {
 .admin-tbl th + td,
 .admin-tbl td + th {
   border-left: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+/* 공지 상세의 본문. 적은 그대로, 줄을 바꾼 자리도 그대로 보인다. */
+.admin-notice-body {
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+
+/* 꾹 눌러 상세로 들어가는 줄. 톡 눌러 열게 두면 표를 훑다가 화면이 바뀐다.
+   사용자 사이트의 카드와 같은 잣대다(hooks/useLongPress.ts).
+
+   누르는 동안 바탕이 옅게 깔리고, 줄 아래에서 띠가 차오른다. 바탕만 깔아
+   두었더니 쥐고는 있는데 얼마나 더 쥐고 있어야 하는지, 쥐면 무엇이 되는지
+   알 길이 없었다. 띠가 끝까지 차는 그 순간에 상세로 넘어간다.
+
+   띠는 잔소리 줄과 도전 줄이 쓰는 것을 그대로 쓴다(longpress-sweep,
+   14415줄). 거기도 카드가 아니라 줄이고, 같은 손짓에 같은 표가 선다. */
+.admin-tbl tbody tr.admin-tbl__go {
+  position: relative;
+  cursor: pointer;
+}
+
+.admin-tbl tbody tr.admin-tbl__go:hover th,
+.admin-tbl tbody tr.admin-tbl__go:hover td {
+  background: var(--color-primary-light);
+}
+
+/* 누르는 동안의 바탕과 띠는 줄(tr)이 함께 쥔다. 깔린 바탕 한 겹과 차오르는
+   띠 한 겹, 두 겹을 포갠다.
+
+   덧겹(::after)으로 그려 보았더니 줄에서는 아예 칠해지지 않았다. 표의 줄은
+   제 상자를 칸들이 나눠 가져서, 그 위에 띄운 조각이 설 자리가 없다. 바탕은
+   줄이 제 것으로 깔 수 있으므로 그쪽으로 그린다.
+
+   그러자면 칸이 제 바탕을 비워야 한다. 칸 바탕(줄무늬와 합계 줄)이 줄 바탕을
+   덮기 때문이다. */
+.admin-tbl tbody tr.admin-tbl__go.pressing th,
+.admin-tbl tbody tr.admin-tbl__go.pressing td {
+  background: transparent;
+}
+
+.admin-tbl tbody tr.admin-tbl__go.pressing {
+  background-image:
+    linear-gradient(var(--color-primary), var(--color-primary)),
+    linear-gradient(var(--color-primary-light), var(--color-primary-light));
+  background-repeat: no-repeat, no-repeat;
+  background-position: left bottom, left top;
+  background-size: 0 2px, 100% 100%;
+  animation: admin-press-sweep var(--longpress-delay) linear forwards;
+}
+
+/* 띠가 끝까지 차는 그 순간에 상세로 넘어간다. 차는 데 걸리는 시간은
+   꾹 누르기가 쥔 값을 그대로 쓴다(hooks/useLongPress.ts의 LONG_PRESS_DELAY). */
+@keyframes admin-press-sweep {
+  from { background-size: 0 2px, 100% 100%; }
+  to { background-size: 100% 2px, 100% 100%; }
+}
+
+/* 움직임을 꺼 둔 기기에서는 차오르지 않고 한 번에 선다. 띠까지 없애면
+   쥐고 있다는 표가 깔린 바탕뿐이라, 쥐면 무엇이 되는지가 다시 안 보인다. */
+:root[data-motion="off"] .admin-tbl tbody tr.admin-tbl__go.pressing {
+  animation: none;
+  background-size: 100% 2px, 100% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-tbl tbody tr.admin-tbl__go.pressing {
+    animation: none;
+    background-size: 100% 2px, 100% 100%;
+  }
+}
+
+/* 꾹 누르면 어디로 가는지 적는 줄. 표 아래에 한 줄로 선다. 손짓은 눈에
+   보이지 않으므로 글로 한 번 적어야 한다. */
+.admin-tbl-hint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* 나중에 펼치는 줄. 접힐 때는 안쪽 여백과 글줄 키가 함께 0으로 줄어들어
+   스르륵 닫힌다. 줄을 걷어 버리면 그 자리에서 한 번에 사라진다.
+
+   표의 줄은 키를 전이로 어를 수 없다. 칸이 제 안쪽 여백과 글줄로 키를
+   만들기 때문이다. 그래서 키 대신 그 둘을 줄인다. 넘치는 글자는 칸이
+   잘라 준다. */
+.admin-tbl tbody tr.admin-tbl__extra > th,
+.admin-tbl tbody tr.admin-tbl__extra > td {
+  transition: padding-top 240ms var(--ease), padding-bottom 240ms var(--ease),
+    line-height 240ms var(--ease), font-size 240ms var(--ease),
+    opacity 160ms var(--ease);
+}
+
+.admin-tbl tbody tr.admin-tbl__extra.is-folded > th,
+.admin-tbl tbody tr.admin-tbl__extra.is-folded > td {
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 0;
+  /* 글 치수까지 0으로 줄인다. 글줄만 0으로 두었더니 칸마다 4px이 남아,
+     접힌 자리에 실줄이 깔려 보였다. */
+  font-size: 0;
+  opacity: 0;
+  /* 줄과 줄 사이의 실금도 함께 걷는다. 접힌 줄이 이백이면 그 금이 포개져
+     두꺼운 띠로 보인다. */
+  border-top-width: 0;
+}
+
+/* 칸 안에 선 것들도 함께 줄어든다. 딱지와 기호는 제 키를 글줄이 아니라
+   픽셀로 쥐고 있어, 칸만 줄이면 그 키만큼 줄이 남는다. 로그인 기록에서
+   접힌 자리에 빈 줄이 열 줄 깔려 보이던 것이 그것이다. */
+.admin-tbl tbody tr.admin-tbl__extra .admin-tbl__tag,
+.admin-tbl tbody tr.admin-tbl__extra .admin-tbl__chip,
+.admin-tbl tbody tr.admin-tbl__extra .admin-tbl__mark > span,
+.admin-tbl tbody tr.admin-tbl__extra svg {
+  transition: height 240ms var(--ease);
+}
+
+.admin-tbl tbody tr.admin-tbl__extra.is-folded .admin-tbl__tag,
+.admin-tbl tbody tr.admin-tbl__extra.is-folded .admin-tbl__chip,
+.admin-tbl tbody tr.admin-tbl__extra.is-folded .admin-tbl__mark > span,
+.admin-tbl tbody tr.admin-tbl__extra.is-folded svg {
+  height: 0;
+  line-height: 0;
+  overflow: hidden;
+}
+
+/* 움직임을 꺼 둔 기기에서는 스르륵 없이 바로 접힌다. */
+:root[data-motion="off"] .admin-tbl tbody tr.admin-tbl__extra > th,
+:root[data-motion="off"] .admin-tbl tbody tr.admin-tbl__extra > td,
+:root[data-motion="off"] .admin-tbl tbody tr.admin-tbl__extra svg {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-tbl tbody tr.admin-tbl__extra > th,
+  .admin-tbl tbody tr.admin-tbl__extra > td,
+  .admin-tbl tbody tr.admin-tbl__extra svg {
+    transition: none;
+  }
+}
+
+/* 접힌 나머지를 펼치는 줄. 표 맨 아래에 칸을 가로질러 선다.
+   누르는 자리가 줄 전체라 손가락으로 겨누기 쉽다. */
+.admin-tbl__more > td {
+  padding: 0;
+  text-align: center;
+}
+
+.admin-tbl__more button {
+  width: 100%;
+  padding: 5px 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.admin-tbl__more button:hover {
+  background: var(--color-primary-light);
+}
+
+/* 거르기로 고른 기간. 달 넘기개가 서던 자리에 글로 선다. 글꼴과 굵기는
+   사용자 사이트의 기간 상세가 쓰는 값 그대로다(.cal-back__range). */
+.admin-range {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 되돌아가는 단추. 사용자 사이트의 기간 상세와 같은 꼴이다(.cal-back). */
+.admin-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  padding-left: 8px;
+}
+
+.admin-back__arrow {
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* 합계 줄. 한 칸 걸러 깔리는 줄무늬보다 한 단 짙게 깐다. 줄(tr)에 바로
+   깔지 않고 칸마다 까는 까닭은, 줄무늬가 줄에 깔려 있어 그 위에 덮으려면
+   칸이 제 바탕을 가져야 하기 때문이다. */
+.admin-tbl tbody tr.admin-tbl__sum th,
+.admin-tbl tbody tr.admin-tbl__sum td {
+  background: color-mix(in srgb, var(--color-bg) 82%, var(--color-border));
 }
 
 /* 한 칸 걸러 옅게 깐다. 눈이 가로줄을 따라갈 때 줄을 건너뛰지 않는다. */
@@ -21220,7 +21447,7 @@ html:has(.popup-overlay) .add-btn {
 }
 
 /* 412px보다 좁은 화면. 고른 폭 글꼴을 본디 치수로 되돌리고 그만큼 칸을
-   줄인다. x높이를 올려 둔 채로는 IP 주소 열넉 자가 129px을 먹어, 다섯 칸이
+   줄인다. x높이를 올린 채로는 IP 주소 열넉 자가 129px을 먹어, 다섯 칸이
    360px 한 줄에 들어가지 않는다. 글이 잘리느니 이 화면에서만 수가 한 단
    작아지는 쪽이 낫다. */
 @media (max-width: 404px) {
@@ -21257,8 +21484,20 @@ html:has(.popup-overlay) .add-btn {
    머리말은 함께 집히지 않는다. 칸에 .admin-tbl__center를 적어 맞춘다 —
    세로 칸(<col>)에는 글 쏠림을 걸 수 없다. */
 .admin-tbl td:has(> .admin-tbl__tag),
-.admin-tbl td:has(> .admin-tbl__chip) {
+.admin-tbl td:has(> .admin-tbl__chip),
+.admin-tbl td.admin-mono:not(.admin-tbl__right),
+.admin-tbl tbody th.admin-mono:not(.admin-tbl__right) {
   text-align: center;
+}
+
+/* 이름과 값이 마주 보는 표는 값을 왼쪽에 둔다. 줄마다 값 하나뿐이라 세로줄을
+   맞출 일이 없고, 가운데로 모으면 이름과 값 사이가 멀찍이 벌어져 어느 이름의
+   값인지 눈으로 좇아야 한다.
+
+   오른쪽에 맞추라고 따로 적은 칸은 집지 않는다. 표 정보의 표 이름이 그렇다.
+   그 밑에 수가 오른쪽에 맞춰 서므로, 거기만 왼쪽에 두면 값의 끝이 어긋난다. */
+.admin-tbl--kv td.admin-mono:not(.admin-tbl__right) {
+  text-align: left;
 }
 
 /* 말줄임 대신 줄을 바꾸는 칸. 길이가 정해지지 않은 글이 드는 자리다.
@@ -21464,7 +21703,7 @@ html:has(.popup-overlay) .add-btn {
   padding: 1px var(--space-2);
 }
 
-/* 딱지가 설 자리를 비워 둔다. 안내 글이 길어도 딱지 밑으로 들어가지 않는다.
+/* 딱지가 설 자리를 비운다. 안내 글이 길어도 딱지 밑으로 들어가지 않는다.
    사용자 사이트의 만년필 자국이 쓰는 그 변수다(.page-note). */
 .page-wrap.admin .page-head .page-note {
   --doodle-room: 62px;
@@ -21694,7 +21933,7 @@ html:has(.page-wrap.admin) body {
 
   /* 바탕만 한 단 내린다. 카드가 흰빛이라 그 위에서 흰 종이가 떠 보이고,
      운영하는 자리라는 결도 살짝 묻어난다. 값은 창과 나눠 쓰므로 한 곳에
-     적어 둔 것을 가져온다(아래 --admin-bg). */
+     적은 것을 가져온다(아래 --admin-bg). */
   --color-bg: var(--admin-bg);
   --color-surface: #FFFFFF;
   --color-border: #E9ECEF;

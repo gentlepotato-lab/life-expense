@@ -1,19 +1,32 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
 import { 날짜글, 걸린빛 } from "../../utils/adminFmt";
 import { hour12 } from "../../utils/day";
+import useAdminPeriod from "../../hooks/useAdminPeriod";
+import AdminPeriodBar from "./AdminPeriodBar";
+import AdminPeriodFields from "./AdminPeriodFields";
+import AdminFilterPopup from "./AdminFilterPopup";
+import AdminGoRow from "./AdminGoRow";
+import { EditField } from "./CardEditModal";
 
 /**
  * 외부 API.
  *
- * 바깥에 묻는 자리를 늘어놓는다. 읽기만 하는 자리다.
+ * 외부에 보내는 요청을 늘어놓는다. 읽기만 하는 자리다.
  *
  * **열쇠 값은 띄우지 않는다.** 꽂혀 있는지만 보인다. 서버가 아예 내놓지
  * 않는다(app/routers/admin.py의 /admin/apis).
  *
+ * 맨 위에서 달을 넘기고 기간을 거른다(AdminPeriodBar). 호출 수도 마지막
+ * 요청도 그 기간 안에서 본다.
+ *
  * 묶음 둘이 표로 선다(.admin-tbl). 줄에 담긴 것이 셋뿐인데 카드를 쌓으면
  * 훑어 내리기보다 한 장씩 읽게 된다. 로그인 기록과 조회 기록과 같은 꼴이다.
+ *
+ * 마지막 요청의 줄을 꾹 누르면 그 API를 호출한 기록만 모아 보는 쪽으로
+ * 간다(AdminApiDetail.tsx). 톡 눌러 열게 두면 표를 훑다가 화면이 바뀐다.
  *
  * 호출한 기록은 두 곳에서 쌓인다. 브라우저가 바로 부르는 자리는 화면이 적어
  * 보내고(utils/track.ts의 바깥적기), 서버가 부르는 자리는 서버가 적는다
@@ -34,7 +47,7 @@ type 바깥 = {
   last_ok: boolean | null;
   /** 마지막으로 부를 때 걸린 시간. 배치가 부른 자리는 잰 것이 없어 null 이다. */
   last_ms: number | null;
-  /** 30일 동안 부른 횟수. 적힌 적이 없으면 0이다. */
+  /** 고른 기간에 부른 횟수. 적힌 적이 없으면 0이다. */
   hits: number;
 };
 
@@ -66,138 +79,178 @@ function 쓰임빛(a: 바깥): string {
 }
 
 export default function AdminApis() {
+  const navigate = useNavigate();
+  const 때 = useAdminPeriod();
+  const [초안, set초안] = useState({ frm: "", to: "" });
+  const [필터열림, set필터열림] = useState(false);
   const [목록, set목록] = useState<바깥[] | null>(null);
   const [탈, set탈] = useState(false);
 
-  useEffect(() => {
-    let 살아있나 = true;
+  const 받기 = useCallback(() => {
+    set탈(false);
     axios
-      .get("/admin/apis", { headers: 머리() })
-      .then((r) => {
-        if (살아있나) set목록(r.data as 바깥[]);
+      .get("/admin/apis", {
+        headers: 머리(),
+        params: { frm: 때.기간.frm, to: 때.기간.to },
       })
+      .then((r) => set목록(r.data as 바깥[]))
       .catch(() => {
-        if (살아있나) set탈(true);
+        set목록([]);
+        set탈(true);
       });
-    return () => {
-      살아있나 = false;
-    };
-  }, []);
+  }, [때.기간.frm, 때.기간.to]);
 
-  if (탈) {
-    return (
-      <div className="card admin-soon">
-        <p className="page-empty">불러오지 못했습니다.</p>
-      </div>
-    );
-  }
+  useEffect(받기, [받기]);
 
-  if (!목록) {
-    return (
-      <div className="card admin-soon">
-        <p className="page-empty">불러오는 중입니다.</p>
-      </div>
-    );
-  }
+  const 필터열기 = () => {
+    set초안({ frm: 때.거른기간?.frm ?? "", to: 때.거른기간?.to ?? "" });
+    set필터열림(true);
+  };
 
-  const 부른것 = 목록.filter((a) => a.last_day);
+  const 적용 = () => {
+    if (!때.기간걸기(초안.frm, 초안.to)) return;
+    set필터열림(false);
+  };
+
+  const 상세로 = (a: 바깥) => {
+    navigate(`/admin/api-detail?key=${encodeURIComponent(a.key)}`, {
+      state: { 때: 때.담기(), back: "외부 API" },
+    });
+  };
+
+  const 부른것 = (목록 ?? []).filter((a) => a.last_day);
 
   return (
     <div className="admin-edit">
-      <section className="admin-sec">
-        <h3 className="admin-sec__head">사용하는 API</h3>
-        <table className="admin-tbl">
-          <colgroup>
-            <col />
-            <col style={{ width: "76px" }} />
-            <col style={{ width: "72px" }} />
-            <col style={{ width: "54px" }} />
-          </colgroup>
-          <thead>
-            <tr>
-              <th>이름</th>
-              <th>쓰임</th>
-              <th>열쇠</th>
-              <th>30일</th>
-            </tr>
-          </thead>
-          <tbody>
-            {목록.map((a) => (
-              <tr key={a.key} className={꽂혔나(a) ? "" : "is-off"}>
-                <th className="admin-tbl__wrap">{a.name}</th>
-                <td>
-                  <span className={`admin-tbl__tag ${쓰임빛(a)}`}>{a.use}</span>
-                </td>
-                {/* 열쇠가 어디 꽂혀 있나. 꽂힌 자리를 그대로 적고, 없으면
-                    그 자리에 「없음」을 적는다. 꽂힌 줄에까지 「꽂힘」을
-                    달면 목록이 딱지밭이 된다. */}
-                <td>
-                  {꽂혔나(a) ? (
-                    <span className="admin-tbl__tag tint-풀빛">{a.where}</span>
-                  ) : (
-                    <span className="admin-tbl__tag tint-잿빛">없음</span>
-                  )}
-                </td>
-                {/* 30일 동안 부른 횟수. 마지막 한 번만으로는 자주 쓰는
-                    자리인지 어쩌다 한 번인지 갈리지 않는다. */}
-                <td>
-                  <span className={`admin-tbl__chip ${a.hits > 0 ? "tint-하늘" : "tint-잿빛"}`}>
-                    {a.hits.toLocaleString("ko-KR")}회
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <div className="cat-toolbar">
+        <AdminPeriodBar 때={때} on필터={필터열기} />
+      </div>
 
-      <section className="admin-sec">
-        <h3 className="admin-sec__head">마지막 요청</h3>
-        {부른것.length === 0 ? (
-          <p className="page-empty">아직 쌓인 것이 없습니다.</p>
-        ) : (
-          <table className="admin-tbl">
-            <colgroup>
-              <col />
-              {/* 날짜와 시각이 함께 드는 칸이다. 「2026. 10. 22. (목)」에
-                  「8:06 p.m.」 딱지까지 선다. */}
-              <col style={{ width: "198px" }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th className="admin-tbl__wrap">이름</th>
-                <th>마지막 요청</th>
-              </tr>
-            </thead>
-            <tbody>
-              {부른것.map((a) => (
-                <tr key={a.key}>
-                  <th className="admin-tbl__wrap">{a.name}</th>
-                  {/* 날짜와 시각은 한 가지 사실이라 한 칸에 담는다. 날은
-                      글로, 시각은 네모 딱지로 적는다. 시각은 12시간제다
-                      (utils/day.ts의 hour12) — 배치 카드의 딱지와 같은 꼴이다. */}
-                  <td>
-                    <span className="admin-tbl__pair">
-                      <span>{날짜글(a.last_day)}</span>
-                      <span
-                        className={`admin-tbl__chip ${
-                          a.last_ok === false ? "tint-분홍" : 걸린빛(a.last_ms)
-                        }`}
-                      >
-                        {hour12(a.last_time ?? "")}
-                      </span>
-                    </span>
-                  </td>
+      {목록 === null ? (
+        <div className="card admin-soon">
+          <p className="page-empty">불러오는 중입니다.</p>
+        </div>
+      ) : 탈 ? (
+        <div className="card admin-soon">
+          <p className="page-empty">불러오지 못했습니다.</p>
+        </div>
+      ) : (
+        <>
+          <section className="admin-sec">
+            <h3 className="admin-sec__head">사용하는 API</h3>
+            <table className="admin-tbl">
+              <colgroup>
+                <col />
+                <col style={{ width: "76px" }} />
+                <col style={{ width: "72px" }} />
+                <col style={{ width: "54px" }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>이름</th>
+                  <th>쓰임</th>
+                  <th>열쇠</th>
+                  <th>호출</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+              </thead>
+              <tbody>
+                {목록.map((a) => (
+                  <tr key={a.key} className={꽂혔나(a) ? "" : "is-off"}>
+                    <th className="admin-tbl__wrap">{a.name}</th>
+                    <td>
+                      <span className={`admin-tbl__tag ${쓰임빛(a)}`}>{a.use}</span>
+                    </td>
+                    {/* 열쇠가 어디 꽂혀 있나. 꽂힌 자리를 그대로 적고, 없으면
+                        그 자리에 「없음」을 적는다. 꽂힌 줄에까지 「꽂힘」을
+                        달면 목록이 딱지밭이 된다. */}
+                    <td>
+                      {꽂혔나(a) ? (
+                        <span className="admin-tbl__tag tint-풀빛">{a.where}</span>
+                      ) : (
+                        <span className="admin-tbl__tag tint-잿빛">없음</span>
+                      )}
+                    </td>
+                    {/* 고른 기간에 부른 횟수. 마지막 한 번만으로는 자주 쓰는
+                        자리인지 어쩌다 한 번인지 갈리지 않는다. */}
+                    <td>
+                      <span
+                        className={`admin-tbl__chip ${a.hits > 0 ? "tint-하늘" : "tint-잿빛"}`}
+                      >
+                        {a.hits.toLocaleString("ko-KR")}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          <section className="admin-sec">
+            <h3 className="admin-sec__head">마지막 요청</h3>
+            {부른것.length === 0 ? (
+              <p className="page-empty">아직 쌓인 것이 없습니다.</p>
+            ) : (
+              <table className="admin-tbl">
+                <colgroup>
+                  <col />
+                  {/* 날짜와 시각이 함께 드는 칸이다. 「2026. 10. 22. (목)」에
+                      「8:06 p.m.」 딱지까지 선다. */}
+                  <col style={{ width: "198px" }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th className="admin-tbl__wrap">이름</th>
+                    <th>마지막 요청</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {부른것.map((a) => (
+                    <AdminGoRow key={a.key} on상세={() => 상세로(a)}>
+                      <th className="admin-tbl__wrap">{a.name}</th>
+                      {/* 날짜와 시각은 한 가지 사실이라 한 칸에 담는다. 날은
+                          글로, 시각은 네모 딱지로 적는다. 시각은 12시간제다
+                          (utils/day.ts의 hour12). 배치 카드의 딱지와 같은 꼴이다. */}
+                      <td>
+                        <span className="admin-tbl__pair">
+                          <span>{날짜글(a.last_day)}</span>
+                          <span
+                            className={`admin-tbl__chip ${
+                              a.last_ok === false ? "tint-분홍" : 걸린빛(a.last_ms)
+                            }`}
+                          >
+                            {hour12(a.last_time ?? "")}
+                          </span>
+                        </span>
+                      </td>
+                    </AdminGoRow>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+        </>
+      )}
 
       {/* 어디까지 알 수 있는지 적는다. 적지 않으면 「NAVER 지도는 한 번도
           안 불렀나」로 읽힌다. */}
+      <p className="admin-tbl-hint">
+        마지막 요청의 줄을 꾹 누르면 그 API의 호출 기록만 모아 봅니다.
+      </p>
       <p className="admin-hint">호출한 기록은 90일까지 남습니다.</p>
+
+      {필터열림 && (
+        <AdminFilterPopup
+          on초기화={() => set초안({ frm: "", to: "" })}
+          on적용={적용}
+          onClose={() => set필터열림(false)}
+        >
+          <AdminPeriodFields frm={초안.frm} to={초안.to} on바뀜={set초안} />
+
+          <EditField label="" span={12}>
+            <p className="admin-hint">날짜를 둘 다 비우면 달 단위로 돌아갑니다.</p>
+          </EditField>
+        </AdminFilterPopup>
+      )}
     </div>
   );
 }

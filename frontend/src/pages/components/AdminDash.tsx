@@ -17,15 +17,13 @@ import {
 } from "recharts";
 import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
-import MonthNav from "./MonthNav";
-import useMonthSpan from "../../hooks/useMonthSpan";
-import { formatRangeLabel } from "../../utils/dateGroup";
+import useAdminPeriod from "../../hooks/useAdminPeriod";
+import AdminPeriodBar from "./AdminPeriodBar";
 import { PAGE_TITLE, HOME_TABS, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
 import { ADMIN_TABS } from "../../utils/adminTabs";
 import AdminFilterPopup from "./AdminFilterPopup";
 import DayPicker from "./DayPicker";
 import { EditField } from "./CardEditModal";
-import { say } from "../../utils/notify";
 
 /**
  * 관리자 대시보드.
@@ -64,31 +62,6 @@ type 집계 = {
   };
 };
 
-/** 가까운 며칠만 볼 때 쓰는 알약. 달 단위가 기본이고 이것은 곁길이다. */
-const 기간들 = [7, 30, 90] as const;
-
-/** YYYY-MM-DD로 적는다. 서버가 날짜만 받는다. */
-const 날적기 = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-/** 그 달의 첫날과 끝날. 끝날이 오늘보다 뒤면 오늘까지만 본다. */
-function 달기간(ym: string): { frm: string; to: string } {
-  const [y, m] = ym.split("-").map(Number);
-  const 첫날 = new Date(y, m - 1, 1);
-  const 끝날 = new Date(y, m, 0);
-  const 오늘 = new Date();
-  오늘.setHours(0, 0, 0, 0);
-  return { frm: 날적기(첫날), to: 날적기(끝날 > 오늘 ? 오늘 : 끝날) };
-}
-
-/** 오늘까지 며칠. */
-function 며칠(n: number): { frm: string; to: string } {
-  const 오늘 = new Date();
-  오늘.setHours(0, 0, 0, 0);
-  const 앞 = new Date(오늘);
-  앞.setDate(앞.getDate() - (n - 1));
-  return { frm: 날적기(앞), to: 날적기(오늘) };
-}
 
 /**
  * 축 글씨.
@@ -275,52 +248,27 @@ function 영채우기(들: { name: string; n: number }[], 이름들: readonly st
 const 짙은빛 = "var(--color-primary)";
 
 export default function AdminDash() {
-  /* 보고 있는 달. 지출 내역과 같은 꼴로 넘긴다(MonthNav). 기본은 이번 달이다. */
-  const [ym, setYm] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
-  /* 알약으로 고른 며칠. 달을 넘기면 풀린다. 둘 가운데 하나만 걸린다. */
-  const [며칠고름, set며칠고름] = useState<number | null>(null);
-  /* 거르기로 걸린 기간. 걸려 있으면 달도 알약도 보지 않고 이것만 본다.
-     달 단위나 최근 며칠로는 못 보는 자리를 보려고 거르는 것이기 때문이다. */
-  const [거른기간, set거른기간] = useState<{ frm: string; to: string } | null>(null);
+  /* 언제 것을 보는가. 관리자 쪽 다섯 쪽과 같은 것을 쓴다
+     (hooks/useAdminPeriod.ts). */
+  const 때 = useAdminPeriod();
+  const 기간 = 때.기간;
   /* 팝업 안에서 고치는 중인 조건. [적용]을 누르지 않고 닫으면 버린다.
      사용자 화면의 거르기와 같다(pages/Entries.tsx의 filter/appliedFilter). */
   const [초안, set초안] = useState({ frm: "", to: "" });
   const [필터열림, set필터열림] = useState(false);
   const [집계, set집계] = useState<집계 | null>(null);
   const [탈, set탈] = useState(false);
-  /* 넘겨 볼 수 있는 끝. 네 화면이 같은 바닥을 쓴다. */
-  const { min, max } = useMonthSpan();
-
-  const 기간 = 거른기간 ?? (며칠고름 ? 며칠(며칠고름) : 달기간(ym));
 
   /* 거르기를 연다. 지금 걸려 있는 조건을 그대로 띄운다. 걸린 것이 없으면
      보고 있는 기간을 채운다. 빈 칸부터 고르게 하면 날마다 두 번 고른다. */
   const 필터열기 = () => {
-    set초안(거른기간 ?? { frm: 기간.frm, to: 기간.to });
+    set초안(때.거른기간 ?? { frm: 기간.frm, to: 기간.to });
     set필터열림(true);
   };
 
   /* 거르기를 건다. 둘 다 비면 거르기를 풀고 달 단위로 돌아간다. */
   const 적용 = () => {
-    const { frm, to } = 초안;
-    if (!frm && !to) {
-      set거른기간(null);
-      set필터열림(false);
-      return;
-    }
-    if (!frm || !to) {
-      say.warn("시작일과 종료일을 모두 입력해 주세요.");
-      return;
-    }
-    if (frm > to) {
-      say.warn("끝 날짜가 시작 날짜보다 앞섭니다.");
-      return;
-    }
-    set며칠고름(null);
-    set거른기간({ frm, to });
+    if (!때.기간걸기(초안.frm, 초안.to)) return;
     set필터열림(false);
   };
 
@@ -394,63 +342,8 @@ export default function AdminDash() {
 
   return (
     <div className="admin-dash">
-      {/* 첫 줄. 달 넘기개가 왼쪽, 거르기가 오른쪽 끝이다. 거르기가 걸려
-          있으면 달 단위가 아니므로 달 넘기개를 감춘다. 사용자 화면의
-          지출 내역도 그렇게 한다(pages/Entries.tsx). */}
-      <div className="pm-toolbar-row admin-toolbar-row">
-        {!거른기간 && (
-          <MonthNav
-            ym={ym}
-            onChange={(v) => {
-              set며칠고름(null);
-              setYm(v);
-            }}
-            min={min}
-            max={max}
-          />
-        )}
-        {/* 빈자리를 먹는 조각. 달 넘기개가 서든 안 서든 거르기를 오른쪽
-            끝까지 민다. 이것이 없던 때는 달 넘기개 바로 뒤에 붙어 섰다. */}
-        <span className="admin-toolbar-row__gap" />
-        <button
-          type="button"
-          className={`filter-pill${거른기간 ? " on" : ""}`}
-          aria-pressed={!!거른기간}
-          title={거른기간 ? "필터가 걸려 있다. 눌러서 고친다." : "필터"}
-          onClick={필터열기}
-        >
-          필터
-        </button>
-      </div>
-
-      {/* 둘째 줄. 고른 기간과 알약이 한 벌로 선다. 딱지가 왼쪽 끝, 알약이
-          오른쪽 끝이다. 딱지를 따로 떼어 놓으니 알약과 멀찍이 떨어져
-          둘이 한 벌로 안 읽혔다. */}
-      <div className="pm-toolbar-row admin-toolbar-row">
-        <span className="admin-span__tag">{formatRangeLabel(기간.frm, 기간.to)}</span>
-        <nav className="admin-days" aria-label="기간">
-          {/* 「최근」은 셋이 함께 이고 있는 말이라 글자로만 한 번 적는다.
-              누르는 자리는 며칠인지뿐이다. 모두 펼치기 묶음과 같은 꼴이다
-              (CollapseToggle.tsx의 .set-bulk__all). */}
-          <span className="admin-days__all" aria-hidden="true">
-            최근
-          </span>
-          {기간들.map((d) => (
-            <button
-              key={d}
-              type="button"
-              className={`ui-btn small${며칠고름 === d ? " primary" : ""}`}
-              aria-label={`최근 ${d}일`}
-              onClick={() => {
-                set거른기간(null);
-                set며칠고름(며칠고름 === d ? null : d);
-              }}
-            >
-              {d}일
-            </button>
-          ))}
-        </nav>
-      </div>
+      {/* 언제 것을 보는가. 다섯 쪽과 같은 막대를 쓴다(AdminPeriodBar.tsx). */}
+      <AdminPeriodBar 때={때} on필터={필터열기} />
 
       {탈 ? (
         <div className="card admin-soon">

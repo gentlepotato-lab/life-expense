@@ -132,7 +132,7 @@ export const ADMIN_TABS: 관리자탭[] = [
       {
         path: "/admin/api",
         name: "외부 API",
-        note: "바깥에 보내는 요청의 상태를 확인합니다.",
+        note: "외부에 보내는 API 요청의 상태를 확인합니다.",
         desc: ["공휴일", "지도"],
       },
       {
@@ -180,6 +180,34 @@ const 곁가지: 관리자쪽[] = [
     note: "작업이 실행된 기록을 한 줄씩 확인합니다.",
     desc: "작업이 실행된 기록",
     under: "/admin/batch",
+  },
+  {
+    path: "/admin/log-detail",
+    name: "조회 상세",
+    note: "고른 이름의 기록을 한 줄씩 확인합니다.",
+    desc: "고른 이름의 기록",
+    under: "/admin/logs",
+  },
+  {
+    path: "/admin/notice-detail",
+    name: "공지 상세",
+    note: "고른 공지의 내용과 기간을 확인합니다.",
+    desc: "고른 공지의 내용과 기간",
+    under: "/admin/notice",
+  },
+  {
+    path: "/admin/api-detail",
+    name: "호출 기록",
+    note: "고른 API를 호출한 기록을 확인합니다.",
+    desc: "고른 API를 호출한 기록",
+    under: "/admin/api",
+  },
+  {
+    path: "/admin/db-detail",
+    name: "표 상세",
+    note: "고른 화면이 쓰는 표를 확인합니다.",
+    desc: "고른 화면이 쓰는 표",
+    under: "/admin/db",
   },
 ];
 

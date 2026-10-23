@@ -502,6 +502,7 @@ def admin_logs(
     frm: str | None = None,
     to: str | None = None,
     kind: str | None = None,
+    name: str | None = None,
     _: str = Depends(토큰),
     db: SessionDep = Depends(),
 ):
@@ -523,9 +524,14 @@ def admin_logs(
         # 끝 날짜를 담으려면 그 다음 날 0시 앞까지 본다.
         조건.append("a.created_at < CAST(:to AS date) + INTERVAL '1 day'")
         값["to"] = to
-    if kind in ("view", "feature", "error"):
+    if kind in ("view", "feature", "error", "api"):
         조건.append("a.kind = :kind")
         값["kind"] = kind
+    # 이름 하나로 좁힌다. 상세 쪽이 「그 화면만」을 볼 때 쓴다
+    # (frontend/src/pages/components/AdminLogsDetail.tsx).
+    if name:
+        조건.append("a.name = :name")
+        값["name"] = name
 
     rows = db.execute(text(f"""
         SELECT a.log_id
@@ -557,23 +563,38 @@ def admin_logs(
 # 쌓인 양을 보여 줄 표와 그 이름.
 #
 # 이름은 사용자 사이트가 쓰는 화면 이름을 그대로 쓴다(utils/pageTitles.ts).
-# 표 이름을 그대로 띄우면 무엇이 쌓인 것인지 읽히지 않는다.
+# 표 이름을 그대로 띄우면 무엇이 쌓인 것인지 읽히지 않는다. 그 표를 쓰는
+# 화면 이름으로 적고, 어느 사이트의 것인지도 함께 적는다. 두 사이트의 자료가
+# 한 목록에 섞여 있어 어느 쪽이 얼마나 쌓였는지 눈에 잡히지 않았다.
+#
+# 넷째 칸은 「언제 쌓였는가」를 적은 칸 이름이다. 그 기간에 더해진 줄을 세는
+# 데 쓴다. 결제 수단에는 그런 칸이 없어 비운다. 없으면 기간에 몇 줄이
+# 더해졌는지 셀 수 없으므로 화면이 그 자리를 비운다.
 표들 = [
-    ("entries", "지출 내역"),
-    ("pending_entries", "대기 내역"),
-    ("scheduled_entries", "정기 내역"),
-    ("entry_groups", "묶음 내역"),
-    ("places", "장소"),
-    ("counterparts", "함께한 상대"),
-    ("payment_methods", "결제 수단"),
-    ("notices", "공지"),
-    ("action_logs", "조회 기록"),
-    ("holidays", "공휴일"),
+    ("entries", "지출 내역", "user", "created_at"),
+    ("pending_entries", "대기 내역", "user", "created_at"),
+    ("scheduled_entries", "정기 내역", "user", "created_at"),
+    ("entry_groups", "묶음 내역", "user", "created_at"),
+    ("places", "장소/가게", "user", "created_at"),
+    ("counterparts", "함께한 상대", "user", "created_at"),
+    ("payment_methods", "결제 수단", "user", None),
+    ("holidays", "공휴일", "user", "created_at"),
+    ("notices", "공지", "admin", "created_at"),
+    ("doodle_items", "문구", "admin", "created_at"),
+    ("action_logs", "조회 기록", "admin", "created_at"),
+    ("admin_sessions", "로그인 기록", "admin", "created_at"),
+    ("job_schedules", "배치", "admin", "updated_at"),
+    ("job_runs", "배치 이력", "admin", "started_at"),
 ]
 
 
 @router.get("/db")
-def admin_db(_: str = Depends(토큰), db: SessionDep = Depends()):
+def admin_db(
+    frm: str | None = None,
+    to: str | None = None,
+    _: str = Depends(토큰),
+    db: SessionDep = Depends(),
+):
     """
     붙은 곳과 쌓인 양.
 
@@ -591,10 +612,44 @@ def admin_db(_: str = Depends(토큰), db: SessionDep = Depends()):
     # 한 번에 묻는다. 표마다 따로 물었더니 열 번을 오가느라 이 길 하나가
     # 300ms를 넘겼다. 세는 일 자체는 같고 오가는 횟수만 줄어든다.
     칸들 = ", ".join(
-        f"(SELECT count(*) FROM life_expense.{표}) AS {표}" for 표, _ in 표들
+        f"(SELECT count(*) FROM life_expense.{표}) AS {표}" for 표, _, _, _ in 표들
     )
     한줄 = db.execute(text(f"SELECT {칸들}")).mappings().one()
-    집계 = [{"table": 표, "name": 이름, "n": int(한줄[표])} for 표, 이름 in 표들]
+
+    # 그 기간에 더해진 줄. 날짜 칸이 있는 표만 센다. 표 이름도 칸 이름도
+    # 코드에 적힌 것만 쓰므로 바깥에서 들어온 글이 질의에 섞일 길이 없다.
+    더해진것: dict = {}
+    if frm or to:
+        때조건 = []
+        값: dict = {}
+        if frm:
+            때조건.append("{칸} >= CAST(:frm AS date)")
+            값["frm"] = frm
+        if to:
+            때조건.append("{칸} < CAST(:to AS date) + INTERVAL '1 day'")
+            값["to"] = to
+        잴것 = [(표, 칸) for 표, _, _, 칸 in 표들 if 칸]
+        더칸들 = ", ".join(
+            "(SELECT count(*) FROM life_expense.{표} WHERE {조건}) AS {표}".format(
+                 표=표, 조건=" AND ".join(c.format(칸=칸) for c in 때조건)
+            )
+            for 표, 칸 in 잴것
+        )
+        더한줄 = db.execute(text(f"SELECT {더칸들}"), 값).mappings().one()
+        더해진것 = {표: int(더한줄[표]) for 표, _ in 잴것}
+
+    집계 = [
+        {
+            "table": 표,
+            "name": 이름,
+            "site": 사이트,
+            "n": int(한줄[표]),
+            # 날짜 칸이 없는 표는 null 이다. 0으로 적으면 「그 달에 하나도
+            # 안 쌓였다」로 읽힌다.
+            "added": 더해진것.get(표) if 칸 else None,
+        }
+        for 표, 이름, 사이트, 칸 in 표들
+    ]
 
     return {
         "server": {
@@ -677,7 +732,12 @@ def admin_db(_: str = Depends(토큰), db: SessionDep = Depends()):
 
 
 @router.get("/apis")
-def admin_apis(_: str = Depends(토큰), db: SessionDep = Depends()):
+def admin_apis(
+    frm: str | None = None,
+    to: str | None = None,
+    _: str = Depends(토큰),
+    db: SessionDep = Depends(),
+):
     """
     바깥에 묻는 자리와 그 상태.
 
@@ -687,8 +747,26 @@ def admin_apis(_: str = Depends(토큰), db: SessionDep = Depends()):
     호출한 기록은 두 곳에서 쌓인다. 배치가 부르는 자리는 바퀴 자국에서
     (job_runs), 브라우저가 바로 부르는 자리는 화면이 적어 보낸 줄에서
     (action_logs의 api 갈래) 읽는다.
+
+    기간을 받으면 그 기간만 센다. 호출 수도 마지막 요청도 그 안에서 본다.
+    묵은 기록은 달마다 지워지므로 아무리 거슬러도 90일 치뿐이다
+    (app/scheduler/cleanup_job.py).
     """
-    rows = db.execute(text("""
+    바퀴조건 = ["1 = 1"]
+    적힌조건 = ["a.kind = 'api'"]
+    값: dict = {}
+    if frm:
+        바퀴조건.append("r.started_at >= CAST(:frm AS date)")
+        적힌조건.append("a.created_at >= CAST(:frm AS date)")
+        값["frm"] = frm
+    if to:
+        바퀴조건.append("r.started_at < CAST(:to AS date) + INTERVAL '1 day'")
+        적힌조건.append("a.created_at < CAST(:to AS date) + INTERVAL '1 day'")
+        값["to"] = to
+    바퀴where = " AND ".join(바퀴조건)
+    적힌where = " AND ".join(적힌조건)
+
+    rows = db.execute(text(f"""
         SELECT DISTINCT ON (r.job_key)
                r.job_key
              , to_char(r.started_at, 'YYYY-MM-DD') AS on_day
@@ -696,13 +774,14 @@ def admin_apis(_: str = Depends(토큰), db: SessionDep = Depends()):
              , r.ok
              , r.note
           FROM life_expense.job_runs r
+         WHERE {바퀴where}
       ORDER BY r.job_key, r.started_at DESC
-    """)).mappings().all()
+    """), 값).mappings().all()
     마지막 = {r["job_key"]: r for r in rows}
 
     # 브라우저가 바로 부르는 자리는 화면이 적어 보낸 줄에서 읽는다.
     # 걸린 시간은 밀리초로, 상태는 400 아래면 잘된 것으로 본다.
-    적힌것 = db.execute(text("""
+    적힌것 = db.execute(text(f"""
         SELECT DISTINCT ON (a.name)
                a.name
              , to_char(a.created_at, 'YYYY-MM-DD') AS on_day
@@ -711,21 +790,19 @@ def admin_apis(_: str = Depends(토큰), db: SessionDep = Depends()):
              , a.path
              , a.elapsed_ms
           FROM life_expense.action_logs a
-         WHERE a.kind = 'api'
+         WHERE {적힌where}
       ORDER BY a.name, a.created_at DESC
-    """)).mappings().all()
+    """), 값).mappings().all()
     적힌마지막 = {r["name"]: r for r in 적힌것}
 
-    # 요즘 얼마나 불렀나. 묵은 기록은 달마다 지워지므로 아무리 거슬러도
-    # 90일 치뿐이다(app/scheduler/cleanup_job.py).
-    센것 = db.execute(text("""
+    # 그 기간에 몇 번 불렀나.
+    센것 = db.execute(text(f"""
         SELECT a.name
              , count(*) AS n
           FROM life_expense.action_logs a
-         WHERE a.kind = 'api'
-           AND a.created_at >= now() - interval '30 days'
+         WHERE {적힌where}
       GROUP BY a.name
-    """)).mappings().all()
+    """), 값).mappings().all()
     횟수 = {r["name"]: int(r["n"]) for r in 센것}
 
     out = []
@@ -760,10 +837,64 @@ def admin_apis(_: str = Depends(토큰), db: SessionDep = Depends()):
             "last_ok": bool(r["ok"]) if r else None,
             # 걸린 시간. 배치가 부른 자리는 잰 것이 없어 비운다.
             "last_ms": r.get("ms") if r else None,
-            # 30일 동안 부른 횟수. 적힌 적이 없으면 0이다.
+            # 그 기간에 부른 횟수. 적힌 적이 없으면 0이다.
             "hits": 횟수.get(b.get("log_name") or "", 0),
         })
     return out
+
+
+@router.get("/apis/runs")
+def admin_api_runs(
+    key: str = "",
+    frm: str | None = None,
+    to: str | None = None,
+    _: str = Depends(토큰),
+    db: SessionDep = Depends(),
+):
+    """
+    API 하나를 부른 기록.
+
+    외부 API 쪽 표에는 마지막 한 줄만 선다. 그 기간에 몇 번을 어떻게 불렀는지는
+    거기서 알 수 없어, 줄을 누르면 이 쪽으로 들어온다
+    (frontend/src/pages/components/AdminApiDetail.tsx).
+
+    브라우저가 적어 보낸 줄에서 읽는다. 배치가 부르는 자리도 같은 표에 쌓이므로
+    한자리에서 본다(action_logs의 api 갈래).
+    """
+    이름 = next((b["log_name"] for b in 바깥들 if b["key"] == key), None)
+    if not 이름:
+        return []
+
+    조건 = ["a.kind = 'api'", "a.name = :name"]
+    값: dict = {"name": 이름, "한도": 기록한도}
+    if frm:
+        조건.append("a.created_at >= CAST(:frm AS date)")
+        값["frm"] = frm
+    if to:
+        조건.append("a.created_at < CAST(:to AS date) + INTERVAL '1 day'")
+        값["to"] = to
+
+    rows = db.execute(text(f"""
+        SELECT a.log_id
+             , to_char(a.created_at, 'YYYY-MM-DD') AS on_day
+             , to_char(a.created_at, 'HH24:MI:SS') AS at_time
+             , a.path
+             , a.elapsed_ms
+             , a.status
+          FROM life_expense.action_logs a
+         WHERE {' AND '.join(조건)}
+      ORDER BY a.log_id DESC
+         LIMIT :한도
+    """), 값).mappings().all()
+
+    return [{
+        "log_id": r["log_id"],
+        "on_day": r["on_day"],
+        "at_time": r["at_time"],
+        "path": r["path"],
+        "ms": r["elapsed_ms"],
+        "status": r["status"],
+    } for r in rows]
 
 
 @router.get("/batch")
@@ -804,6 +935,8 @@ def admin_batch(_: str = Depends(토큰), db: SessionDep = Depends()):
 @router.get("/batch/runs")
 def admin_batch_runs(
     key: str = "",
+    frm: str | None = None,
+    to: str | None = None,
     _: str = Depends(토큰),
     db: SessionDep = Depends(),
 ):
@@ -817,7 +950,16 @@ def admin_batch_runs(
     열쇠를 주면 그 일만, 안 주면 모두 섞어 돌려준다. 바퀴 자국은 달마다
     치우므로(app/scheduler/cleanup_job.py) 아무리 거슬러도 90일 치뿐이다.
     """
-    rows = db.execute(text("""
+    조건 = ["(:key = '' OR r.job_key = :key)"]
+    값: dict = {"key": key, "한도": 기록한도}
+    if frm:
+        조건.append("r.started_at >= CAST(:frm AS date)")
+        값["frm"] = frm
+    if to:
+        조건.append("r.started_at < CAST(:to AS date) + INTERVAL '1 day'")
+        값["to"] = to
+
+    rows = db.execute(text(f"""
         SELECT r.job_key
              , to_char(r.started_at, 'YYYY-MM-DD') AS on_day
              , to_char(r.started_at, 'HH24:MI:SS') AS at_time
@@ -825,10 +967,10 @@ def admin_batch_runs(
              , r.note
              , r.elapsed_ms
           FROM life_expense.job_runs r
-         WHERE (:key = '' OR r.job_key = :key)
+         WHERE {' AND '.join(조건)}
       ORDER BY r.started_at DESC
-         LIMIT 200
-    """), {"key": key}).mappings().all()
+         LIMIT :한도
+    """), 값).mappings().all()
 
     from app.scheduler.registry import 이름들
 
@@ -905,6 +1047,50 @@ def admin_set_batch(job_key: str, payload: dict, _: str = Depends(토큰), db: S
 
     reschedule(job_key)
     return {"ok": True}
+
+
+@router.get("/db/days")
+def admin_db_days(
+    table: str = "",
+    frm: str | None = None,
+    to: str | None = None,
+    _: str = Depends(토큰),
+    db: SessionDep = Depends(),
+):
+    """
+    표 하나에 날마다 몇 줄이 더해졌나.
+
+    DB 쪽 표에는 지금 쌓인 수와 기간에 더해진 수만 선다. 그 기간 안에서 어느
+    날에 몰렸는지는 거기서 알 수 없어, 줄을 누르면 이 쪽으로 들어온다
+    (frontend/src/pages/components/AdminDbDetail.tsx).
+
+    표 이름도 날짜 칸 이름도 코드에 적힌 것만 쓴다. 받은 글은 등록부에 있는
+    이름인지만 가리는 데 쓰이고 질의에 섞이지 않는다.
+    """
+    짝 = next((t for t in 표들 if t[0] == table), None)
+    if not 짝 or not 짝[3]:
+        return []
+    표, _이름, _사이트, 칸 = 짝
+
+    조건 = ["1 = 1"]
+    값: dict = {}
+    if frm:
+        조건.append(f"{칸} >= CAST(:frm AS date)")
+        값["frm"] = frm
+    if to:
+        조건.append(f"{칸} < CAST(:to AS date) + INTERVAL '1 day'")
+        값["to"] = to
+
+    rows = db.execute(text(f"""
+        SELECT to_char({칸}, 'YYYY-MM-DD') AS on_day
+             , count(*) AS n
+          FROM life_expense.{표}
+         WHERE {' AND '.join(조건)}
+      GROUP BY 1
+      ORDER BY 1 DESC
+    """), 값).mappings().all()
+
+    return [{"on_day": r["on_day"], "n": int(r["n"])} for r in rows]
 
 
 @router.get("/db-size")
