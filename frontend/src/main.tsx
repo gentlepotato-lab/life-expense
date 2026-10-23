@@ -5,6 +5,7 @@ import { pref } from "./utils/prefs";
 import { applyPalette } from "./utils/palettes";
 import { applyTheme, currentStep, watchSystem, DEFAULT_MODE, DEFAULT_LIGHT, DEFAULT_DARK } from "./utils/theme";
 import { applyMotion } from "./utils/motion";
+import 창바닥걸기 from "./utils/windowFloor";
 
 /** 앞머리 화면이 꺼내 쓰는 빛깔. index.html의 열쇠 이름과 같아야 한다. */
 const SPLASH_KEY = "life-expense:splash";
@@ -65,5 +66,9 @@ function 끼우기() {
 watchSystem(() => {
   if ((pref("theme_mode") || DEFAULT_MODE) === "system") 끼우기();
 });
+
+/* 설치해 쓰는 창이 바닥보다 작아지면 도로 늘린다. CSS 바닥은 알맹이가
+   접히는 것만 막고, 창 자체는 이쪽이 막는다(utils/windowFloor.ts). */
+창바닥걸기();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(<App />);

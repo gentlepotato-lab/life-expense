@@ -65,6 +65,39 @@
   box-sizing: border-box;
 }
 
+/* ─── 창을 줄여도 여기까지 ──────────────────────────────────
+   설치해 쓰는 앱은 창을 손으로 줄일 수 있다. 400px 아래로는 알맹이를 더 접지
+   않고 가로로 민다. 그보다 좁아지면 표도 카드도 제 꼴을 잃는다.
+
+   손가락으로 쓰는 기기는 집지 않는다. 폰은 가로가 360px인 것이 흔하고
+   아이폰 SE는 375px이라, 이 값을 걸면 그 폰들에서 늘 가로로 밀린다. 창을
+   손으로 줄이는 것은 가리개와 손가락이 따로 노는 기기뿐이라, 그 기기만
+   집는다. */
+@media (hover: hover) and (pointer: fine) {
+  html,
+  body,
+  #root,
+  .page-wrap,
+  .page-head {
+    min-width: 400px;
+  }
+
+  /* 떠 있는 띠들도 알맹이와 같은 폭을 쥔다. 떠 있는 것은 창에 붙으므로,
+     창이 400px보다 좁아지면 저만 창 폭으로 줄어 알맹이와 선이 어긋났다.
+     아래 이동 막대가 알맹이보다 짧아 보이던 것이 그것이다.
+
+     오른쪽 끝에 붙는 동그란 단추들은 창에 붙은 채로 둔다. 알맹이의 오른쪽
+     끝으로 옮겨 보았더니, 창이 좁아진 만큼 단추가 창 밖으로 나가 가로로
+     밀어야만 닿았다. 창에 붙어 있으면 어디까지 좁혀도 손이 닿는다. */
+  .tabbar,
+  .notice-dock,
+  .pick-bar {
+    min-width: 400px;
+  }
+
+}
+
+
 html, body {
   margin: 0;
   padding: 0;
@@ -21825,19 +21858,13 @@ html:has(.page-wrap.admin) body {
   gap: var(--space-3);
 }
 
-/* 잠긴 화면의 제목. 이 쪽에서 가장 큰 글씨다 — 그 화면에는 제목 하나뿐이다. */
-.admin-gate__title {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  letter-spacing: -0.01em;
-}
+/* 안내 문구를 한 꼴로 모은다. 비밀번호 바꾸기와 카드 안의 거드는 줄이
+   저마다 다른 크기와 빛깔이었다. 손전화 세로에서 한 줄에 들도록 글도 짧게
+   적는다.
 
-/* 안내 문구를 한 꼴로 모은다. 잠긴 화면과 비밀번호 바꾸기와 카드 안의
-   거드는 줄이 저마다 다른 크기와 빛깔이었다. 손전화 세로에서 한 줄에
-   들도록 글도 짧게 적는다. */
-.admin-gate__note,
+   잠긴 화면이 쓰던 이름 둘(.admin-gate__title, .admin-gate__note)은 걷었다.
+   그 화면의 제목과 안내가 머리말로 올라가, 다른 쪽과 같은 조각을 쓴다
+   (pages/Admin.tsx의 AdminHead). */
 .admin-pw__note,
 .admin-hint {
   margin: 0;

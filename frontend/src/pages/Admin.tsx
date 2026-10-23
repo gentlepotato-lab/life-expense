@@ -132,21 +132,24 @@ export default function Admin() {
 
   /* ── 비밀번호를 묻는 화면 ──────────────────────────── */
   if (!열림) {
+    /* 머리말의 안내 한 줄. 카드 안에 적던 것을 올렸다. 다른 쪽은 모두 제목
+       밑에 한 줄이 서는데 이 쪽만 그 자리가 비어, 주소 딱지가 설 자리도
+       없었다. 카드의 제목도 함께 걷었다. 바로 위에 「돈을 쓰다 관리자」가
+       서 있어 같은 말이 두 번이었다. */
+    const 안내 =
+      걸림 === null
+        ? "확인하는 중입니다."
+        : 걸림
+          ? "비밀번호를 넣어 주세요."
+          : 첫암호있나
+            ? "처음 로그인합니다. 환경 변수에 적은 비밀번호를 넣어 주세요."
+            : "비밀번호가 정해져 있지 않습니다. 서버의 환경 변수부터 적어 주세요.";
+
     return (
       <div className="page-wrap admin">
-        <AdminHead />
+        <AdminHead 안내={안내} />
         <AdminRefresh />
         <div className="card admin-gate">
-          <h2 className="admin-gate__title">관리자 페이지</h2>
-          <p className="admin-gate__note">
-            {걸림 === null
-              ? "확인하는 중입니다."
-              : 걸림
-                ? "비밀번호를 넣어 주세요."
-                : 첫암호있나
-                  ? "처음 로그인합니다. 환경 변수에 적은 비밀번호를 넣어 주세요."
-                  : "비밀번호가 정해져 있지 않습니다. 서버의 환경 변수부터 적어 주세요."}
-          </p>
           <AdminPwField
             value={암호}
             onChange={set암호}
@@ -318,7 +321,7 @@ function AdminRefresh() {
  * 생김새는 다른 쪽의 제목과 같다. 전에는 보라 띠를 깔고 흰 글씨를 썼는데,
  * 그 띠만 다른 쪽과 달라 제목이 선 자리도 함께 어긋났다.
  */
-function AdminHead() {
+function AdminHead({ 안내 }: { 안내: string }) {
   return (
     <header className="page-head">
       <div className="page-head__row">
@@ -326,9 +329,16 @@ function AdminHead() {
           <span className="page-title__in">돈을 쓰다</span>
         </h1>
         <span className="admin-head__kind">관리자</span>
-        {/* 줄 오른쪽 끝은 비운다. 떠 있는 새로 고침 단추가 그 자리를 덮는다. */}
-        <span className="admin-path-tag">/admin</span>
       </div>
+
+      {/* 안내 한 줄과, 그 줄 오른쪽 끝의 주소 딱지. 다른 쪽의 머리말과 같은
+          조각, 같은 자리다(AdminPageHead.tsx). 제목 줄 오른쪽 끝에 달던
+          때는 떠 있는 새로 고침 단추가 그 자리를 덮었고, 쪽마다 제목 폭이
+          달라 딱지가 오갔다. */}
+      <p className="page-note">
+        {안내}
+        <span className="admin-path-tag">/admin</span>
+      </p>
     </header>
   );
 }
