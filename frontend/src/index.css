@@ -21218,14 +21218,6 @@ html:has(.note-pop) .add-btn {
   }
 }
 
-/* 꾹 누르면 어디로 가는지 적는 줄. 표 아래에 한 줄로 선다. 손짓은 눈에
-   보이지 않으므로 글로 한 번 적어야 한다. */
-.admin-tbl-hint {
-  margin: 0;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
-}
-
 /* 나중에 펼치는 줄. 접힐 때는 안쪽 여백과 글줄 키가 함께 0으로 줄어들어
    스르륵 닫힌다. 줄을 걷어 버리면 그 자리에서 한 번에 사라진다.
 
@@ -21311,7 +21303,7 @@ html:has(.note-pop) .add-btn {
   background: var(--color-primary-light);
 }
 
-/* 거르기로 고른 기간. 달 넘기개가 서던 자리에 글로 선다. 글꼴과 굵기는
+/* 거르기로 선택한 기간. 달 넘기개가 서던 자리에 글로 선다. 글꼴과 굵기는
    사용자 사이트의 기간 상세가 쓰는 값 그대로다(.cal-back__range). */
 .admin-range {
   flex: 0 1 auto;
@@ -22092,7 +22084,7 @@ html:has(.page-wrap.admin) body {
   font-weight: 700;
 }
 
-/* 기간 고르개. 알약 셋이 한 줄에 선다. 아래 틈은 품는 줄이 대므로
+/* 기간을 선택하는 줄. 알약 셋이 한 줄에 선다. 아래 틈은 품는 줄이 대므로
    제 몫으로는 두지 않는다. 여기에 margin-bottom 을 두었더니 24px 알약이
    36px 줄을 만들어, 기간 딱지와 아래 칸 사이가 8px보다 멀어 보였다.
 
@@ -22253,7 +22245,7 @@ html:has(.page-wrap.admin) body {
   margin-left: auto;
 }
 
-/* 고른 기간을 적는 딱지. 달을 넘기든 알약을 누르든 실제로 보고 있는 날이
+/* 선택한 기간을 적는 딱지. 달을 넘기든 알약을 누르든 실제로 보고 있는 날이
    여기에 적힌다. 알약만 있을 때는 "최근 30일"이 언제부터 언제까지인지
    화면에서 알 길이 없었다. */
 .admin-span__tag {
@@ -23004,7 +22996,7 @@ textarea.admin-area:focus {
 }
 
 /* ── 안내 쪽지 ───────────────────────────────────────────────
-   거르개나 고르개(.popup-panel)와 같은 틀을 쓰지 않는다. 저쪽은 손으로
+   거르개나 날짜를 선택하는 판(.popup-panel)과 같은 틀을 쓰지 않는다. 저쪽은 손으로
    만지는 자리라 네모와 단추가 반듯해야 하고, 이쪽은 읽고 닫는 자리다.
    공책에서 한 장 뜯어 테이프로 붙인 꼴로 두어 둘이 눈으로 갈린다. */
 
@@ -23048,6 +23040,13 @@ textarea.admin-area:focus {
   position: relative;
   width: 320px;
   max-width: calc(100vw - 32px);
+  animation: note-drop 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 종이 한 장. 자름(clip-path)은 이 겹에만 건다 — 바깥 겹에 걸면 위로 걸친
+   테이프까지 함께 잘린다. */
+.note-sheet__paper {
+  position: relative;
   padding: 26px 20px 30px 40px;
   background-color: var(--note-paper);
   background-image: var(--note-grain),
@@ -23064,14 +23063,18 @@ textarea.admin-area:focus {
     5.6% calc(100% - 7px), 0 calc(100% - 2.1px));
   filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--color-text-primary) 12%, transparent))
           drop-shadow(0 8px 18px color-mix(in srgb, var(--color-text-primary) 26%, transparent));
-  /* 반듯하게 놓인 종이는 네모 카드로 읽힌다. 한 눈금만 틀어 손으로 붙인
-     것으로 둔다. 움직임이 끝나는 자리도 이 각이다(note-drop). */
-  transform: rotate(-0.8deg);
-  animation: note-drop 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 쪽지가 받는 초점에는 테를 두르지 않는다. 쪽지는 읽는 자리이지 누르는
+   자리가 아니고, 열 때 초점을 이리로 옮기므로(PageNote.tsx) 테를 두르면
+   종이 둘레에 늘 네모가 하나 더 선다. 안의 OK~ 는 제 테를 받는다. */
+.note-sheet:focus,
+.note-sheet:focus-visible {
+  outline: none;
 }
 
 /* 공책의 여백 선. 구멍 둘과 글 사이를 가른다. */
-.note-sheet::after {
+.note-sheet__paper::after {
   content: "";
   position: absolute;
   left: 30px;
@@ -23081,11 +23084,12 @@ textarea.admin-area:focus {
   background: color-mix(in srgb, var(--color-primary) 28%, transparent);
 }
 
-/* 위에 붙인 테이프 한 토막. 돈쓴이에서 고른 테이프를 그대로 쓴다(114절). */
+/* 위에 붙인 테이프 한 토막. 돈쓴이에서 선택한 테이프를 그대로 쓴다(114절). */
 .note-sheet__tape {
   position: absolute;
   left: 50%;
   top: -12px;
+  z-index: 1;
   width: 96px;
   height: 26px;
   transform: translateX(-50%) rotate(-2.2deg);
@@ -23170,10 +23174,10 @@ textarea.admin-area:focus {
   border-bottom-color: var(--color-primary);
 }
 
-/* 테이프로 붙이는 결. 살짝 더 기울어진 채로 떨어져 제자리에 앉는다. */
+/* 위에서 살짝 떨어져 제자리에 앉는다. */
 @keyframes note-drop {
-  from { opacity: 0; transform: rotate(-3.4deg) translateY(-10px) scale(0.98); }
-  to   { opacity: 1; transform: rotate(-0.8deg); }
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* 멈춰 세울 때는 제자리에 그냥 선다. 앱의 다른 움직임과 같은 잣대다. */
@@ -23191,7 +23195,7 @@ textarea.admin-area:focus {
    대시보드 칸이 선다(92..256px). 손가락이 마지막으로 닿은 자리에 새 칸이
    들어서면서, 브라우저가 쥐고 있던 머무름(:hover)이 그 칸에 걸린다. 손가락은
    마우스처럼 자리를 떠나지 못하므로 다른 데를 한 번 더 짚어야 풀린다.
-   고른 상자(.pe-pick)에서 한 번 겪은 그 탈이다.
+   선택하는 상자(.pe-pick)에서 한 번 겪은 그 탈이다.
 
    마우스가 있는 기기의 결은 그대로 둔다. 손가락만 머무름을 못 떼므로
    그쪽에서만 제자리에 세운다. 셈값이 위 규칙(.home-card:hover)과 같으므로
@@ -23224,4 +23228,35 @@ textarea.admin-area:focus {
     box-shadow: var(--shadow-sm);
     transition-duration: 80ms;
   }
+}
+
+/* ─────────────────────────────────────────────
+   189. 사이트를 선택하는 드롭다운(2026-10-24)
+   ─────────────────────────────────────────────
+   액션 기록은 두 사이트의 기록을 한 표에 쌓는다. 쌓인 줄의 삼분의 이가
+   관리자 사이트를 드나든 것이라, 섞어 두면 사용자 쪽이 묻힌다.
+
+   판과 줄은 사용자 사이트에서 고정과 변동을 선택하는 드롭다운의 것을 그대로
+   쓴다(.fx-pop). 여기서는 알약만 관리자 사이트의 꼴(.filter-pill)로 세우고,
+   그 안에 들어가는 그림과 꺾쇠의 자리만 적는다.
+   ───────────────────────────────────────────── */
+.admin-site__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 9px;
+}
+
+/* 알약 안의 그림. 글자 키에 맞춰 15px로 둔다 — 16px이면 알약(24px)의 위아래
+   여백이 2px로 좁아져 그림이 테에 닿아 보인다. */
+.admin-site__ico {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+}
+
+/* 판은 알약 왼쪽 끝에 맞춰 편다. 이 줄의 왼쪽 끝이라 오른쪽으로 펴도
+   화면을 넘지 않는다. */
+.admin-site__pop {
+  left: 0;
 }

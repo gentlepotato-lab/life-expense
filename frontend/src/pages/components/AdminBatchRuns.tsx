@@ -277,11 +277,6 @@ export default function AdminBatchRuns() {
         </div>
       )}
 
-      {/* 어디까지 거슬러 볼 수 있는지 적는다. */}
-      <p className="admin-hint">
-        실행 기록은 90일까지 남고, 최근 200줄까지 보입니다.
-      </p>
-
       {필터열림 && (
         <AdminFilterPopup
           on초기화={() => set초안({ frm: "", to: "" })}

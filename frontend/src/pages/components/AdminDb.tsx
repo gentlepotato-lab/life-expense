@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
-import useAdminPeriod from "../../hooks/useAdminPeriod";
+import useAdminPeriod, { type 기간짐 } from "../../hooks/useAdminPeriod";
+import useAdminBack from "../../hooks/useAdminBack";
 import AdminPeriodBar from "./AdminPeriodBar";
 import AdminPeriodFields from "./AdminPeriodFields";
 import AdminFilterPopup from "./AdminFilterPopup";
@@ -16,7 +17,7 @@ import { EditField } from "./CardEditModal";
  * 하면 관리자 화면 하나로 자료를 통째로 날릴 수 있다.
  *
  * 맨 위에 몫 띠 하나가 선다. 쌓인 줄이 어느 표에 몰려 있는지는 수를 읽어서는
- * 잡히지 않는다 — 지출 내역과 조회 기록 둘이 여든 몫을 넘게 쥐고 있다는
+ * 잡히지 않는다 — 지출 내역과 액션 기록 둘이 여든 몫을 넘게 쥐고 있다는
  * 것이 띠에서는 한눈에 보인다. 낱낱의 수는 아래 표가 말한다.
  *
  * 몫은 수를 그대로 쓴다. 가장 많은 표와 가장 적은 표가 천 배 넘게 벌어져
@@ -24,7 +25,7 @@ import { EditField } from "./CardEditModal";
  * 「그 밖」으로 모아 한 칸에 담는다.
  *
  * 맨 위에서 달을 넘기고 기간을 거른다(AdminPeriodBar). CNT는 지금 쌓인
- * 줄이고, 그 옆 칸은 고른 기간에 더해진 줄이다. 날짜 칸이 없는 표는 그
+ * 줄이고, 그 옆 칸은 선택한 기간에 더해진 줄이다. 날짜 칸이 없는 표는 그
  * 자리를 비운다.
  *
  * 줄을 꾹 누르면 그 화면이 쓰는 표를 따로 보는 쪽으로 간다
@@ -48,7 +49,7 @@ type 집계 = {
     name: string;
     site: string;
     n: number;
-    /** 고른 기간에 더해진 줄. 날짜 칸이 없는 표는 null 이다. */
+    /** 선택한 기간에 더해진 줄. 날짜 칸이 없는 표는 null 이다. */
     added: number | null;
   }[];
 };
@@ -74,8 +75,11 @@ const 그밖빛 = "#CFD4DA";
 const 최소몫 = 0.03;
 
 export default function AdminDb() {
-  const navigate = useNavigate();
-  const 때 = useAdminPeriod();
+  const location = useLocation();
+  const 상세열기 = useAdminBack<{ 때: 기간짐 }>();
+  /* 되돌아온 참이면 보던 기간을 그대로 이어받는다(hooks/useAdminBack.ts). */
+  const 실린것 = (location.state as { 때?: 기간짐 } | null) ?? null;
+  const 때 = useAdminPeriod(실린것?.때 ?? null);
   const [초안, set초안] = useState({ frm: "", to: "" });
   const [필터열림, set필터열림] = useState(false);
   const [집계, set집계] = useState<집계 | null>(null);
@@ -179,9 +183,7 @@ export default function AdminDb() {
   ];
 
   const 상세로 = (표: string) => {
-    navigate(`/admin/db-detail?table=${encodeURIComponent(표)}`, {
-      state: { 때: 때.담기(), back: "DB" },
-    });
+    상세열기(`/admin/db-detail?table=${encodeURIComponent(표)}`, { 때: 때.담기() }, { back: "DB" });
   };
 
   return (
@@ -239,7 +241,7 @@ export default function AdminDb() {
                   <tr>
                     <th>화면</th>
                     <th>CNT</th>
-                    {/* 고른 기간에 더해진 줄. 머리말에 기간을 적지 않는 까닭은
+                    {/* 선택한 기간에 더해진 줄. 머리말에 기간을 적지 않는 까닭은
                         위 딱지가 이미 어느 기간인지 말하고 있어서다. */}
                     <th>기간</th>
                   </tr>
@@ -307,7 +309,6 @@ export default function AdminDb() {
         </table>
       </section>
 
-      <p className="admin-tbl-hint">줄을 꾹 누르면 그 표를 따로 봅니다.</p>
 
       {필터열림 && (
         <AdminFilterPopup

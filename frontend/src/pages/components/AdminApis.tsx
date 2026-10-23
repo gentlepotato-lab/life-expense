@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
 import { 날짜글, 걸린빛 } from "../../utils/adminFmt";
 import { hour12 } from "../../utils/day";
-import useAdminPeriod from "../../hooks/useAdminPeriod";
+import useAdminPeriod, { type 기간짐 } from "../../hooks/useAdminPeriod";
+import useAdminBack from "../../hooks/useAdminBack";
 import AdminPeriodBar from "./AdminPeriodBar";
 import AdminPeriodFields from "./AdminPeriodFields";
 import AdminFilterPopup from "./AdminFilterPopup";
@@ -23,7 +24,7 @@ import { EditField } from "./CardEditModal";
  * 요청도 그 기간 안에서 본다.
  *
  * 묶음 둘이 표로 선다(.admin-tbl). 줄에 담긴 것이 셋뿐인데 카드를 쌓으면
- * 훑어 내리기보다 한 장씩 읽게 된다. 로그인 기록과 조회 기록과 같은 꼴이다.
+ * 훑어 내리기보다 한 장씩 읽게 된다. 로그인 기록과 액션 기록과 같은 꼴이다.
  *
  * 두 표 모두 줄을 꾹 누르면 그 API를 호출한 기록만 모아 보는 쪽으로 간다
  * (AdminApiDetail.tsx). 톡 눌러 열게 두면 표를 훑다가 화면이 바뀐다.
@@ -50,7 +51,7 @@ type 바깥 = {
   last_ok: boolean | null;
   /** 마지막으로 부를 때 걸린 시간. 배치가 부른 자리는 잰 것이 없어 null 이다. */
   last_ms: number | null;
-  /** 고른 기간에 부른 횟수. 적힌 적이 없으면 0이다. */
+  /** 선택한 기간에 부른 횟수. 적힌 적이 없으면 0이다. */
   hits: number;
 };
 
@@ -82,8 +83,11 @@ function 쓰임빛(a: 바깥): string {
 }
 
 export default function AdminApis() {
-  const navigate = useNavigate();
-  const 때 = useAdminPeriod();
+  const location = useLocation();
+  const 상세열기 = useAdminBack<{ 때: 기간짐 }>();
+  /* 되돌아온 참이면 보던 기간을 그대로 이어받는다(hooks/useAdminBack.ts). */
+  const 실린것 = (location.state as { 때?: 기간짐 } | null) ?? null;
+  const 때 = useAdminPeriod(실린것?.때 ?? null);
   const [초안, set초안] = useState({ frm: "", to: "" });
   const [필터열림, set필터열림] = useState(false);
   const [목록, set목록] = useState<바깥[] | null>(null);
@@ -116,9 +120,11 @@ export default function AdminApis() {
   };
 
   const 상세로 = (a: 바깥) => {
-    navigate(`/admin/api-detail?key=${encodeURIComponent(a.key)}`, {
-      state: { 때: 때.담기(), back: "외부 API" },
-    });
+    상세열기(
+      `/admin/api-detail?key=${encodeURIComponent(a.key)}`,
+      { 때: 때.담기() },
+      { back: "외부 API" }
+    );
   };
 
   const 부른것 = (목록 ?? []).filter((a) => a.last_day);
@@ -177,7 +183,7 @@ export default function AdminApis() {
                         <span className="admin-tbl__tag tint-잿빛">없음</span>
                       )}
                     </td>
-                    {/* 고른 기간에 부른 횟수. 마지막 한 번만으로는 자주 쓰는
+                    {/* 선택한 기간에 부른 횟수. 마지막 한 번만으로는 자주 쓰는
                         자리인지 어쩌다 한 번인지 갈리지 않는다. */}
                     <td>
                       <span
@@ -237,13 +243,6 @@ export default function AdminApis() {
           </section>
         </>
       )}
-
-      {/* 어디까지 알 수 있는지 적는다. 적지 않으면 「NAVER 지도는 한 번도
-          안 불렀나」로 읽힌다. */}
-      <p className="admin-tbl-hint">
-        줄을 꾹 누르면 그 API의 호출 기록만 모아 봅니다.
-      </p>
-      <p className="admin-hint">호출한 기록은 90일까지 남습니다.</p>
 
       {필터열림 && (
         <AdminFilterPopup

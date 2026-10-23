@@ -139,7 +139,7 @@ def admin_state(db: SessionDep = Depends()):
     암호를 걸어 놓았는지만 알린다. 암호 자체는 내려보내지 않는다.
 
     화면은 이 답으로 "암호를 처음 정하는 자리"와 "암호를 묻는 자리" 가운데
-    어느 쪽을 그릴지 고른다.
+    어느 쪽을 그릴지 선택한다.
     """
     적힌것 = _값들(db, {"admin_pw"})["admin_pw"]
     첫암호 = os.environ.get(FIRST_PW_ENV, "")
@@ -299,7 +299,7 @@ def admin_stats(
     싸므로 한 번에 모아 보낸다.
 
     기간은 날짜 두 개로 받는다(frm, to). 둘 다 그날을 품는다. 날짜로 받아야
-    화면이 고른 기간을 그대로 되비칠 수 있다. 예전처럼 days만 받으면 화면은
+    화면이 선택한 기간을 그대로 되비칠 수 있다. 예전처럼 days만 받으면 화면은
     "최근 30일"이라고만 적을 수 있고, 그 서른 날이 언제부터 언제까지인지는
     서버만 안다.
 
@@ -492,7 +492,7 @@ def admin_stats(
 # 아래 셋은 집계를 내놓기만 한다. 고치는 길은 두지 않는다.
 
 
-# 조회 기록에서 한 번에 내놓는 줄 수. 손전화에서 한 쪽에 담을 만큼이다.
+# 액션 기록에서 한 번에 내놓는 줄 수. 손전화에서 한 쪽에 담을 만큼이다.
 # 더 보려면 기간을 좁히거나 갈래로 거른다.
 기록한도 = 200
 
@@ -503,6 +503,7 @@ def admin_logs(
     to: str | None = None,
     kind: str | None = None,
     name: str | None = None,
+    site: str | None = None,
     _: str = Depends(토큰),
     db: SessionDep = Depends(),
 ):
@@ -514,9 +515,19 @@ def admin_logs(
 
     묵은 기록은 달마다 지워진다(app/scheduler/cleanup_job.py). 그래서 아무리
     거슬러 올라가도 90일 치뿐이다.
+
+    사이트는 이름으로 가른다. 표에 사이트 칸이 따로 없는데, 화면을 드나든 줄은
+    이름이 곧 그 화면의 길이고(/entries, /admin/logs) 요청이 물린 줄도 이름이
+    부른 길이라, `/admin`으로 시작하는 것이 관리자 사이트다. 기능과 외부 API는
+    사용자 사이트에서만 쌓인다 — 바깥에 묻는 자리는 모두 사용자 쪽을 위한
+    것이므로(지도, 공휴일) 거기에 함께 둔다.
     """
     조건 = ["1 = 1"]
     값: dict = {"한도": 기록한도}
+    if site == "admin":
+        조건.append("a.name LIKE '/admin%'")
+    elif site == "user":
+        조건.append("a.name NOT LIKE '/admin%'")
     if frm:
         조건.append("a.created_at >= CAST(:frm AS date)")
         값["frm"] = frm
@@ -581,7 +592,7 @@ def admin_logs(
     ("holidays", "공휴일", "user", "created_at"),
     ("notices", "공지", "admin", "created_at"),
     ("doodle_items", "문구", "admin", "created_at"),
-    ("action_logs", "조회 기록", "admin", "created_at"),
+    ("action_logs", "액션 기록", "admin", "created_at"),
     ("admin_sessions", "로그인 기록", "admin", "created_at"),
     ("job_schedules", "배치", "admin", "updated_at"),
     ("job_runs", "배치 이력", "admin", "started_at"),

@@ -15,7 +15,7 @@ import { EditField, EditDivider } from "./CardEditModal";
  * .popup-overlay와 .popup-panel--framed, 칸은 EditField, 바닥은
  * .btn-row.popup-foot이다. 크기도 그 판이 쥔다(90%, 최대 500px, 최대 90vh).
  *
- * 날짜는 사용자 화면이 쓰는 DayPicker로 고른다. 브라우저가 그리는 날짜 칸은
+ * 날짜는 사용자 화면이 쓰는 DayPicker로 선택한다. 브라우저가 그리는 날짜 칸은
  * 기기마다 생김새와 차례(mm/dd/yyyy)가 달라, 같은 앱으로 읽히지 않는다.
  * 기간을 거르는 자리이므로 monthJump와 clearable을 켠다.
  */

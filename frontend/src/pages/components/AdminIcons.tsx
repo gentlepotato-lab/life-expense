@@ -22,7 +22,7 @@ export const ADMIN_ICON: Record<string, React.ReactNode> = {
     </svg>
   ),
 
-  /* 조회 기록. 줄 세 개와 돋보기다. 한 줄씩 들여다보는 자리다. */
+  /* 액션 기록. 줄 세 개와 돋보기다. 한 줄씩 들여다보는 자리다. */
   "/admin/logs": (
     <svg viewBox="0 0 32 32" {...선}>
       <path d="M6 8h20M6 14h20M6 20h11" />

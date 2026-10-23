@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import axios from "../../api/client";
 import { 머리 } from "../../utils/adminAuth";
-import { PAGE_TITLE } from "../../utils/pageTitles";
-import { 관리자쪽이름 } from "../../utils/adminTabs";
 import { formatDateLabel } from "../../utils/dateGroup";
 import useAdminFold from "../../hooks/useAdminFold";
-import useAdminPeriod from "../../hooks/useAdminPeriod";
+import useAdminPeriod, { type 기간짐 } from "../../hooks/useAdminPeriod";
+import useAdminBack from "../../hooks/useAdminBack";
 import AdminPeriodBar from "./AdminPeriodBar";
 import AdminPeriodFields from "./AdminPeriodFields";
 import AdminMoreRow from "./AdminMoreRow";
@@ -17,10 +16,20 @@ import Collapse from "./Collapse";
 import { CollapseAllButtons } from "./CollapseToggle";
 import SingleSelect from "./SingleSelect";
 import { EditField, EditDivider } from "./CardEditModal";
-import { 구분이름, 구분빛, 값딱지, 먼저펼칠줄, 스르륵한도 } from "./adminLogBits";
+import AdminSitePick, { type 사이트 } from "./AdminSitePick";
+import {
+  구분이름,
+  구분빛,
+  값딱지,
+  줄이름,
+  줄경로,
+  길인가,
+  먼저펼칠줄,
+  스르륵한도,
+} from "./adminLogBits";
 
 /**
- * 조회 기록.
+ * 액션 기록.
  *
  * 대시보드는 묶어서만 보여 준다. 그래서 "그 요청이 언제 몇 ms였는지"를 볼
  * 자리가 없었다. 여기가 그 자리다.
@@ -51,22 +60,20 @@ type 기록 = {
   at_time: string;
 };
 
-/**
- * 한 줄의 이름.
- *
- * 조회는 길이 곧 이름이라, 그 길이 가리키는 화면 이름으로 바꿔 적는다.
- * 기능과 외부는 적힌 이름이 곧 이름이다. 요청은 어느 길을 부른 것인지가
- * 알맹이라 길을 그대로 쓴다.
- */
-function 줄이름(r: 기록): string {
-  if (r.kind !== "view") return r.name;
-  return 관리자쪽이름(r.name) ?? PAGE_TITLE[r.name] ?? r.name;
-}
+/** 상세로 갔다 되돌아올 때 되살릴 것. */
+type 짐 = { 때: 기간짐; 구분: string; 사이트: 사이트 };
 
 export default function AdminLogs() {
-  const navigate = useNavigate();
-  const 때 = useAdminPeriod();
-  const [구분, set구분] = useState("");
+  const location = useLocation();
+  const 상세열기 = useAdminBack<짐>();
+  /* 되돌아온 참이면 보던 것을 그대로 이어받는다(hooks/useAdminBack.ts). */
+  const 실린것 = (location.state as 짐 | null) ?? null;
+  const 때 = useAdminPeriod(실린것?.때 ?? null);
+  const [구분, set구분] = useState(실린것?.구분 ?? "");
+  /* 어느 사이트의 기록을 볼지. 기본은 사용자 사이트다 — 쌓인 줄의 삼분의 이가
+     관리자 사이트를 드나든 것이라, 섞어 두면 사용자 쪽이 묻힌다
+     (AdminSitePick.tsx). */
+  const [사이트, set사이트] = useState<사이트>(실린것?.사이트 ?? "user");
   /* 팝업 안에서 고치는 중인 조건. [적용]을 누르지 않고 닫으면 버린다.
      사용자 화면의 거르기와 같다(pages/Entries.tsx). */
   const [초안, set초안] = useState({ 구분: "", frm: "", to: "" });
@@ -89,6 +96,7 @@ export default function AdminLogs() {
         params: {
           frm: 때.기간.frm,
           to: 때.기간.to,
+          site: 사이트,
           ...(구분 ? { kind: 구분 } : {}),
         },
       })
@@ -97,7 +105,7 @@ export default function AdminLogs() {
         set목록([]);
         set탈(true);
       });
-  }, [때.기간.frm, 때.기간.to, 구분]);
+  }, [때.기간.frm, 때.기간.to, 구분, 사이트]);
 
   useEffect(받기, [받기]);
 
@@ -124,10 +132,14 @@ export default function AdminLogs() {
   })();
 
   const 상세로 = (r: 기록) => {
-    navigate(`/admin/log-detail?name=${encodeURIComponent(r.name)}`, {
-      state: { 때: 때.담기(), 구분, back: "조회 기록" },
-    });
+    상세열기(
+      `/admin/log-detail?name=${encodeURIComponent(r.name)}`,
+      { 때: 때.담기(), 구분, 사이트 },
+      { back: "액션 기록" }
+    );
   };
+
+  const 센것 = 목록?.length ?? 0;
 
   return (
     <div className="admin-edit">
@@ -140,6 +152,16 @@ export default function AdminLogs() {
             />
           )}
         </AdminPeriodBar>
+      </div>
+
+      {/* 어느 사이트를 보고 있는지. 기간 줄에 함께 세우면 412px 화면에서
+          필터가 다음 줄로 밀린다 — 넘기개 157px에 펼치개 88px, 필터 45px이
+          이미 서 있다. 상세 쪽이 무엇을 보고 있는지 적는 그 줄과 같은 자리,
+          같은 꼴이다(AdminLogDetail.tsx). */}
+      <div className="pm-toolbar-row admin-toolbar-row">
+        <AdminSitePick 값={사이트} on바뀜={set사이트} />
+        <span className="admin-toolbar-row__gap" />
+        {목록 && <span className="admin-span__tag">{센것.toLocaleString("ko-KR")}건</span>}
       </div>
 
       {목록 === null ? (
@@ -186,17 +208,20 @@ export default function AdminLogs() {
                   <table className="admin-tbl">
                     <colgroup>
                       {/* 시각과 구분과 값은 글이 정해져 있어 폭을 못 박고,
-                          남는 폭은 이름이 쓴다. */}
-                      <col style={{ width: "78px" }} />
-                      <col style={{ width: "54px" }} />
+                          남는 폭은 이름과 경로가 반씩 나눠 쓴다. 상세 쪽도
+                          같은 다섯 칸이다(AdminLogDetail.tsx). */}
+                      <col style={{ width: "76px" }} />
+                      <col style={{ width: "46px" }} />
                       <col />
-                      <col style={{ width: "72px" }} />
+                      <col />
+                      <col style={{ width: "70px" }} />
                     </colgroup>
                     <thead>
                       <tr>
                         <th>시각</th>
                         <th>구분</th>
                         <th className="admin-tbl__wrap">이름</th>
+                        <th className="admin-tbl__wrap">경로</th>
                         <th>값</th>
                       </tr>
                     </thead>
@@ -219,20 +244,30 @@ export default function AdminLogs() {
                               {구분이름[r.kind] ?? r.kind}
                             </span>
                           </td>
-                          {/* 길은 고른 폭 글꼴로, 화면 이름은 본문 글꼴로 적는다.
-                              길은 글자 수를 세며 읽는 글이다.
+                          {/* 이름과 경로를 따로 적는다. 조회는 「대시보드」와
+                              `/admin/dash`처럼 가리키는 것이 같고, 외부는
+                              「카카오 지도」와 「지도 띄우기」처럼 다르다.
+                              한 칸에 하나만 적던 때는 그 둘이 줄마다 바뀌어
+                              무엇을 보고 있는지 칸 이름으로는 알 수 없었다.
 
-                              쏠림은 둘 다 왼쪽이다. 고른 폭 글꼴은 표에서
-                              가운데로 모으는 것이 기본인데(index.css의
-                              .admin-tbl td.admin-mono), 이 칸은 한 칸에 두
-                              가지가 섞여 들어 그대로 두면 줄마다 쏠림이
-                              달라진다. */}
+                              길은 글자 수를 세며 읽는 글이라 고른 폭 글꼴로
+                              적는다. 쏠림은 둘 다 왼쪽이다(index.css의
+                              .admin-tbl__left) — 한 칸에 글꼴 두 가지가
+                              섞여 드는데 고른 폭만 가운데로 모이면 줄마다
+                              쏠림이 달라진다. */}
                           <td
                             className={`admin-tbl__wrap admin-tbl__left${
-                              줄이름(r).startsWith("/") ? " admin-mono" : ""
+                              길인가(줄이름(r)) ? " admin-mono" : ""
                             }`}
                           >
                             {줄이름(r)}
+                          </td>
+                          <td
+                            className={`admin-tbl__wrap admin-tbl__left${
+                              길인가(줄경로(r)) ? " admin-mono" : ""
+                            }`}
+                          >
+                            {줄경로(r)}
                           </td>
                           {/* 값은 요청과 외부에만 붙는다. 실패한 줄은 상태가,
                               멀쩡히 끝난 줄은 걸린 시간이 알맹이다. */}
@@ -241,7 +276,7 @@ export default function AdminLogs() {
                       ))}
                       {묶음.items.length > 먼저펼칠줄 && (
                         <AdminMoreRow
-                          칸수={4}
+                          칸수={5}
                           남은수={묶음.items.length - 먼저펼칠줄}
                           폈나={다폈나}
                           on바꾸기={() => 펼침.바꾸기(묶음.date)}
@@ -254,10 +289,6 @@ export default function AdminLogs() {
             );
           })}
         </div>
-      )}
-
-      {목록 && 목록.length > 0 && (
-        <p className="admin-tbl-hint">줄을 꾹 누르면 그 이름의 기록만 모아 봅니다.</p>
       )}
 
       {필터열림 && (

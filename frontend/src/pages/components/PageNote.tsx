@@ -108,19 +108,25 @@ export default function PageNote({ 제목, 안내 }: { 제목: string; 안내: s
               ref={쪽지ref}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* 테이프는 종이 밖에 둔다. 종이는 아래 끝이 뜯긴 꼴이라 제
+                  테두리를 잘라 내는데(clip-path), 그 자름은 안에 든 것까지
+                  함께 자른다. 종이 안에 두었더니 위로 걸친 토막이 잘려
+                  나갔다. */}
               <span className="note-sheet__tape" aria-hidden="true" />
-              <span className="note-sheet__hole note-sheet__hole--up" aria-hidden="true" />
-              <span className="note-sheet__hole note-sheet__hole--down" aria-hidden="true" />
-              <h3 className="note-sheet__title">{제목}</h3>
-              <p className="note-sheet__text">{안내조각(안내)}</p>
-              <div className="note-sheet__foot">
-                <button
-                  type="button"
-                  className="note-sheet__ok"
-                  onClick={() => set열렸나(false)}
-                >
-                  OK~
-                </button>
+              <div className="note-sheet__paper">
+                <span className="note-sheet__hole note-sheet__hole--up" aria-hidden="true" />
+                <span className="note-sheet__hole note-sheet__hole--down" aria-hidden="true" />
+                <h3 className="note-sheet__title">{제목}</h3>
+                <p className="note-sheet__text">{안내조각(안내)}</p>
+                <div className="note-sheet__foot">
+                  <button
+                    type="button"
+                    className="note-sheet__ok"
+                    onClick={() => set열렸나(false)}
+                  >
+                    OK~
+                  </button>
+                </div>
               </div>
             </div>
           </div>,

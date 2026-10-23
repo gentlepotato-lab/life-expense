@@ -15,12 +15,21 @@ import DateGroupHeader from "./DateGroupHeader";
 import Collapse from "./Collapse";
 import { CollapseAllButtons } from "./CollapseToggle";
 import { EditField } from "./CardEditModal";
-import { 구분이름, 구분빛, 값딱지, 먼저펼칠줄, 스르륵한도 } from "./adminLogBits";
+import {
+  구분이름,
+  구분빛,
+  값딱지,
+  줄이름,
+  줄경로,
+  길인가,
+  먼저펼칠줄,
+  스르륵한도,
+} from "./adminLogBits";
 
 /**
- * 조회 기록 상세.
+ * 액션 상세.
  *
- * 이름 하나만 모아 본다. 조회 기록 쪽에서 줄을 누르면 그 줄의 이름을 들고
+ * 이름 하나만 모아 본다. 액션 기록 쪽에서 줄을 꾹 누르면 그 줄의 이름을 들고
  * 들어온다(AdminLogs.tsx).
  *
  * 기간과 거르기는 들어올 때 그대로 실려 오고, 여기서 다시 고칠 수도 있다.
@@ -49,7 +58,7 @@ export default function AdminLogDetail() {
   /* 앞 쪽에서 실려 온 기간. 주소만으로 들어왔으면 이번 달부터 본다. */
   const 실린것 = (location.state as { 때?: 기간짐; back?: string } | null) ?? null;
   const 때 = useAdminPeriod(실린것?.때 ?? null);
-  const 돌아갈곳 = 실린것?.back ?? "조회 기록";
+  const 돌아갈곳 = 실린것?.back ?? "액션 기록";
 
   const [초안, set초안] = useState({ frm: "", to: "" });
   const [필터열림, set필터열림] = useState(false);
@@ -100,7 +109,8 @@ export default function AdminLogDetail() {
     return 묶음;
   })();
 
-  /* 띄우는 이름. 조회는 길이 이름이라 그 길이 가리키는 화면 이름으로 적는다. */
+  /* 띄우는 이름. 조회는 길이 이름이라 그 길이 가리키는 화면 이름으로 적는다.
+     표 안의 이름 칸과 같은 조각을 쓴다(adminLogBits.tsx의 줄이름). */
   const 적을이름 = 관리자쪽이름(이름) ?? PAGE_TITLE[이름] ?? 이름;
   const 센것 = 목록?.length ?? 0;
 
@@ -171,17 +181,22 @@ export default function AdminLogDetail() {
                 />
                 <Collapse open={폈나}>
                   <table className="admin-tbl">
+                    {/* 액션 기록과 같은 다섯 칸이다(AdminLogs.tsx). 줄을 꾹
+                        눌러 들어온 자리라 두 표의 칸이 다르면 같은 줄을 다른
+                        줄로 읽게 된다. */}
                     <colgroup>
-                      <col style={{ width: "78px" }} />
-                      <col style={{ width: "54px" }} />
+                      <col style={{ width: "76px" }} />
+                      <col style={{ width: "46px" }} />
                       <col />
-                      <col style={{ width: "72px" }} />
+                      <col />
+                      <col style={{ width: "70px" }} />
                     </colgroup>
                     <thead>
                       <tr>
                         <th>시각</th>
                         <th>구분</th>
-                        <th className="admin-tbl__wrap">길</th>
+                        <th className="admin-tbl__wrap">이름</th>
+                        <th className="admin-tbl__wrap">경로</th>
                         <th>값</th>
                       </tr>
                     </thead>
@@ -201,19 +216,28 @@ export default function AdminLogDetail() {
                               {구분이름[r.kind] ?? r.kind}
                             </span>
                           </td>
-                          {/* 같은 이름이라도 부른 길은 줄마다 다를 수 있다.
-                              조회는 이름이 곧 길이라 그 자리가 비면 이름을
-                              그대로 적는다. 쏠림은 조회 기록의 이름 칸과
-                              같이 왼쪽이다(AdminLogs.tsx). */}
-                          <td className="admin-tbl__wrap admin-tbl__left admin-mono">
-                            {r.path || r.name}
+                          {/* 이름과 경로. 액션 기록과 같은 조각으로 적는다
+                              (adminLogBits.tsx). 쏠림은 둘 다 왼쪽이다. */}
+                          <td
+                            className={`admin-tbl__wrap admin-tbl__left${
+                              길인가(줄이름(r)) ? " admin-mono" : ""
+                            }`}
+                          >
+                            {줄이름(r)}
+                          </td>
+                          <td
+                            className={`admin-tbl__wrap admin-tbl__left${
+                              길인가(줄경로(r)) ? " admin-mono" : ""
+                            }`}
+                          >
+                            {줄경로(r)}
                           </td>
                           <td>{값딱지(r)}</td>
                         </tr>
                       ))}
                       {묶음.items.length > 먼저펼칠줄 && (
                         <AdminMoreRow
-                          칸수={4}
+                          칸수={5}
                           남은수={묶음.items.length - 먼저펼칠줄}
                           폈나={다폈나}
                           on바꾸기={() => 펼침.바꾸기(묶음.date)}

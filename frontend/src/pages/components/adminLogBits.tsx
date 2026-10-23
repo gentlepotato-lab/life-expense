@@ -1,10 +1,13 @@
 /**
- * 조회 기록과 그 상세가 함께 쓰는 조각들.
+ * 액션 기록과 그 상세가 함께 쓰는 조각들.
  *
  * 두 쪽이 같은 표를 그린다. 구분 딱지도, 값 딱지도, 먼저 펼칠 줄 수도 같아야
  * 한 쪽에서 다른 쪽으로 넘어가도 같은 표로 읽힌다. 쪽마다 적었더니 빛깔
  * 하나를 고칠 때 한 쪽만 고치게 됐다.
  */
+
+import { PAGE_TITLE } from "../../utils/pageTitles";
+import { 관리자쪽이름 } from "../../utils/adminTabs";
 
 /** 구분마다의 이름. 서버가 쥔 값은 영문 한 낱말이다. */
 export const 구분이름: Record<string, string> = {
@@ -71,4 +74,37 @@ export function 값딱지(r: 값있는줄) {
       {r.elapsed_ms.toLocaleString("ko-KR")}ms
     </span>
   );
+}
+
+type 이름있는줄 = { kind: string; name: string; path: string | null };
+
+/**
+ * 한 줄의 이름.
+ *
+ * 조회는 길이 곧 이름이라, 그 길이 가리키는 화면 이름으로 바꿔 적는다.
+ * 기능과 외부는 적힌 이름이 곧 이름이다. 요청은 부른 길이 이름 자리에
+ * 적혀 있어 그대로 쓴다.
+ *
+ * 두 쪽이 함께 쓴다. 목록과 상세가 같은 칸에 다른 말을 적으면 줄을 눌러
+ * 들어갔을 때 다른 줄을 보는 것처럼 읽힌다.
+ */
+export function 줄이름(r: 이름있는줄): string {
+  if (r.kind !== "view") return r.name;
+  return 관리자쪽이름(r.name) ?? PAGE_TITLE[r.name] ?? r.name;
+}
+
+/**
+ * 한 줄의 경로.
+ *
+ * 조회와 요청은 부른 길이고, 외부는 무엇을 하려고 불렀나이며(「지도 띄우기」),
+ * 기능은 적을 것이 없다. 비면 줄표를 적는다 — 칸을 비워 두면 표가 뚫린 것처럼
+ * 보인다.
+ */
+export function 줄경로(r: 이름있는줄): string {
+  return r.path || "-";
+}
+
+/** 경로가 길인가. 길이면 고른 폭 글꼴로 적는다. */
+export function 길인가(글: string): boolean {
+  return 글.startsWith("/");
 }

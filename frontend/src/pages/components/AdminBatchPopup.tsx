@@ -12,7 +12,7 @@ import { EditField, EditDivider } from "./CardEditModal";
  * 손이 헷갈리지 않는다.
  *
  * 묻는 칸은 정기 내역이 묻는 것과 같은 꼴로 둔다(pages/ScheduledEntries.tsx).
- * 날짜는 고르개로, 시각은 type="time" 칸으로 받는다. 거기도 「매달 몇 일
+ * 날짜는 사용자 사이트의 DayPicker로, 시각은 type="time" 칸으로 받는다. 거기도 「매달 몇 일
  * 몇 시」를 묻는 자리라, 다른 꼴로 물으면 같은 앱으로 읽히지 않는다.
  */
 
@@ -25,7 +25,7 @@ export type 초안 = {
   time: string;
 };
 
-/** 고를 수 있는 날. 없는 달이 생기지 않도록 28일에서 멈춘다. */
+/** 선택할 수 있는 날. 없는 달이 생기지 않도록 28일에서 멈춘다. */
 const 날들 = Array.from({ length: 28 }, (_, i) => i + 1);
 
 export default function AdminBatchPopup({

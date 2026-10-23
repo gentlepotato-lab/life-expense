@@ -14,7 +14,7 @@
 /** 탭 안의 페이지 하나. */
 export type 관리자쪽 = {
   path: string;
-  /** 쪽 이름. 갈래 알약과 제목과 조회 기록이 함께 쓴다. */
+  /** 쪽 이름. 갈래 알약과 제목과 액션 기록이 함께 쓴다. */
   name: string;
   /** 제목 밑 한 줄. 사용자 사이트의 PAGE_NOTE와 같은 자리, 같은 꼴이다. */
   note: string;
@@ -77,8 +77,8 @@ export const ADMIN_TABS: 관리자탭[] = [
       },
       {
         path: "/admin/logs",
-        name: "조회 기록",
-        note: "쌓인 기록을 한 줄씩 확인합니다.",
+        name: "액션 기록",
+        note: "쌓인 기록을 한 줄씩 확인합니다. 줄을 꾹 누르면 그 이름의 기록만 모아 봅니다.",
         desc: "한 줄씩 쌓인 기록",
       },
       {
@@ -132,13 +132,13 @@ export const ADMIN_TABS: 관리자탭[] = [
       {
         path: "/admin/api",
         name: "외부 API",
-        note: "외부에 보내는 API 요청의 상태를 확인합니다.",
+        note: "외부에 보내는 API 요청의 상태를 확인합니다. 줄을 꾹 누르면 그 API의 호출 기록만 모아 봅니다. 호출한 기록은 90일까지 남습니다.",
         desc: ["공휴일", "지도"],
       },
       {
         path: "/admin/db",
         name: "DB",
-        note: "쌓인 데이터와 서버 정보를 확인합니다.",
+        note: "쌓인 데이터와 서버 정보를 확인합니다. 줄을 꾹 누르면 그 표를 따로 봅니다.",
         desc: "쌓인 데이터와 서버 정보",
       },
     ],
@@ -177,36 +177,36 @@ const 곁가지: 관리자쪽[] = [
   {
     path: "/admin/batch-runs",
     name: "배치 이력",
-    note: "작업이 실행된 기록을 한 줄씩 확인합니다.",
+    note: "작업이 실행된 기록을 한 줄씩 확인합니다. 실행 기록은 90일까지 남고, 최근 200줄까지 보입니다.",
     desc: "작업이 실행된 기록",
     under: "/admin/batch",
   },
   {
     path: "/admin/log-detail",
-    name: "조회 상세",
-    note: "고른 이름의 기록을 한 줄씩 확인합니다.",
-    desc: "고른 이름의 기록",
+    name: "액션 상세",
+    note: "선택한 이름의 기록을 한 줄씩 확인합니다.",
+    desc: "선택한 이름의 기록",
     under: "/admin/logs",
   },
   {
     path: "/admin/notice-detail",
     name: "공지 상세",
-    note: "고른 공지의 내용과 기간을 확인합니다.",
-    desc: "고른 공지의 내용과 기간",
+    note: "선택한 공지의 내용과 기간을 확인합니다.",
+    desc: "선택한 공지의 내용과 기간",
     under: "/admin/notice",
   },
   {
     path: "/admin/api-detail",
     name: "호출 기록",
-    note: "고른 API를 호출한 기록을 확인합니다.",
-    desc: "고른 API를 호출한 기록",
+    note: "선택한 API를 호출한 기록을 확인합니다.",
+    desc: "선택한 API를 호출한 기록",
     under: "/admin/api",
   },
   {
     path: "/admin/db-detail",
     name: "표 상세",
-    note: "고른 화면이 쓰는 표를 확인합니다.",
-    desc: "고른 화면이 쓰는 표",
+    note: "선택한 화면이 쓰는 표를 확인합니다.",
+    desc: "선택한 화면이 쓰는 표",
     under: "/admin/db",
   },
 ];

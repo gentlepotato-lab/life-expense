@@ -8,7 +8,6 @@ import EyeIcon from "./components/EyeIcon";
 import ScrollTopButton from "./components/ScrollTopButton";
 import AdminPageHead from "./components/AdminPageHead";
 import AdminTabBar from "./components/AdminTabBar";
-import { 쪽찾기 } from "../utils/adminTabs";
 import useHeadPin from "../hooks/useHeadPin";
 /* 쪽들은 이 묶음에 함께 담는다. 쪽마다 따로 쪼개면 어느 쪽에 처음 들어갈
    때마다 기다리는 자리가 한 번 뜨고, 그러면 React 가 알맹이를 300ms 뒤에야
@@ -58,9 +57,6 @@ export default function Admin() {
      첫 자리로 돌아갔고, 뒤로 가기도 관리자 화면을 통째로 떠났다.
      자리마다 길이 있으므로 즐겨찾기도 걸리고 기록도 ViewTracker가 적는다. */
   const { pathname } = useLocation();
-  /* 지금 어느 탭의 어느 쪽인가는 등록부가 길로 알려 준다
-     (utils/adminTabs.ts). 머리말과 바닥 막대가 그것을 함께 본다. */
-  const 쪽 = 쪽찾기(pathname);
   /* 메인 탭의 첫 쪽인가. 홈 표가 여기에 걸린다. */
   const 메인쪽 = pathname === "/admin";
 
@@ -69,14 +65,16 @@ export default function Admin() {
      관리자 화면에는 그 머리말이 없으므로 여기서 부른다. */
   useHeadPin();
 
-  /* 브라우저 탭 제목도 맞춘다. 화면을 캡처해 놓고 나중에 볼 때 어느 쪽인지
-     헷갈리지 않게 한다. 자리를 옮길 때마다 다시 적는다. 한 번만 적으면
-     다른 자리가 덮어쓸 때 되돌릴 길이 없다. */
+  /* 브라우저 탭 제목. 두 사이트가 한 글자로 갈린다 — 사용자 쪽은
+     「돈을 쓰다」, 이쪽은 「돈을 쓰다(admin)」이다. 쪽 이름은 적지 않는다.
+     탭에 보이는 자리가 좁아 앞의 몇 글자만 뜨는데, 거기에 쪽 이름이 먼저
+     서면 탭 여럿을 열어 놓았을 때 어느 것이 어느 사이트인지 알 수 없다.
+
+     자리를 옮길 때마다 다시 적는다. 한 번만 적으면 다른 자리가 덮어쓸 때
+     되돌릴 길이 없다. */
   useEffect(() => {
-    /* 사용자 사이트와 같은 꼴이다. 첫 쪽은 서비스 이름만, 나머지는
-       「쪽 이름 다음에 서비스 이름」이다(PageHead.tsx). */
-    document.title = 쪽 ? `${쪽.name} · 돈을 쓰다 관리자` : "돈을 쓰다 관리자";
-  }, [pathname, 쪽]);
+    document.title = "돈을 쓰다(admin)";
+  }, [pathname]);
 
   /* 토큰이 죽으면 자물쇠로 돌아간다.
      서버가 401로 돌려보내면 api/client.ts가 토큰을 걷고 여기로 알린다.
