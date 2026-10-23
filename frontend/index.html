@@ -2,12 +2,53 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" sizes="any" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" href="/favicon.ico" sizes="48x48" />
-    <link rel="apple-touch-icon" href="/logo-mark-180.png" />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#ffffff" />
+    <!-- 로고와 manifest 는 머리 맨 위에서 자리를 보고 꽂는다.
+
+         사용자 쪽과 관리자 쪽이 한 index.html 을 나눠 쓴다. 글자로 사용자
+         것을 적어 두고 화면이 뜬 뒤에 관리자 것으로 바꾸던 때는
+         (utils/adminPwa.ts), 크롬은 따라왔지만 사파리는 안 따라왔다.
+         사파리는 쪽이 뜰 때 로고를 한 번 집고 그 뒤로는 다시 보지 않아,
+         Dock 에 담은 관리자 앱이 사용자 로고를 달고 섰다.
+
+         그래서 여기서 자리를 먼저 보고 그 자리의 것만 꽂는다. 머리의 다른
+         줄보다 앞서 도므로 브라우저가 처음 집는 것이 곧 제 로고다.
+         화면 안에서 자리를 옮길 때는 전처럼 adminPwa 가 바꾼다. -->
+    <script>
+      (function () {
+        var 길 = location.pathname;
+        var 관리자 = 길 === "/admin" || 길.indexOf("/admin/") === 0;
+        var 것 = 관리자
+          ? {
+              svg: "/logo-mark-admin.svg",
+              png: "/icon-admin-192.png",
+              touch: "/logo-mark-admin-180.png",
+              manifest: "/manifest-admin.json",
+              theme: "#6B2CB8",
+            }
+          : {
+              svg: "/logo-mark.svg",
+              png: "/favicon-32.png",
+              touch: "/logo-mark-180.png",
+              manifest: "/manifest.json",
+              theme: "#ffffff",
+            };
+        function 꽂기(rel, href, 더) {
+          var el = document.createElement("link");
+          el.rel = rel;
+          el.href = href;
+          if (더) for (var k in 더) el.setAttribute(k, 더[k]);
+          document.head.appendChild(el);
+        }
+        꽂기("icon", 것.svg, { type: "image/svg+xml", sizes: "any" });
+        꽂기("icon", 것.png, { type: "image/png", sizes: "192x192" });
+        꽂기("apple-touch-icon", 것.touch);
+        꽂기("manifest", 것.manifest);
+        var m = document.createElement("meta");
+        m.name = "theme-color";
+        m.content = 것.theme;
+        document.head.appendChild(m);
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- Pretendard — 한글·숫자 모두 고른 무료 서체(OFL).
