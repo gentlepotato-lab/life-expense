@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { 탭찾기, 쪽찾기 } from "../../utils/adminTabs";
+import PageNote from "./PageNote";
 
 /**
  * 관리자 사이트의 쪽 머리말.
@@ -20,6 +21,9 @@ import { 탭찾기, 쪽찾기 } from "../../utils/adminTabs";
  *
  * 만년필 자국은 가져오지 않는다. 사용자 사이트의 꾸밈이라 관리자 쪽까지
  * 흔들면 두 사이트가 섞여 보인다.
+ *
+ * 안내 한 줄은 제목 옆의 ⓘ에서 쪽지로 뜬다(PageNote.tsx). 자국은 없어도
+ * 안내를 꺼내 보는 자리는 두 사이트가 같아야 한다.
  */
 export default function AdminPageHead() {
   const { pathname } = useLocation();
@@ -51,12 +55,17 @@ export default function AdminPageHead() {
           {/* 갈래는 음영 밖에 선다. 사용자 사이트의 머리말에는 없는 자리라
               이 쪽에서만 더한다. */}
           {갈래 && <span className="admin-head__kind">{갈래}</span>}
+          {/* 갈래 딱지 뒤에 선다. 제목과 갈래는 「돈을 쓰다 관리자」처럼 한
+              덩이로 읽히므로 그 사이를 가르지 않는다. */}
+          {안내 && <PageNote key={pathname} 제목={제목} 안내={안내} />}
         </div>
       )}
 
+      {/* 주소 딱지가 서는 줄. 안내 글이 쪽지로 들어가 글은 빠졌고, 줄의
+          자리와 키는 그대로다 — 사용자 사이트에서 그 줄이 만년필 자국을
+          쥐고 있는 것과 같은 키다(.page-doodle-row). */}
       {안내 && (
         <p className="page-note">
-          {안내}
           {/* 주소 딱지. 화면을 캡처해 놓고 나중에 볼 때 어느 사이트인지
               알아보게 하는 표다.
 

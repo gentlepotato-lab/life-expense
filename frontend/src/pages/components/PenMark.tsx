@@ -9,10 +9,11 @@ import { getWho, 글칸, 누구글, 누구채우기 } from "../../utils/who";
  * 때까지 돌고, 이쪽은 한 번 쓰고 한참 쉰다 — 7초에 한 번, 쓰는 데는 2.5초쯤
  * 걸린다. 눈을 붙잡으려는 것이 아니라 화면이 살아 있다는 것만 알린다.
  *
- * 폭은 화면 폭을 따라간다. 안내 한 줄이 아래로 접히지만 않으면 되는데 그
- * 여유가 화면마다 다르다 — 가장 긴 안내(설정 첫 화면)를 두고 재니 360px에서
- * 42px, 390px에서 72px, 412px에서 94px이 남았다. 한 값으로 못 박으면 가장
- * 좁은 쪽에 맞춰야 해서 넓은 화면에서 쓸데없이 짧다.
+ * 폭은 CSS가 정한다(.page-doodle-row > .page-doodle). 안내 줄의 절반이라
+ * 412px 화면에서 188px, 1280px 화면에서 376px이고, 오른쪽 끝은 홈의 반쪽
+ * 카드와 같은 세로줄에 선다. 여기서는 그려진 폭을 재어 viewBox에 적는다.
+ * 안내 글이 같은 줄에 서던 때에는 글이 쓰고 남은 자리를 화면 폭으로 셈했는데
+ * (최대 112px), 글이 쪽지로 들어가(PageNote.tsx) 그 셈이 쓸모없어졌다.
  *
  * 늘어나는 것은 줄뿐이고 끝의 그림은 크기가 그대로다. viewBox를 픽셀과
  * 1:1로 두어 늘려도 찌그러지지 않는다.
@@ -24,36 +25,16 @@ import { getWho, 글칸, 누구글, 누구채우기 } from "../../utils/who";
  */
 
 /**
- * 자국의 폭.
+ * 그려지기 전에 쥐고 있을 폭.
  *
- * 설정 첫 화면의 안내를 두고 재니 한 줄을 지키면서 내줄 수 있는 자리가
- * 360px에서 42px, 390px에서 72px, 412px에서 94px이었다 — 화면 폭에서 318을
- * 뺀 값이다. 2px을 더 접고, 자국과 글 사이 틈 8px을 뺀다.
+ * 첫 판에는 아직 잰 것이 없다. 틀의 셈을 그대로 따라 어림한다 — 몸통은
+ * 화면에서 12px을 접은 것이되 784px을 넘지 않고(.page-wrap), 안내 줄은
+ * 거기서 좌우 8px씩을 접은 것이며, 자국은 그 줄의 절반에서 틈 4px을 뺀
+ * 값이다. 한 판 뒤에 잰 값으로 바뀐다.
  */
-function 자국폭(화면: number): number {
-  return Math.max(32, Math.min(112, Math.round(화면 - 328)));
-}
-
-/**
- * 쪽지 폭 — 그림 칸과 종이가 같은 네모다.
- *
- * 종이만 넓히고 그림 칸을 그대로 두면 펜이 종이의 오른쪽 토막에서만 오가고,
- * 글이 드러나는 끝과 펜촉도 어긋난다. 한 네모로 묶어 둘이 같은 자리를 쓴다.
- */
-function 쪽지폭(화면: number): number {
-  return 자국폭(화면) + 19;
-}
-
-/**
- * 안내 글이 비울 틈.
- *
- * 쪽지보다 1px만 넓다 — 쪽지가 이 틈을 거의 다 쓴다는 뜻이다. 틈을 더 늘리면
- * 가장 긴 안내(설정 첫 화면 291px)가 두 줄로 터진다. 400px 화면에서 그 안내가
- * 끝나는 자리와 쪽지 왼쪽 끝 사이에 6px이 남는다 — 안내가 짧은 화면에서는
- * 그만큼 더 넉넉하다.
- */
-function 글틈(화면: number): number {
-  return 자국폭(화면) + 20;
+function 어림폭(화면: number): number {
+  const 몸통 = Math.min(화면 - 12, 784);
+  return Math.max(60, Math.round((몸통 - 16) / 2 - 4));
 }
 
 /** 자국이 그려지는 상자. 줄은 YB에 놓이고 끝 그림은 그 위 S칸을 꽉 채운다. */
@@ -337,7 +318,7 @@ let 첫바퀴돌았나 = false;
 
 export default function PenMark() {
   const [폭, set폭] = useState(() =>
-    쪽지폭(typeof document === "undefined" ? 360 : document.documentElement.clientWidth)
+    어림폭(typeof document === "undefined" ? 360 : document.documentElement.clientWidth)
   );
   const [꼴, set꼴] = useState<자국꼴>(() => {
     const 뽑을것 = 쓸꼴들();
@@ -350,6 +331,8 @@ export default function PenMark() {
      간다 — 탭을 누를 때마다 인사로 시작하면 그 뜻을 잃는다. */
   const [바퀴, set바퀴] = useState<바퀴>(() => (첫바퀴돌았나 ? "자국" : "인사"));
   const 줄ref = useRef<SVGPathElement | null>(null);
+  /* 그려진 폭을 재는 자리. 상자는 CSS가 키우고 줄기는 그 폭을 따라간다. */
+  const 몸ref = useRef<HTMLSpanElement | null>(null);
 
   /* 이름은 브라우저에 남은 것을 꺼내 쓴다. 이 조각은 모든 화면의 머리말에
      서므로 화면마다 서버를 부르면 같은 것을 수십 번 묻게 된다(utils/who.ts).
@@ -366,20 +349,21 @@ export default function PenMark() {
     };
   }, []);
 
-  /* 안내 글이 비울 자리도 여기서 정한다. CSS가 100vw로 따로 셈하면
-     굴림대가 있는 화면에서 둘이 어긋나, 글이 자국 밑으로 깔린다. */
+  /* 그려진 폭을 잰다. 화면이 넓어지거나 창이 줄어들면 상자가 먼저 바뀌고
+     그 뒤를 줄기가 따라간다 — 화면 폭으로 따로 셈하면 굴림대가 있는 화면에서
+     둘이 어긋난다. 소수점은 버린다. viewBox와 1:1이어야 끝 그림이 찌그러지지
+     않는다. */
   useEffect(() => {
+    const el = 몸ref.current;
+    if (!el) return;
     const 재기 = () => {
-      const w = 쪽지폭(document.documentElement.clientWidth);
-      set폭(w);
-      document.documentElement.style.setProperty(
-        "--doodle-room",
-        `${글틈(document.documentElement.clientWidth)}px`
-      );
+      const w = Math.round(el.getBoundingClientRect().width);
+      if (w > 0) set폭(w);
     };
     재기();
-    window.addEventListener("resize", 재기);
-    return () => window.removeEventListener("resize", 재기);
+    const 눈 = new ResizeObserver(재기);
+    눈.observe(el);
+    return () => 눈.disconnect();
   }, []);
 
   /* 한 바퀴가 끝날 때마다 다음에 들 것을 고른다. 7초 가운데 4초 남짓은
@@ -408,11 +392,7 @@ export default function PenMark() {
   const 길 = 적을글 ? 민줄(폭) : 한획(폭, 꼴);
 
   return (
-    <span
-      className="page-doodle"
-      aria-hidden="true"
-      style={{ width: `${폭}px` }}
-    >
+    <span className="page-doodle" aria-hidden="true" ref={몸ref}>
       {/* 글 칸은 자국이 드는 바퀴에도 그대로 세운다.
 
           바퀴마다 새로 세우면 그 칸의 움직임도 그때부터 센다 — 기다림(3.3초)이

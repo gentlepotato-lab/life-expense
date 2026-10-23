@@ -4,6 +4,7 @@ import { PAGE_TITLE, PAGE_NOTE, ENTRY_TABS, SETTING_TABS } from "../../utils/pag
 import { keepOn, onMenuOff } from "../../utils/menuRegistry";
 import useHeadPin from "../../hooks/useHeadPin";
 import PenMark from "./PenMark";
+import PageNote from "./PageNote";
 import { 관리자길 } from "../../utils/adminPath";
 
 /**
@@ -30,27 +31,6 @@ function subTabsFor(pathname: string): string[] | null {
 const PARENT: Record<string, string> = {
   "/calendar/detail": "/calendar",
 };
-
-/**
- * 안내 한 줄을 조각으로 가른다.
- *
- * 중괄호로 감싼 말은 다른 화면의 이름이라 조금 짙게 세운다. 누를 수 있는
- * 것은 아니므로 단추나 링크로 만들지 않는다 — 가리키기만 한다.
- *
- * split에 묶음(괄호)을 쓰면 가른 자리의 알맹이도 함께 끼어 나온다. 짝수
- * 자리가 보통 글, 홀수 자리가 화면 이름이다.
- */
-function noteParts(note: string) {
-  return note.split(/\{([^}]+)\}/).map((part, i) =>
-    i % 2 === 0 ? (
-      part
-    ) : (
-      <em key={i} className="page-note__at">
-        {part}
-      </em>
-    )
-  );
-}
 
 export default function PageHead() {
   const { pathname } = useLocation();
@@ -97,15 +77,18 @@ export default function PageHead() {
         <h1 className="page-title">
           <span className="page-title__in">{title}</span>
         </h1>
+        {/* 안내는 제목 옆의 ⓘ에서 쪽지로 뜬다(PageNote.tsx). 화면을 옮기면
+            다시 세워 닫힌 자리에서 시작한다. */}
+        {note && <PageNote key={pathname} 제목={title} 안내={note} />}
       </div>
 
-      {/* 안내 줄 오른쪽 끝의 만년필 자국. 띄워서 얹으므로 머리말 높이는
-          그대로다. */}
+      {/* 만년필 자국이 서는 줄. 안내 글이 쪽지로 들어가면서 글은 빠졌고 줄의
+          자리와 키는 그대로다. 비운 자리의 절반을 자국이 쓴다 — 오른쪽 끝은
+          홈의 반쪽 카드(.home-card--half)와 같은 세로줄에 선다. */}
       {note && (
-        <p className="page-note">
-          {noteParts(note)}
+        <div className="page-doodle-row">
           <PenMark />
-        </p>
+        </div>
       )}
 
       {subs && (

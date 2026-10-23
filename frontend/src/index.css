@@ -20378,9 +20378,13 @@ html.has-add-btn .export-btn {
    html.modal-open으로도 같은 일을 하고 있지만, 그 깃발은 팝업마다 손으로
    걸어야 해서 안 건 팝업이 남는다 — 묶음 쪽이 그랬다. 깃발 대신 팝업이
    실제로 떠 있는지를 본다. 새 팝업을 만들 때 잊어버릴 자리가 없다. */
+/* 안내 쪽지(187절)도 같은 틀을 쓰지 않을 뿐 떠 있는 것은 마찬가지다. */
 html:has(.popup-overlay) .scroll-top,
 html:has(.popup-overlay) .export-btn,
-html:has(.popup-overlay) .add-btn {
+html:has(.popup-overlay) .add-btn,
+html:has(.note-pop) .scroll-top,
+html:has(.note-pop) .export-btn,
+html:has(.note-pop) .add-btn {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -22859,4 +22863,258 @@ textarea.admin-area:focus {
   background: var(--color-primary-light);
   border-radius: var(--radius-sm);
   padding: 1px var(--space-2);
+}
+
+/* ─────────────────────────────────────────────
+   187. 제목 옆의 ⓘ와 안내 쪽지(2026-10-23)
+   ─────────────────────────────────────────────
+   안내 한 줄이 제목 밑에 늘 적혀 있었다. 그 줄이 길어 만년필 자국이 쓸 수
+   있는 자리가 화면마다 달랐고, 가장 긴 안내(설정 첫 화면)에 맞추느라 자국은
+   103px까지밖에 못 늘였다(184절).
+
+   글을 쪽지 안으로 들이고 그 자리를 자국에 내준다. 줄은 그대로 서 있고 글만
+   빠지므로 머리말 높이도, 아래 내용이 서는 자리도 달라지지 않는다.
+   ───────────────────────────────────────────── */
+
+/* 제목 옆의 ⓘ.
+
+   제목 알약 바로 오른쪽이다. 안내가 있는 화면에만 선다. 앱의 단추는 기본
+   키(--control-h)를 받으므로 여기서 걷고 제 치수를 적는다. */
+.page-note-dot {
+  flex: 0 0 auto;
+  /* 제목 줄의 틈은 8px이다(.page-head__row의 gap). 그만큼 떨어뜨리면 제목과
+     딸린 표가 아니라 따로 선 단추로 읽히므로 이 자리만 통째로 되물린다.
+     누르는 자리는 22px인데 그 안의 동그라미는 18px이라, 틈을 0으로 두어도
+     눈에는 2px이 남는다. 손가락이 닿는 넓이는 줄지 않는다.
+     관리자 사이트에서는 갈래 딱지 뒤에 서므로 그 딱지에 붙는다. */
+  margin-left: calc(var(--space-2) * -1);
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.page-note-dot svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.page-note-dot:active {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+/* 만년필 자국이 서는 줄.
+
+   안내 한 줄이 섰던 자리이고 키도 그대로다(12px의 1.5배). 자국은 띄워서
+   얹으므로 이 줄이 키를 쥐고 있지 않으면 머리말이 그만큼 낮아진다. */
+.page-doodle-row {
+  position: relative;
+  margin: 1px 0 0;
+  /* 안내 한 줄이 서던 키 그대로다(11px의 1.5배인 16.5px). 18px로 두었더니
+     그 줄만 1.5px 깊어져 아래 내용이 모두 그만큼 밀렸다. */
+  min-height: calc(var(--font-size-xs) * 1.5);
+}
+
+/* 자국이 쓰는 폭. 줄의 절반에서 홈의 두 칸 사이 틈(8px)의 반을 뺀다.
+   오른쪽 끝은 줄 끝에 맞으므로, 반쪽 카드(.home-card--half)의 오른쪽
+   세로줄과 같은 자리에 선다 — 412px 화면에서 188px, 1280px에서 376px이다.
+   늘어나는 것은 줄기뿐이고 끝 그림의 크기는 그대로다(PenMark.tsx). */
+.page-doodle-row > .page-doodle {
+  width: calc(50% - 4px);
+}
+
+/* 글이 빠진 안내 줄도 키를 쥔다. 관리자 사이트의 그 줄에는 주소 딱지만
+   남는데(AdminPageHead.tsx), 딱지는 띄워 얹은 것이라 줄 안에 알맹이가
+   없어 줄이 접힌다. */
+.page-note {
+  min-height: calc(var(--font-size-xs) * 1.5);
+}
+
+/* ── 안내 쪽지 ───────────────────────────────────────────────
+   거르개나 고르개(.popup-panel)와 같은 틀을 쓰지 않는다. 저쪽은 손으로
+   만지는 자리라 네모와 단추가 반듯해야 하고, 이쪽은 읽고 닫는 자리다.
+   공책에서 한 장 뜯어 테이프로 붙인 꼴로 두어 둘이 눈으로 갈린다. */
+
+:root {
+  /* 종이의 올. 거친 무늬를 아주 옅게 깔아 매끈한 카드와 결을 가른다.
+     그림 파일을 두지 않고 글 안에서 만든다 — 받아 올 것이 하나 늘면
+     쪽지가 뜨는 참에 맨 종이가 한 번 비친다. */
+  --note-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23g)' opacity='0.085'/></svg>");
+  /* 종이빛. 카드의 흰빛에 누런 기를 한 숟갈 섞는다. 빛깔 벌을 바꾸거나
+     어두운 칸으로 옮겨도 그 칸의 표면색을 바탕으로 섞으므로 함께 간다. */
+  --note-paper: color-mix(in srgb, var(--color-surface) 88%, #E9D5A0);
+  --note-rule: color-mix(in srgb, var(--color-border) 46%, transparent);
+}
+
+.note-pop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgba(16, 24, 40, 0.42);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  animation: overlay-in 140ms var(--ease);
+}
+
+/* 공책에서 뜯은 한 장.
+
+   폭은 못 박는다. 화면마다 폭이 달라지면 글줄이 끊기는 자리가 달라져, 같은
+   안내가 화면마다 다른 글로 읽힌다. 아주 좁은 기기에서만 화면에 맞춰 접는다.
+
+   왼쪽 안쪽을 넓게 비우는 것은 구멍 둘과 여백 선이 그 자리를 쓰기 때문이다.
+
+   아래 끝은 뜯긴 결이다. 톱니처럼 고르게 끊지 않고 칸마다 깊이를 달리해
+   손으로 뜯은 자국을 낸다. 값은 못 박아 열 때마다 모양이 바뀌지 않는다.
+   clip-path는 그림자까지 함께 자르므로 테는 box-shadow가 아니라
+   drop-shadow로 두른다 — 머리말 쪽지와 같은 잣대다(184절). */
+.note-sheet {
+  position: relative;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  padding: 26px 20px 30px 40px;
+  background-color: var(--note-paper);
+  background-image: var(--note-grain),
+    repeating-linear-gradient(to bottom, transparent 0 22px, var(--note-rule) 22px 23px);
+  background-size: 160px 160px, auto;
+  background-position: 0 0, 0 25px;
+  background-blend-mode: multiply, normal;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 2.4px), 94.4% calc(100% - 6.3px),
+    88.9% calc(100% - 1.4px), 83.3% calc(100% - 5.3px), 77.8% calc(100% - 3.1px),
+    72.2% calc(100% - 7px), 66.7% calc(100% - 2.1px), 61.1% calc(100% - 5.6px),
+    55.6% calc(100% - 3.5px), 50% calc(100% - 6.6px), 44.4% calc(100% - 1.8px),
+    38.9% calc(100% - 4.9px), 33.3% calc(100% - 2.4px), 27.8% calc(100% - 6.3px),
+    22.2% calc(100% - 1.4px), 16.7% calc(100% - 5.3px), 11.1% calc(100% - 3.1px),
+    5.6% calc(100% - 7px), 0 calc(100% - 2.1px));
+  filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--color-text-primary) 12%, transparent))
+          drop-shadow(0 8px 18px color-mix(in srgb, var(--color-text-primary) 26%, transparent));
+  /* 반듯하게 놓인 종이는 네모 카드로 읽힌다. 한 눈금만 틀어 손으로 붙인
+     것으로 둔다. 움직임이 끝나는 자리도 이 각이다(note-drop). */
+  transform: rotate(-0.8deg);
+  animation: note-drop 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 공책의 여백 선. 구멍 둘과 글 사이를 가른다. */
+.note-sheet::after {
+  content: "";
+  position: absolute;
+  left: 30px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--color-primary) 28%, transparent);
+}
+
+/* 위에 붙인 테이프 한 토막. 돈쓴이에서 고른 테이프를 그대로 쓴다(114절). */
+.note-sheet__tape {
+  position: absolute;
+  left: 50%;
+  top: -12px;
+  width: 96px;
+  height: 26px;
+  transform: translateX(-50%) rotate(-2.2deg);
+  background-image: var(--tape-img);
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  filter: drop-shadow(0 1px 1.5px rgba(16, 24, 40, 0.12));
+  pointer-events: none;
+}
+
+/* 뜯긴 구멍 둘. 바탕이 비쳐 보이도록 칸의 바탕빛으로 채우고 위쪽만
+   그늘을 둔다 — 종이가 눌린 자리다. */
+.note-sheet__hole {
+  position: absolute;
+  left: 11px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-text-primary) 20%, var(--color-bg));
+  box-shadow: inset 0 1px 1px color-mix(in srgb, var(--color-text-primary) 25%, transparent);
+}
+
+.note-sheet__hole--up {
+  top: 34px;
+}
+
+.note-sheet__hole--down {
+  top: 72px;
+}
+
+/* 쪽 이름. 앞머리 화면과 머리말 제목이 쓰는 그 바탕체다 — 펜으로 쓴 결이라
+   종이 위에서는 이쪽이 맞다. */
+.note-sheet__title {
+  margin: 0 0 6px;
+  font-family: "Gowun Batang", serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+/* 안내 글. 줄 노트의 밑줄 간격(22px)과 같은 글줄이라 글이 줄을 타고 앉는다.
+   머리말에 적던 때보다 한 단 크다 — 눌러서 여는 글이 그때보다 작으면 왜
+   눌렀나 싶다. */
+.note-sheet__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 22px;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+  /* 낱말 가운데서 끊지 않는다. 「돈쓴이」가 「돈」과 「쓴이」로 갈려 다음
+     줄로 넘어가던 것을 막는다. */
+  word-break: keep-all;
+}
+
+.note-sheet__foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* 닫는 자리. 알약 단추를 놓으면 그것만 종이 위에서 따로 논다. 손으로 적고
+   밑줄 그은 꼴로 둔다. */
+.note-sheet__ok {
+  height: auto;
+  min-height: 0;
+  padding: 0 2px 2px;
+  border: 0;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+  border-radius: 0;
+  background: transparent;
+  font-family: "Gowun Batang", serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--color-primary);
+}
+
+.note-sheet__ok:active {
+  border-bottom-color: var(--color-primary);
+}
+
+/* 테이프로 붙이는 결. 살짝 더 기울어진 채로 떨어져 제자리에 앉는다. */
+@keyframes note-drop {
+  from { opacity: 0; transform: rotate(-3.4deg) translateY(-10px) scale(0.98); }
+  to   { opacity: 1; transform: rotate(-0.8deg); }
+}
+
+/* 멈춰 세울 때는 제자리에 그냥 선다. 앱의 다른 움직임과 같은 잣대다. */
+:root[data-motion="off"] .note-pop,
+:root[data-motion="off"] .note-sheet {
+  animation: none;
 }
