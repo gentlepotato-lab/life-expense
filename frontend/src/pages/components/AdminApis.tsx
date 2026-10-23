@@ -25,8 +25,11 @@ import { EditField } from "./CardEditModal";
  * 묶음 둘이 표로 선다(.admin-tbl). 줄에 담긴 것이 셋뿐인데 카드를 쌓으면
  * 훑어 내리기보다 한 장씩 읽게 된다. 로그인 기록과 조회 기록과 같은 꼴이다.
  *
- * 마지막 요청의 줄을 꾹 누르면 그 API를 호출한 기록만 모아 보는 쪽으로
- * 간다(AdminApiDetail.tsx). 톡 눌러 열게 두면 표를 훑다가 화면이 바뀐다.
+ * 두 표 모두 줄을 꾹 누르면 그 API를 호출한 기록만 모아 보는 쪽으로 간다
+ * (AdminApiDetail.tsx). 톡 눌러 열게 두면 표를 훑다가 화면이 바뀐다.
+ * 한 번도 안 부른 API도 들어갈 수 있다 — 들어가면 그 기간에 부른 적이
+ * 없다고 적힌다. 들어가는 줄과 못 들어가는 줄이 한 표 안에 섞이면, 눌러
+ * 보기 전에는 어느 쪽인지 알 길이 없다.
  *
  * 호출한 기록은 두 곳에서 쌓인다. 브라우저가 바로 부르는 자리는 화면이 적어
  * 보내고(utils/track.ts의 바깥적기), 서버가 부르는 자리는 서버가 적는다
@@ -155,7 +158,11 @@ export default function AdminApis() {
               </thead>
               <tbody>
                 {목록.map((a) => (
-                  <tr key={a.key} className={꽂혔나(a) ? "" : "is-off"}>
+                  <AdminGoRow
+                    key={a.key}
+                    on상세={() => 상세로(a)}
+                    className={꽂혔나(a) ? "" : "is-off"}
+                  >
                     <th className="admin-tbl__wrap">{a.name}</th>
                     <td>
                       <span className={`admin-tbl__tag ${쓰임빛(a)}`}>{a.use}</span>
@@ -179,7 +186,7 @@ export default function AdminApis() {
                         {a.hits.toLocaleString("ko-KR")}
                       </span>
                     </td>
-                  </tr>
+                  </AdminGoRow>
                 ))}
               </tbody>
             </table>
@@ -234,7 +241,7 @@ export default function AdminApis() {
       {/* 어디까지 알 수 있는지 적는다. 적지 않으면 「NAVER 지도는 한 번도
           안 불렀나」로 읽힌다. */}
       <p className="admin-tbl-hint">
-        마지막 요청의 줄을 꾹 누르면 그 API의 호출 기록만 모아 봅니다.
+        줄을 꾹 누르면 그 API의 호출 기록만 모아 봅니다.
       </p>
       <p className="admin-hint">호출한 기록은 90일까지 남습니다.</p>
 
