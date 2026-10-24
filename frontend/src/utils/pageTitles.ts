@@ -98,6 +98,19 @@ export const HOME_TABS = [
   "/notices",
 ];
 
+/**
+ * 홈 탭에서 알약으로 묶는 쪽들.
+ *
+ * 홈이 품는 것은 여섯인데(HOME_TABS) 알약에는 셋만 세운다. 여섯을 모두
+ * 세우면 한 알약에 59px뿐이라 글씨를 한 단 줄여야 했고, 쓰기나 돈쓴이처럼
+ * 오가며 눌러 보는 자리가 아닌 쪽까지 늘 떠 있었다.
+ *
+ * 차례는 씀씀이, 잔소리, 어디 쓰나다. 앞의 둘은 쌓인 것을 보는 자리이고
+ * 어디 쓰나는 장소와 가게를 관리하는 자리라 뒤에 선다. 홈의 카드 차례
+ * (HOME_TABS)와는 다르다.
+ */
+export const HOME_PILL_TABS = ["/charts", "/nudges", "/places"];
+
 /** 내역 탭이 품는 화면들 */
 export const ENTRY_TABS = [
   "/entries",

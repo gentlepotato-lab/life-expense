@@ -1,6 +1,12 @@
 import { useEffect, useReducer } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { PAGE_TITLE, PAGE_NOTE, ENTRY_TABS, SETTING_TABS } from "../../utils/pageTitles";
+import {
+  PAGE_TITLE,
+  PAGE_NOTE,
+  HOME_PILL_TABS,
+  ENTRY_TABS,
+  SETTING_TABS,
+} from "../../utils/pageTitles";
 import { keepOn, onMenuOff } from "../../utils/menuRegistry";
 import useHeadPin from "../../hooks/useHeadPin";
 import PenMark from "./PenMark";
@@ -21,6 +27,10 @@ function subTabsFor(pathname: string): string[] | null {
      가는 길이 남는다. */
   if (ENTRY_TABS.includes(pathname)) return keepOn(ENTRY_TABS);
   if (SETTING_TABS.includes(pathname)) return keepOn(SETTING_TABS);
+  /* 홈 탭에서 알약으로 묶는 셋(utils/pageTitles.ts의 HOME_PILL_TABS). 홈
+     자신과 나머지 쪽에는 두지 않는다 — 탭 첫 쪽은 카드로 들어가는 자리이고,
+     내역과 설정도 그 첫 쪽(/history, /settings)에는 알약이 없다. */
+  if (HOME_PILL_TABS.includes(pathname)) return keepOn(HOME_PILL_TABS);
   return null;
 }
 
