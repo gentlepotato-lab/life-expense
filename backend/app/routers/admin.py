@@ -493,8 +493,10 @@ def admin_stats(
 
 
 # 액션 기록에서 한 번에 내놓는 줄 수. 손전화에서 한 쪽에 담을 만큼이다.
+# 화면이 (...)를 눌러 이만큼씩 늘려 달라고 할 수 있고, 천장은 그 열 배다.
 # 더 보려면 기간을 좁히거나 갈래로 거른다.
 기록한도 = 200
+기록천장 = 2000
 
 
 @router.get("/logs")
@@ -504,6 +506,8 @@ def admin_logs(
     kind: str | None = None,
     name: str | None = None,
     site: str | None = None,
+    user_id: int = 1,
+    limit: int = 기록한도,
     _: str = Depends(토큰),
     db: SessionDep = Depends(),
 ):
@@ -516,14 +520,33 @@ def admin_logs(
     묵은 기록은 달마다 지워진다(app/scheduler/cleanup_job.py). 그래서 아무리
     거슬러 올라가도 90일 치뿐이다.
 
+    **한 사용자의 기록만 내놓는다.** 지금은 쓰는 사람이 하나뿐이라 늘 1번이
+    오지만, 로그인이 붙어 여럿이 쓰게 되면 한 화면에 모두의 줄이 섞여 수만
+    줄이 된다. 그때 화면에 사용자 고르개를 세우고 그 번호를 여기로 넘기면
+    되도록, 거르는 자리를 미리 둔다.
+
+    줄은 새것부터 한도까지만 내놓고, 그 기간에 쌓인 전체 수는 따로 세어
+    함께 보낸다. 받은 줄 수를 그대로 띄우면 한도에 걸린 날은 늘 「200건」이라
+    그것이 쌓인 전부인 것처럼 읽힌다.
+
+    **한도는 날마다 따로 센다.** 기간 전체에 걸던 때는 오늘 것 이백 줄에서
+    끊겨 어제 것이 한 줄도 오지 않았다. 날마다 새것부터 한도까지 내놓으므로,
+    이번 달 스무나흘이면 많게는 200 × 24줄이 온다.
+
+    한도는 화면이 늘려 달라고 할 수 있다(limit). 한 날의 밑을 더 보고 싶으면
+    그 날 하루만 다시 묻는다(frm과 to를 같은 날로, limit을 400으로). 천장은
+    날마다 2,000줄이다 — 그보다 많이 한 번에 깔면 손전화가 그 전부를 쥐고
+    날짜 단으로 묶느라 멎는다. 받은 값이 200보다 작거나 2,000보다 크면 그
+    안으로 끌어다 쓴다.
+
     사이트는 이름으로 가른다. 테이블에 사이트 컬럼이 따로 없는데, 화면을 드나든 줄은
     이름이 곧 그 화면의 길이고(/entries, /admin/logs) 요청이 물린 줄도 이름이
     부른 길이라, `/admin`으로 시작하는 것이 관리자 사이트다. 기능과 외부 API는
     사용자 사이트에서만 쌓인다 — 바깥에 묻는 자리는 모두 사용자 쪽을 위한
     것이므로(지도, 공휴일) 거기에 함께 둔다.
     """
-    조건 = ["1 = 1"]
-    값: dict = {"한도": 기록한도}
+    조건 = ["a.user_id = :user_id"]
+    값: dict = {"한도": max(기록한도, min(limit, 기록천장)), "user_id": user_id}
     if site == "admin":
         조건.append("a.name LIKE '/admin%'")
     elif site == "user":
@@ -544,31 +567,63 @@ def admin_logs(
         조건.append("a.name = :name")
         값["name"] = name
 
+    # 날마다 새것부터 한도까지 자른다. 기간 전체에 한도를 걸던 때는 오늘 것
+    # 이백 줄에서 끊겨 어제 것은 한 줄도 오지 않았다. 날짜별로 자르면 어느
+    # 날이든 그날의 새것부터 볼 수 있다.
+    #
+    # 창 함수로 날짜 안에서 차례를 매기고 그 차례로 거른다. 날짜별로 따로
+    # 물으면 한 달이면 질의가 서른 번이다.
     rows = db.execute(text(f"""
-        SELECT a.log_id
-             , a.kind
-             , a.name
-             , a.path
-             , a.elapsed_ms
-             , a.status
-             , to_char(a.created_at, 'YYYY-MM-DD') AS on_day
-             , to_char(a.created_at, 'HH24:MI:SS')  AS at_time
-          FROM life_expense.action_logs a
-         WHERE {' AND '.join(조건)}
-      ORDER BY a.log_id DESC
-         LIMIT :한도
+        SELECT log_id, kind, name, path, elapsed_ms, status, on_day, at_time
+          FROM (
+            SELECT a.log_id
+                 , a.kind
+                 , a.name
+                 , a.path
+                 , a.elapsed_ms
+                 , a.status
+                 , to_char(a.created_at, 'YYYY-MM-DD') AS on_day
+                 , to_char(a.created_at, 'HH24:MI:SS')  AS at_time
+                 , row_number() OVER (
+                     -- 날을 가르는 잣대는 위의 on_day 와 같아야 한다. 한때
+                     -- AT TIME ZONE 'UTC' 를 끼웠더니 그 값이 아홉 시간
+                     -- 밀려, 한 날의 이백 줄이 두 날로 쪼개졌다.
+                     PARTITION BY a.created_at::date
+                         ORDER BY a.log_id DESC
+                   ) AS 차례
+              FROM life_expense.action_logs a
+             WHERE {' AND '.join(조건)}
+          ) t
+         WHERE 차례 <= :한도
+      ORDER BY log_id DESC
     """), 값).mappings().all()
 
-    return [{
-        "log_id": r["log_id"],
-        "kind": r["kind"],
-        "name": r["name"],
-        "path": r["path"],
-        "elapsed_ms": r["elapsed_ms"],
-        "status": r["status"],
-        "on_day": r["on_day"],
-        "at_time": r["at_time"],
-    } for r in rows]
+    # 날마다 쌓인 수와 기간 전체의 수. 줄과 따로 묻는 까닭은, 한 번에 세려면
+    # 한도에 걸린 줄까지 모두 들고 와야 하기 때문이다. 화면은 이 수로
+    # 「619건 중 200건」을 적고, 더 받을 것이 남았는지도 이것으로 안다.
+    날들 = db.execute(text(f"""
+        SELECT to_char(a.created_at, 'YYYY-MM-DD') AS on_day
+             , count(*) AS n
+          FROM life_expense.action_logs a
+         WHERE {' AND '.join(조건)}
+      GROUP BY 1
+    """), 값).mappings().all()
+
+    return {
+        "total": sum(int(d["n"]) for d in 날들),
+        "limit": 값["한도"],
+        "days": {d["on_day"]: int(d["n"]) for d in 날들},
+        "rows": [{
+            "log_id": r["log_id"],
+            "kind": r["kind"],
+            "name": r["name"],
+            "path": r["path"],
+            "elapsed_ms": r["elapsed_ms"],
+            "status": r["status"],
+            "on_day": r["on_day"],
+            "at_time": r["at_time"],
+        } for r in rows],
+    }
 
 
 # 쌓인 양을 보여 줄 테이블과 그 이름.

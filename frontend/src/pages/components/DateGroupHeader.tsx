@@ -7,9 +7,17 @@ export default function DateGroupHeader({
   open,
   onToggle,
   hideSum = false,
+  센글,
 }: {
   label: string;
   summary: GroupSummary;
+  /**
+   * 딱지에 적을 글. 넘기지 않으면 센 수를 그대로 적는다.
+   *
+   * 액션 기록이 「619건 중 200건」처럼 적는다. 거기는 서버가 날마다 200줄까지만
+   * 내놓아, 센 수가 그 날 쌓인 전부가 아니다.
+   */
+  센글?: string;
   /** 그날의 카드가 펼쳐져 있는지. 넘기지 않으면 접기 기능 없이 그린다. */
   open?: boolean;
   onToggle?: () => void;
@@ -44,8 +52,8 @@ export default function DateGroupHeader({
       >
         {label}
       </span>
-      <span className="date-group__count" title={`${count}건`}>
-        {count}
+      <span className="date-group__count" title={센글 ?? `${count}건`}>
+        {센글 ?? count}
       </span>
 
       <span className="date-group__meta">

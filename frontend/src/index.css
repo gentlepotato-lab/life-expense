@@ -23330,3 +23330,76 @@ textarea.admin-area:focus {
 .admin-site__pop {
   left: 0;
 }
+
+/* ─────────────────────────────────────────────
+   190. 서버에서 줄을 더 받는 띠(2026-10-24)
+   ─────────────────────────────────────────────
+   액션 기록은 새것부터 200줄만 받는다. 쌓인 것이 그보다 많으면 딱지가
+   「1,571건 중 200건」이라 적는데, 그 아래를 보려면 더 달라고 해야 한다.
+
+   꼴은 표 안의 (...)와 같다(.admin-tbl__more). 하는 일은 달라도 둘 다
+   「더 보기」라, 다른 모양으로 세우면 어느 것을 눌러야 할지 글을 읽어야 한다.
+   날짜 단을 모두 지나 맨 아래에 서므로 표가 아니라 제 상자로 선다.
+   ───────────────────────────────────────────── */
+.admin-more-all {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  /* 바로 위 표에 붙인다. 8px을 띄웠더니 표와 따로 선 상자로 보여, 어느 표의
+     밑을 더 받는 자리인지 눈에 안 걸렸다. */
+  margin-top: 2px;
+  border-radius: var(--radius);
+  /* 띠가 쪽 바탕 위에 선다. 표 안의 것과 같은 음영(테빛 24%)으로 두었더니
+     바탕빛과 거의 같아 띠가 있는지조차 보이지 않았다. 글빛 쪽으로 섞어
+     한 단 짙게 깐다. */
+  background-color: color-mix(in srgb, var(--color-text-tertiary) 24%, var(--color-bg));
+  /* 뜯는 선. 표 안의 것과 같은 4px 점선이다. */
+  background-image: repeating-linear-gradient(
+    to right,
+    color-mix(in srgb, var(--color-border) 90%, transparent) 0 4px,
+    transparent 4px 8px
+  );
+  background-repeat: no-repeat;
+  background-position: top left;
+  background-size: 100% 1px;
+}
+
+.admin-more-all__btn {
+  position: relative;
+  height: auto;
+  min-height: 0;
+  padding: 6px 18px 8px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+}
+
+/* 아래에 더 깔린 장. 아직 안 받은 줄이 있을 때만 비친다 — 표 안의 (...)와
+   같은 자국이다. 접기 단추에는 붙이지 않는다. */
+.admin-more-all:not(.is-open) .admin-more-all__btn:first-child::after,
+.admin-more-all.is-open .admin-more-all__btn:first-child:not(:only-child)::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  width: 42px;
+  height: 3px;
+  transform: translateX(-50%);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-text-tertiary) 70%, transparent),
+                    color-mix(in srgb, var(--color-text-tertiary) 70%, transparent)),
+    linear-gradient(color-mix(in srgb, var(--color-text-tertiary) 45%, transparent),
+                    color-mix(in srgb, var(--color-text-tertiary) 45%, transparent));
+  background-repeat: no-repeat, no-repeat;
+  background-position: top center, bottom center;
+  background-size: 100% 1px, 62% 1px;
+}
+
+.admin-more-all__btn:hover {
+  color: var(--color-text-primary);
+}

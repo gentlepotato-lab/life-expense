@@ -108,3 +108,25 @@ export function 줄경로(r: 이름있는줄): string {
 export function 길인가(글: string): boolean {
   return 글.startsWith("/");
 }
+
+/**
+ * 서버가 한 번에 내놓는 줄 수와 그 천장.
+ *
+ * 서버의 값과 같아야 한다(app/routers/admin.py의 기록한도, 기록천장). 화면은
+ * 이만큼씩 더 달라고 하고, 천장에 닿으면 더 묻지 않는다.
+ */
+export const 한번에받을수 = 200;
+export const 받을수천장 = 2000;
+
+/**
+ * 딱지에 적는 건수.
+ *
+ * 서버는 새것부터 한도(200줄)까지만 내놓는다. 받은 수를 그대로 적으면 한도에
+ * 걸린 날은 사용자 사이트든 관리자 사이트든 늘 「200건」이라, 그것이 쌓인
+ * 전부인 것처럼 읽힌다. 전체와 받은 수가 다를 때만 둘을 함께 적는다.
+ */
+export function 건수글(전체: number, 받은수: number): string {
+  const 적기 = (n: number) => n.toLocaleString("ko-KR");
+  if (전체 > 받은수) return `${적기(전체)}건 중 ${적기(받은수)}건`;
+  return `${적기(받은수)}건`;
+}

@@ -17,6 +17,8 @@ import { CollapseAllButtons } from "./CollapseToggle";
 import SingleSelect from "./SingleSelect";
 import { EditField, EditDivider } from "./CardEditModal";
 import AdminSitePick, { type 사이트 } from "./AdminSitePick";
+import AdminMoreAll from "./AdminMoreAll";
+import { 건수글, 한번에받을수, 받을수천장 } from "./adminLogBits";
 import {
   구분이름,
   구분빛,
@@ -49,6 +51,14 @@ import {
  * 올라가도 90일 치뿐이다.
  */
 
+/** 서버가 내놓는 것. 줄과 함께 날마다 쌓인 수가 온다. */
+type 받은것 = {
+  total: number;
+  limit: number;
+  days: Record<string, number>;
+  rows: 기록[];
+};
+
 type 기록 = {
   log_id: number;
   kind: string;
@@ -79,6 +89,15 @@ export default function AdminLogs() {
   const [초안, set초안] = useState({ 구분: "", frm: "", to: "" });
   const [필터열림, set필터열림] = useState(false);
   const [목록, set목록] = useState<기록[] | null>(null);
+  /* 그 기간에 쌓인 전체 수와 날마다 쌓인 수. 받는 줄은 날마다 한도(200)까지라,
+     받은 수를 그대로 띄우면 한도에 걸린 날은 늘 「200건」이라 그것이 전부인
+     줄 읽힌다. */
+  const [전체, set전체] = useState(0);
+  const [날수, set날수] = useState<Record<string, number>>({});
+  /* 날마다 서버에 달라고 한 줄 수. 그 날 띠의 [200건 더]를 누를 때마다 그
+     날만 200씩 늘린다. 기간이나 거르기가 바뀌면 통째로 비운다 — 다른 것을
+     보는데 앞서 늘려 둔 수가 따라오면, 바꾼 자리마다 수백 줄을 받게 된다. */
+  const [날한도, set날한도] = useState<Record<string, number>>({});
   const [탈, set탈] = useState(false);
   /* 접은 날과, 나머지까지 펼친 날. 기본은 모두 펼침이되 앞 몇 줄만이다. */
   const [접은날, set접은날] = useState<Set<string>>(new Set());
@@ -97,17 +116,79 @@ export default function AdminLogs() {
           frm: 때.기간.frm,
           to: 때.기간.to,
           site: 사이트,
+          limit: 한번에받을수,
           ...(구분 ? { kind: 구분 } : {}),
         },
       })
-      .then((r) => set목록(r.data as 기록[]))
+      .then((r) => {
+        const 온것 = r.data as 받은것;
+        set목록(온것.rows);
+        set전체(온것.total);
+        set날수(온것.days);
+        set날한도({});
+      })
       .catch(() => {
         set목록([]);
+        set전체(0);
+        set날수({});
         set탈(true);
       });
   }, [때.기간.frm, 때.기간.to, 구분, 사이트]);
 
   useEffect(받기, [받기]);
+
+  /**
+   * 그 날 것을 한 묶음 더 받는다.
+   *
+   * 하루만 다시 묻는다(frm과 to를 같은 날로). 기간 전체를 다시 받으면 다른
+   * 날까지 함께 와서, 한 날을 더 보려다 수천 줄을 쥐게 된다. 받은 줄은 그
+   * 날 자리에만 갈아 끼운다.
+   */
+  const 날더받기 = useCallback(
+    (날: string) => {
+      const 다음 = Math.min((날한도[날] ?? 한번에받을수) + 한번에받을수, 받을수천장);
+      axios
+        .get("/admin/logs", {
+          headers: 머리(),
+          params: {
+            frm: 날,
+            to: 날,
+            site: 사이트,
+            limit: 다음,
+            ...(구분 ? { kind: 구분 } : {}),
+          },
+        })
+        .then((r) => {
+          const 온것 = r.data as 받은것;
+          set날한도((v) => ({ ...v, [날]: 다음 }));
+          set목록((이전) =>
+            이전 === null
+              ? 온것.rows
+              : [
+                  ...이전.filter((x) => x.on_day > 날),
+                  ...온것.rows,
+                  ...이전.filter((x) => x.on_day < 날),
+                ]
+          );
+        })
+        .catch(() => set탈(true));
+    },
+    [날한도, 사이트, 구분]
+  );
+
+  /** 그 날을 처음 묶음까지만 남긴다. 이미 쥐고 있으므로 다시 묻지 않는다. */
+  const 날접기 = useCallback((날: string) => {
+    set날한도((v) => ({ ...v, [날]: 한번에받을수 }));
+    set목록((이전) => {
+      if (이전 === null) return 이전;
+      let 센것 = 0;
+      return 이전.filter((x) => {
+        if (x.on_day !== 날) return true;
+        센것 += 1;
+        return 센것 <= 한번에받을수;
+      });
+    });
+  }, []);
 
   const 필터열기 = () => {
     set초안({ 구분, frm: 때.거른기간?.frm ?? "", to: 때.거른기간?.to ?? "" });
@@ -161,7 +242,7 @@ export default function AdminLogs() {
       <div className="pm-toolbar-row admin-toolbar-row">
         <AdminSitePick 값={사이트} on바뀜={set사이트} />
         <span className="admin-toolbar-row__gap" />
-        {목록 && <span className="admin-span__tag">{센것.toLocaleString("ko-KR")}건</span>}
+        {목록 && <span className="admin-span__tag">{건수글(전체, 센것)}</span>}
       </div>
 
       {목록 === null ? (
@@ -193,6 +274,7 @@ export default function AdminLogs() {
                 <DateGroupHeader
                   label={묶음.label}
                   summary={{ count: 묶음.items.length, inSum: 0, outSum: 0, net: 0 }}
+                  센글={건수글(날수[묶음.date] ?? 묶음.items.length, 묶음.items.length)}
                   hideSum
                   open={폈나}
                   onToggle={() =>
@@ -284,6 +366,17 @@ export default function AdminLogs() {
                       )}
                     </tbody>
                   </table>
+                  {/* 그 날 것을 더 받는 띠. 표 안의 (...)는 이미 받아 둔 줄을
+                      펼치고, 이것은 서버에서 그 날 것을 한 묶음 더 받는다
+                      (AdminMoreAll.tsx). */}
+                  <AdminMoreAll
+                    받은수={묶음.items.length}
+                    전체={날수[묶음.date] ?? 묶음.items.length}
+                    한도={한번에받을수}
+                    천장={받을수천장}
+                    on더={() => 날더받기(묶음.date)}
+                    on접기={() => 날접기(묶음.date)}
+                  />
                 </Collapse>
               </section>
             );
