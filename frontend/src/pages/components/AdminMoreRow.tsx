@@ -21,7 +21,9 @@ export default function AdminMoreRow({
   on바꾸기: () => void;
 }) {
   return (
-    <tr className="admin-tbl__more">
+    /* 펼쳤는지를 줄에 적는다. 접힌 동안에만 아래에 겹쳐 깔린 장이 비친다
+       (index.css의 .admin-tbl__more). */
+    <tr className={`admin-tbl__more${폈나 ? " is-open" : ""}`}>
       <td colSpan={칸수}>
         <button
           type="button"

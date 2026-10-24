@@ -21247,20 +21247,30 @@ html:has(.note-pop) .add-btn {
 
 /* 칸 안에 선 것들도 함께 줄어든다. 딱지와 기호는 제 키를 글줄이 아니라
    픽셀로 쥐고 있어, 칸만 줄이면 그 키만큼 줄이 남는다. 로그인 기록에서
-   접힌 자리에 빈 줄이 열 줄 깔려 보이던 것이 그것이다. */
+   접힌 자리에 빈 줄이 열 줄 깔려 보이던 것이 그것이다.
+
+   제 글 치수를 따로 적은 글줄도 같다. 칸에 font-size: 0 을 걸어도 그 글이
+   제 치수를 다시 적고 있으면 글줄이 그대로 서서, 접힌 자리에 빈 줄이
+   남는다. 호출 기록의 주소 줄(.admin-api-row__url)이 그랬다. */
 .admin-tbl tbody tr.admin-tbl__extra .admin-tbl__tag,
 .admin-tbl tbody tr.admin-tbl__extra .admin-tbl__chip,
 .admin-tbl tbody tr.admin-tbl__extra .admin-tbl__mark > span,
+.admin-tbl tbody tr.admin-tbl__extra .admin-api-row__what,
+.admin-tbl tbody tr.admin-tbl__extra .admin-api-row__url,
 .admin-tbl tbody tr.admin-tbl__extra svg {
-  transition: height 240ms var(--ease);
+  transition: height 240ms var(--ease), font-size 240ms var(--ease);
 }
 
 .admin-tbl tbody tr.admin-tbl__extra.is-folded .admin-tbl__tag,
 .admin-tbl tbody tr.admin-tbl__extra.is-folded .admin-tbl__chip,
 .admin-tbl tbody tr.admin-tbl__extra.is-folded .admin-tbl__mark > span,
+.admin-tbl tbody tr.admin-tbl__extra.is-folded .admin-api-row__what,
+.admin-tbl tbody tr.admin-tbl__extra.is-folded .admin-api-row__url,
 .admin-tbl tbody tr.admin-tbl__extra.is-folded svg {
   height: 0;
   line-height: 0;
+  font-size: 0;
+  margin-top: 0;
   overflow: hidden;
 }
 
@@ -21280,27 +21290,68 @@ html:has(.note-pop) .add-btn {
 }
 
 /* 접힌 나머지를 펼치는 줄. 표 맨 아래에 칸을 가로질러 선다.
-   누르는 자리가 줄 전체라 손가락으로 겨누기 쉽다. */
+   누르는 자리가 줄 전체라 손가락으로 겨누기 쉽다.
+
+   머리말과 갈라 보이게 두 가지를 바꿨다. 글씨는 머리말과 같은 크기로 낮추고
+   (전에는 한 단 컸다), 빛깔은 잉크 대신 잿빛으로 물러선다. 머리말은 이 쪽
+   잉크의 옅은 벌을 깔고 있어, 같은 빛으로 서면 표에 머리말이 둘인 것처럼
+   읽혔다.
+
+   접힌 자리라는 것은 빛깔이 아니라 자국으로 알린다. 위 가장자리에 뜯는 선을
+   점선으로 긋고, 접힌 동안에는 그 아래에 장이 더 깔린 것처럼 짧은 줄 둘을
+   비춘다(.admin-tbl__more:not(.is-open)). 펼치면 그 둘이 사라져 더 깔린 것이
+   없다는 뜻이 된다. */
 .admin-tbl__more > td {
   padding: 0;
   text-align: center;
+  background-color: color-mix(in srgb, var(--color-border) 24%, transparent);
+  /* 뜯는 선. 4px 긋고 4px 쉰다. */
+  background-image: repeating-linear-gradient(
+    to right,
+    color-mix(in srgb, var(--color-border) 90%, transparent) 0 4px,
+    transparent 4px 8px
+  );
+  background-repeat: no-repeat;
+  background-position: top left;
+  background-size: 100% 1px;
 }
 
 .admin-tbl__more button {
+  position: relative;
   width: 100%;
-  padding: 5px 0;
+  padding: 5px 0 7px;
   border: 0;
   background: none;
   font-family: inherit;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--color-primary);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
+/* 아래에 더 깔린 장. 가운데로 갈수록 짧아져 포개진 종이의 옆모습이 된다. */
+.admin-tbl__more:not(.is-open) button::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 46px;
+  height: 3px;
+  transform: translateX(-50%);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-text-tertiary) 70%, transparent),
+                    color-mix(in srgb, var(--color-text-tertiary) 70%, transparent)),
+    linear-gradient(color-mix(in srgb, var(--color-text-tertiary) 45%, transparent),
+                    color-mix(in srgb, var(--color-text-tertiary) 45%, transparent));
+  background-repeat: no-repeat, no-repeat;
+  background-position: top center, bottom center;
+  background-size: 100% 1px, 62% 1px;
+}
+
 .admin-tbl__more button:hover {
-  background: var(--color-primary-light);
+  background: color-mix(in srgb, var(--color-border) 34%, transparent);
+  color: var(--color-text-primary);
 }
 
 /* 거르기로 선택한 기간. 달 넘기개가 서던 자리에 글로 선다. 글꼴과 굵기는
