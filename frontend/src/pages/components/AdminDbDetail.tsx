@@ -12,14 +12,14 @@ import { EditField } from "./CardEditModal";
 import { 먼저펼칠줄, 스르륵한도 } from "./adminLogBits";
 
 /**
- * 표 상세.
+ * 테이블 상세.
  *
- * 화면 하나가 쓰는 표를 따로 본다. DB 쪽에서 줄을 누르면 그 표 이름을 들고
+ * 화면 하나가 쓰는 테이블을 따로 본다. DB 쪽에서 줄을 누르면 그 테이블 이름을 들고
  * 들어온다(AdminDb.tsx).
  *
- * 두 가지를 적는다. 표가 무엇인지와, 선택한 기간에 날마다 몇 줄이 더해졌는지다.
- * 날짜 칸이 없는 표는 뒤엣것을 셀 수 없어 그 자리를 비운다
- * (app/routers/admin.py의 표들).
+ * 두 가지를 적는다. 테이블이 무엇인지와, 선택한 기간에 날마다 몇 로우가 더해졌는지다.
+ * 날짜 컬럼이 없는 테이블은 뒤엣것을 셀 수 없어 그 자리를 비운다
+ * (app/routers/admin.py의 테이블들).
  */
 
 type 날줄 = { on_day: string; n: number };
@@ -44,7 +44,7 @@ export default function AdminDbDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const [찾기] = useSearchParams();
-  const 표이름 = 찾기.get("table") || "";
+  const 테이블이름 = 찾기.get("table") || "";
 
   const 실린것 = (location.state as { 때?: 기간짐; back?: string } | null) ?? null;
   const 때 = useAdminPeriod(실린것?.때 ?? null);
@@ -72,11 +72,11 @@ export default function AdminDbDetail() {
     axios
       .get("/admin/db/days", {
         headers: 머리(),
-        params: { table: 표이름, frm: 때.기간.frm, to: 때.기간.to },
+        params: { table: 테이블이름, frm: 때.기간.frm, to: 때.기간.to },
       })
       .then((r) => set날들(r.data as 날줄[]))
       .catch(() => set날들([]));
-  }, [때.기간.frm, 때.기간.to, 표이름]);
+  }, [때.기간.frm, 때.기간.to, 테이블이름]);
 
   useEffect(받기, [받기]);
 
@@ -90,7 +90,7 @@ export default function AdminDbDetail() {
     set필터열림(false);
   };
 
-  const 줄 = 집계?.tables.find((t) => t.table === 표이름) ?? null;
+  const 줄 = 집계?.tables.find((t) => t.table === 테이블이름) ?? null;
   /* 나머지가 많으면 스르륵 없이 한 번에 펼치고 접는다(adminLogBits.tsx). */
   const 스르륵 = (날들?.length ?? 0) - 먼저펼칠줄 <= 스르륵한도;
   const 세울것 = 스르륵 ? 담겼나 : 다폈나;
@@ -121,12 +121,12 @@ export default function AdminDbDetail() {
         </div>
       ) : !줄 ? (
         <div className="card admin-soon">
-          <p className="page-empty">그런 표가 없습니다.</p>
+          <p className="page-empty">그런 테이블이 없습니다.</p>
         </div>
       ) : (
         <>
           <section className="admin-sec">
-            <h3 className="admin-sec__head">표 정보</h3>
+            <h3 className="admin-sec__head">테이블 정보</h3>
             <table className="admin-tbl admin-tbl--kv">
               <colgroup>
                 <col style={{ width: "92px" }} />
@@ -141,11 +141,11 @@ export default function AdminDbDetail() {
                   <th>사이트</th>
                   <td>{사이트이름[줄.site] ?? 줄.site}</td>
                 </tr>
-                {/* 표 이름은 그대로 옮겨 쓰는 글이라 고른 폭 글꼴로 적는다.
+                {/* 테이블 이름은 그대로 옮겨 쓰는 글이라 고른 폭 글꼴로 적는다.
                     오른쪽에 맞추는 것은 그 밑에 수가 오른쪽에 서기 때문이다.
                     이 칸만 왼쪽에 두면 값의 끝이 어긋난다. */}
                 <tr>
-                  <th>표</th>
+                  <th>테이블</th>
                   <td className="admin-mono admin-tbl__wrap admin-tbl__right">
                     {줄.table}
                   </td>
@@ -165,13 +165,13 @@ export default function AdminDbDetail() {
           </section>
 
           <section className="admin-sec">
-            <h3 className="admin-sec__head">날마다 쌓인 줄</h3>
+            <h3 className="admin-sec__head">날마다 쌓인 로우</h3>
             {줄.added === null ? (
-              <p className="page-empty">언제 쌓였는지 적는 칸이 없는 표입니다.</p>
+              <p className="page-empty">언제 쌓였는지 적는 컬럼이 없는 테이블입니다.</p>
             ) : 날들 === null ? (
               <p className="page-empty">불러오는 중입니다.</p>
             ) : 날들.length === 0 ? (
-              <p className="page-empty">그 기간에 쌓인 줄이 없습니다.</p>
+              <p className="page-empty">그 기간에 쌓인 로우가 없습니다.</p>
             ) : (
               <table className="admin-tbl">
                 <colgroup>

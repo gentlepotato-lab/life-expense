@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import useBackClose from "../../hooks/useBackClose";
-import { loadKakaoMap } from "../../utils/kakaoMap";
+import { loadKakaoMap, 지도적기 } from "../../utils/kakaoMap";
 import type { BoardPlace } from "../../utils/placeBoard";
 
 /**
@@ -41,6 +41,8 @@ export default function PlaceMapPopup({
   useEffect(() => {
     if (place.lat === null || place.lng === null) return;
     let alive = true;
+    /* 지도를 그리는 데 걸린 참을 잰다(utils/kakaoMap.ts의 지도적기). */
+    const 시작 = performance.now();
 
     void loadKakaoMap().then(() => {
       if (!alive || !box.current) return;
@@ -48,6 +50,7 @@ export default function PlaceMapPopup({
       const at = new kakao.maps.LatLng(place.lat, place.lng);
       const map = new kakao.maps.Map(box.current, { center: at, level: 3 });
       new kakao.maps.Marker({ position: at, map });
+      지도적기(시작);
     });
 
     return () => {
@@ -64,7 +67,7 @@ export default function PlaceMapPopup({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="장소 상세"
+        aria-label="장소/가게 상세"
       >
         <header className="popup-head">
           <h3 className="popup-head__title">{place.place_name}</h3>

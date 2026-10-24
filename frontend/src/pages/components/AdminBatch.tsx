@@ -51,7 +51,7 @@ const 두자리 = (n: number | null) => String(n ?? 0).padStart(2, "0");
 function 주기글(j: 일): string {
   if (j.kind === "minute") return "매분";
   if (j.kind === "daily") return "매일";
-  return `매달 ${j.day_of_month ?? 1}일`;
+  return `매월 ${j.day_of_month ?? 1}일`;
 }
 
 /**

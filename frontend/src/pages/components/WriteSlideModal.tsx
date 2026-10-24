@@ -3,8 +3,7 @@ import axios from "../../api/client";
 import useBackClose from "../../hooks/useBackClose";
 import { visible } from "../../utils/visible";
 import { apiErrorMessage } from "../../utils/apiError";
-import { 바깥적기 } from "../../utils/track";
-import { loadKakaoMap, 카카오 } from "../../utils/kakaoMap";
+import { loadKakaoMap, 장소찾기적기, 지도적기 } from "../../utils/kakaoMap";
 import DayGrid from "./DayGrid";
 import { todayStr, viewOf, type View } from "../../utils/day";
 import { formatDateLabel } from "../../utils/dateGroup";
@@ -164,7 +163,7 @@ export default function WriteSlideModal({
     window.setTimeout(() => go(1), 120);
   };
 
-  /* ── 장소 찾기 — 기존 장소 고르개와 같은 길을 쓴다 ───────── */
+  /* ── 장소/가게 찾기 — 그 고르개와 같은 길을 쓴다 ─────────── */
   const [keyword, setKeyword] = useState("");
   const [source, setSource] = useState<"db" | "kakao">("db");
   const [dbRows, setDbRows] = useState<DbPlace[]>([]);
@@ -199,7 +198,7 @@ export default function WriteSlideModal({
     const 시작 = performance.now();
     ps.keywordSearch(keyword, (data: KakaoPlace[], status: string) => {
       const 됐나 = status === kakao.maps.services.Status.OK;
-      바깥적기(카카오, "장소 찾기", Math.round(performance.now() - 시작), 됐나 ? 200 : 204);
+      장소찾기적기(시작, 됐나);
       setKakaoRows(됐나 ? data : []);
     });
   }, [keyword]);
@@ -212,6 +211,8 @@ export default function WriteSlideModal({
     if (lat === null || lng === null || Number.isNaN(lat) || Number.isNaN(lng)) return;
 
     let 살아있나 = true;
+    /* 지도를 그리는 데 걸린 참을 잰다(utils/kakaoMap.ts의 지도적기). */
+    const 시작 = performance.now();
     void loadKakaoMap().then(() => {
       if (!살아있나) return;
       const kakao = (window as unknown as { kakao?: KakaoMapNamespace }).kakao;
@@ -222,6 +223,7 @@ export default function WriteSlideModal({
         level: 3,
       });
       new kakao.maps.Marker({ position: new kakao.maps.LatLng(lat, lng), map });
+      지도적기(시작);
     });
     return () => {
       살아있나 = false;
@@ -586,7 +588,7 @@ export default function WriteSlideModal({
                   자리가 생겼다 없어졌다 하면 목록이 밀려 눌리던 줄이 바뀐다. */}
               <div className="ws-mapwrap">
                 <div id="ws-map" className="ws-map" />
-                {!place && <div className="ws-mapempty">장소를 고르면 지도가 뜬다.</div>}
+                {!place && <div className="ws-mapempty">장소/가게를 선택하면 지도가 뜹니다.</div>}
               </div>
             </>
           )}

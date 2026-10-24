@@ -12,14 +12,14 @@ import { EditField, EditDivider } from "./CardEditModal";
  * 손이 헷갈리지 않는다.
  *
  * 묻는 칸은 정기 내역이 묻는 것과 같은 꼴로 둔다(pages/ScheduledEntries.tsx).
- * 날짜는 사용자 사이트의 DayPicker로, 시각은 type="time" 칸으로 받는다. 거기도 「매달 몇 일
+ * 날짜는 사용자 사이트의 DayPicker로, 시각은 type="time" 칸으로 받는다. 거기도 「매월 몇 일
  * 몇 시」를 묻는 자리라, 다른 꼴로 물으면 같은 앱으로 읽히지 않는다.
  */
 
 export type 초안 = {
   /** minute | daily | monthly */
   kind: string;
-  /** 매달 도는 것만 쓴다. 표가 28일까지만 받는다. 29일부터는 없는 달이 있다. */
+  /** 매월 도는 것만 쓴다. 표가 28일까지만 받는다. 29일부터는 없는 달이 있다. */
   day_of_month: number;
   /** "HH:MM". 매분 도는 것은 쓰지 않는다. */
   time: string;
@@ -66,7 +66,7 @@ export default function AdminBatchPopup({
               options={[
                 { value: "minute", label: "매분" },
                 { value: "daily", label: "매일" },
-                { value: "monthly", label: "매달" },
+                { value: "monthly", label: "매월" },
               ]}
               selected={값.kind}
               onChange={(v) => on바뀜({ ...값, kind: v })}

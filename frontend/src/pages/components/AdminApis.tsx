@@ -148,11 +148,13 @@ export default function AdminApis() {
           <section className="admin-sec">
             <h3 className="admin-sec__head">사용하는 API</h3>
             <table className="admin-tbl">
+              {/* 쓰임 칸은 「장소/가게 찾기」가 드는 폭이다. 76px이던 때는
+                  그 글이 칸을 넘었다. */}
               <colgroup>
                 <col />
-                <col style={{ width: "76px" }} />
-                <col style={{ width: "72px" }} />
-                <col style={{ width: "54px" }} />
+                <col style={{ width: "96px" }} />
+                <col style={{ width: "66px" }} />
+                <col style={{ width: "46px" }} />
               </colgroup>
               <thead>
                 <tr>

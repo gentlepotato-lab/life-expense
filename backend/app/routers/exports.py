@@ -539,7 +539,7 @@ def 정기내역(db: SessionDep = Depends()):
 
     def 덧(x):
         달수 = int(x["interval_months"] or 1) or 1
-        return ["매달" if 달수 == 1 else f"{달수}달마다",
+        return ["매월" if 달수 == 1 else f"{달수}달마다",
                 "사용" if x["is_active"] else "멈춤",
                 x["holiday_handling"]]
 

@@ -516,7 +516,7 @@ def admin_logs(
     묵은 기록은 달마다 지워진다(app/scheduler/cleanup_job.py). 그래서 아무리
     거슬러 올라가도 90일 치뿐이다.
 
-    사이트는 이름으로 가른다. 표에 사이트 칸이 따로 없는데, 화면을 드나든 줄은
+    사이트는 이름으로 가른다. 테이블에 사이트 컬럼이 따로 없는데, 화면을 드나든 줄은
     이름이 곧 그 화면의 길이고(/entries, /admin/logs) 요청이 물린 줄도 이름이
     부른 길이라, `/admin`으로 시작하는 것이 관리자 사이트다. 기능과 외부 API는
     사용자 사이트에서만 쌓인다 — 바깥에 묻는 자리는 모두 사용자 쪽을 위한
@@ -571,17 +571,17 @@ def admin_logs(
     } for r in rows]
 
 
-# 쌓인 양을 보여 줄 표와 그 이름.
+# 쌓인 양을 보여 줄 테이블과 그 이름.
 #
 # 이름은 사용자 사이트가 쓰는 화면 이름을 그대로 쓴다(utils/pageTitles.ts).
-# 표 이름을 그대로 띄우면 무엇이 쌓인 것인지 읽히지 않는다. 그 표를 쓰는
+# 테이블 이름을 그대로 띄우면 무엇이 쌓인 것인지 읽히지 않는다. 그 테이블을 쓰는
 # 화면 이름으로 적고, 어느 사이트의 것인지도 함께 적는다. 두 사이트의 자료가
 # 한 목록에 섞여 있어 어느 쪽이 얼마나 쌓였는지 눈에 잡히지 않았다.
 #
 # 넷째 칸은 「언제 쌓였는가」를 적은 칸 이름이다. 그 기간에 더해진 줄을 세는
 # 데 쓴다. 결제 수단에는 그런 칸이 없어 비운다. 없으면 기간에 몇 줄이
 # 더해졌는지 셀 수 없으므로 화면이 그 자리를 비운다.
-표들 = [
+테이블들 = [
     ("entries", "지출 내역", "user", "created_at"),
     ("pending_entries", "대기 내역", "user", "created_at"),
     ("scheduled_entries", "정기 내역", "user", "created_at"),
@@ -617,17 +617,18 @@ def admin_db(
     """
     판 = db.execute(text("SHOW server_version")).scalar() or ""
 
-    # 표마다 줄 수. 표 이름은 코드에 적힌 것만 쓰므로 바깥에서 들어온 글이
+    # 테이블마다 로우 수. 테이블 이름은 코드에 적힌 것만 쓰므로 바깥에서 들어온 글이
     # 질의에 섞일 길이 없다.
     #
-    # 한 번에 묻는다. 표마다 따로 물었더니 열 번을 오가느라 이 길 하나가
+    # 한 번에 묻는다. 테이블마다 따로 물었더니 열 번을 오가느라 이 길 하나가
     # 300ms를 넘겼다. 세는 일 자체는 같고 오가는 횟수만 줄어든다.
     칸들 = ", ".join(
-        f"(SELECT count(*) FROM life_expense.{표}) AS {표}" for 표, _, _, _ in 표들
+        f"(SELECT count(*) FROM life_expense.{테이블}) AS {테이블}"
+        for 테이블, _, _, _ in 테이블들
     )
     한줄 = db.execute(text(f"SELECT {칸들}")).mappings().one()
 
-    # 그 기간에 더해진 줄. 날짜 칸이 있는 표만 센다. 표 이름도 칸 이름도
+    # 그 기간에 더해진 로우. 날짜 컬럼이 있는 테이블만 센다. 테이블 이름도 컬럼 이름도
     # 코드에 적힌 것만 쓰므로 바깥에서 들어온 글이 질의에 섞일 길이 없다.
     더해진것: dict = {}
     if frm or to:
@@ -639,27 +640,27 @@ def admin_db(
         if to:
             때조건.append("{칸} < CAST(:to AS date) + INTERVAL '1 day'")
             값["to"] = to
-        잴것 = [(표, 칸) for 표, _, _, 칸 in 표들 if 칸]
+        잴것 = [(테이블, 칸) for 테이블, _, _, 칸 in 테이블들 if 칸]
         더칸들 = ", ".join(
-            "(SELECT count(*) FROM life_expense.{표} WHERE {조건}) AS {표}".format(
-                 표=표, 조건=" AND ".join(c.format(칸=칸) for c in 때조건)
+            "(SELECT count(*) FROM life_expense.{테이블} WHERE {조건}) AS {테이블}".format(
+                 테이블=테이블, 조건=" AND ".join(c.format(칸=칸) for c in 때조건)
             )
-            for 표, 칸 in 잴것
+            for 테이블, 칸 in 잴것
         )
         더한줄 = db.execute(text(f"SELECT {더칸들}"), 값).mappings().one()
-        더해진것 = {표: int(더한줄[표]) for 표, _ in 잴것}
+        더해진것 = {테이블: int(더한줄[테이블]) for 테이블, _ in 잴것}
 
     집계 = [
         {
-            "table": 표,
+            "table": 테이블,
             "name": 이름,
             "site": 사이트,
-            "n": int(한줄[표]),
-            # 날짜 칸이 없는 표는 null 이다. 0으로 적으면 「그 달에 하나도
+            "n": int(한줄[테이블]),
+            # 날짜 컬럼이 없는 테이블은 null 이다. 0으로 적으면 「그 달에 하나도
             # 안 쌓였다」로 읽힌다.
-            "added": 더해진것.get(표) if 칸 else None,
+            "added": 더해진것.get(테이블) if 칸 else None,
         }
-        for 표, 이름, 사이트, 칸 in 표들
+        for 테이블, 이름, 사이트, 칸 in 테이블들
     ]
 
     return {
@@ -688,6 +689,19 @@ def admin_db(
 #
 # 쓰임이 「아직 안 씀」인 것은 열쇠만 꽂혀 있고 부르는 데가 코드에 없다는
 # 뜻이다. 찾아보니 NAVER 와 오픈뱅킹과 Superset 셋이 그렇다.
+#
+# name 은 그 자리에서 쓰는 공식 이름으로 적는다. 저마다 제 문서에서 부르는
+# 말이 있어, 우리가 줄여 부르던 말(「카카오 지도」)로 적어 두면 그 문서를
+# 찾아갈 때 같은 것을 가리키는지 알 수 없다.
+#   카카오맵                공식 제품 이름. 키워드로 장소를 찾는 것은 같은
+#                           열쇠를 쓰는 로컬(Local) API 다.
+#   한국천문연구원 특일 정보  공공데이터포털의 데이터 이름.
+#   NAVER Cloud Platform Maps  지도와 주소 검색을 묶은 상품 이름.
+#   오픈뱅킹공동업무          금융결제원이 쓰는 이름. 중계는 오픈뱅킹중계센터가 맡는다.
+#   Apache Superset          프로젝트 이름.
+#
+# log_name 은 기록에 쌓인 그대로 둔다. 이름을 바꾸면 그 전에 쌓인 줄을
+# 호출 기록에서 찾지 못한다.
 바깥들 = [
     {
         "key": "kasi",
@@ -703,8 +717,8 @@ def admin_db(
     },
     {
         "key": "kakao",
-        "name": "카카오 지도",
-        "use": "장소 찾기",
+        "name": "카카오맵",
+        "use": "장소/가게 찾기",
         "where": "브라우저",
         "envs": ["VITE_KAKAO_MAP_KEY"],
         "job_key": None,
@@ -714,7 +728,7 @@ def admin_db(
     },
     {
         "key": "naver",
-        "name": "NAVER 지도",
+        "name": "NAVER Cloud Platform Maps",
         "use": "아직 안 씀",
         "where": "서버",
         "envs": ["NAVER_CLIENT_ID", "NAVER_CLIENT_SECRET"],
@@ -723,7 +737,7 @@ def admin_db(
     },
     {
         "key": "openbanking",
-        "name": "금융결제원 오픈뱅킹",
+        "name": "금융결제원 오픈뱅킹공동업무",
         "use": "아직 안 씀",
         "where": "서버",
         "envs": ["OPENBANKING_CLIENT_ID", "OPENBANKING_CLIENT_SECRET"],
@@ -732,7 +746,7 @@ def admin_db(
     },
     {
         "key": "superset",
-        "name": "Superset",
+        "name": "Apache Superset",
         "use": "아직 안 씀",
         "where": "서버",
         "envs": ["SUPERSET_URL", "SUPERSET_USERNAME", "SUPERSET_PASSWORD"],
@@ -869,7 +883,7 @@ def admin_api_runs(
     거기서 알 수 없어, 줄을 누르면 이 쪽으로 들어온다
     (frontend/src/pages/components/AdminApiDetail.tsx).
 
-    브라우저가 적어 보낸 줄에서 읽는다. 배치가 부르는 자리도 같은 표에 쌓이므로
+    브라우저가 적어 보낸 줄에서 읽는다. 배치가 부르는 자리도 같은 테이블에 쌓이므로
     한자리에서 본다(action_logs의 api 갈래).
 
     줄만 내놓지 않고 그 API의 이름도 함께 싣는다. 상세 쪽은 주소에 실린 열쇠
@@ -902,6 +916,8 @@ def admin_api_runs(
              , to_char(a.created_at, 'YYYY-MM-DD') AS on_day
              , to_char(a.created_at, 'HH24:MI:SS') AS at_time
              , a.path
+             , a.method
+             , a.url
              , a.elapsed_ms
              , a.status
           FROM life_expense.action_logs a
@@ -910,11 +926,15 @@ def admin_api_runs(
          LIMIT :한도
     """), 값).mappings().all()
 
+    # 방식과 주소는 2026-10-24부터 쌓인다(sql/2026-10-24_api_request.sql).
+    # 그 전에 쌓인 줄은 비어 있고, 화면이 그 자리에 줄표를 적는다.
     return {**머리, "rows": [{
         "log_id": r["log_id"],
         "on_day": r["on_day"],
         "at_time": r["at_time"],
         "path": r["path"],
+        "method": r["method"],
+        "url": r["url"],
         "ms": r["elapsed_ms"],
         "status": r["status"],
     } for r in rows]}
@@ -925,7 +945,7 @@ def admin_batch(_: str = Depends(토큰), db: SessionDep = Depends()):
     """
     도는 일과 그 때.
 
-    때는 표가 쥐고, 다음에 돌 때는 스케줄러가 쥔다(app/scheduler/registry.py).
+    때는 테이블이 쥐고, 다음에 돌 때는 스케줄러가 쥔다(app/scheduler/registry.py).
     마지막으로 돈 때는 바퀴 자국에서 꺼낸다.
     """
     from app.scheduler.registry import 지금모습
@@ -1020,7 +1040,7 @@ def admin_set_batch(job_key: str, payload: dict, _: str = Depends(토큰), db: S
     고치고 나서 그 자리에서 다시 건다. 서버를 다시 띄워야 바뀐다면 「고쳤다」가
     말이 되지 않는다.
 
-    받는 값은 셋뿐이다. 그 밖의 꼴은 돌려보낸다 — 표에도 같은 가름이 걸려
+    받는 값은 셋뿐이다. 그 밖의 꼴은 돌려보낸다 — 테이블에도 같은 CHECK 제약이 걸려
     있지만(job_schedules_kind_chk), 틀린 값으로 스케줄러를 건드리면 그 일이
     아예 안 돌게 된다.
     """
@@ -1081,19 +1101,19 @@ def admin_db_days(
     db: SessionDep = Depends(),
 ):
     """
-    표 하나에 날마다 몇 줄이 더해졌나.
+    테이블 하나에 날마다 몇 로우가 더해졌나.
 
     DB 쪽 표에는 지금 쌓인 수와 기간에 더해진 수만 선다. 그 기간 안에서 어느
     날에 몰렸는지는 거기서 알 수 없어, 줄을 누르면 이 쪽으로 들어온다
     (frontend/src/pages/components/AdminDbDetail.tsx).
 
-    표 이름도 날짜 칸 이름도 코드에 적힌 것만 쓴다. 받은 글은 등록부에 있는
+    테이블 이름도 날짜 컬럼 이름도 코드에 적힌 것만 쓴다. 받은 글은 등록부에 있는
     이름인지만 가리는 데 쓰이고 질의에 섞이지 않는다.
     """
-    짝 = next((t for t in 표들 if t[0] == table), None)
+    짝 = next((t for t in 테이블들 if t[0] == table), None)
     if not 짝 or not 짝[3]:
         return []
-    표, _이름, _사이트, 칸 = 짝
+    테이블, _이름, _사이트, 칸 = 짝
 
     조건 = ["1 = 1"]
     값: dict = {}
@@ -1107,7 +1127,7 @@ def admin_db_days(
     rows = db.execute(text(f"""
         SELECT to_char({칸}, 'YYYY-MM-DD') AS on_day
              , count(*) AS n
-          FROM life_expense.{표}
+          FROM life_expense.{테이블}
          WHERE {' AND '.join(조건)}
       GROUP BY 1
       ORDER BY 1 DESC

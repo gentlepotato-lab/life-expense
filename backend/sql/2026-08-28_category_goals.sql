@@ -9,7 +9,7 @@
 -- 함께 지켜보는 것이 가장 흔한 쓰임이기 때문이다.
 --
 -- 금액은 달마다 같은 값 하나다. 달마다 다르게 잡고 싶어지면 ym 칸을 더하면
--- 되지만, 지금 넣으면 매달 다시 적어야 한다.
+-- 되지만, 지금 넣으면 매월 다시 적어야 한다.
 
 CREATE TABLE IF NOT EXISTS life_expense.category_goals (
     goal_id    serial PRIMARY KEY,

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "../../api/client";
-import { loadKakaoMap, 카카오 } from "../../utils/kakaoMap";
-import { 바깥적기 } from "../../utils/track";
+import { loadKakaoMap, 장소찾기적기, 지도적기 } from "../../utils/kakaoMap";
 
 /**
  * 장소 고르기 팝업.
@@ -87,6 +86,9 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
   useEffect(() => {
     if (!selected || !selected.y || !selected.x) return;
 
+    /* 지도를 그리는 데 걸린 참을 잰다. 타일이 바깥으로 나가므로 한 줄
+       남긴다(utils/kakaoMap.ts의 지도적기). */
+    const 시작 = performance.now();
     loadKakaoMap().then(() => {
       const { kakao } = window as any;
       const mapContainer = document.getElementById("popup-map");
@@ -103,6 +105,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
         position: new kakao.maps.LatLng(Number(selected.y), Number(selected.x)),
         map,
       });
+      지도적기(시작);
     });
   }, [selected]);
 
@@ -126,7 +129,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
     const 시작 = performance.now();
     ps.keywordSearch(keyword, (data: any, status: any) => {
       const 됐나 = status === kakao.maps.services.Status.OK;
-      바깥적기(카카오, "장소 찾기", Math.round(performance.now() - 시작), 됐나 ? 200 : 204);
+      장소찾기적기(시작, 됐나);
       if (됐나) {
         setApiResults(data);
       } else {
@@ -284,14 +287,14 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
           <div id="popup-map" className="place-picker__map"></div>
           {!selected && (
             <div className="place-picker__mapempty">
-              목록에서 장소를 선택하면 지도가 표시됩니다.
+              목록에서 장소/가게를 선택하면 지도가 표시됩니다.
             </div>
           )}
         </div>
 
         <footer className="place-picker__foot">
           <span className="place-picker__selected">
-            {selected ? selected.place_name : "선택된 장소 없음"}
+            {selected ? selected.place_name : "선택된 장소/가게 없음"}
           </span>
           <div className="place-picker__foot-btns">
             <button className="ui-btn" onClick={onClose} type="button">

@@ -24,6 +24,9 @@ type 줄 = {
   path?: string;
   elapsed_ms?: number;
   status?: number;
+  /* 바깥 요청에만 담는다. 주소는 물음표 앞까지다 — 열쇠가 그 뒤에 붙는다. */
+  method?: string;
+  url?: string;
 };
 
 /** 모였다 나갈 줄들. */
@@ -111,9 +114,110 @@ export function 기능적기(name: string): void {
  *
  * 상태는 HTTP 의 수를 흉내 낸다. 카카오가 돌려주는 것은 OK 와 ZERO_RESULT 와
  * ERROR 뿐이라, 400 아래면 잘된 것으로 보는 관리자 쪽 잣대에 맞춰 옮긴다.
+ *
+ * 방식과 주소도 함께 적는다. 이름과 한 일만으로는 어느 자리로 보낸 요청인지
+ * 알 수 없어, 느리거나 물린 줄을 찾아도 어디를 들여다봐야 할지 알 길이 없었다.
+ *
+ * **주소에서 열쇠만 걷는다.** 물음표 뒤를 통째로 자르던 때는 「무엇을
+ * 찾았는가」(query)까지 함께 사라졌다. 이름에 열쇠나 비밀이 든 값만 빼고
+ * 나머지는 그대로 둔다(주소다듬기). 받는 쪽에서도 한 번 더 걷지만
+ * (app/routers/action_logs.py의 주소다듬기) 보내지 않는 것이 먼저다 —
+ * 떠난 뒤에는 지울 수 없다.
  */
-export function 바깥적기(name: string, 한일: string, elapsed_ms: number, status: number): void {
-  적기({ kind: "api", name, path: 한일, elapsed_ms, status });
+export function 바깥적기(
+  name: string,
+  한일: string,
+  elapsed_ms: number,
+  status: number,
+  method?: string,
+  url?: string
+): void {
+  적기({ kind: "api", name, path: 한일, elapsed_ms, status, method, url: 주소다듬기(url) });
+}
+
+/**
+ * 기록에 적을 주소.
+ *
+ * 열쇠가 든 값만 걷고 나머지 물음표 뒤는 그대로 둔다. 장소를 찾을 때 보낸
+ * 주소에는 찾은 말이 `query`로 붙는데, 그것이 「무엇을 하려고 불렀나」보다
+ * 자세하다.
+ *
+ * 이름에 key, secret, token, password, auth, sign 가운데 하나라도 든 값은
+ * 뺀다. 카카오는 열쇠를 머리글로 보내 주소에는 없고, 서버가 부르는 자리는
+ * serviceKey 가 붙는다(app/routers/holidays.py). 모르는 이름이 하나 새면
+ * 그대로 쌓이므로, 받는 쪽에서도 같은 잣대로 한 번 더 걷는다.
+ */
+const 숨길이름 = ["key", "secret", "token", "password", "pw", "auth", "sign"];
+
+export function 주소다듬기(url?: string): string | undefined {
+  if (!url) return undefined;
+  const 물음표 = url.indexOf("?");
+  if (물음표 < 0) return url.slice(0, 300);
+  const 앞 = url.slice(0, 물음표);
+  const 남길것 = url
+    .slice(물음표 + 1)
+    .split("&")
+    .filter((짝) => {
+      const 이름 = 짝.split("=")[0].toLowerCase();
+      return 이름 !== "" && !숨길이름.some((h) => 이름.includes(h));
+    });
+  return (남길것.length > 0 ? `${앞}?${남길것.join("&")}` : 앞).slice(0, 300);
+}
+
+/**
+ * 바깥으로 나간 주소를 모아 쥐는 자리.
+ *
+ * 브라우저가 적어 두는 자취(Resource Timing)는 칸이 250개뿐이고, 차면 그
+ * 뒤로는 새 것을 버린다. 앱을 오래 열어 두면 화면을 옮기고 그림을 받는
+ * 동안 그 칸이 차 버려, 정작 찾고 싶은 요청이 자취에 남지 않는다. 앱으로
+ * 깔아 두고 쓰는 쪽에서 장소를 찾았을 때 주소가 안 잡힌 까닭이 그것이다.
+ *
+ * 그래서 칸이 차기를 기다리지 않고 나가는 족족 받아 둔다. 우리 몫의
+ * 자리는 서른이고, 오래된 것부터 밀려난다. 바깥 것만 받는다 — 우리 서버로
+ * 보내는 요청은 서버가 저가 안다.
+ */
+const 받은자취: string[] = [];
+let 눈붙였나 = false;
+
+function 자취눈(): void {
+  if (눈붙였나) return;
+  눈붙였나 = true;
+  try {
+    new PerformanceObserver((목록) => {
+      for (const e of 목록.getEntries()) {
+        if (e.name.startsWith(location.origin)) continue;
+        받은자취.push(e.name);
+        if (받은자취.length > 30) 받은자취.shift();
+      }
+    }).observe({ type: "resource", buffered: true });
+  } catch {
+    /* 못 보는 브라우저도 있다. 그때는 아래에서 자취를 바로 뒤진다. */
+  }
+}
+
+/**
+ * 바깥으로 나간 주소 하나를 집는다.
+ *
+ * SDK가 제 손으로 보내는 요청은 우리가 주소를 쥐고 있지 않다. 받아 둔 것에서
+ * 가장 나중 것을 집고, 거기 없으면 브라우저의 자취를 바로 뒤진다.
+ *
+ * 못 집으면 빈손으로 돌아간다. 그때는 부르는 쪽이 코드에 적어 둔 주소로
+ * 떨어진다 — 기록 때문에 하던 일이 멈추어서는 안 된다.
+ */
+export function 바깥자취(조각: string): string | undefined {
+  자취눈();
+  for (let i = 받은자취.length - 1; i >= 0; i -= 1) {
+    if (받은자취[i].includes(조각)) return 받은자취[i];
+  }
+  try {
+    const 것들 = performance.getEntriesByType("resource");
+    for (let i = 것들.length - 1; i >= 0; i -= 1) {
+      if (것들[i].name.includes(조각)) return 것들[i].name;
+    }
+  } catch {
+    /* 못 재는 브라우저도 있다. */
+  }
+  return undefined;
 }
 
 /** 물린 요청이나 오래 걸린 요청을 적는다. */
@@ -131,6 +235,9 @@ export function 요청적기(name: string, path: string, elapsed_ms: number, sta
  * 넘어간다 — keepalive가 그 자리를 거든다.
  */
 export function 떠날때보내기(): void {
+  /* 자취를 받는 눈도 여기서 함께 붙인다. 앱이 뜨고 바로 붙어야 그 뒤에
+     나가는 요청을 하나도 빠뜨리지 않는다(바깥자취). */
+  자취눈();
   const 걸기 = () => {
     const 나갈것 = 비우기();
     if (나갈것.length === 0) return;

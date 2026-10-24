@@ -39,8 +39,44 @@ type 줄 = {
   at_time: string;
   /** 무엇을 하려고 불렀나. 브라우저가 적어 보낸 말이다. */
   path: string | null;
+  /** 요청 방식. 2026-10-24 전에 쌓인 줄은 비어 있다. */
+  method: string | null;
+  /** 보낸 자리. 물음표 앞까지다 — 열쇠가 그 뒤에 붙는다. */
+  url: string | null;
   ms: number | null;
   status: number | null;
+};
+
+/**
+ * 요청 방식의 딱지 빛깔.
+ *
+ * 읽기만 하는 것과 고치는 것을 빛으로 가른다. GET은 하늘, 고치러 가는 쪽은
+ * 살구다. 글자만 적으면 GET과 POST가 한 눈에 같아 보여, 어느 줄이 바깥을
+ * 고치러 간 것인지 줄마다 읽어야 한다.
+ */
+/**
+ * 주소를 읽을 수 있는 꼴로.
+ *
+ * 찾은 말은 주소에 퍼센트로 감겨 온다(`query=%EC%84%B1%EB%B6%81...`). 그대로
+ * 띄우면 무엇을 찾았는지 읽을 수가 없어 풀어서 적는다. 쌓인 값은 보낸 그대로
+ * 두고 띄울 때만 푼다 — 기록은 보낸 것과 같아야 한다.
+ *
+ * 못 푸는 글(퍼센트가 짝이 안 맞는 글)이면 온 대로 적는다.
+ */
+function 주소글(url: string): string {
+  try {
+    return decodeURI(url);
+  } catch {
+    return url;
+  }
+}
+
+const 방식빛: Record<string, string> = {
+  GET: "tint-하늘",
+  POST: "tint-살구",
+  PUT: "tint-살구",
+  PATCH: "tint-살구",
+  DELETE: "tint-분홍",
 };
 
 export default function AdminApiDetail() {
@@ -182,14 +218,20 @@ export default function AdminApiDetail() {
                 />
                 <Collapse open={폈나}>
                   <table className="admin-tbl">
+                    {/* 시각과 방식과 값은 글이 정해져 있어 폭을 못 박고, 남는
+                        폭은 요청이 쓴다. 주소는 그 칸 안에서 아랫줄에 깔린다 —
+                        칸을 따로 두었더니 96px 안에서 주소가 일곱 줄로
+                        흘러내렸다. */}
                     <colgroup>
-                      <col style={{ width: "78px" }} />
+                      <col style={{ width: "76px" }} />
+                      <col style={{ width: "56px" }} />
                       <col />
-                      <col style={{ width: "72px" }} />
+                      <col style={{ width: "70px" }} />
                     </colgroup>
                     <thead>
                       <tr>
                         <th>시각</th>
+                        <th>방식</th>
                         <th className="admin-tbl__wrap">요청</th>
                         <th>값</th>
                       </tr>
@@ -205,7 +247,29 @@ export default function AdminApiDetail() {
                           }
                         >
                           <th className="admin-mono">{r.at_time}</th>
-                          <td className="admin-tbl__wrap">{r.path || "-"}</td>
+                          {/* 방식은 딱지로, 주소는 고른 폭 글꼴로 적는다.
+                              주소는 옮겨 적는 글이라 글자 수를 세며 읽는다.
+                              2026-10-24 전에 쌓인 줄에는 둘 다 없어 줄표가
+                              선다(sql/2026-10-24_api_request.sql). */}
+                          <td>
+                            {r.method ? (
+                              <span
+                                className={`admin-tbl__tag ${방식빛[r.method] ?? "tint-잿빛"}`}
+                              >
+                                {r.method}
+                              </span>
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                          <td className="admin-tbl__wrap admin-tbl__left">
+                            <span className="admin-api-row__what">{r.path || "-"}</span>
+                            {r.url && (
+                              <span className="admin-api-row__url admin-mono">
+                                {주소글(r.url)}
+                              </span>
+                            )}
+                          </td>
                           <td>
                             {값딱지({
                               kind: "api",
@@ -217,7 +281,7 @@ export default function AdminApiDetail() {
                       ))}
                       {묶음.items.length > 먼저펼칠줄 && (
                         <AdminMoreRow
-                          칸수={3}
+                          칸수={4}
                           남은수={묶음.items.length - 먼저펼칠줄}
                           폈나={다폈나}
                           on바꾸기={() => 펼침.바꾸기(묶음.date)}

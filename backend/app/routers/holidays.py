@@ -20,6 +20,31 @@ KASI_KEY = os.getenv("KASI_API_KEY")
 특일정보 = "한국천문연구원 특일 정보"
 
 
+# 공휴일을 묻는 자리.
+특일정보주소 = (
+    "http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo"
+)
+
+
+def 특일정보URL(year: int, month: int, 열쇠: str | None) -> str:
+    """
+    그 달을 묻는 주소.
+
+    열쇠를 주면 붙이고 주지 않으면 뺀 채로 만든다. 기록에 적는 쪽이 뺀 것을
+    쓴다(app/routers/action_logs.py의 바깥적기). 주소를 두 번 적지 않으려고
+    한 곳에서 짓는다 — 두 곳에 적으면 물음표 뒤가 언젠가 어긋난다.
+    """
+    묶음 = [
+        f"pageNo=1",
+        f"numOfRows=100",
+        f"solYear={year}",
+        f"solMonth={month:02d}",
+    ]
+    if 열쇠:
+        묶음.insert(0, f"serviceKey={열쇠}")
+    return f"{특일정보주소}?{'&'.join(묶음)}"
+
+
 def fetch_kasi_holidays(year: int, month: int):
     """공공데이터에서 그 달의 공휴일을 받는다.
 
@@ -28,15 +53,7 @@ def fetch_kasi_holidays(year: int, month: int):
     멈춘 날 설날이나 추석이 평일로 저장되고, 정기 내역의 휴일 처리가 통째로
     어긋난다.
     """
-    url = (
-        "http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/"
-        "getRestDeInfo"
-        f"?serviceKey={KASI_KEY}"
-        f"&pageNo=1"
-        f"&numOfRows=100"
-        f"&solYear={year}"
-        f"&solMonth={month:02d}"
-    )
+    url = 특일정보URL(year, month, KASI_KEY)
     
     print(f"[fetch_kasi_holidays] Fetching holidays for {year}-{month:02d}")
     print(f"[fetch_kasi_holidays] URL: {url}")
@@ -113,6 +130,10 @@ def update_holidays_core(db: Session, year: int, month: int) -> bool:
         f"{year}-{month:02d} 공휴일 받기",
         int((time.monotonic() - 잰때) * 1000),
         200 if ok else 500,
+        "GET",
+        # 열쇠만 빼고 보낸 그대로 적는다. 물음표 뒤의 solYear 와 solMonth 가
+        # 어느 달을 물었는지를 말한다.
+        특일정보URL(year, month, None),
     )
 
     if not ok:

@@ -395,7 +395,7 @@ class ScheduledEntrySplit(Base):
     """
     스케줄에 거는 분할 템플릿.
     스케줄러가 PendingEntry를 만들 때 pending_entry_splits로 복사된다.
-    매달 나가는 지출의 N빵 설정을 한 번만 하면 계속 따라온다.
+    매월 나가는 지출의 N빵 설정을 한 번만 하면 계속 따라온다.
     """
     __tablename__ = "scheduled_entry_splits"
 
@@ -681,6 +681,10 @@ class ActionLog(Base):
     # 걸린 시간과 응답 코드는 error 갈래에만 들어간다.
     elapsed_ms = Column(Integer)
     status = Column(SmallInteger)
+    # 요청 방식과 주소는 api 갈래에만 들어간다. 주소에서 열쇠가 든 값은
+    # 걷힌다(routers/action_logs.py의 주소다듬기).
+    method = Column(String(10))
+    url = Column(String(300))
     user_id = Column(Integer, nullable=False, default=1)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
 
