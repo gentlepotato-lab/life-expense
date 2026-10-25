@@ -225,14 +225,24 @@ export default function AdminLoginLog() {
       {/* 기호가 무엇을 뜻하는지 적는 줄. 자물쇠만으로는 처음 봐서 알 수 없다. */}
       {날묶음.length > 0 && (
         <div className="admin-legend">
-          <span className="admin-tbl__mark--open">{자물쇠.열림}</span>
-          <span>열림</span>
-          <span className="admin-tbl__mark--shut">{자물쇠.닫힘}</span>
-          <span>닫힘</span>
-          <span className="admin-tbl__mark--bad">{자물쇠.실패}</span>
-          <span>실패</span>
-          <span className="admin-tbl__here">{이기기표}</span>
-          <span>이 기기</span>
+          {/* 기호와 그 이름을 한 조각으로 묶는다. 여덟을 한 줄에 늘어놓던 때는
+              기호와 이름 사이가 묶음 사이와 같은 8px이라, 어느 이름이 어느
+              기호의 것인지 눈으로 묶이지 않았다. */}
+          <span className="admin-legend__it">
+            <span className="admin-tbl__mark--open">{자물쇠.열림}</span>
+            열림
+          </span>
+          <span className="admin-legend__it">
+            <span className="admin-tbl__mark--shut">{자물쇠.닫힘}</span>
+            닫힘
+          </span>
+          <span className="admin-legend__it">
+            <span className="admin-tbl__mark--bad">{자물쇠.실패}</span>
+            실패
+          </span>
+          <span className="admin-legend__it">
+            <span className="admin-tbl__here">{이기기표}</span>이 기기
+          </span>
         </div>
       )}
 

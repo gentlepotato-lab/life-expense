@@ -21821,7 +21821,8 @@ html:has(.note-pop) .add-btn {
 .admin-legend {
   display: flex;
   align-items: center;
-  gap: 8px;
+  /* 묶음과 묶음 사이. 기호와 이름 사이(3px)보다 넉넉해야 넷이 넷으로 읽힌다. */
+  gap: 12px;
   margin-bottom: var(--space-1);
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
@@ -21831,6 +21832,11 @@ html:has(.note-pop) .add-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/* 기호 하나와 그 이름. 둘을 바짝 붙인다. */
+.admin-legend__it {
+  gap: 3px;
 }
 
 .admin-legend svg {
