@@ -29,12 +29,12 @@ import usePeel from "../hooks/usePeel";
 import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
 import DayPicker from "./components/DayPicker";
 import { say, ask } from "../utils/notify";
-import { 골라제거 } from "../utils/bulkDelete";
-/* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
+import { 선택제거 } from "../utils/bulkDelete";
+/* 실적 제외를 켜고 끌 때 손대는 줄. 그 일에 쓰는 두 칸만 본다.
    카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
 type PerfRow = { entry_id: number; perf_exclude?: number | null };
 
-/** 고정 · 변동을 뒤집을 때 필요한 것만 */
+/** 고정과 변동을 뒤집을 때 필요한 것만 */
 type FixedRow = { entry_id: number; fixed_flag?: number | null };
 
 const EMPTY_FILTER = {
@@ -45,7 +45,7 @@ const EMPTY_FILTER = {
   cat3: [] as number[],
   pay: [] as string[],
   memo: "",
-  /* 지출을 적을 때 고를 수 있는 것은 모두 걸러 낼 수 있어야 한다. */
+  /* 지출을 적을 때 선택할 수 있는 것은 모두 걸러 낼 수 있어야 한다. */
   inout: 0,                 // 0 = 가리지 않음, 1 = 들어옴, -1 = 나감
   amountMin: "",
   amountMax: "",
@@ -75,19 +75,19 @@ export default function PendingEntries() {
   const [rows, setRows] = useState<any[]>([]);
   const [allRows, setAllRows] = useState<any[]>([]); // 필터용 원본
 
-  /* 선택한 항목. 화면에 지금 보이는 것만 센다 — 걸러서 사라진 건이 선택된 채로
+  /* 선택한 항목. 화면에 지금 보이는 것만 센다. 걸러서 사라진 건이 선택된 채로
      남아 있으면, 눈에 없는 것이 함께 날아간다. 아래 picked에서 추려 쓴다. */
-  /* 고른 것이 있는지. openEditor가 부를 때 읽으므로 ref로 든다 —
-     상태를 그대로 쓰면 고를 때마다 openEditor가 새로 서서 카드
+  /* 선택한 것이 있는지. openEditor가 부를 때 읽으므로 ref로 든다.
+     상태를 그대로 쓰면 선택할 때마다 openEditor가 새로 서서 카드
      수십 장이 함께 다시 그려진다. */
-  const 고른것있나 = useRef(false);
+  const 선택한것있나 = useRef(false);
   const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
-  고른것있나.current = pickedIds.size > 0;
+  선택한것있나.current = pickedIds.size > 0;
 
-  /* 고른 것이 있으면 뒤로 가기가 화면을 떠나지 않고 고른 것만 푼다.
-     팝업과 같은 결이다 — 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 고른
+  /* 선택한 것이 있으면 뒤로 가기가 화면을 떠나지 않고 선택한 것만 푼다.
+     팝업과 같은 결이다. 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 선택한
      것이 있는 동안만 서 있으므로, 풀면 막대도 함께 내려간다.
-     Backspace는 받지 않는다 — 고르는 중에 쓰는 키가 아니다. */
+     Backspace는 받지 않는다. 선택하는 중에 쓰는 키가 아니다. */
   useBackClose(pickedIds.size > 0, () => setPickedIds(new Set()), false);
   const [makeOpen, setMakeOpen] = useState(false);
 
@@ -142,15 +142,15 @@ export default function PendingEntries() {
   const [filter, setFilter] = useState(EMPTY_FILTER);
   const [appliedFilter, setAppliedFilter] = useState(EMPTY_FILTER);
 
-  /* 함께한 상대 목록 — 필터에서 고르기 위해 받는다. */
+  /* 함께한 상대 목록. 필터에서 선택하기 위해 받는다. */
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
 
-  // 편집 팝업 상태 — 카드를 꾹 누르면 열린다.
+  // 편집 팝업 상태. 카드를 꾹 누르면 열린다.
   const [draft, setDraft] = useState<any | null>(null);
   const [splits, setSplits] = useState<SplitDraft[]>([]);
   const [placePickerOpen, setPlacePickerOpen] = useState(false);
 
-  /* 뒤로 가기 · Backspace로 지금 열린 것만 닫는다.
+  /* 뒤로 가기, Backspace로 지금 열린 것만 닫는다.
      카드 편집 팝업은 CardEditModal이 스스로 처리한다. */
   useBackClose(filterOpen, () => closeFilter());
   useBackClose(placePickerOpen, () => setPlacePickerOpen(false));
@@ -168,13 +168,13 @@ export default function PendingEntries() {
       .then((r) =>
         setPayList(
           r.data.map((p: any) => ({
-            /* 열쇠는 글자로 담는다 — 지출 내역과 같다. */
+            /* 열쇠는 글자로 담는다. 지출 내역과 같다. */
             code: String(p.method_id),
             name: p.method_name,
             is_active: p.is_active,
             /* 카드인 줄에만 실적 제외 기호가 선다. */
             category: p.category,
-            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다.
+            /* 이모지는 결제 수단이 아니라 그 구분(카드와 계좌 등)에 붙는다.
                같은 구분에 든 수단끼리는 같은 이모지가 선다. */
             emoji: p.category_emoji ?? null,
           }))
@@ -215,10 +215,10 @@ export default function PendingEntries() {
     loadData();
   }, []);
 
-  /* 카드 실적에서 뺄지 — 기호를 누르는 즉시 담는다.
+  /* 카드 실적에서 뺄지. 기호를 누르는 즉시 담는다.
      목록을 다시 읽지 않고 그 줄만 갈아 끼운다. 담기지 않으면 되돌린다. */
   const togglePerfExclude = async (row: PerfRow, next: boolean) => {
-    /* 고정 · 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
+    /* 고정과 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
        그쪽과 같이 한 번 묻는다. */
     if (
       !(await ask({
@@ -231,7 +231,7 @@ export default function PendingEntries() {
     const id = row.entry_id;
     const after = next ? 1 : 0;
     const before = row.perf_exclude ?? 0;
-    /* 걸러 낸 목록과 원본 둘 다 갈아 끼운다 — 하나만 고치면 필터를
+    /* 걸러 낸 목록과 원본 둘 다 갈아 끼운다. 하나만 고치면 필터를
        걸었다 풀 때 표가 되돌아간다. */
     const stamp = (v: number) => {
       setRows((prev) => prev.map((r) => (r.entry_id === id ? { ...r, perf_exclude: v } : r)));
@@ -247,11 +247,11 @@ export default function PendingEntries() {
     }
   };
 
-  /* 고정인지 변동인지 — 카드 실적 제외와 같은 방식이다. 여기서 누르면 그 건에
+  /* 고정인지 변동인지. 카드 실적 제외와 같은 방식이다. 여기서 누르면 그 건에
      손으로 정한 것이 되어, 뒤에 분류 설정을 바꿔도 이 건은 그대로다. */
   const toggleFixed = async (row: FixedRow, next: boolean) => {
     /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
-       곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
+       곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기와 확정과 같이 한 번 묻는다. */
     if (
       !(await ask({
         title: "고정/변동 바꾸기",
@@ -282,11 +282,11 @@ export default function PendingEntries() {
   // ------------------------------------
 
   const openEditor = useCallback((row: any) => {
-    /* 고르는 중에는 편집 팝업을 열지 않는다. 꾹 누르기도, 쪽지나 클립을
-       뜯는 것도 이 한 곳을 지난다. 고른 채로 한 건을 고치면 목록이 다시
-       그려지면서 고른 것이 가리키던 줄이 어긋난다 — 필터를 막는 것과 같은
+    /* 선택하는 중에는 편집 팝업을 열지 않는다. 꾹 누르기도, 쪽지나 클립을
+       뜯는 것도 이 한 곳을 지난다. 선택한 채로 한 건을 고치면 목록이 다시
+       그려지면서 선택한 것이 가리키던 줄이 어긋난다. 필터를 막는 것과 같은
        까닭이다. */
-    if (고른것있나.current) {
+    if (선택한것있나.current) {
       say.warn("선택한 내역이 있습니다. 해제한 후 시도해 주세요.");
       return;
     }
@@ -355,11 +355,11 @@ export default function PendingEntries() {
   //   );
   // };
 
-  // 팝업에서 저장 — 해당 건만 반영한다.
+  // 팝업에서 저장. 해당 건만 반영한다.
   const saveDraft = async () => {
     if (!draft) return;
 
-    // 분할 검증 — 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다.
+    // 분할 검증. 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다.
     const cleanSplits = splits.filter(
       (x) => x.amount !== "" && Number(x.amount) > 0
     );
@@ -373,7 +373,7 @@ export default function PendingEntries() {
       return;
     }
 
-    // 서버가 받아야 하는 형태로 정제 — API는 배열을 받으므로 1건짜리 배열로 보낸다.
+    // 서버가 받아야 하는 형태로 정제. API는 배열을 받으므로 1건짜리 배열로 보낸다.
     const clean = [{
       entry_id: draft.entry_id,
       tx_date: draft.tx_date?.substring(0, 10),
@@ -440,7 +440,7 @@ export default function PendingEntries() {
     }
   };
 
-  /* Excel 내보내기 — 뒤에 보완하기로 하고 자리만 만든다.
+  /* Excel 내보내기. 뒤에 보완하기로 하고 자리만 만든다.
      조용히 아무 일도 없으면 눌린 건지 알 수 없으므로 한마디 남긴다. */
   // Send 단일 카드: (1) pending 업데이트 → (2) send API → (3) 목록에서 제거
   // 보내는 동안 잠근다. 확인을 누른 뒤 응답이 늦을 때 다시 누르면 같은 건이
@@ -511,7 +511,7 @@ export default function PendingEntries() {
   /* 여러 건을 한꺼번에 지출 내역으로 보낸다.
 
      선택한 항목이 없으면 지금 거른 것을 통째로, 하나라도 선택했으면 그것만
-     보낸다. 보내는 길은 하나라 뒤처리(다시 읽기 · 필터 다시 걸기)도 하나다. */
+     보낸다. 보내는 길은 하나라 뒤처리(다시 읽기와 필터 다시 걸기)도 하나다. */
   const sendMany = async () => {
     if (sending) return;
     const 선택함 = picked.length > 0;
@@ -840,7 +840,7 @@ export default function PendingEntries() {
     [filter.cp, cpList]
   );
 
-  // 날짜별 단 — 들어온 순서를 그대로 보존한다.
+  // 날짜별 단. 들어온 순서를 그대로 보존한다.
   // 소분류에 blur가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
   /* 접은 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
@@ -852,13 +852,13 @@ export default function PendingEntries() {
       return next;
     });
 
-  /* Blur는 중 · 소 · 세 어디에 걸려도 함께 덮인다. */
+  /* Blur는 중, 소, 세 어디에 걸려도 함께 덮인다. */
   const blurSets = useMemo(
     () => blurSetsFrom(cat1List, cat2List, cat3List),
     [cat1List, cat2List, cat3List]
   );
 
-  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정한 것이 있으면 그것이 먼저다. */
+  /* 고정, 변동은 소, 세에만 둔다. 건에 손으로 정한 것이 있으면 그것이 먼저다. */
   const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
 
   const dateGroups = useMemo(
@@ -876,7 +876,7 @@ export default function PendingEntries() {
   };
 
   const applyFilter = () => {
-    /* 초안을 그대로 확정한다 — 여기부터 화면에 반영된다. */
+    /* 초안을 그대로 확정한다. 여기부터 화면에 반영된다. */
     setAppliedFilter(filter);
 
     let filtered = [...allRows];
@@ -898,8 +898,8 @@ export default function PendingEntries() {
     }
     if (filter.pay.length) {
       /* 거르개가 쥔 열쇠는 글자, 줄이 쥔 것은 숫자다. 글자로 맞춰 견준다. */
-      const 고른것 = new Set(filter.pay.map(String));
-      filtered = filtered.filter((r) => 고른것.has(String(r.pay_method)));
+      const 선택한것 = new Set(filter.pay.map(String));
+      filtered = filtered.filter((r) => 선택한것.has(String(r.pay_method)));
     }
     if (filter.memo.trim()) {
       const q = filter.memo.trim();
@@ -980,8 +980,8 @@ export default function PendingEntries() {
             />
             <button
               type="button"
-              /* 고르는 중에는 필터를 열지 않는다. 필터를 걸면 목록이 통째로
-                 바뀌어 고른 것이 가리키던 줄이 사라진다. */
+              /* 선택하는 중에는 필터를 열지 않는다. 필터를 걸면 목록이 통째로
+                 바뀌어 선택한 것이 가리키던 줄이 사라진다. */
               onClick={() => {
                 if (picked.length > 0) {
                   say.warn("선택한 내역이 있습니다. 해제한 후 시도해 주세요.");
@@ -997,8 +997,8 @@ export default function PendingEntries() {
               필터
             </button>
 
-            {/* 도구 줄은 늘 [모두 전송]이다. 고른 것만 보내는 일은 아래
-                고르기 막대가 맡는다 — 같은 자리의 단추가 때에 따라 다른 일을
+            {/* 도구 줄은 늘 [모두 전송]이다. 선택한 것만 보내는 일은 아래
+                선택하기 막대가 맡는다. 같은 자리의 단추가 때에 따라 다른 일을
                 하면 무엇이 갈지 누르기 전에 알 수 없다. */}
             <button onClick={sendMany} className="ui-btn primary" disabled={sending}>
               모두 전송
@@ -1007,10 +1007,10 @@ export default function PendingEntries() {
         </div>
       </div>
 
-      {/* 카드 리스트 — 날짜별 단으로 묶어서 표시 */}
+      {/* 카드 리스트. 날짜별 단으로 묶어서 표시 */}
       <div className="card-list">
         {/* 비어 있으면 그렇다고 말한다. 모래시계 팝업이 쓰는 말과 한 글자도
-            다르면 안 된다 — 같은 비어 있음을 두 가지로 말하게 된다. */}
+            다르면 안 된다. 같은 비어 있음을 두 가지로 말하게 된다. */}
         {dateGroups.length === 0 && <p className="page-empty">대기 내역이 없습니다.</p>}
         {dateGroups.map((group) => (
           <section key={group.date || "no-date"} className="date-group">
@@ -1064,7 +1064,7 @@ export default function PendingEntries() {
             danger: true,
           });
           if (!예) return;
-          const { 성공, 실패 } = await 골라제거(
+          const { 성공, 실패 } = await 선택제거(
             "/pending-entries",
             picked.map((r) => r.entry_id)
           );
@@ -1134,7 +1134,7 @@ export default function PendingEntries() {
           }
         >
           <div className="edit-grid">
-            {/* 1행 — 분류 3단 */}
+            {/* 1행. 분류 3단 */}
             <EditField label="중분류" span={4} required>
               <SingleSelect
                 noun="중분류"
@@ -1170,10 +1170,10 @@ export default function PendingEntries() {
               />
             </EditField>
 
-            {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
+            {/* 2행. 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
             <EditField label="IN/OUT" span={4} required>
               <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
-                {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
+                {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "-"}
               </span>
             </EditField>
 
@@ -1197,10 +1197,10 @@ export default function PendingEntries() {
               />
             </EditField>
 
-            {/* 3행 — 장소 */}
+            {/* 3행. 장소 */}
             <EditField label="장소/가게" span={12}>
               <div className="edit-place">
-                <span className="edit-place__name">📍 {draft.place_name || "—"}</span>
+                <span className="edit-place__name">📍 {draft.place_name || "-"}</span>
                 <button
                   type="button"
                   className="ui-btn small edit-location-btn"
@@ -1211,7 +1211,7 @@ export default function PendingEntries() {
               </div>
             </EditField>
 
-            {/* 4행 — 메모 */}
+            {/* 4행. 메모 */}
             <EditField label="메모" span={12}>
               <GrowArea
                 className="memo-input memo-area"
@@ -1222,7 +1222,7 @@ export default function PendingEntries() {
             </EditField>
           </div>
 
-          {/* 금액 쪼개기 — 지출일 때만 의미가 있다. */}
+          {/* 금액 쪼개기. 지출일 때만 의미가 있다. */}
           {draft.inout === -1 && (
             <>
               <EditDivider />
@@ -1246,14 +1246,14 @@ export default function PendingEntries() {
             aria-modal="true"
             aria-label="필터"
           >
-            {/* 머리·본문·바닥을 편집 팝업과 같은 짜임으로 */}
+            {/* 머리, 본문, 바닥을 편집 팝업과 같은 짜임으로 */}
             <header className="popup-head">
               <h3 className="popup-head__title">필터</h3>
             </header>
 
             {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다. */}
             <div className="popup-body edit-grid">
-              {/* 거르는 자리는 지난 어느 때로도 갈 수 있어야 한다 —
+              {/* 거르는 자리는 지난 어느 때로도 갈 수 있어야 한다.
                   머리의 연월을 누르면 한 해가 펼쳐진다. */}
               <EditField label="시작일" span={6}>
                 <DayPicker
@@ -1413,7 +1413,7 @@ export default function PendingEntries() {
               >
                 초기화
               </button>
-              {/* 편집 팝업과 같은 차례로 — 되돌리는 것 · 닫기 · 하려던 것 */}
+              {/* 편집 팝업과 같은 차례로, 되돌리는 것, 닫기, 하려던 것 */}
               <button className="ui-btn" onClick={closeFilter}>
                 닫기
               </button>
@@ -1499,7 +1499,7 @@ export default function PendingEntries() {
 }
 
 // ------------------------------------
-// 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다.
+// 카드 한 장. 표시 전용. 꾹 누르면 편집 팝업이 열린다.
 // ------------------------------------
 export function PendingCard({
   row,
@@ -1527,21 +1527,21 @@ export function PendingCard({
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
   onSend?: (row: any) => void;
-  /* 뜯는 동안 뜨는 한 줄. 고치지 못하는 화면에서만 쓴다 — 어디로 가야
+  /* 뜯는 동안 뜨는 한 줄. 고치지 못하는 화면에서만 쓴다. 어디로 가야
      고치는지를 적는다. 넘기지 않으면 그 카드에서는 안내가 뜨지 않는다. */
   peelTip?: string;
 
-  /* 선택한 항목인지. 넘기지 않으면 선택 상자가 서지 않는다 — 기간 상세처럼
+  /* 선택한 항목인지. 넘기지 않으면 선택 상자가 서지 않는다. 기간 상세처럼
      보기만 하는 화면은 지금까지와 같은 꼴을 지킨다. */
   picked?: boolean;
   onTogglePick?: (id: number) => void;
   /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onTogglePerfExclude?: (row: PerfRow, next: boolean) => void;
-  /* 이 건이 고정인지 — 건에 정한 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
+  /* 이 건이 고정인지. 건에 정한 것이 없으면 분류를 따라 화면이 계산해서 넘긴다. */
   fixed?: boolean;
-  /* 고정 · 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
+  /* 고정과 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onToggleFixed?: (row: FixedRow, next: boolean) => void;
-  /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
+  /* 중, 소, 세 어디에 Blur가 걸렸는지는 화면이 계산해서 넘긴다.
      넘기지 않으면 예전처럼 소분류만 본다. */
   blurred?: boolean;
   /* 보기만 하는 화면(기간 상세)에서는 편집도 전송도 하지 않는다.
@@ -1554,7 +1554,7 @@ export function PendingCard({
   const { pressing, handlers } = useLongPress(openEditor);
   const peel = usePeel(openEditor);
 
-  const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
+  const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "-";
   const isBlur = blurred ?? (cat2List.find((c) => c.id === row.cat2_id)?.blur === 1);
 
   const pay = payList.find((p) => String(p.code) === String(row.pay_method));
@@ -1575,7 +1575,7 @@ export function PendingCard({
       {...(readOnly ? {} : handlers)}
       title={readOnly ? undefined : "꾹 눌러서 편집"}
     >
-      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국.
+      {/* IN/OUT 표시. 종이 왼쪽 위 귀퉁이를 접은 자국.
           묶인 건에서는 그 자리가 클립이 된다. 요소는 그대로 두어야 금액
           빛깔 규칙(.card:has(.in-bar))이 살아 있다. */}
       <div
@@ -1586,8 +1586,8 @@ export function PendingCard({
       >
         {isClipped && <ClipMark />}
       </div>
-      {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리 · 접혀 넘어오는 조각.
-          어느 화면에서나 떼어진다 — 뜯는 손맛이 화면마다 달라지면 고장 난
+      {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리와 접혀 넘어오는 조각.
+          어느 화면에서나 떼어진다. 뜯는 손맛이 화면마다 달라지면 고장 난
           것으로 읽힌다. 고치지 못하는 화면에서는 끝까지 떼어도 열 팝업이
           없으니 제자리로 펴져 붙고, 대신 아래 한 줄이 어디서 고치는지를
           알린다. */}
@@ -1596,7 +1596,7 @@ export function PendingCard({
         <span className="peel-flap__face" />
       </span>
       <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
-      {/* 뜯는 동안만 뜨는 한 줄. 늘 그린 채로 보이고 숨기는 일은 CSS가 맡는다 —
+      {/* 뜯는 동안만 뜨는 한 줄. 늘 그린 채로 보이고 숨기는 일은 CSS가 맡는다.
           끄는 중에 React가 다시 그리면 뜯는 겹이 쥐고 있던 class가 지워진다. */}
       {안내 && (
         <span className="peel-tip" aria-hidden="true">
@@ -1611,13 +1611,13 @@ export function PendingCard({
           <span className="cat-text">{cat1Name}</span>
           <span className="cat-sep"> &gt; </span>
           <span className="cat-text">
-            {cat2List.find((c) => c.id === row.cat2_id)?.name ?? "—"}
+            {cat2List.find((c) => c.id === row.cat2_id)?.name ?? "-"}
           </span>
           {row.cat3_id && (
             <>
               <span className="cat-sep"> &gt; </span>
               <span className="cat3-text">
-                {cat3List.find((c) => c.id === row.cat3_id)?.name ?? "—"}
+                {cat3List.find((c) => c.id === row.cat3_id)?.name ?? "-"}
               </span>
             </>
           )}
@@ -1653,8 +1653,8 @@ export function PendingCard({
       </div>
 
       {/* 2행: 장소 + 결제 수단 + [전송] */}
-      {/* 장소와 결제 수단은 지출 · 정기와 같이 한 줄이다 — 장소가 왼쪽 끝,
-          결제 수단이 오른쪽 끝. [전송]은 그 오른쪽 — 보내는 것은 이 결제 수단으로
+      {/* 장소와 결제 수단은 지출과 정기와 같이 한 줄이다. 장소가 왼쪽 끝,
+          결제 수단이 오른쪽 끝. [전송]은 그 오른쪽. 보내는 것은 이 결제 수단으로
           그었다고 굳히는 일이라 떼어 놓지 않는다. 장소는 남는 폭만 쓰고 넘치면
           말줄임된다. 메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
       <div className="entry-ln entry-ln--send">
@@ -1688,7 +1688,7 @@ export function PendingCard({
 
       <MemoPad memo={row.memo} />
 
-      {/* 쪼갠 건 — 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다. */}
+      {/* 쪼갠 건. 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다. */}
       {hasSplit && (
         <div className={`split-tab${open ? " open" : ""}`}>
           <span
@@ -1699,7 +1699,7 @@ export function PendingCard({
             title={open ? "몫 접기" : "함께한 사람 보기"}
             onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
           >
-            {/* 뺄셈 한 덩어리 — "모두 펼치기|접기"와 같은 음영을 깔고 손잡이만 밖에 둔다. */}
+            {/* 뺄셈 한 덩어리. "모두 펼치기|접기"와 같은 음영을 깔고 손잡이만 밖에 둔다. */}
             <span className="amount-split__calc">
               {row.amount.toLocaleString("ko-KR")}
               <span className="amount-split__op"> − </span>

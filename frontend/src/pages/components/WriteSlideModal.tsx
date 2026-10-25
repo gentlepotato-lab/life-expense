@@ -11,22 +11,22 @@ import { say } from "../../utils/notify";
 /**
  * 쓰기 슬라이드(Quick).
  *
- * 한 화면에 모든 칸을 늘어놓는 기존 쓰기와 달리, 한 번에 하나씩 묻고 고르면
+ * 한 화면에 모든 칸을 늘어놓는 기존 쓰기와 달리, 한 번에 하나씩 묻고 선택하면
  * 곧바로 다음 장으로 넘어간다. 손가락 하나로 빠르게 적어 내려가는 것이
- * 목적이라, 고르는 자리는 모두 큼직한 단추로 둔다.
+ * 목적이라, 선택하는 자리는 모두 큼직한 단추로 둔다.
  *
- * 기존 쓰기(EntryForm · WriteEntryModal)는 한 줄도 건드리지 않는다. 적는 길도
- * 그쪽과 같은 POST /api/entries를 쓴다 — 적는 길이 둘이 되면 언젠가 한쪽만
+ * 기존 쓰기(EntryForm, WriteEntryModal)는 한 줄도 건드리지 않는다. 적는 길도
+ * 그쪽과 같은 POST /api/entries를 쓴다. 적는 길이 둘이 되면 언젠가 한쪽만
  * 고쳐진다.
  *
- * 껍데기는 편집 팝업의 것(.popup-panel · .edit-modal__*)을 그대로 쓴다.
- * 바닥 짜임만 달라(이전 · 걸음점 · 다음) CardEditModal을 쓰지 않고 직접 짰다.
+ * 껍데기는 편집 팝업의 것(.popup-panel, .edit-modal__*)을 그대로 쓴다.
+ * 바닥 짜임만 달라(이전, 걸음점, 다음) CardEditModal을 쓰지 않고 직접 짰다.
  */
 
 type Cat1 = { id: number; name: string; emoji?: string | null; is_active?: number };
 type Cat2 = { id: number; name: string; cat1_id?: number; inout?: number | null; is_active?: number };
 type Cat3 = { id: number; name: string; cat2_id?: number; is_active?: number };
-/* 이모지는 결제 수단 제 것이 아니라 그것이 속한 묶음(카드 · 계좌 따위)의
+/* 이모지는 결제 수단 제 것이 아니라 그것이 속한 묶음(카드와 계좌 따위)의
    것이다. 묶음이 없는 수단은 비어 있다. */
 type Pay = { code: string; name: string; emoji?: string | null; is_active?: number };
 
@@ -51,7 +51,7 @@ type KakaoPlace = {
 /**
  * 큰 단계 다섯과 그 안의 장들.
  *
- * 세분류가 없는 소분류를 고르면 그 장은 아예 건너뛴다. 빈 화면을 한 번
+ * 세분류가 없는 소분류를 선택하면 그 장은 아예 건너뛴다. 빈 화면을 한 번
  * 보여 주고 넘기는 것은 빠르게 적자는 취지에 어긋난다.
  */
 type Slide = "date" | "cat1" | "cat2" | "cat3" | "pay" | "amount" | "place" | "memo";
@@ -69,7 +69,7 @@ export default function WriteSlideModal({
 }) {
   useBackClose(true, onClose);
 
-  /* ── 고른 값 ─────────────────────────────────────────────── */
+  /* ── 선택한 값 ───────────────────────────────────────────── */
   const [txDate, setTxDate] = useState(todayStr);
   /* 달력이 펼쳐 보이는 달. 달력 쪽이 밖에서 쥐도록 바뀌어 여기서 들고 있다. */
   const [calView, setCalView] = useState<View>(() => viewOf(todayStr()));
@@ -81,7 +81,7 @@ export default function WriteSlideModal({
   const [place, setPlace] = useState<{ name: string; db?: DbPlace; kakao?: KakaoPlace } | null>(null);
   const [memo, setMemo] = useState("");
 
-  /* ── 고르개에 늘어놓을 것 ────────────────────────────────── */
+  /* ── 선택기에 늘어놓을 것 ────────────────────────────────── */
   const [cat1List, setCat1List] = useState<Cat1[]>([]);
   const [cat2All, setCat2All] = useState<Cat2[]>([]);
   const [cat3All, setCat3All] = useState<Cat3[]>([]);
@@ -119,7 +119,7 @@ export default function WriteSlideModal({
       .catch(() => setPayList([]));
   }, []);
 
-  /* 빠른 입력 금액은 고른 소분류를 따른다. 점심과 월세가 같은 값을 내놓으면
+  /* 빠른 입력 금액은 선택한 소분류를 따른다. 점심과 월세가 같은 값을 내놓으면
      눌러 볼 까닭이 없다. */
   useEffect(() => {
     axios
@@ -130,7 +130,7 @@ export default function WriteSlideModal({
       .catch(() => setQuick([]));
   }, [cat2]);
 
-  /* IN/OUT은 고른 소분류가 데려온다 — 기존 쓰기와 같은 잣대다.
+  /* IN/OUT은 선택한 소분류가 데려온다. 기존 쓰기와 같은 잣대다.
      소분류에 적혀 있지 않으면 나가는 돈으로 본다. */
   const inout = cat2 && cat2.inout !== null && cat2.inout !== undefined ? Number(cat2.inout) : -1;
 
@@ -157,13 +157,13 @@ export default function WriteSlideModal({
     if (next) setSlide(next);
   };
 
-  /* 고르면 곧바로 다음 장으로 넘어간다. 한 번 더 누르게 하지 않는다. */
+  /* 선택하면 곧바로 다음 장으로 넘어간다. 한 번 더 누르게 하지 않는다. */
   const pickAnd = (fn: () => void) => {
     fn();
     window.setTimeout(() => go(1), 120);
   };
 
-  /* ── 장소/가게 찾기 — 그 고르개와 같은 길을 쓴다 ─────────── */
+  /* ── 장소/가게 찾기, 그 선택기와 같은 길을 쓴다 ──────────── */
   const [keyword, setKeyword] = useState("");
   const [source, setSource] = useState<"db" | "kakao">("db");
   const [dbRows, setDbRows] = useState<DbPlace[]>([]);
@@ -185,7 +185,7 @@ export default function WriteSlideModal({
     setSource("kakao");
     setSearched(true);
     /* SDK를 먼저 띄운다. 예전에는 window.kakao가 있나만 보고 없으면 빈손으로
-       돌아섰는데, 그러면 장소 고르개를 한 번도 연 적이 없는 사람에게는
+       돌아섰는데, 그러면 장소 선택기를 한 번도 연 적이 없는 사람에게는
        카카오 찾기가 아무 일도 하지 않았다. */
     await loadKakaoMap();
     const kakao = (window as unknown as { kakao?: KakaoNamespace }).kakao;
@@ -194,7 +194,7 @@ export default function WriteSlideModal({
       return;
     }
     const ps = new kakao.maps.services.Places();
-    /* 찾는 데 걸린 참을 잰다. 장소 고르개와 같은 잣대다(PlacePicker.tsx). */
+    /* 찾는 데 걸린 시간을 잰다. 장소 선택기와 같은 잣대다(PlacePicker.tsx). */
     const 시작 = performance.now();
     ps.keywordSearch(keyword, (data: KakaoPlace[], status: string) => {
       const 됐나 = status === kakao.maps.services.Status.OK;
@@ -203,7 +203,7 @@ export default function WriteSlideModal({
     });
   }, [keyword]);
 
-  /* 고른 장소를 지도에 찍는다 — 장소 고르개와 같은 짜임이다.
+  /* 선택한 장소를 지도에 찍는다. 장소 선택기와 같은 짜임이다.
      이름만 보고는 거기가 맞는지 알기 어려워 눈으로 확인할 자리를 둔다. */
   useEffect(() => {
     const lat = place?.db?.lat ?? (place?.kakao ? Number(place.kakao.y) : null);
@@ -211,7 +211,7 @@ export default function WriteSlideModal({
     if (lat === null || lng === null || Number.isNaN(lat) || Number.isNaN(lng)) return;
 
     let 살아있나 = true;
-    /* 지도를 그리는 데 걸린 참을 잰다(utils/kakaoMap.ts의 지도적기). */
+    /* 지도를 그리는 데 걸린 시간을 잰다(utils/kakaoMap.ts의 지도적기). */
     const 시작 = performance.now();
     void loadKakaoMap().then(() => {
       if (!살아있나) return;
@@ -246,7 +246,7 @@ export default function WriteSlideModal({
           pay_method: pay.code,
           memo: memo || null,
           place_id: place?.db?.place_id ?? null,
-          /* 카카오에서 새로 고른 장소는 서버가 적는다 — 기존 쓰기와 같다. */
+          /* 카카오에서 새로 선택한 장소는 서버가 적는다. 기존 쓰기와 같다. */
           place_name: place?.kakao?.place_name ?? null,
           place_lat: place?.kakao ? Number(place.kakao.y) : null,
           place_lng: place?.kakao ? Number(place.kakao.x) : null,
@@ -275,7 +275,7 @@ export default function WriteSlideModal({
   /* ── 바닥의 두 단추 ──────────────────────────────────────── */
   const 마지막 = slide === "memo";
   const 건너뛸수있나 = slide === "cat3" || slide === "place" || slide === "memo";
-  const 골랐나 =
+  const 선택했나 =
     slide === "date" ? !!txDate
       : slide === "cat1" ? !!cat1
       : slide === "cat2" ? !!cat2
@@ -284,13 +284,13 @@ export default function WriteSlideModal({
       : slide === "amount" ? amount !== "" && Number(amount) > 0
       : slide === "place" ? !!place
       : true;
-  const 다음켬 = 골랐나 || 건너뛸수있나;
-  /* 건너뛸 수 있는 장에서 아직 안 골랐을 때만 [건너뛰기]다. 못 건너뛰는
-     장에서는 꺼진 채로 [다음]이라 적어야 — 꺼진 [건너뛰기]는 넘어갈 수
+  const 다음켬 = 선택했나 || 건너뛸수있나;
+  /* 건너뛸 수 있는 장에서 아직 안 선택했을 때만 [건너뛰기]다. 못 건너뛰는
+     장에서는 꺼진 채로 [다음]이라 적어야, 꺼진 [건너뛰기]는 넘어갈 수
      있는데 막은 것처럼 읽힌다. */
   const 다음말 = 마지막
     ? "전송"
-    : 건너뛸수있나 && !골랐나
+    : 건너뛸수있나 && !선택했나
     ? "건너뛰기"
     : "다음";
 
@@ -312,8 +312,8 @@ export default function WriteSlideModal({
           </button>
         </header>
 
-        {/* 고른 값을 이고 간다. 날짜는 오늘로 깔려 있어 이 줄이 빌 일은
-            없다 — 그래서 "아직 고른 것이 없다." 같은 자리는 두지 않는다. */}
+        {/* 선택한 값을 이고 간다. 날짜는 오늘로 깔려 있어 이 줄이 빌 일은
+            없다. 그래서 "아직 선택한 것이 없다." 같은 자리는 두지 않는다. */}
         <div className="edit-modal__headfields">
           <div className="ws-tags">
             {/* 요일까지 적는다. 날짜 단 머리말과 같은 함수를 써서, 같은 날이
@@ -343,7 +343,7 @@ export default function WriteSlideModal({
             <>
               <div className="ws-lab">날짜</div>
               {/* 달력을 바로 펼친다. 날짜는 이미 오늘로 잡혀 있으니 여기까지
-                  돌아온 사람은 다른 날을 고르러 온 것이다. */}
+                  돌아온 사람은 다른 날을 선택하러 온 것이다. */}
               <DayGrid
                 value={txDate}
                 view={calView}
@@ -371,8 +371,8 @@ export default function WriteSlideModal({
                         })
                       }
                     >
-                      {/* 이모지는 이름 앞에 — 분류 화면과 같은 차례다.
-                          소분류 · 세분류에는 이모지 칸이 없어 여기만 붙는다. */}
+                      {/* 이모지는 이름 앞에. 분류 화면과 같은 차례다.
+                          소분류와 세분류에는 이모지 칸이 없어 여기만 붙는다. */}
                       {c.emoji && <span className="ws-pick__emoji">{c.emoji}</span>}
                       {c.name}
                     </button>
@@ -474,7 +474,7 @@ export default function WriteSlideModal({
                 ))}
               </div>
 
-              {/* 숫자판 — 기기 자판을 올리지 않고 그 자리에서 친다. 자판이
+              {/* 숫자판. 기기 자판을 올리지 않고 그 자리에서 친다. 자판이
                   올라오면 딱지 줄과 걸음점이 가려져 어디쯤인지 놓친다. */}
               <div className="ws-pad">
                 {["7", "8", "9", "4", "5", "6", "1", "2", "3"].map((k) => (
@@ -525,7 +525,7 @@ export default function WriteSlideModal({
                   if (e.key === "Enter") (source === "db" ? searchDb : searchKakao)();
                 }}
               />
-              {/* 찾아본 뒤에만 그쪽이 켜진다 — 장소 고르개와 같은 잣대다. */}
+              {/* 찾아본 뒤에만 그쪽이 켜진다. 장소 선택기와 같은 잣대다. */}
               <div className="place-picker__tabs ws-tabs">
                 <button
                   type="button"
@@ -584,7 +584,7 @@ export default function WriteSlideModal({
                 )}
               </div>
 
-              {/* 지도 — 자리는 늘 잡고, 고르기 전에는 안내를 띄운다.
+              {/* 지도. 자리는 늘 잡고, 선택하기 전에는 안내를 띄운다.
                   자리가 생겼다 없어졌다 하면 목록이 밀려 눌리던 줄이 바뀐다. */}
               <div className="ws-mapwrap">
                 <div id="ws-map" className="ws-map" />
@@ -612,7 +612,7 @@ export default function WriteSlideModal({
             {at === 0 ? "닫기" : "이전"}
           </button>
 
-          {/* 걸음점 — 큰 단계 다섯. 지금 선 단계만 펴져 속 장수를 보인다. */}
+          {/* 걸음점. 큰 단계 다섯. 지금 선 단계만 펴져 속 장수를 보인다. */}
           <span className="ws-dots" aria-hidden="true">
             {[1, 2, 3, 4, 5].map((n) => {
               const 속 = order.filter((s) => STEP_OF[s] === n);

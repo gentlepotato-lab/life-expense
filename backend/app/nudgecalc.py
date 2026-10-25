@@ -1,20 +1,20 @@
 """
-잔소리 셈.
+잔소리 계산.
 
 그동안 화면이 하던 일을 여기로 옮겼다. 화면은 요청을 열 번 날려(석 달치 지출,
-대기, 정기, 분류 세 단, 결제 수단, 목표) 받아 온 것을 제 나름대로 셈했다.
+대기, 정기, 분류 세 단, 결제 수단, 목표) 받아 온 것을 제 나름대로 계산했다.
 종 단추가 모든 화면에 서 있어서 화면을 옮길 때마다 그 열 번이 돌았다.
 
-여기서 하는 일은 "무엇이 잔소리감인가"까지다. 문장과 말투는 화면에 남겼다 —
+여기서 하는 일은 "무엇이 잔소리감인가"까지다. 문장과 말투는 화면에 남겼다.
 문구는 자주 다듬는데 그때마다 서버를 다시 띄울 까닭이 없다. 그래서 돌려주는
 것은 갈래(kind)와 숫자(값)와 근거 줄(items)뿐이고, 화면이 그걸로 문장을 짓는다.
 
-표를 따로 두지 않는다. 쓴 건이 삼천 건 남짓이라 집계가 몇 밀리초에 끝나고,
-표를 두면 갱신 사이에 사실과 어긋나는 참이 생긴다. 잔소리 가운데는 "오늘"에
+집계 테이블을 따로 두지 않는다. 쓴 건이 삼천 건 남짓이라 집계가 몇 밀리초에 끝나고,
+그런 테이블을 두면 갱신 사이에 사실과 어긋나는 값이 생긴다. 잔소리 가운데는 "오늘"에
 기대는 것이 있어 아무도 아무것도 안 고쳐도 날이 바뀌면 답이 달라지므로,
 부를 때 세는 쪽이 맞다.
 
-셈의 잣대는 화면이 쓰던 것을 그대로 옮겼다 — 아래 함수들의 짝은
+계산의 잣대는 화면이 쓰던 것을 그대로 옮겼다. 아래 함수들의 짝은
 frontend/src/utils/nudges.ts, goalStand.ts, calendarFilter.ts다. 한쪽만 고치면
 화면과 서버가 다른 수를 말하므로, 고칠 일이 생기면 두 곳을 함께 본다.
 """
@@ -30,7 +30,7 @@ from sqlalchemy import text
 
 # ── 잣대 ──────────────────────────────────────────────────────
 
-#: 앞뒤로 몇 달치를 보고 셈하는가 — 평균을 내려면 한 달로는 모자란다.
+#: 앞뒤로 몇 달치를 보고 계산하는가. 평균을 내려면 한 달로는 모자란다.
 MONTHS = 3
 
 #: 정기 지출은 일주일 앞까지만 미리 알린다.
@@ -42,7 +42,7 @@ BUNDLE_FROM = 3
 #: 한 줄씩 알리는 것도 셋까지.
 NEAR_MAX = 3
 
-#: 이어 온 날을 거슬러 세는 한계 — 받는 것이 석 달치뿐이다.
+#: 이어 온 날을 거슬러 세는 한계. 받는 것이 석 달치뿐이다.
 LOOKBACK = 60
 
 #: 목표를 잘 지킨다는 칭찬은 달 후반에만 한다.
@@ -91,7 +91,7 @@ def _달들(today: str) -> list[str]:
 # ── 자료 모으기 ───────────────────────────────────────────────
 #
 # 화면이 부르던 엔드포인트와 같은 SQL을 쓴다. 엔드포인트를 서버가 제 손으로
-# 다시 부르지는 않는다 — 한 요청 안에서 HTTP를 또 타면 느릴뿐더러, 그 사이에
+# 다시 부르지는 않는다. 한 요청 안에서 HTTP를 또 타면 느릴뿐더러, 그 사이에
 # 자료가 바뀌면 같은 요청 안에서도 앞뒤가 어긋난다.
 
 _지출SQL = text(
@@ -117,7 +117,7 @@ _대기SQL = text(
       LEFT JOIN life_expense.places p ON p.place_id = e.place_id
       LEFT JOIN life_expense.v_pending_entries_net vn ON vn.entry_id = e.entry_id
      -- 보낸 것은 지출로 넘어가 행이 따로 남는다. 함께 세면 그 달이 두 번
-     -- 세어져 모든 집계가 부푼다 — 화면이 부르던 /pending-entries도 같다.
+     -- 세어져 모든 집계가 부푼다. 화면이 부르던 /pending-entries도 같다.
      WHERE e.sended = 0
     """
 )
@@ -133,7 +133,7 @@ _정기SQL = text(
       FROM life_expense.scheduled_entries s
       LEFT JOIN life_expense.places p ON p.place_id = s.place_id
       LEFT JOIN life_expense.v_scheduled_entries_net vn ON vn.schedule_id = s.schedule_id
-     -- 쉬게 한 것은 빼야 한다. 화면이 부르던 /scheduled-entries도 그렇다 —
+     -- 쉬게 한 것은 빼야 한다. 화면이 부르던 /scheduled-entries도 그렇다.
      -- 감춘 정기가 집계에 끼면 쓰지도 않을 돈을 센다.
      WHERE s.is_active = 1
     """
@@ -179,7 +179,7 @@ def _달범위(ym: str) -> tuple[date, date]:
 
 
 def _줄(src: str, r: dict, 날칸: str, 열쇠칸: str) -> dict:
-    """세 갈래를 한 꼴로 맞춘다 — 화면의 달줄()이 하던 일이다."""
+    """세 갈래를 한 꼴로 맞춘다. 화면의 달줄()이 하던 일이다."""
     날 = str(r.get(날칸) or "")[:10]
     return {
         "key": f"{src}-{r[열쇠칸]}",
@@ -187,7 +187,7 @@ def _줄(src: str, r: dict, 날칸: str, 열쇠칸: str) -> dict:
         "date": 날,
         "day": int(날[8:10]) if len(날) == 10 else 0,
         "inout": r.get("inout"),
-        # net_amount가 0인 건이 있다 — N빵으로 전액을 돌려받으면 실지출이 0이다.
+        # net_amount가 0인 건이 있다. N빵으로 전액을 돌려받으면 실지출이 0이다.
         # or로 떨어뜨리면 0을 빈 값으로 보고 전체 금액을 쓴다(화면의 ??는 0을 그대로 쓴다).
         "net": float(r["net_amount"] if r.get("net_amount") is not None else (r.get("amount") or 0)),
         "amount": float(r.get("amount") or 0),
@@ -203,7 +203,7 @@ def _줄(src: str, r: dict, 날칸: str, 열쇠칸: str) -> dict:
 
 
 def 모으기(db, today: str) -> dict[str, Any]:
-    """셈에 쓸 것을 한 번에 읽는다."""
+    """계산에 쓸 것을 한 번에 읽는다."""
     달들 = _달들(today)
     부터, _ = _달범위(달들[0])
     _, 까지 = _달범위(달들[-1])
@@ -250,8 +250,8 @@ def 모으기(db, today: str) -> dict[str, Any]:
 
 # ── 거르기 ────────────────────────────────────────────────────
 #
-# 화면의 calendarFilter.ts와 같은 잣대다. 건에 손으로 정한 고정 · 변동이 가장
-# 앞이고, 없으면 소 · 세 분류를 따른다. 어디에도 없으면 변동이다.
+# 화면의 calendarFilter.ts와 같은 잣대다. 건에 손으로 정한 고정과 변동이 가장
+# 앞이고, 없으면 소와 세 분류를 따른다. 어디에도 없으면 변동이다.
 
 
 def _고정자리(분류2: list[dict], 분류3: list[dict]) -> tuple[set, set]:
@@ -266,22 +266,22 @@ def _고정인가(r: dict, 두: set, 세: set) -> bool:
     return r.get("cat2_id") in 두 or r.get("cat3_id") in 세
 
 
-def _든다(r: dict, 고른것: dict, 두: set, 세: set) -> bool:
+def _든다(r: dict, 선택한것: dict, 두: set, 세: set) -> bool:
     고정 = _고정인가(r, 두, 세)
     수입 = r.get("inout") == 1
     if 수입:
-        return 고른것["fixIn"] if 고정 else 고른것["varIn"]
-    return 고른것["fixOut"] if 고정 else 고른것["varOut"]
+        return 선택한것["fixIn"] if 고정 else 선택한것["varIn"]
+    return 선택한것["fixOut"] if 고정 else 선택한것["varOut"]
 
 
-def 거르기(모은것: dict, 고른것: dict) -> dict[str, Any]:
-    """셈에 쓸 꼴로 추린다 — 화면의 refine()이 하던 일이다."""
+def 거르기(모은것: dict, 선택한것: dict) -> dict[str, Any]:
+    """계산에 쓸 꼴로 추린다. 화면의 refine()이 하던 일이다."""
     두, 세 = _고정자리(모은것["분류2"], 모은것["분류3"])
     수입분류 = {c["id"] for c in 모은것["분류2"] if c.get("inout") == 1}
     today = 모은것["today"]
 
     def 지출만(r: dict) -> bool:
-        return r.get("inout") != 1 and r.get("cat2_id") not in 수입분류 and _든다(r, 고른것, 두, 세)
+        return r.get("inout") != 1 and r.get("cat2_id") not in 수입분류 and _든다(r, 선택한것, 두, 세)
 
     줄들 = [r for r in 모은것["줄들"] if 지출만(r)]
 
@@ -305,7 +305,7 @@ def 거르기(모은것: dict, 고른것: dict) -> dict[str, Any]:
             "cat3_id": x.get("cat3_id"),
             "fixed_flag": x.get("fixed_flag"),
         }
-        if _든다(한줄, 고른것, 두, 세):
+        if _든다(한줄, 선택한것, 두, 세):
             대기.append(한줄)
 
     한계 = _옮김(today, AHEAD_DAYS)
@@ -327,7 +327,7 @@ def 거르기(모은것: dict, 고른것: dict) -> dict[str, Any]:
             "cat3_id": x.get("cat3_id"),
             "fixed_flag": x.get("fixed_flag"),
         }
-        if 한줄["inout"] != 1 and 한줄["cat2_id"] not in 수입분류 and _든다(한줄, 고른것, 두, 세):
+        if 한줄["inout"] != 1 and 한줄["cat2_id"] not in 수입분류 and _든다(한줄, 선택한것, 두, 세):
             예고.append(한줄)
 
     이름1 = {c["id"]: c["name"] for c in 모은것["분류1"]}
@@ -417,7 +417,7 @@ def 세기(추린것: dict, 모은것: dict) -> list:
                 "key": "due-rest",
                 "level": "watch",
                 "link": "scheduled",
-                # 꼬리말에 첫날을 적는다. 날이 여럿이면 "부터"를 붙인다 —
+                # 꼬리말에 첫날을 적는다. 날이 여럿이면 "부터"를 붙인다.
                 # 어느 쪽으로 적을지는 화면이 여럿날을 보고 가른다.
                 "값": {
                     "건수": len(나머지),
@@ -595,7 +595,7 @@ def 세기(추린것: dict, 모은것: dict) -> list:
             }
         )
 
-    # ⑧ 분류별 목표 — 안쓴이 도전
+    # ⑧ 분류별 목표. 안쓴이 도전
     for g in 모은것["목표"]:
         if not _걸린달(g, 이번달):
             continue

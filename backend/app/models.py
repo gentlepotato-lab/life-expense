@@ -11,7 +11,7 @@ class CategoryL1(Base):
     cat1_name = Column(String, unique=True, nullable=False)
     emoji = Column(String(16))              # 묶음 머리말에 붙는 이모지
     sort_order = Column(Integer, default=0, nullable=True)
-    is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 고르는 목록에서 뺀다.
+    is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 선택하는 목록에서 뺀다.
     blur_flag = Column(SmallInteger, nullable=False, default=0)     # 1이면 금액을 덮는다.
 
 class CategoryL2(Base):
@@ -23,7 +23,7 @@ class CategoryL2(Base):
     sort_order = Column(Integer, default=0, nullable=True)
     blur_flag = Column(SmallInteger, default=0, nullable=False)
     inout = Column(SmallInteger, nullable=True)
-    is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 고르는 목록에서 뺀다.
+    is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 선택하는 목록에서 뺀다.
     fixed_flag = Column(SmallInteger, nullable=False, default=0)    # 1이면 고정, 0이면 변동.
 
 class CategoryL3(Base):
@@ -32,7 +32,7 @@ class CategoryL3(Base):
     cat3_name = Column(String, nullable=False)
     cat2_id = Column(Integer, ForeignKey("categories_lvl2.cat2_id"), nullable=False)
     sort_order = Column(Integer, default=0, nullable=True)
-    is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 고르는 목록에서 뺀다.
+    is_active = Column(SmallInteger, nullable=False, default=1)   # 0이면 선택하는 목록에서 뺀다.
     blur_flag = Column(SmallInteger, nullable=False, default=0)     # 1이면 금액을 덮는다.
     fixed_flag = Column(SmallInteger, nullable=False, default=0)    # 1이면 고정, 0이면 변동.
 
@@ -48,15 +48,15 @@ class PaymentMethod(Base):
 
 class EntryGroup(Base):
     """
-    묶음 — 따로 든 내역 여럿을 한 덩이로 본다.
+    묶음. 따로 든 내역 여럿을 한 덩이로 본다.
 
     쪼개기(N빵)와는 다르다. 쪼개기는 한 건 안을 나누고, 묶음은 독립된 건
     여럿을 하나로 모은다. 여행이나 행사처럼 날이 걸쳐 있고 분류도 제각각인
     지출을 한자리에서 보려는 것이다.
 
-    kind는 어느 화면의 내역을 묶었는지다. 지출과 대기와 정기는 표가 달라
-    한 묶음이 둘을 섞어 담지 않는다 — 섞으면 합계의 뜻이 흐려지고, 대기가
-    전송되는 순간 같은 건이 두 표에 걸친다.
+    kind는 어느 화면의 내역을 묶었는지다. 지출과 대기와 정기는 테이블이 달라
+    한 묶음이 둘을 섞어 담지 않는다. 섞으면 합계의 뜻이 흐려지고, 대기가
+    전송되는 순간 같은 건이 두 테이블에 걸친다.
     """
     __tablename__ = "entry_groups"
 
@@ -104,7 +104,7 @@ class Entry(Base):
     # place_lat = Column(Numeric(10,6), nullable=True)
     # place_lng = Column(Numeric(10,6), nullable=True)
     place_id = Column(Integer, ForeignKey("places.place_id"), nullable=True)
-    # 1이면 카드 실적에서 뺀다. 상품권 · 세금처럼 카드로 긋고도 실적으로
+    # 1이면 카드 실적에서 뺀다. 상품권과 세금처럼 카드로 긋고도 실적으로
     # 쳐 주지 않는 건이 있다. 갈래가 아니라 건마다 정한다.
     perf_exclude = Column(SmallInteger, nullable=False, server_default="0", default=0)
     # 비면 분류를 따른다. 손으로 바꾸면 그 건에만 남는다.
@@ -251,7 +251,7 @@ class Holiday(Base):
 
 class ScheduledEntry(Base):
     __tablename__ = "scheduled_entries"
-    # 스케줄러가 매분 next_run_at으로 고른다.
+    # 스케줄러가 매분 next_run_at으로 선택한다.
     __table_args__ = (
         Index("ix_scheduled_next_run", "next_run_at"),
         Index("ix_scheduled_group", "group_id"),
@@ -277,7 +277,7 @@ class ScheduledEntry(Base):
     # 이번 한 번만 건너뛸 달 'YYYYMM'. 쓰고 나면 지워진다.
     skip_ym = Column(String(6), nullable=True)
 
-    # 다음 실행 일시. 비어 있으면 더 오지 않는다 — 끝났거나 끈 것이다.
+    # 다음 실행 일시. 비어 있으면 더 오지 않는다. 끝났거나 끈 것이다.
     next_run_at = Column(DateTime, nullable=True)
 
     # 지출 내역 정보
@@ -492,7 +492,7 @@ class CardBenefit(Base):
     """
     구간 하나가 주는 혜택 한 줄.
 
-    content는 항목 이름, description은 그 밑에 적는 설명이다 —
+    content는 항목 이름, description은 그 밑에 적는 설명이다.
     "커피 할인" 만으로는 어느 가게에서 얼마인지가 남지 않는다.
     """
     __tablename__ = "card_benefits"
@@ -511,9 +511,9 @@ class CardBenefitTarget(Base):
     """
     혜택 하나가 걸리는 대상.
 
-    "디지털 구독 할인" 아래에 OTT → 넷플릭스·유튜브프리미엄, 음원 → 멜론·지니
+    "디지털 구독 할인" 아래에 OTT → 넷플릭스와 유튜브프리미엄, 음원 → 멜론과 지니
     처럼 영역과 그 영역에서 걸리는 것이 짝으로 붙는다. detail은 가맹점만이
-    아니라 요금 종류나 결제 방식까지 담는다 — `아파트 관리비, 도시가스`처럼.
+    아니라 요금 종류나 결제 방식까지 담는다. `아파트 관리비, 도시가스`처럼.
     영역 구분이 없는 혜택도 있어 area는 비울 수 있다.
     """
     __tablename__ = "card_benefit_targets"
@@ -528,11 +528,11 @@ class CardBenefitTarget(Base):
 
 class CategoryGoal(Base):
     """
-    분류별 목표 금액 — "안쓴이 도전".
+    분류별 목표 금액. "안쓴이 도전".
 
-    지출에 거는 목표라 덜 쓰면 이기는 것이다. 중·소·세 어느 단에나
+    지출에 거는 목표라 덜 쓰면 이기는 것이다. 중, 소, 세 어느 단에나
     걸 수 있고, 채운 것 중 가장 깊은 단이 그 목표의 대상이다.
-    겹쳐 걸어도 된다 — 그때는 서로 나누지 않고 저마다 제 가지 아래를 통째로 센다.
+    겹쳐 걸어도 된다. 그때는 서로 나누지 않고 저마다 제 가지 아래를 통째로 센다.
     """
     __tablename__ = "category_goals"
 
@@ -541,7 +541,7 @@ class CategoryGoal(Base):
     cat2_id = Column(Integer, ForeignKey("categories_lvl2.cat2_id", ondelete="CASCADE"))
     cat3_id = Column(Integer, ForeignKey("categories_lvl3.cat3_id", ondelete="CASCADE"))
     amount = Column(Numeric(14, 2), nullable=False)
-    # 왜 이 목표를 걸었는지 — 금액만으로는 남지 않는다.
+    # 왜 이 목표를 걸었는지. 금액만으로는 남지 않는다.
     memo = Column(String(200))
     sort_order = Column(Integer, nullable=False, default=0)
     created_at = Column(TIMESTAMP, server_default=func.now())
@@ -549,10 +549,10 @@ class CategoryGoal(Base):
 
 class ChartCard(Base):
     """
-    씀씀이 화면의 그림 카드 — 차례와 켜짐.
+    씀씀이 화면의 그림 카드. 차례와 켜짐.
 
-    그림 자체는 코드가 들고 있고 표에는 열쇠와 차례만 담는다. 그래야 그림을
-    새로 만들거나 고쳐도 표를 건드릴 일이 없다.
+    그림 자체는 코드가 들고 있고 테이블에는 열쇠와 차례만 담는다. 그래야 그림을
+    새로 만들거나 고쳐도 테이블을 건드릴 일이 없다.
     """
     __tablename__ = "chart_cards"
 
@@ -566,9 +566,9 @@ class ChartCard(Base):
 
 class Profile(Base):
     """
-    돈쓴이 — 쓰는 사람.
+    돈쓴이. 쓰는 사람.
 
-    지금은 혼자 쓰는 앱이라 줄이 하나뿐이다. 그래도 칸은 바깥 인증(구글·카카오)이
+    지금은 혼자 쓰는 앱이라 로우가 하나뿐이다. 그래도 컬럼은 바깥 인증(구글과 카카오)이
     돌려주는 것에 맞췄다. provider가 비어 있으면 손으로 적어 넣은 것이다.
     """
     __tablename__ = "profile"
@@ -590,7 +590,7 @@ class AppPref(Base):
     앱을 어떻게 볼지.
 
     화면마다 흩어져 매번 다시 눌러야 하던 것들을 한자리에 모은다.
-    값은 모두 글자로 담는다 — 하나 더 늘려도 표를 고칠 일이 없다.
+    값은 모두 글자로 담는다. 하나 더 늘려도 테이블을 고칠 일이 없다.
     """
     __tablename__ = "app_prefs"
 
@@ -603,15 +603,15 @@ class SitePref(Base):
     """
     운영하는 사람의 설정.
 
-    AppPref와 칸을 똑같이 맞춘다. 둘이 같은 꼴이어야 "쓰는 사람의 설정"과
+    AppPref와 컬럼을 똑같이 맞춘다. 둘이 같은 꼴이어야 "쓰는 사람의 설정"과
     "운영하는 사람의 설정"을 같은 코드로 다룰 수 있다. 받는 열쇠는 라우터가
-    SITE_KEYS로 가려 받는다 — 거기 없는 열쇠는 들어오지 않는다.
+    SITE_KEYS로 가려 받는다. 거기 없는 열쇠는 들어오지 않는다.
     """
     __tablename__ = "site_prefs"
 
     pref_key = Column(String(40), primary_key=True)
     pref_value = Column(String(200), nullable=False)
-    # 나중에 여럿이 될 때 자료를 옮기지 않으려고 미리 만든 칸이다.
+    # 나중에 여럿이 될 때 자료를 옮기지 않으려고 미리 만든 컬럼이다.
     user_id = Column(Integer, nullable=False, default=1)
     updated_at = Column(TIMESTAMP, server_default=func.now())
 
@@ -667,7 +667,7 @@ class ActionLog(Base):
     통계 넷이 이 하나에서 나온다. kind는 view(화면별 드나든 수),
     feature(기능별 쓰임), error(오류와 느린 요청) 셋이다.
 
-    적고 고친 건수는 적지 않는다 — entries에 날짜 칸이 있어 거기서 셈하면
+    적고 고친 건수는 적지 않는다. entries에 날짜 컬럼이 있어 거기서 계산하면
     되고, 그래야 지난 것까지 소급해서 보인다.
 
     90일이 지난 줄은 월례 청소가 지운다(app/scheduler/cleanup_job.py).

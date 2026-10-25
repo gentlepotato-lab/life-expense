@@ -4,7 +4,7 @@ import type { EntryGroup } from "../../utils/groups";
 /**
  * 묶음 한 덩이의 머리말.
  *
- * 누르는 법이 내역 카드와 같다 — 그냥 누르면 펼쳐지고 접히고, 꾹 누르면
+ * 누르는 법이 내역 카드와 같다. 그냥 누르면 펼쳐지고 접히고, 꾹 누르면
  * 묶음 팝업이 열린다. 날짜 단 머리말이 눌러서 접히는 자리였으므로 그 손버릇을
  * 그대로 두고, 더 들어가는 일만 꾹 누르기로 받는다.
  *
@@ -72,7 +72,7 @@ export default function GroupHead({
         ✓
       </button>
 
-      {/* 이름은 네모난 딱지에 담는다. 앞에 클립을 세웠는데 걷었다 —
+      {/* 이름은 네모난 딱지에 담는다. 앞에 클립을 세웠는데 걷었다.
           카드마다 클립이 이미 서 있어 머리말까지 같은 그림을 두면 한 화면에
           클립이 여럿 선다. */}
       <span className="date-group__label">{group.name}</span>
@@ -80,7 +80,7 @@ export default function GroupHead({
         {group.count}
       </span>
       {/* 합계는 접든 펼치든 적는다. 펼치면 날짜 단마다 그날 합계가 서지만
-          그것들은 하루치일 뿐이라, 묶음 전체의 셈은 여기 말고는 적힐 데가
+          그것들은 하루치일 뿐이라, 묶음 전체의 계산은 여기 말고는 적힐 데가
           없다. 날이 여럿인 묶음일수록 더 그렇다. */}
       <span className="date-group__meta">
         <span className={`date-group__sum ${부호}`}>

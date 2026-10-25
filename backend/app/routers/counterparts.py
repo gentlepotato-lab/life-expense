@@ -112,7 +112,7 @@ def delete_counterpart(counterpart_id: int, db: SessionDep = Depends()):
     if not row:
         raise HTTPException(status_code=404, detail="counterpart not found")
 
-    # 지출 분할만 보면 모자란다. 아직 나가지 않은 대기 · 정기 분할에서만
+    # 지출 분할만 보면 모자란다. 아직 나가지 않은 대기와 정기 분할에서만
     # 쓰이고 있어도 지우면 누구와 나눴는지가 사라진다. 셋을 함께 센다.
     used = (
         db.query(EntrySplit).filter(EntrySplit.counterpart_id == counterpart_id).count()
@@ -134,10 +134,10 @@ def delete_counterpart(counterpart_id: int, db: SessionDep = Depends()):
 
 
 # ═══════════════════════════════════════════════════════════════
-# 구분(분류) — 사용자가 늘릴 수 있다.
+# 구분(분류). 사용자가 늘릴 수 있다.
 # ═══════════════════════════════════════════════════════════════
 
-# 아바타·점에 쓰는 색. 화면(colorPalette.ts)과 같은 순서로 맞춘다.
+# 아바타와 점에 쓰는 색. 화면(colorPalette.ts)과 같은 순서로 맞춘다.
 PALETTE = [
     "indigo", "teal", "amber", "rose", "violet",
     "sky", "lime", "orange", "cyan", "slate",
@@ -145,7 +145,7 @@ PALETTE = [
 
 
 def _next_color(db) -> str:
-    """아직 쓰이지 않은 색을 앞에서부터 고른다. 다 쓰면 처음으로 돌아간다."""
+    """아직 쓰이지 않은 색을 앞에서부터 선택한다. 다 쓰면 처음으로 돌아간다."""
     used = {c.color for c in db.query(CounterpartCategory).all() if c.color}
     for c in PALETTE:
         if c not in used:
@@ -168,7 +168,7 @@ def list_categories(db: SessionDep = Depends()):
 def create_category(payload: dict, db: SessionDep = Depends()):
     """
     구분을 새로 만든다. 색은 비어 있으면 아직 안 쓰인 것으로 자동 배정한다.
-    대부분은 색을 고를 일 없이 이름만 적으면 된다.
+    대부분은 색을 선택할 일 없이 이름만 적으면 된다.
     """
     name = (payload.get("name") or "").strip()
     if not name:
@@ -201,7 +201,7 @@ def create_category(payload: dict, db: SessionDep = Depends()):
 
 @router.post("/categories/save")
 def save_categories(payload: list[dict], db: SessionDep = Depends()):
-    """이모지·색·순서를 한 번에 반영한다."""
+    """이모지, 색, 순서를 한 번에 반영한다."""
     for i, item in enumerate(payload):
         row = (
             db.query(CounterpartCategory)

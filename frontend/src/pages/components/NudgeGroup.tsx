@@ -4,7 +4,7 @@ import useRevealDrag from "../../hooks/useRevealDrag";
 import type { Nudge } from "../../utils/nudges";
 
 /**
- * 잔소리 한 묶음 — 이름표와 그 아래 줄들.
+ * 잔소리 한 묶음. 이름표와 그 아래 줄들.
  *
  * 잔소리 화면과 종 단추 팝업이 같은 모습이어야 해서 여기 한 벌만 둔다.
  * 화면 쪽은 이것을 그림 칸(.chart-card)으로 감싸고, 팝업은 그대로 쓴다.
@@ -25,7 +25,7 @@ export default function NudgeGroup({
     <>
       <header className="chart-card__head nudge-head">
         <h3 className="chart-card__title">{title}</h3>
-        {/* 항목 수는 내역 · 분류와 같은 알약으로. 숫자만 적는다. */}
+        {/* 항목 수는 내역과 분류와 같은 알약으로. 숫자만 적는다. */}
         <span className="nudge-count" title={`${list.length}가지`}>
           {list.length}
         </span>
@@ -41,7 +41,7 @@ export default function NudgeGroup({
 
 /** 한 줄. 왼쪽 색 막대는 내역 카드가 쓰던 어법 그대로다. */
 function NudgeLine({ nudge, onPick }: { nudge: Nudge; onPick?: (n: Nudge) => void }) {
-  /* 가린 갈래가 섞이면 테이프를 붙인다. 옆으로 끌면 잠깐 걷힌다 —
+  /* 가린 갈래가 섞이면 테이프를 붙인다. 옆으로 끌면 잠깐 걷힌다.
      내역 카드의 금액과 같은 손놀림이다. */
   const [revealed, setRevealed] = useState(false);
   const onDrag = useRevealDrag(setRevealed);

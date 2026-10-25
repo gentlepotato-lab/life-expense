@@ -1,7 +1,7 @@
 /**
  * 빛깔 일곱 벌.
  *
- * 앱의 색은 그동안 네 군데에 흩어져 있었다 — :root 토큰, 씀씀이 그림의 다섯
+ * 앱의 색은 그동안 네 군데에 흩어져 있었다. :root 토큰, 씀씀이 그림의 다섯
  * 조각, 구분에 쓰는 열 가지, 첫 화면 그림. 벌째로 갈아 끼우려면 넷을 한자리에
  * 모아야 한다. 여기가 그 한자리다.
  *
@@ -57,7 +57,7 @@ export type Palette = {
    *
    * 짙은 벌은 어두운 바탕에서 제 색을 잃는다. 숯빛의 단추(#2F3033)는 달빛
    * 칸의 카드 바탕(#404755)보다 어두워, 펜도 사람도 아래 이동 막대 글씨도
-   * 묻혀 버린다. 그런 자리만 골라 한 단 띄운다.
+   * 묻혀 버린다. 그런 자리만 선택해 한 단 띄운다.
    */
   dark?: {
     primary?: string;
@@ -70,7 +70,7 @@ export type Palette = {
 };
 
 export const PALETTES: Palette[] = [
-  /* 쪽빛 — 처음부터 써 온 빛깔. 값이 :root에 적힌 것과 한 톨도 다르지 않다. */
+  /* 쪽빛. 처음부터 써 온 빛깔. 값이 :root에 적힌 것과 한 톨도 다르지 않다. */
   {
     key: "jjok",
     label: "쪽빛",
@@ -96,7 +96,7 @@ export const PALETTES: Palette[] = [
     dark: { primary: "#7B7FF5", primaryDark: "#6A6EF2", artInk: "#8A8DF7" },
   },
 
-  /* 황토 — 찬 빛을 한 점도 쓰지 않는다. 구운 흙과 마른 이끼와 겨자. */
+  /* 황토. 찬 빛을 한 점도 쓰지 않는다. 구운 흙과 마른 이끼와 겨자. */
   {
     key: "hwangto",
     label: "황토",
@@ -121,7 +121,7 @@ export const PALETTES: Palette[] = [
     dark: { primary: "#C08A5E", primaryDark: "#AE7A4F", artInk: "#C89A70" },
   },
 
-  /* 먹빛 — 단추를 가라앉히고 빛깔은 숫자에만 준다. 장부는 조용하고 셈만 선다. */
+  /* 먹빛. 단추를 가라앉히고 빛깔은 숫자에만 준다. 장부는 조용하고 계산만 선다. */
   {
     key: "meok",
     label: "먹빛",
@@ -148,7 +148,7 @@ export const PALETTES: Palette[] = [
             chart: [{ at: 3, color: "#8DA3C0" }], cats: [{ at: 0, color: "#8DA3C0" }] },
   },
 
-  /* 숯빛 — 단추를 거의 무채색까지 떨어뜨리고 숫자만 채도를 끝까지 올린다. */
+  /* 숯빛. 단추를 거의 무채색까지 떨어뜨리고 숫자만 채도를 끝까지 올린다. */
   {
     key: "sut",
     label: "숯빛",
@@ -175,7 +175,7 @@ export const PALETTES: Palette[] = [
             chart: [{ at: 3, color: "#C6CBD2" }], cats: [{ at: 0, color: "#C6CBD2" }] },
   },
 
-  /* 포도 — 붉은 기 도는 보라라 쪽빛의 남보라와는 결이 다르다. */
+  /* 포도. 붉은 기 도는 보라라 쪽빛의 남보라와는 결이 다르다. */
   {
     key: "podo",
     label: "포도",
@@ -201,7 +201,7 @@ export const PALETTES: Palette[] = [
             chart: [{ at: 3, color: "#B57FA4" }], cats: [{ at: 0, color: "#B57FA4" }] },
   },
 
-  /* 크레용 — 섞지 않은 원색만 쓴다. 채도를 낮추지 않아 화면이 쨍하다. */
+  /* 크레용. 섞지 않은 원색만 쓴다. 채도를 낮추지 않아 화면이 쨍하다. */
   {
     key: "crayon",
     label: "크레용",
@@ -225,11 +225,11 @@ export const PALETTES: Palette[] = [
     art: { ink: "#1E5FD8", aqua: "#00A84F", tint: "#BDD0F2" },
     dark: { primary: "#5B90F0", primaryDark: "#4A7EDC", artInk: "#6D9CF3" },
   },
-  /* 바다 — 청록을 으뜸으로 세운 한 벌. 여섯 벌 가운데 초록빛 계열을 단추에
+  /* 바다. 청록을 으뜸으로 세운 한 벌. 여섯 벌 가운데 초록빛 계열을 단추에
      올린 것이 없었고, 바다 쪽 청록도 비어 있었다.
 
-     씀씀이 다섯 조각은 눈으로 고르지 않고 검사기에 걸었다(docs/palette-shots.md).
-     밝기 띠·채도 바닥·색각 이상에서의 이웃 구분을 모두 통과했고, 보통 눈으로
+     씀씀이 다섯 조각은 눈으로 선택하지 않고 검사기에 걸었다(docs/palette-shots.md).
+     밝기 띠, 채도 바닥, 색각 이상에서의 이웃 구분을 모두 통과했고, 보통 눈으로
      가장 가까운 이웃도 ΔE 25다. 청록과 초록을 나란히 두었더니 보통 눈에서도
      ΔE 11까지 떨어져 초록을 빼고 자개빛과 물풀빛으로 갈라 놓았다. */
   {
@@ -261,7 +261,7 @@ export const PALETTES: Palette[] = [
   },
 ];
 
-/** 고르지 않았을 때 쓰는 것 — 처음부터 써 온 쪽빛이다. */
+/** 선택하지 않았을 때 쓰는 것. 처음부터 써 온 쪽빛이다. */
 export const DEFAULT_PALETTE = "jjok";
 
 const BY_KEY = new Map(PALETTES.map((p) => [p.key, p]));
@@ -269,9 +269,9 @@ const BY_KEY = new Map(PALETTES.map((p) => [p.key, p]));
 /**
  * 조각과 알약에 찍을 대표색.
  *
- * 벌을 고르는 자리는 아직 그 벌로 서 있지 않다. 어두운 칸에 서 있다면 고르면
+ * 벌을 선택하는 자리는 아직 그 벌로 서 있지 않다. 어두운 칸에 서 있다면 선택하면
  * 나올 색, 곧 어두운 쪽 값을 보여 주어야 한다. 밝은 쪽 값을 그대로 찍으면
- * 짙은 벌은 점이 바탕에 묻혀 무엇을 고르는지 알 수 없다.
+ * 짙은 벌은 점이 바탕에 묻혀 무엇을 선택하는지 알 수 없다.
  */
 export const swatchOf = (p: Palette, dark: boolean): Tone =>
   dark && p.dark

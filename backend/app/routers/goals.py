@@ -45,7 +45,7 @@ def list_goals(db: SessionDep = Depends()):
         "start_ym": r["start_ym"],
         "end_ym": r["end_ym"],
         "sort_order": r["sort_order"],
-        # "식비 > 점심" — 비어 있는 단은 건너뛴다.
+        # "식비 > 점심". 비어 있는 단은 건너뛴다.
         "path": " > ".join(
             x for x in (r["cat1_name"], r["cat2_name"], r["cat3_name"]) if x
         ),
@@ -54,7 +54,7 @@ def list_goals(db: SessionDep = Depends()):
 
 
 def _target(payload: dict) -> tuple[int, int | None, int | None]:
-    """고른 분류를(중, 소, 세)로 갈라 낸다. 위 단을 건너뛴 것은 받지 않는다."""
+    """선택한 분류를(중, 소, 세)로 갈라 낸다. 위 단을 건너뛴 것은 받지 않는다."""
     def num(key: str) -> int | None:
         raw = payload.get(key)
         if raw in (None, "", 0):
@@ -63,9 +63,9 @@ def _target(payload: dict) -> tuple[int, int | None, int | None]:
 
     cat1, cat2, cat3 = num("cat1_id"), num("cat2_id"), num("cat3_id")
     if cat1 is None:
-        raise HTTPException(status_code=400, detail="중분류를 골라 주세요.")
+        raise HTTPException(status_code=400, detail="중분류를 선택해 주세요.")
     if cat3 is not None and cat2 is None:
-        raise HTTPException(status_code=400, detail="세분류만 고를 수는 없습니다.")
+        raise HTTPException(status_code=400, detail="세분류만 선택할 수는 없습니다.")
     return cat1, cat2, cat3
 
 
@@ -149,7 +149,7 @@ def add_goal(payload: dict, db: SessionDep = Depends()):
 
 @router.post("/{goal_id}/amount")
 def save_amount(goal_id: int, payload: dict, db: SessionDep = Depends()):
-    """금액만 고친다 — 칸을 떠날 때 그 줄만 저장한다."""
+    """금액만 고친다. 칸을 떠날 때 그 줄만 저장한다."""
     amount = _amount(payload)
     try:
         done = db.execute(text("""
@@ -172,14 +172,14 @@ def save_amount(goal_id: int, payload: dict, db: SessionDep = Depends()):
 @router.post("/{goal_id}/start")
 def save_start(goal_id: int, payload: dict, db: SessionDep = Depends()):
     """
-    언제부터 언제까지 센 도전인지를 고친다 — 금액 · 한마디와 같은 방식이다.
+    언제부터 언제까지 센 도전인지를 고친다. 금액과 한마디와 같은 방식이다.
 
     둘을 한 번에 담는다. 따로 보내면 "끝이 시작보다 앞설 수 없다"는 규칙에
     먼저 닿은 쪽이 걸려, 두 칸을 함께 옮기는 일이 되지 않는다.
     """
     start = _start_ym(payload)
     if start is None:
-        raise HTTPException(status_code=400, detail="시작 연월을 골라 주세요.")
+        raise HTTPException(status_code=400, detail="시작 연월을 선택해 주세요.")
     end = _end_ym(payload)
     if end is not None and end < start:
         raise HTTPException(status_code=400, detail="종료 연월이 시작 연월보다 앞섭니다.")
@@ -204,7 +204,7 @@ def save_start(goal_id: int, payload: dict, db: SessionDep = Depends()):
 
 @router.post("/{goal_id}/memo")
 def save_memo(goal_id: int, payload: dict, db: SessionDep = Depends()):
-    """한마디만 고친다 — 금액과 같은 방식으로, 칸을 떠날 때 그 줄만 저장한다."""
+    """한마디만 고친다. 금액과 같은 방식으로, 칸을 떠날 때 그 줄만 저장한다."""
     memo = (payload.get("memo") or "").strip() or None
     try:
         done = db.execute(text("""

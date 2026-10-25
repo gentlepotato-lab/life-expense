@@ -28,7 +28,7 @@ function subTabsFor(pathname: string): string[] | null {
   if (ENTRY_TABS.includes(pathname)) return keepOn(ENTRY_TABS);
   if (SETTING_TABS.includes(pathname)) return keepOn(SETTING_TABS);
   /* 홈 탭에서 알약으로 묶는 셋(utils/pageTitles.ts의 HOME_PILL_TABS). 홈
-     자신과 나머지 쪽에는 두지 않는다 — 탭 첫 쪽은 카드로 들어가는 자리이고,
+     자신과 나머지 쪽에는 두지 않는다. 탭 첫 쪽은 카드로 들어가는 자리이고,
      내역과 설정도 그 첫 쪽(/history, /settings)에는 알약이 없다. */
   if (HOME_PILL_TABS.includes(pathname)) return keepOn(HOME_PILL_TABS);
   return null;
@@ -64,12 +64,12 @@ export default function PageHead() {
   const tabKey = PARENT[pathname] ?? pathname;
   const subs = subTabsFor(tabKey);
   const index = subs ? subs.indexOf(tabKey) : -1;
-  /* 갈래 탭이 선 화면에서도 둔다 — 제목과 탭 사이에 끼어 선다. */
+  /* 갈래 탭이 선 화면에서도 둔다. 제목과 탭 사이에 끼어 선다. */
   const note = PAGE_NOTE[pathname];
 
   useEffect(() => {
     /* 관리자 쪽 제목은 그쪽이 쥔다(pages/Admin.tsx). 여기서도 적으면 자리를
-       옮길 때마다 창 제목이 「돈을 쓰다 · 돈을 쓰다」로 덮였다. 훅은 조건
+       옮길 때마다 창 제목이 「돈을 쓰다와 돈을 쓰다」로 덮였다. 훅은 조건
        없이 돌려야 하므로 안에서 가른다. */
     if (관리자길(pathname)) return;
     /* 쪽 이름은 적지 않는다. 탭에 보이는 자리가 좁아 앞의 몇 글자만 뜨는데,
@@ -96,7 +96,7 @@ export default function PageHead() {
       </div>
 
       {/* 만년필 자국이 서는 줄. 안내 글이 쪽지로 들어가면서 글은 빠졌고 줄의
-          자리와 키는 그대로다. 비운 자리의 절반을 자국이 쓴다 — 오른쪽 끝은
+          자리와 키는 그대로다. 비운 자리의 절반을 자국이 쓴다. 오른쪽 끝은
           홈의 반쪽 카드(.home-card--half)와 같은 세로줄에 선다. */}
       {note && (
         <div className="page-doodle-row">
@@ -108,14 +108,14 @@ export default function PageHead() {
         <div
           className="subtabs"
           role="tablist"
-          /* 갈래 수가 화면마다 다르다(내역 4개 · 설정 3개).
+          /* 갈래 수가 화면마다 다르다(내역 4개와 설정 3개).
              알약 폭을 여기서 알려 줘야 CSS가 맞춰 자를 수 있다. */
           style={{ "--tab-n": subs.length } as React.CSSProperties}
         >
           {/* 켜진 갈래를 덮는 알약 하나. 자리만 옮기므로 미끄러진다. */}
           <span
             className="subtabs__thumb"
-            /* 3D로 적으면 어느 기기에서나 합성기가 맡는다 — 본줄기가 막혀도 미끄러진다. */
+            /* 3D로 적으면 어느 기기에서나 합성기가 맡는다. 본줄기가 막혀도 미끄러진다. */
             style={{ transform: `translate3d(${index * 100}%, 0, 0)` }}
             aria-hidden="true"
           />

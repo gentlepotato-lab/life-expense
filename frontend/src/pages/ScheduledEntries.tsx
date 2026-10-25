@@ -33,7 +33,7 @@ import GrowArea from "./components/GrowArea";
 import { groupByDate } from "../utils/dateGroup";
 import { apiErrorMessage } from "../utils/apiError";
 import { say, ask } from "../utils/notify";
-import { 골라제거 } from "../utils/bulkDelete";
+import { 선택제거 } from "../utils/bulkDelete";
 import {
   INTERVAL_OPTIONS,
   HOLIDAY_OPTIONS,
@@ -42,11 +42,11 @@ import {
   ymNow,
 } from "../utils/schedule";
 
-/* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
+/* 실적 제외를 켜고 끌 때 손대는 줄. 그 일에 쓰는 두 칸만 본다.
    카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
 type PerfRow = { schedule_id: number; perf_exclude?: number | null };
 
-/** 고정 · 변동을 뒤집을 때 필요한 것만 */
+/** 고정과 변동을 뒤집을 때 필요한 것만 */
 type FixedRow = { schedule_id: number; fixed_flag?: number | null };
 
 
@@ -55,7 +55,7 @@ export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?
 
 /**
  * 다음 예정일시는 서버가 next_run_at에 들고 있다(scheduled_entries.next_run_at).
- * 예전에는 화면에서도 같은 셈을 따로 했는데, 두 셈이 어긋나면 "보이는 날짜"와
+ * 예전에는 화면에서도 같은 계산을 따로 했는데, 두 계산이 어긋나면 "보이는 날짜"와
  * "실제로 대기 내역으로 옮겨지는 시점"이 달라진다. 그래서 화면 계산은 걷어 내고
  * 서버 값 하나만 쓴다.
  *
@@ -67,7 +67,7 @@ export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?
  * `말일`을 가리키는 day_of_month 값. 서버의 LAST_DAY와 같은 값이다.
  *
  * 달마다 끝 날이 달라 하나의 숫자로는 적을 수 없어, 1~31 바깥의 값을 하나
- * 정하고 서버가 셈할 때 그 달의 끝 날로 바꿔 쓴다.
+ * 정하고 서버가 계산할 때 그 달의 끝 날로 바꿔 쓴다.
  */
 const LAST_DAY = 32;
 
@@ -81,8 +81,8 @@ function dayLabel(day: number | string | null | undefined): string {
  * 카드와 팝업 머리말에 적는 "언제 오는가" 한 마디.
  *
  * 매월이면 지금까지처럼 "매월 15일"이다. 해에 한 번 오는 것은 몇 월인지가
- * 곧 그 스케줄의 얼굴이라 달까지 적는다 — "매년 6월 25일". 그 사이(격월 ·
- * 분기 · 반년)는 달이 번갈아 바뀌므로 한 달을 집어 적을 수 없다.
+ * 곧 그 스케줄의 얼굴이라 달까지 적는다. "매년 6월 25일". 그 사이(격월,
+ * 분기, 반년)는 달이 번갈아 바뀌므로 한 달을 집어 적을 수 없다.
  */
 function whenLabel(
   interval: number | string | null | undefined,
@@ -100,8 +100,8 @@ function whenLabel(
  * 건너뛰기를 켤 때 건너뛸 달.
  *
  * "이번 한 번"은 다가오는 회차를 뜻하므로 next_run_at이 든 달이다. 다 끝나
- * 비어 있는 스케줄이면 건너뛸 회차도 없으니 이 달로 떨어뜨린다 — 그 경우
- * 켜도 셈에 걸리는 것이 없어 해가 없다.
+ * 비어 있는 스케줄이면 건너뛸 회차도 없으니 이 달로 떨어뜨린다. 그 경우
+ * 켜도 계산에 걸리는 것이 없어 해가 없다.
  */
 function skipTarget(s: { next_run_at?: string | null }): string {
   const d = parseLocal(s.next_run_at);
@@ -140,8 +140,8 @@ export default function ScheduledEntries() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);  // 폼 표시 여부
-  /* 감춘 항목까지 볼지. 분류 · 결제 수단과 같은 자리 · 같은 말이다.
-     화면에만 두고 담지 않는다 — 그 화면들과 같은 짜임이다. */
+  /* 감춘 항목까지 볼지. 분류, 결제 수단과 같은 자리, 같은 말이다.
+     화면에만 두고 담지 않는다. 그 화면들과 같은 짜임이다. */
   const [showHidden, setShowHidden] = useState(false);
   const [form, setForm] = useState(() => emptyForm());
 
@@ -156,17 +156,17 @@ export default function ScheduledEntries() {
   const [cat2Map, setCat2Map] = useState<Record<number, CategoryL2Meta>>({});
   const [cat3Map, setCat3Map] = useState<Record<number, CategoryL3Meta>>({});
 
-  // 편집 팝업 상태 — 카드를 꾹 누르면 열린다.
+  // 편집 팝업 상태. 카드를 꾹 누르면 열린다.
   const [draft, setDraft] = useState<any | null>(null);
   const [splits, setSplits] = useState<SplitDraft[]>([]);
   /* 아직 없는 스케줄의 몫. 만들고 나서 schedule_id를 받아야 붙일 수 있어
      그때까지 화면이 들고 있는다. */
   const [formSplits, setFormSplits] = useState<SplitDraft[]>([]);
 
-  // 장소 선택 — 편집 팝업(draft)과 신규 등록 폼(form) 중 어디에 반영할지
+  // 장소 선택. 편집 팝업(draft)과 신규 등록 폼(form) 중 어디에 반영할지
   const [placePickerFor, setPlacePickerFor] = useState<"draft" | "form" | null>(null);
 
-  /* 뒤로 가기 · Backspace로 지금 열린 것만 닫는다. */
+  /* 뒤로 가기, Backspace로 지금 열린 것만 닫는다. */
   useBackClose(showForm, () => setShowForm(false));
 
   /* 폼을 닫고 적던 값을 비운다. 바깥을 눌러 닫을 때와 [닫기]가 같게 움직인다. */
@@ -187,7 +187,7 @@ export default function ScheduledEntries() {
   useEffect(() => {
     if (showForm || draft || placePickerFor) {
       document.documentElement.classList.add("modal-open");
-      // showForm일 때만 pointerEvents 설정(쓰기·계산기 팝업은 QuickActions가 따로 맡는다)
+      // showForm일 때만 pointerEvents 설정(쓰기와 계산기 팝업은 QuickActions가 따로 맡는다)
       if (showForm) {
         document.body.style.pointerEvents = "none";
       }
@@ -204,7 +204,7 @@ export default function ScheduledEntries() {
 
   /**
    * 저장 직전에 place_id를 확정한다.
-   * 새로 고른 카카오 장소는 아직 DB에 없으므로 먼저 등록하고 발급된 id를 쓴다.
+   * 새로 선택한 카카오 장소는 아직 DB에 없으므로 먼저 등록하고 발급된 id를 쓴다.
    * (백엔드가 kakao_id로 중복을 걸러 준다)
    */
   const ensurePlaceId = async (picked: any, currentId: any) => {
@@ -227,7 +227,7 @@ export default function ScheduledEntries() {
     return res.data.place_id;
   };
 
-  /* 휴일 표를 내려받던 자리. 화면이 예정일시를 스스로 셈할 때만 필요했다.
+  /* 휴일 표를 내려받던 자리. 화면이 예정일시를 스스로 계산할 때만 필요했다.
      지금은 서버가 계산해 next_run_at에 담아 주므로 받을 이유가 없다. */
 
   // 메타데이터 로드
@@ -251,7 +251,7 @@ export default function ScheduledEntries() {
             is_active: p.is_active,
             /* 카드인 줄에만 실적 제외 기호가 선다. */
             category: p.category,
-            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다.
+            /* 이모지는 결제 수단이 아니라 그 구분(카드와 계좌 등)에 붙는다.
                같은 구분에 든 수단끼리는 같은 이모지가 선다. */
             emoji: p.category_emoji ?? null,
           }))
@@ -368,11 +368,11 @@ export default function ScheduledEntries() {
     __dirty: false,
   });
 
-  /* 카드 실적에서 뺄지 — 기호를 누르는 즉시 담는다. 여기서 켜면 이
+  /* 카드 실적에서 뺄지. 기호를 누르는 즉시 담는다. 여기서 켜면 이
      스케줄이 대기 내역으로 나갈 때마다 표가 따라간다. 목록을 다시 읽지 않고
      그 줄만 갈아 끼우고, 담기지 않으면 되돌린다. */
   const togglePerfExclude = async (row: PerfRow, next: boolean) => {
-    /* 고정 · 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
+    /* 고정과 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
        그쪽과 같이 한 번 묻는다. */
     if (
       !(await ask({
@@ -399,11 +399,11 @@ export default function ScheduledEntries() {
     }
   };
 
-  /* 고정인지 변동인지 — 카드 실적 제외와 같은 방식이다. 여기서 켜면 이
+  /* 고정인지 변동인지. 카드 실적 제외와 같은 방식이다. 여기서 켜면 이
      스케줄이 대기 내역으로 나갈 때마다 표가 따라간다. */
   const toggleFixed = async (row: FixedRow, next: boolean) => {
     /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
-       곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
+       곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기와 확정과 같이 한 번 묻는다. */
     if (
       !(await ask({
         title: "고정/변동 바꾸기",
@@ -448,7 +448,7 @@ export default function ScheduledEntries() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showHidden]);
 
-  /* 감춘 항목을 볼지 말지가 바뀌면 서버에서 다시 받아 온다 — 감춘 것은
+  /* 감춘 항목을 볼지 말지가 바뀌면 서버에서 다시 받아 온다. 감춘 것은
      서버가 걸러 주므로 화면에서 걸러 낼 수가 없다. */
   useEffect(() => {
     loadSchedules();
@@ -458,21 +458,21 @@ export default function ScheduledEntries() {
   // 편집 팝업
   // ------------------------------------
 
-  /* 고른 것이 있는지. openEditor가 부를 때 읽으므로 ref로 든다 —
-     상태를 그대로 쓰면 고를 때마다 openEditor가 새로 서서 카드
+  /* 선택한 것이 있는지. openEditor가 부를 때 읽으므로 ref로 든다.
+     상태를 그대로 쓰면 선택할 때마다 openEditor가 새로 서서 카드
      수십 장이 함께 다시 그려진다. */
-  const 고른것있나 = useRef(false);
+  const 선택한것있나 = useRef(false);
   const openEditor = useCallback((schedule: any) => {
-    /* 고르는 중에는 편집 팝업을 열지 않는다. 꾹 누르기도, 쪽지나 클립을
-       뜯는 것도 이 한 곳을 지난다. 고른 채로 한 건을 고치면 목록이 다시
-       그려지면서 고른 것이 가리키던 줄이 어긋난다 — 필터를 막는 것과 같은
+    /* 선택하는 중에는 편집 팝업을 열지 않는다. 꾹 누르기도, 쪽지나 클립을
+       뜯는 것도 이 한 곳을 지난다. 선택한 채로 한 건을 고치면 목록이 다시
+       그려지면서 선택한 것이 가리키던 줄이 어긋난다. 필터를 막는 것과 같은
        까닭이다. */
-    if (고른것있나.current) {
+    if (선택한것있나.current) {
       say.warn("선택한 내역이 있습니다. 해제한 후 시도해 주세요.");
       return;
     }
     setDraft({ ...schedule });
-    setDraftPlace(null);          // 이번 편집에서 새로 고른 장소만 추적한다.
+    setDraftPlace(null);          // 이번 편집에서 새로 선택한 장소만 추적한다.
     // 분할은 목록 조회에 합계만 실려 오므로, 편집할 때 상세를 따로 가져온다.
     setSplits([]);
     if (schedule.split_count > 0) {
@@ -536,7 +536,7 @@ export default function ScheduledEntries() {
   // Next 날짜 기준으로 정렬된 schedules
   /** 다음 예정일시가 이른 것부터. 값이 없으면 맨 뒤로 민다. */
   /* 예정일 빠른 차례. 감춘 것은 예정일이 없으므로 Infinity로 떨어져
-     맨 아래 한 단에 모인다 — 앞으로 올 것들을 위에서 먼저 보게 한다. */
+     맨 아래 한 단에 모인다. 앞으로 올 것들을 위에서 먼저 보게 한다. */
   const sortedSchedules = useMemo(() => {
     return [...schedules].sort((a, b) => {
       const ta = parseLocal(a.next_run_at)?.getTime() ?? Infinity;
@@ -545,7 +545,7 @@ export default function ScheduledEntries() {
     });
   }, [schedules]);
 
-  /** 예정일시의 날짜로 묶는다. 지출 내역·대기 내역과 같은 모양이 된다. */
+  /** 예정일시의 날짜로 묶는다. 지출 내역과 대기 내역과 같은 모양이 된다. */
   /* 접은 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const toggleDay = (d: string) =>
@@ -556,13 +556,13 @@ export default function ScheduledEntries() {
       return next;
     });
 
-  /* Blur는 중 · 소 · 세 어디에 걸려도 함께 덮인다. */
+  /* Blur는 중, 소, 세 어디에 걸려도 함께 덮인다. */
   const blurSets = useMemo(
     () => blurSetsFrom(cat1List, cat2All, cat3All),
     [cat1List, cat2All, cat3All]
   );
 
-  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정한 것이 있으면 그것이 먼저다. */
+  /* 고정, 변동은 소, 세에만 둔다. 건에 손으로 정한 것이 있으면 그것이 먼저다. */
   const fixSets = useMemo(() => fixedSetsFrom(cat2All, cat3All), [cat2All, cat3All]);
 
   const dateGroups = useMemo(
@@ -577,16 +577,16 @@ export default function ScheduledEntries() {
     [sortedSchedules]
   );
 
-  /* ── 영수증으로 뽑을 것 고르기 ──────────────────────────────
-     고른 것은 지금 보이는 줄에서만 센다. 걸러서 사라진 건이 고른 채 남아
+  /* ── 영수증으로 뽑을 것 선택하기 ────────────────────────────
+     선택한 것은 지금 보이는 줄에서만 센다. 걸러서 사라진 건이 선택한 채 남아
      있으면 눈에 없는 것이 영수증에 찍힌다. */
   const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
-  고른것있나.current = pickedIds.size > 0;
+  선택한것있나.current = pickedIds.size > 0;
 
-  /* 고른 것이 있으면 뒤로 가기가 화면을 떠나지 않고 고른 것만 푼다.
-     팝업과 같은 결이다 — 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 고른
+  /* 선택한 것이 있으면 뒤로 가기가 화면을 떠나지 않고 선택한 것만 푼다.
+     팝업과 같은 결이다. 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 선택한
      것이 있는 동안만 서 있으므로, 풀면 막대도 함께 내려간다.
-     Backspace는 받지 않는다 — 고르는 중에 쓰는 키가 아니다. */
+     Backspace는 받지 않는다. 선택하는 중에 쓰는 키가 아니다. */
   useBackClose(pickedIds.size > 0, () => setPickedIds(new Set()), false);
   const [makeOpen, setMakeOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
@@ -663,7 +663,7 @@ export default function ScheduledEntries() {
     );
   };
 
-  // 팝업에서 저장 — 해당 스케줄만 반영한다.
+  // 팝업에서 저장. 해당 스케줄만 반영한다.
   const saveDraft = async () => {
     if (!draft) return;
 
@@ -672,7 +672,7 @@ export default function ScheduledEntries() {
       return;
     }
 
-    // 분할 검증 — 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다.
+    // 분할 검증. 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다.
     const cleanSplits = splits.filter(
       (x) => x.amount !== "" && Number(x.amount) > 0
     );
@@ -730,11 +730,11 @@ export default function ScheduledEntries() {
       return;
     }
     if (form.interval_months !== "1" && !form.anchor_ym) {
-      say.warn("매월이 아니면 시작하는 달을 골라 주세요.");
+      say.warn("매월이 아니면 시작하는 달을 선택해 주세요.");
       return;
     }
 
-    // 몫은 빈 줄을 버리고, 합계가 결제 금액을 넘으면 막는다 — 편집과 같은 잣대다.
+    // 몫은 빈 줄을 버리고, 합계가 결제 금액을 넘으면 막는다. 편집과 같은 잣대다.
     const cleanSplits = formSplits.filter(
       (x) => x.amount !== "" && Number(x.amount) > 0
     );
@@ -824,11 +824,11 @@ export default function ScheduledEntries() {
    * 감출지 말지를 뒤집는다.
    *
    * 팝업 안의 다른 칸과 같이 여기서는 초안만 바꾸고, [저장]을 눌러야
-   * 반영된다 — 주기도 금액도 그렇게 움직이는데 이것만 즉시 먹으면
+   * 반영된다. 주기도 금액도 그렇게 움직이는데 이것만 즉시 먹으면
    * 한 팝업 안에서 잣대가 둘이 된다. 그래서 묻지도, 알리지도 않는다.
    *
    * 다음 예정일은 서버가 저장할 때 함께 손봐 준다. 감추면 비우고, 풀면
-   * 다시 셈한다.
+   * 다시 계산한다.
    */
   const toggleHidden = () =>
     setField("is_active", draft?.is_active === 0 ? 1 : 0);
@@ -841,11 +841,11 @@ export default function ScheduledEntries() {
     <div className="page-wrap">
 
       {/* New & Save 툴바 */}
-      {/* 툴바 껍데기는 쓴 내역 · 대기 내역과 같은 것을 쓴다.
+      {/* 툴바 껍데기는 쓴 내역과 대기 내역과 같은 것을 쓴다.
           화면을 옮겨 다녀도 첫 줄이 같은 높이에서 시작해야 한다. */}
       <div className="toolbar-wrap">
         <div className="toolbar">
-          {/* 분류 · 결제 수단과 같은 자리 · 같은 말 — 줄 왼쪽 끝이다.
+          {/* 분류, 결제 수단과 같은 자리, 같은 말. 줄 왼쪽 끝이다.
               .toolbar-btns 안에 넣으면 그 묶음이 오른쪽에 붙어 있어
               가운데로 밀린다. */}
           <label className="cp-toggle">
@@ -877,7 +877,7 @@ export default function ScheduledEntries() {
           headerFields={
             <>
               {/* 첫 줄은 주기와 시작이 나눠 쓴다. 매월은 시작을 묻지 않으므로
-                  주기가 그 줄을 혼자 쓰고, 날과 시각은 늘 둘째 줄에 나란히 선다 —
+                  주기가 그 줄을 혼자 쓰고, 날과 시각은 늘 둘째 줄에 나란히 선다.
                   "몇 달마다"와 "며칠 몇 시"는 다른 결의 물음이다. */}
               <EditField label="주기" span={form.interval_months === "1" ? 12 : 6} required>
                 <SingleSelect
@@ -971,7 +971,7 @@ export default function ScheduledEntries() {
                       form.inout === "1" ? "in" : form.inout === "-1" ? "out" : ""
                     }`}
                   >
-                    {form.inout === "1" ? "IN(+)" : form.inout === "-1" ? "OUT(−)" : "—"}
+                    {form.inout === "1" ? "IN(+)" : form.inout === "-1" ? "OUT(−)" : "-"}
                   </span>
                 </EditField>
 
@@ -997,7 +997,7 @@ export default function ScheduledEntries() {
                   />
                 </EditField>
 
-                {/* 휴일 처리 · 끝 — 편집 팝업과 같은 칸에 둔다. 거기서는 이 줄
+                {/* 휴일 처리와 끝. 편집 팝업과 같은 칸에 둔다. 거기서는 이 줄
                     셋째 자리에 [한 번 건너뛰기]가 서는데, 새로 만드는 스케줄에는
                     건너뛸 회차가 없어 그 자리를 비운다. 자리를 당겨 채우면
                     두 팝업에서 같은 칸이 다른 x에 서게 된다. */}
@@ -1025,7 +1025,7 @@ export default function ScheduledEntries() {
 
                 <EditField label="장소/가게" span={12}>
                   <div className="edit-place">
-                    <span className="edit-place__name">📍 {formPlaceName || "—"}</span>
+                    <span className="edit-place__name">📍 {formPlaceName || "-"}</span>
                     <button
                       type="button"
                       className="ui-btn small"
@@ -1048,7 +1048,7 @@ export default function ScheduledEntries() {
                 </EditField>
           </div>
 
-          {/* 나가는 돈만 쪼갤 수 있다. 편집 팝업과 같은 자리·같은 모양이다. */}
+          {/* 나가는 돈만 쪼갤 수 있다. 편집 팝업과 같은 자리와 같은 모양이다. */}
           {form.inout === "-1" && (
             <>
               <EditDivider />
@@ -1074,7 +1074,7 @@ export default function ScheduledEntries() {
           <section key={group.date || "no-date"} className="date-group">
             {/* 예정일이 없는 단은 날짜 대신 무엇을 모은 단인지 적는다.
                 대개 감춘 것만 모이지만, 끝난 것을 다시 보이게 하면 감춤이
-                아니면서 예정일도 없는 줄이 섞인다 — 그때는 이름을 바꿔
+                아니면서 예정일도 없는 줄이 섞인다. 그때는 이름을 바꿔
                 단다. 어느 쪽이든 안 나갈 돈이라 합계는 접는다. */}
             <DateGroupHeader
               label={
@@ -1132,7 +1132,7 @@ export default function ScheduledEntries() {
             danger: true,
           });
           if (!예) return;
-          const { 성공, 실패 } = await 골라제거(
+          const { 성공, 실패 } = await 선택제거(
             "/scheduled-entries",
             picked.map((x) => x.schedule_id)
           );
@@ -1179,7 +1179,7 @@ export default function ScheduledEntries() {
           onClose={closeEditor}
           onSave={saveDraft}
           onDelete={() => handleDelete(draft.schedule_id)}
-          /* 제거 바로 옆에 감추기를 둔다. 둘은 성격이 다르다 —
+          /* 제거 바로 옆에 감추기를 둔다. 둘은 성격이 다르다.
              제거는 되돌릴 수 없고, 감추기는 언제든 풀 수 있다. */
           footerAfterDelete={
             <button
@@ -1187,8 +1187,8 @@ export default function ScheduledEntries() {
               className={`set-hide-btn${draft.is_active === 0 ? " on" : ""}`}
               title={
                 draft.is_active === 0
-                  ? "다시 보이게 한다 — 다음 예정일을 새로 셈한다."
-                  : "감춘다 — 목록에서 빠지고 더 오지 않는다."
+                  ? "다시 보이게 한다. 다음 예정일을 새로 계산한다."
+                  : "감춘다. 목록에서 빠지고 더 오지 않는다."
               }
               onClick={toggleHidden}
             >
@@ -1199,7 +1199,7 @@ export default function ScheduledEntries() {
           saveLabel={isSaving ? "저장 중..." : "저장"}
           headerFields={
             <>
-              {/* 등록 팝업과 같은 짜임 — 주기와 시작이 첫 줄, 날과 시각이 둘째 줄이다. */}
+              {/* 등록 팝업과 같은 짜임. 주기와 시작이 첫 줄, 날과 시각이 둘째 줄이다. */}
               <EditField
                 label="주기"
                 span={String(draft.interval_months ?? 1) === "1" ? 12 : 6}
@@ -1255,7 +1255,7 @@ export default function ScheduledEntries() {
           }
         >
           <div className="edit-grid">
-            {/* 1행 — 분류 3단 */}
+            {/* 1행. 분류 3단 */}
             <EditField label="중분류" span={4} required>
               <SingleSelect
                 noun="중분류"
@@ -1294,10 +1294,10 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
+            {/* 2행. 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
             <EditField label="IN/OUT" span={4} required>
               <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
-                {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
+                {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "-"}
               </span>
             </EditField>
 
@@ -1326,9 +1326,9 @@ export default function ScheduledEntries() {
               />
             </EditField>
 
-            {/* 3행 — 휴일 처리 · 끝 · 한 번 건너뛰기.
+            {/* 3행. 휴일 처리, 끝, 한 번 건너뛰기.
                 셋 다 "언제 오고 언제까지 오는가"를 말하므로 한 줄에 둔다.
-                건너뛰기는 이미 있는 스케줄에만 뜻이 있어 등록 팝업에는 없다 —
+                건너뛰기는 이미 있는 스케줄에만 뜻이 있어 등록 팝업에는 없다.
                 정기 결제는 대개 승인 며칠 전에 알림이 오므로, 그걸 보고
                 다가오는 한 번만 넘기고 싶을 때 쓴다. */}
             <EditField label="휴일 처리" span={4} required>
@@ -1356,7 +1356,7 @@ export default function ScheduledEntries() {
             </EditField>
 
             <EditField label="한 번 건너뛰기" span={4}>
-              {/* 분류 화면의 고정 · 변동과 같은 스위치다. 켜진 전구가 건너뜀,
+              {/* 분류 화면의 고정과 변동과 같은 스위치다. 켜진 전구가 건너뜀,
                   꺼진 전구가 그대로다. 켜면 온통 물들어, 카드에 서는 딱지와
                   같은 빛깔로 같은 것을 말한다. */}
               <span
@@ -1392,7 +1392,7 @@ export default function ScheduledEntries() {
             <EditField label="장소/가게" span={12}>
               <div className="edit-place">
                 <span className="edit-place__name">
-                  📍 {draftPlace?.place_name || draft.place_name || "—"}
+                  📍 {draftPlace?.place_name || draft.place_name || "-"}
                 </span>
                 <button
                   type="button"
@@ -1404,7 +1404,7 @@ export default function ScheduledEntries() {
               </div>
             </EditField>
 
-            {/* 5행 — 메모 */}
+            {/* 5행. 메모 */}
             <EditField label="메모" span={12}>
               <GrowArea
                 className="memo-input memo-area"
@@ -1416,7 +1416,7 @@ export default function ScheduledEntries() {
             </EditField>
           </div>
 
-          {/* 금액 쪼개기 — 지출일 때만 의미가 있다.
+          {/* 금액 쪼개기. 지출일 때만 의미가 있다.
               여기에 건 분할은 스케줄이 돌 때마다 Pending으로 따라간다. */}
           {Number(draft.inout) === -1 && (
             <>
@@ -1435,11 +1435,11 @@ export default function ScheduledEntries() {
       {/* 정기 내역은 되풀이 규칙이라 기간이 없다. 통째로 내보낸다. */}
       <ExportButton 길="scheduled" 이름="정기 내역" 빔={schedules.length === 0} 영수증={false} />
 
-      {/* 담기 — 뜨는 팝업은 그대로다. 바뀐 것은 여는 자리뿐이다. 설정 탭 네
+      {/* 담기. 뜨는 팝업은 그대로다. 바뀐 것은 여는 자리뿐이다. 설정 탭 네
           화면과 같은 단추, 같은 칸에 선다. */}
       <AddButton 이름="새 정기 지출" onClick={() => setShowForm(true)} />
 
-      {/* 장소 선택 — 편집 팝업과 신규 등록 폼이 함께 쓴다. */}
+      {/* 장소 선택. 편집 팝업과 신규 등록 폼이 함께 쓴다. */}
       {placePickerFor && (
         <PlacePicker
           onSelect={(place) => {
@@ -1468,7 +1468,7 @@ export default function ScheduledEntries() {
 }
 
 // ------------------------------------
-// 스케줄 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다.
+// 스케줄 카드 한 장. 표시 전용. 꾹 누르면 편집 팝업이 열린다.
 // ------------------------------------
 export function ScheduleCard({
   s,
@@ -1493,17 +1493,17 @@ export function ScheduleCard({
   payList: { code: string; name: string; category?: string }[];
   toTimeString: (hour?: number, minute?: number) => string;
   onOpenEditor?: (schedule: any) => void;
-  /* 고른 건인지. 넘기지 않으면 고르기 상자가 서지 않는다 — 기간 상세처럼
+  /* 선택한 건인지. 넘기지 않으면 선택하기 상자가 서지 않는다. 기간 상세처럼
      보기만 하는 화면은 지금까지와 같은 꼴을 지킨다. */
   picked?: boolean;
   onTogglePick?: (id: number) => void;
   /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onTogglePerfExclude?: (schedule: PerfRow, next: boolean) => void;
-  /* 이 건이 고정인지 — 건에 정한 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
+  /* 이 건이 고정인지. 건에 정한 것이 없으면 분류를 따라 화면이 계산해서 넘긴다. */
   fixed?: boolean;
-  /* 고정 · 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
+  /* 고정과 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onToggleFixed?: (schedule: FixedRow, next: boolean) => void;
-  /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
+  /* 중, 소, 세 어디에 Blur가 걸렸는지는 화면이 계산해서 넘긴다.
      넘기지 않으면 예전처럼 소분류만 본다. */
   blurred?: boolean;
   /* 보기만 하는 화면(기간 상세)에서는 꾹 눌러 편집하지 않는다.
@@ -1530,7 +1530,7 @@ export function ScheduleCard({
   const cat3Id = s.cat3_id !== null && s.cat3_id !== undefined ? Number(s.cat3_id) : null;
   const cat2Name = cat2Id !== null ? cat2Map[cat2Id]?.name : null;
   /* 소분류에 Blur가 걸려 있으면 금액을 테이프로 덮는다.
-     끌면 잠깐 보이는 동작은 지출·대기 내역과 같다. */
+     끌면 잠깐 보이는 동작은 지출과 대기 내역과 같다. */
   const isBlur = blurred ?? (cat2Id !== null && cat2Map[cat2Id]?.blur === 1);
   const cat3Name = cat3Id !== null ? cat3Map[cat3Id]?.name : null;
   const pay = payList.find((p) => p.code === String(s.pay_method));
@@ -1569,7 +1569,7 @@ export function ScheduleCard({
       {...(readOnly ? {} : handlers)}
       title={readOnly ? undefined : "꾹 눌러서 편집"}
       /* 꾹 누르기는 마우스와 손가락만 닿는다. 키보드로도 같은 자리를 열 수
-         있게 역할과 Enter · Space를 붙인다. */
+         있게 역할과 Enter, Space를 붙인다. */
       {...(readOnly
         ? {}
         : {
@@ -1584,7 +1584,7 @@ export function ScheduleCard({
             },
           })}
     >
-      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국.
+      {/* IN/OUT 표시. 종이 왼쪽 위 귀퉁이를 접은 자국.
           묶인 건에서는 그 자리가 클립이 된다. 요소는 그대로 두어야 금액
           빛깔 규칙(.card:has(.in-bar))이 살아 있다. */}
       <div
@@ -1593,8 +1593,8 @@ export function ScheduleCard({
       >
         {isClipped && <ClipMark />}
       </div>
-      {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리 · 접혀 넘어오는 조각.
-          어느 화면에서나 떼어진다 — 뜯는 손맛이 화면마다 달라지면 고장 난
+      {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리와 접혀 넘어오는 조각.
+          어느 화면에서나 떼어진다. 뜯는 손맛이 화면마다 달라지면 고장 난
           것으로 읽힌다. 고치지 못하는 화면에서는 끝까지 떼어도 열 팝업이
           없으니 제자리로 펴져 붙고, 대신 아래 한 줄이 어디서 고치는지를
           알린다. */}
@@ -1603,7 +1603,7 @@ export function ScheduleCard({
         <span className="peel-flap__face" />
       </span>
       <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
-      {/* 뜯는 동안만 뜨는 한 줄. 늘 그린 채로 보이고 숨기는 일은 CSS가 맡는다 —
+      {/* 뜯는 동안만 뜨는 한 줄. 늘 그린 채로 보이고 숨기는 일은 CSS가 맡는다.
           끄는 중에 React가 다시 그리면 뜯는 겹이 쥐고 있던 class가 지워진다. */}
       {안내 && (
         <span className="peel-tip" aria-hidden="true">
@@ -1611,7 +1611,7 @@ export function ScheduleCard({
         </span>
       )}
       <div className="schedule-card__body">
-        {/* 1행: 분류 + 금액 — 지출 · 대기 내역 카드와 같은 자리다.
+        {/* 1행: 분류 + 금액. 지출과 대기 내역 카드와 같은 자리다.
             다음 예정일시는 위 날짜 단 머리말이 이미 말하고 있어 뺐다. */}
         <div className="entry-ln entry-ln--head">
           <span className="cat-display">
@@ -1657,13 +1657,13 @@ export function ScheduleCard({
           </span>
         </div>
 
-        {/* 2행: 딱지 + 휴일 처리 + 결제 수단 — 지출 · 대기의 장소가 서던 자리다.
-            언제 빠져나가는가 — 날과 시각은 한 가지 사실이라 한 딱지에 담고,
+        {/* 2행: 딱지 + 휴일 처리 + 결제 수단. 지출과 대기의 장소가 서던 자리다.
+            언제 빠져나가는가. 날과 시각은 한 가지 사실이라 한 딱지에 담고,
             휴일 처리도 같은 것을 말하므로 그 딱지 바로 오른쪽에 붙인다.
             결제 수단은 세 화면 모두 그렇듯 줄 오른쪽 끝에 선다.
             메모는 카드에서 빼내 바로 아래 제 판에 담는다(MemoPad). */}
         <div className="entry-ln">
-          {/* 고르기 상자. 지출과 대기와 같은 자리다 — 결제 수단이 선 줄의
+          {/* 선택하기 상자. 지출과 대기와 같은 자리다. 결제 수단이 선 줄의
               왼쪽 끝. 꾹 누르면 편집 팝업이 열리므로 뺀다. */}
           {onTogglePick && (
             <button
@@ -1692,8 +1692,8 @@ export function ScheduleCard({
         </div>
 
         {/* 3행: 주기가 매월이 아니거나 끝이 잡혀 있거나 감춘 카드에만 선다.
-            매월 · 끝없음 · 안 감춘 카드는 적을 것이 없으므로 줄 자체가
-            생기지 않는다 — 지금까지의 카드 높이가 그대로인 자리다. */}
+            매월, 끝없음, 안 감춘 카드는 적을 것이 없으므로 줄 자체가
+            생기지 않는다. 지금까지의 카드 높이가 그대로인 자리다. */}
         {(spanChips.length > 0 || hidden) && (
           <div className="entry-ln entry-ln--span">
             {spanChips.map((c) => (
@@ -1707,7 +1707,7 @@ export function ScheduleCard({
 
         <MemoPad memo={s.memo} />
 
-        {/* 쪼갠 건 — 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다. */}
+        {/* 쪼갠 건. 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다. */}
         {hasSplit && (
           <div className={`split-tab${splitOpen ? " open" : ""}`}>
             <span
@@ -1726,7 +1726,7 @@ export function ScheduleCard({
                 }
               }}
             >
-              {/* 뺄셈 한 덩어리 — "모두 펼치기|접기"와 같은 음영을 깔고 손잡이만 밖에 둔다. */}
+              {/* 뺄셈 한 덩어리. "모두 펼치기|접기"와 같은 음영을 깔고 손잡이만 밖에 둔다. */}
               <span className="amount-split__calc">
                 {s.amount.toLocaleString()}
                 <span className="amount-split__op"> − </span>

@@ -17,7 +17,7 @@ import { say } from "../../utils/notify";
  * 쓰기 화면과 지출 내역의 적기 팝업이 같은 것을 쓴다. 두 벌로 두면
  * 언젠가 한쪽만 고쳐져 같은 자리에서 다른 것을 묻게 된다.
  *
- * 껍데기는 부르는 쪽이 씌운다 — 쓰기 화면은 카드, 팝업은 편집 팝업의 틀이다.
+ * 껍데기는 부르는 쪽이 씌운다. 쓰기 화면은 카드, 팝업은 편집 팝업의 틀이다.
  * 여기서는 칸과 저장만 맡는다.
  */
 
@@ -26,7 +26,7 @@ type Props = {
   onSaved?: () => void;
   /** 폼 안에 전송 단추를 둘지. 팝업은 바닥에 따로 두므로 끈다. */
   showSubmit?: boolean;
-  /** 손댄 것이 있는지 알린다 — 팝업의 저장 단추를 켜고 끄는 데 쓴다. */
+  /** 손댄 것이 있는지 알린다. 팝업의 저장 단추를 켜고 끄는 데 쓴다. */
   onDirtyChange?: (dirty: boolean) => void;
   className?: string;
 };
@@ -58,7 +58,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
 
   const [showPlacePicker, setShowPlacePicker] = useState(false);
 
-  /* 뒤로 가기 · Backspace로 장소 고르기를 닫는다. */
+  /* 뒤로 가기, Backspace로 장소 선택하기를 닫는다. */
   useBackClose(showPlacePicker, () => setShowPlacePicker(false));
   const [selectedPlaceName, setSelectedPlaceName] = useState("");
   const [selectedPlace, setSelectedPlace] = useState<any>(null);
@@ -74,7 +74,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
   }, [isDirty, onDirtyChange]);
 
   // 중분류(카테고리1) 불러오기
-  // 조회가 실패하면 빈 목록으로 둔다. 고를 것이 없으면 아래 검사에 걸려
+  // 조회가 실패하면 빈 목록으로 둔다. 선택할 것이 없으면 아래 검사에 걸려
   // 저장이 막히므로, 잘못된 값이 들어가지는 않는다.
   useEffect(() => {
     axios
@@ -126,7 +126,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
             code: String(p.method_id),
             name: p.method_name,
             is_active: p.is_active,
-            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다.
+            /* 이모지는 결제 수단이 아니라 그 구분(카드와 계좌 등)에 붙는다.
                같은 구분에 든 수단끼리는 같은 이모지가 선다. */
             emoji: p.category_emoji ?? null,
           }))
@@ -179,7 +179,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       return;
     }
 
-    /* 몫은 빈 줄을 버리고, 합계가 결제 금액을 넘으면 막는다 —
+    /* 몫은 빈 줄을 버리고, 합계가 결제 금액을 넘으면 막는다.
        편집 팝업과 같은 잣대다. */
     const cleanSplits = splits.filter(
       (x) => x.amount !== "" && Number(x.amount) > 0
@@ -296,7 +296,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
 
       {/* 편집 팝업과 동일한 12칸 그리드 배치 */}
       <div className="edit-grid">
-        {/* 1행 — 분류 3단 */}
+        {/* 1행. 분류 3단 */}
         <EditField label="중분류" span={4} required>
           <SingleSelect
             noun="중분류"
@@ -339,10 +339,10 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           />
         </EditField>
 
-        {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래 */}
+        {/* 2행. 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래 */}
         <EditField label="IN/OUT" span={4} required>
           <span className={`inout-chip ${form.inout === "1" ? "in" : form.inout === "-1" ? "out" : ""}`}>
-            {form.inout === "1" ? "IN(+)" : form.inout === "-1" ? "OUT(−)" : "—"}
+            {form.inout === "1" ? "IN(+)" : form.inout === "-1" ? "OUT(−)" : "-"}
           </span>
         </EditField>
 
@@ -371,11 +371,11 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           />
         </EditField>
 
-        {/* 3행 — 장소 */}
+        {/* 3행. 장소 */}
         <EditField label="장소/가게" span={12}>
           <div className="edit-place">
             <span className="edit-place__name">
-              📍 {selectedPlaceName || "—"}
+              📍 {selectedPlaceName || "-"}
             </span>
             <button
               type="button"
@@ -387,7 +387,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
           </div>
         </EditField>
 
-        {/* 4행 — 메모 */}
+        {/* 4행. 메모 */}
         <EditField label="메모" span={12}>
           <GrowArea
             className="memo-area"
@@ -400,7 +400,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
         </EditField>
       </div>
 
-      {/* 나가는 돈만 쪼갤 수 있다. 편집 팝업과 같은 자리 · 같은 모양이다 —
+      {/* 나가는 돈만 쪼갤 수 있다. 편집 팝업과 같은 자리와 같은 모양이다.
           적을 때와 고칠 때 묻는 것이 달라서는 안 된다. */}
       {form.inout === "-1" && (
         <>
@@ -435,7 +435,7 @@ const EntryForm = forwardRef<HTMLFormElement, Props>(function EntryForm(
       )}
 
       {/* Send Button.
-          왼쪽에 지출 내역으로 건너뛰는 단추를 둔다 — 적고 나서 바로 목록을
+          왼쪽에 지출 내역으로 건너뛰는 단추를 둔다. 적고 나서 바로 목록을
           보러 가는 길이다. 쓰기 팝업도 바닥 왼쪽 끝에 같은 것을 단다. */}
       {showSubmit && (
         <div className="entry-form__foot">

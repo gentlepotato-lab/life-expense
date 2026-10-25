@@ -27,35 +27,35 @@ const 단추이름 = {
 } as const;
 
 /**
- * 어느 화면에서나 오른쪽 위에 떠 있는 단추 넷 —
- * 새로 고침 · 만년필(쓰기) · 계산기 · 종(잔소리).
+ * 어느 화면에서나 오른쪽 위에 떠 있는 단추 넷.
+ * 새로 고침과 만년필(쓰기), 계산기, 종(잔소리).
  *
- * 자리 · 생김새 · 여는 팝업이 화면마다 어긋나면 안 되므로 한자리에 모으고
+ * 자리, 생김새, 여는 팝업이 화면마다 어긋나면 안 되므로 한자리에 모으고
  * 화면들은 이것만 부른다. 넷을 한 줄(flex)에 세워 사이 간격을 CSS 한 곳에서
- * 정한다 — 각자 오른쪽 끝에서 몇 픽셀인지 따로 세면 창 폭이 바뀔 때마다.
+ * 정한다. 각자 오른쪽 끝에서 몇 픽셀인지 따로 세면 창 폭이 바뀔 때마다.
  * 어긋난다.
  *
  * 적은 것이 그 화면 목록에 바로 드러나야 하면 onSaved로 다시 읽으라고 알린다.
  */
 export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
   const [writeOpen, setWriteOpen] = useState(false);
-  /* 쓰기 슬라이드(Quick) — 시범으로 붙인 또 하나의 쓰기다. */
+  /* 쓰기 슬라이드(Quick). 시범으로 붙인 또 하나의 쓰기다. */
   const [slideOpen, setSlideOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [nudgeOpen, setNudgeOpen] = useState(false);
-  /* 대기 내역을 한 장씩 넘겨 보는 팝업 — 계산기와 잔소리 사이에 선다. */
+  /* 대기 내역을 한 장씩 넘겨 보는 팝업. 계산기와 잔소리 사이에 선다. */
   const [deckOpen, setDeckOpen] = useState(false);
 
-  /* 한 건 적고 나면 잔소리도 달라진다 — 그때만 다시 센다. */
+  /* 한 건 적고 나면 잔소리도 달라진다. 그때만 다시 센다. */
   const [nudgeKey, setNudgeKey] = useState(0);
   const { nudges, ready } = useNudges({ reloadKey: nudgeKey });
 
   /* 배지는 잔소리 전체를 센다. "챙길 것"만 세면 화면에 넉 줄이 떠 있는데
-     배지에는 둘이라 적혀 서로 어긋나 보인다 — 종을 눌러 볼 것이 몇 가지인지가
+     배지에는 둘이라 적혀 서로 어긋나 보인다. 종을 눌러 볼 것이 몇 가지인지가
      배지가 답해야 할 물음이다. */
   const mind = prefOn("nudge_on") ? nudges.length : 0;
 
-  /* 모래시계 배지에 적을 수. 팝업이 넘겨 볼 장과 같은 줄에서 나온다 —
+  /* 모래시계 배지에 적을 수. 팝업이 넘겨 볼 장과 같은 줄에서 나온다.
      따로 세면 배지에는 5라 적혀 있는데 열면 넉 장인 일이 생긴다. */
   const [pendKey, setPendKey] = useState(0);
   const { rows: pendRows, ready: pendReady } = usePending(pendKey);
@@ -65,7 +65,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
    *
    * 네 단추가 팝업 위에도 떠 있으므로, 팝업이 열린 채로 다른 단추를 누르는
    * 일이 생긴다. 그때 둘이 겹쳐 뜨면 뒤로 가기 차례도 눈에 보이는 것도
-   * 엉킨다. 열려 있던 것은 무엇이든 — 이 화면이 연 것까지 — 먼저 닫는다.
+   * 엉킨다. 열려 있던 것은 무엇이든. 이 화면이 연 것까지. 먼저 닫는다.
    *
    * 같은 단추를 다시 누르면 닫기만 한다. 계산기가 원래 그랬다.
    */
@@ -76,7 +76,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
       (which === "calc" && calculatorOpen) ||
       (which === "deck" && deckOpen) ||
       (which === "nudge" && nudgeOpen);
-    /* 어느 단추를 얼마나 쓰는지 적는다. 여는 누름만 센다 — 같은 단추를
+    /* 어느 단추를 얼마나 쓰는지 적는다. 여는 누름만 센다. 같은 단추를
        다시 눌러 닫는 것까지 세면 쓰임이 배로 부풀어 보인다.
        적는 이름은 앱이 그 자리를 부르는 이름이다. 영어 열쇠를 그대로
        적었더니 관리자 화면에 「단추 slide」로 떠서 무엇인지 알 수 없었다. */
@@ -109,7 +109,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
         >
           <RefreshIcon />
         </button>
-        {/* 쓰기 슬라이드(Quick) — 쓰기 바로 왼쪽이다. 같은 일을 다른 길로
+        {/* 쓰기 슬라이드(Quick). 쓰기 바로 왼쪽이다. 같은 일을 다른 길로
             하는 단추라 나란히 서야 그 관계가 보인다. */}
         <button
           className="calculator-trigger-button slide-trigger-button"
@@ -117,7 +117,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
           aria-label="쓰기(Quick)"
         >
           <SlideIcon />
-          {/* 번개 하나로 "빠른 쓰기"라고 말한다 — 대기 · 잔소리 배지와 같은
+          {/* 번개 하나로 "빠른 쓰기"라고 말한다. 대기와 잔소리 배지와 같은
               지름의 동그라미라 세 개가 한 줄에서 같은 결로 읽힌다. */}
           <span className="quick-badge">
             <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
@@ -139,7 +139,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
         >
           <CalculatorIcon />
         </button>
-        {/* 대기 내역 — 내역 탭의 그 모래시계를 그대로 쓴다. 다른 기호를
+        {/* 대기 내역. 내역 탭의 그 모래시계를 그대로 쓴다. 다른 기호를
             새로 그리면 같은 것을 가리키는 그림이 둘이 된다. */}
         <button
           className="calculator-trigger-button pend-trigger-button"

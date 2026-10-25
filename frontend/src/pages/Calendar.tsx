@@ -28,10 +28,10 @@ import {
  * 달력.
  *
  * 지출 내역이 카드로 훑는 화면이라면, 여기는 한 달을 한눈에 보는 화면이다.
- * 그래서 기간 조건이 없다 — 달력은 늘 한 달치다.
+ * 그래서 기간 조건이 없다. 달력은 늘 한 달치다.
  *
- * 지출 · 대기 · 정기 세 가지를 겹쳐 볼 수 있다. 날짜의 기준은 각각
- * 지출·대기는 거래일(tx_date), 정기는 다음 예정일(next_run_at)이다.
+ * 지출, 대기, 정기 세 가지를 겹쳐 볼 수 있다. 날짜의 기준은 각각
+ * 지출과 대기는 거래일(tx_date), 정기는 다음 예정일(next_run_at)이다.
  */
 
 const SOURCES: { key: Src; label: string }[] = [
@@ -60,8 +60,8 @@ type CalKeep = {
 };
 
 export default function Calendar() {
-  /* 상세에서 되돌아온 참이면 보던 자리를 그대로 이어 받는다. 한 번 꺼내면
-     사라지므로, 탭으로 새로 들어오면 늘 하던 대로 이 달 · 고른 날 없음이다. */
+  /* 상세에서 되돌아온 것이면 보던 자리를 그대로 이어 받는다. 한 번 꺼내면
+     사라지므로, 탭으로 새로 들어오면 늘 하던 대로 이 달과 선택한 날 없음이다. */
   const kept = useMemo(() => takeStash<CalKeep>("calendar"), []);
 
   const [yearMonth, setYearMonth] = useState(
@@ -73,7 +73,7 @@ export default function Calendar() {
       })()
   );
 
-  /* 겹쳐 볼 자료 — 처음에는 셋 다 켠다. */
+  /* 겹쳐 볼 자료. 처음에는 셋 다 켠다. */
   const [on, setOn] = useState<Record<Src, boolean>>(() =>
     kept?.on ?? {
       expense: true,
@@ -84,27 +84,27 @@ export default function Calendar() {
 
   const [rows, setRows] = useState<Row[]>([]);
 
-  /* 어떤 갈래를 볼지 — 고정 · 변동 곱하기 지출 · 수입 넷.
+  /* 어떤 갈래를 볼지. 고정, 변동 곱하기 지출, 수입 넷.
      들어올 때는 넷 다 켜져 있고 담지 않는다. */
-  /* 상세로 갔다 되돌아오면 고른 갈래도 그대로다 — 저장된 것을 되살린다.
-     달과 고른 날과 걸린 조건이 그대로인데 이것만 풀리면 보던 자리가 달라진다. */
+  /* 상세로 갔다 되돌아오면 선택한 갈래도 그대로다. 저장된 것을 되살린다.
+     달과 선택한 날과 걸린 조건이 그대로인데 이것만 풀리면 보던 자리가 달라진다. */
   const [fixPick, setFixPick] = useState<FixedPick>(() => kept?.fixPick ?? ALL_FIXED_PICK);
 
-  /* 눌러서 고른 기간.
+  /* 눌러서 선택한 기간.
      한 번 누르면 시작일만 잡히고(end === null), 한 번 더 누르면 끝일까지 잡힌다.
-     시작일만 잡힌 상태에서 같은 날 또는 달력 바깥을 누르면 고르기를 접는다. */
-  /* 고른 날들. 이어진 기간일 필요가 없어 그냥 날짜만 지닌다. */
+     시작일만 잡힌 상태에서 같은 날 또는 달력 바깥을 누르면 선택하기를 접는다. */
+  /* 선택한 날들. 이어진 기간일 필요가 없어 그냥 날짜만 지닌다. */
   const [pick, setPick] = useState<number[]>(() => kept?.pick ?? []);
   const calRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
-  /* 적고 나면 그 날 칸에 바로 드러나야 한다 — 한 달치를 다시 읽는다. */
+  /* 적고 나면 그 날 칸에 바로 드러나야 한다. 한 달치를 다시 읽는다. */
   const [reloadKey, setReloadKey] = useState(0);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>(() => kept?.filter ?? EMPTY_FILTER);
   const [appliedFilter, setAppliedFilter] = useState<Filter>(() => kept?.appliedFilter ?? EMPTY_FILTER);
 
-  /* 고르는 목록들 */
+  /* 선택하는 목록들 */
   const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null; is_active?: number }[]>([]);
   const [cat2List, setCat2List] = useState<{ id: number; name: string; cat1_id: number; blur?: number; fixed?: number; is_active?: number }[]>([]);
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number; blur?: number; fixed?: number; is_active?: number }[]>([]);
@@ -129,7 +129,7 @@ export default function Calendar() {
             code: String(p.method_id),
             name: p.method_name,
             is_active: p.is_active,
-            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다. */
+            /* 이모지는 결제 수단이 아니라 그 구분(카드와 계좌 등)에 붙는다. */
             emoji: p.category_emoji ?? null,
           }))
         )
@@ -171,7 +171,7 @@ export default function Calendar() {
             pay_method: x.pay_method as number,
             memo: x.memo as string,
             place_name: x.place_name as string,
-            /* 손으로 정한 고정 · 변동. 비면 분류에 정한 것을 따른다. */
+            /* 손으로 정한 고정과 변동. 비면 분류에 정한 것을 따른다. */
             fixed_flag: (x.fixed_flag as number | null) ?? null,
             counterpart_ids: (x.counterpart_ids as number[]) ?? [],
           });
@@ -191,7 +191,7 @@ export default function Calendar() {
 
   const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
 
-  /* 켠 자료 + 고른 갈래 + 걸린 조건을 통과한 줄만. */
+  /* 켠 자료 + 선택한 갈래 + 걸린 조건을 통과한 줄만. */
   const shown = useMemo(
     () =>
       rows.filter(
@@ -211,7 +211,7 @@ export default function Calendar() {
     return map;
   }, [shown]);
 
-  /* 달력 칸 — 앞뒤로 빈 칸을 채워 7의 배수로 맞춘다. */
+  /* 달력 칸. 앞뒤로 빈 칸을 채워 7의 배수로 맞춘다. */
   const cells = useMemo(() => {
     const [y, m] = yearMonth.split("-").map(Number);
     const first = new Date(y, m - 1, 1);
@@ -225,12 +225,12 @@ export default function Calendar() {
     });
   }, [yearMonth]);
 
-  /* 넘겨 볼 수 있는 끝 — 적은 것이 있는 달부터 이 달 두 달 뒤까지.
+  /* 넘겨 볼 수 있는 끝. 적은 것이 있는 달부터 이 달 두 달 뒤까지.
      내역 세 화면과 씀씀이가 쓰는 그 잣대를 그대로 쓴다. */
   const { min: 달바닥, max: 달천장 } = useMonthSpan();
 
   const 달옮기기 = (v: string) => {
-    /* 고른 날은 그 달의 날이다. 달을 넘기면 뜻을 잃으므로 접는다. */
+    /* 선택한 날은 그 달의 날이다. 달을 넘기면 뜻을 잃으므로 접는다. */
     setPick([]);
     setYearMonth(v);
   };
@@ -243,7 +243,7 @@ export default function Calendar() {
     };
   }, []);
 
-  /* 한 달 합계. 집계에는 테이프를 붙이지 않는다 — 덮는 것은 개별 내역뿐이다. */
+  /* 한 달 합계. 집계에는 테이프를 붙이지 않는다. 덮는 것은 개별 내역뿐이다. */
   const monthSum = useMemo(() => {
     let inSum = 0;
     let outSum = 0;
@@ -253,7 +253,7 @@ export default function Calendar() {
     });
     return { inSum, outSum, net: inSum - outSum };
   }, [shown]);
-  /** 날짜 한 칸을 눌렀을 때 — 담겨 있으면 빼고, 없으면 담는다. */
+  /** 날짜 한 칸을 눌렀을 때. 담겨 있으면 빼고, 없으면 담는다. */
   const pickDay = useCallback((day: number) => {
     setPick((prev) =>
       prev.includes(day)
@@ -262,12 +262,12 @@ export default function Calendar() {
     );
   }, []);
 
-  /* 끌어서 기간 고르기.
+  /* 끌어서 기간 선택하기.
      누른 자리(dragFrom)와 지금 손가락이 있는 자리(dragTo)를 들고 있다가
      떼는 순간 그 사이를 통째로 담는다. 한 칸 안에서 누르고 떼면 그냥 하루를
      누른 것으로 본다.
 
-     손가락이 지나간 칸은 pointermove가 알려 주지 않는다 — 누른 칸이 이후
+     손가락이 지나간 칸은 pointermove가 알려 주지 않는다. 누른 칸이 이후
      신호를 붙잡기(setPointerCapture) 때문이다. 그래서 좌표로 어느 칸 위인지
      되짚는다. 마우스와 손가락을 한 갈래로 다루려면 이 편이 낫다. */
   const dragFrom = useRef<number | null>(null);
@@ -284,9 +284,9 @@ export default function Calendar() {
   const onCellDown = (day: number) => (e: React.PointerEvent<HTMLDivElement>) => {
     /* 가린 갈래가 섞인 날의 금액은 제 손짓(끌어서 잠깐 보기)이 있으므로
        비켜 준다. 가릴 것이 없는 날의 금액에는 그 손짓이 붙지 않으므로 비켜
-       주면 안 된다 — 그러면 그 글자를 누른 손짓이 아무 데도 가지 않아, 칸의
+       주면 안 된다. 그러면 그 글자를 누른 손짓이 아무 데도 가지 않아, 칸의
        가로폭을 통째로 차지하는 금액 줄을 누를 때마다 하루가 담기지도 빠지지도
-       않는다. masked·revealed 둘 중 하나가 붙은 것만이 제 손짓을 가진 금액이다. */
+       않는다. masked, revealed 둘 중 하나가 붙은 것만이 제 손짓을 가진 금액이다. */
     if (
       e.target instanceof Element &&
       e.target.closest(".cal__net.masked, .cal__net.revealed")
@@ -313,12 +313,12 @@ export default function Calendar() {
     setDragTo(null);
     if (from === null) return;
 
-    /* 한 칸 안에서 누르고 뗐다 — 하루를 담거나 뺀다. */
+    /* 한 칸 안에서 누르고 뗐다. 하루를 담거나 뺀다. */
     if (!dragMoved.current || to === null || to === from) {
       pickDay(from);
       return;
     }
-    /* 끌었다 — 지나온 날을 통째로 담는다. 이미 담긴 날은 그대로 둔다. */
+    /* 끌었다. 지나온 날을 통째로 담는다. 이미 담긴 날은 그대로 둔다. */
     const lo = Math.min(from, to);
     const hi = Math.max(from, to);
     setPick((prev) => {
@@ -329,21 +329,21 @@ export default function Calendar() {
   };
 
   /* 예전에는 시작일만 잡힌 어중간한 상태가 있어 달력 바깥을 누르면 접었다.
-     이제는 한 번 누를 때마다 고르기가 그 자리에서 끝나므로 어중간한 상태가
-     없다. 고른 날은 다시 눌러 뺀다. */
+     이제는 한 번 누를 때마다 선택하기가 그 자리에서 끝나므로 어중간한 상태가
+     없다. 선택한 날은 다시 눌러 뺀다. */
 
-  /** 고른 날들의 상세 화면으로 넘어간다. */
+  /** 선택한 날들의 상세 화면으로 넘어간다. */
   const openDetail = useCallback(() => {
     if (!pick.length) return;
     const pad = (n: number) => String(n).padStart(2, "0");
-    /* 고른 날을 그대로 죽 적어 보낸다 — 이어져 있을 필요가 없다. */
+    /* 선택한 날을 그대로 죽 적어 보낸다. 이어져 있을 필요가 없다. */
     const days = pick.map((d) => `${yearMonth}-${pad(d)}`).join(",");
     const src = SOURCES.filter((s) => on[s.key]).map((s) => s.key).join(",");
     /* 되돌아왔을 때 이 자리가 그대로이도록 저장한다. */
     stash("calendar", { yearMonth, on, fixPick, pick, filter, appliedFilter });
-    /* 고른 갈래를 그대로 물려준다 — 달력에 보이던 것과 상세가 어긋나면 안 된다. */
+    /* 선택한 갈래를 그대로 물려준다. 달력에 보이던 것과 상세가 어긋나면 안 된다. */
     navigate(`/calendar/detail?days=${days}&src=${src}&fx=${fxTag(fixPick)}`, {
-      /* 걸린 조건도 함께 넘긴다 — 달력에 보이던 것과 상세가 어긋나면 안 된다. */
+      /* 걸린 조건도 함께 넘긴다. 달력에 보이던 것과 상세가 어긋나면 안 된다. */
       state: { filter: appliedFilter },
     });
   }, [pick, yearMonth, on, fixPick, filter, appliedFilter, navigate]);
@@ -355,13 +355,13 @@ export default function Calendar() {
 
   return (
     <div className="page-wrap">
-      {/* 월 넘기기 + 필터 — 내역 세 화면과 같은 툴바 */}
+      {/* 월 넘기기 + 필터. 내역 세 화면과 같은 툴바 */}
       <div className="toolbar-wrap">
         <div className="toolbar">
           <MonthNav ym={yearMonth} onChange={달옮기기} min={달바닥} max={달천장} />
 
           <div className="toolbar-btns">
-            {/* 날짜를 고르면 필터 왼쪽에 둘이 나타난다 — 고른 것을 무르는
+            {/* 날짜를 선택하면 필터 왼쪽에 둘이 나타난다. 선택한 것을 무르는
                 [초기화]가 왼쪽, 보러 가는 [상세]가 오른쪽. 불은 하려던 일
                 하나에만 켠다. */}
             {pick.length > 0 && (
@@ -420,7 +420,7 @@ export default function Calendar() {
           </label>
         ))}
 
-        {/* 고정 · 변동 가운데 무엇을 셈에 넣을지. 넷을 알약으로 늘어놓으면
+        {/* 고정과 변동 가운데 무엇을 계산에 넣을지. 넷을 알약으로 늘어놓으면
             손전화 가로를 넘어 하나로 접는다. */}
         <FixedFilter value={fixPick} onChange={setFixPick} />
 
@@ -459,9 +459,9 @@ export default function Calendar() {
             const dow = i % 7;
             const isToday = today.ym === yearMonth && today.day === day;
 
-            /* 고른 날 표시. 끄는 중이면 그 사이도 미리 담긴 것처럼 보여 준다.
+            /* 선택한 날 표시. 끄는 중이면 그 사이도 미리 담긴 것처럼 보여 준다.
                앞뒤로 이어진 날이 없을 때만 그 자리에서 끝을 둥글게 하므로,
-               나란한 날을 고르면 한 줄로 이어져 보인다. */
+               나란한 날을 선택하면 한 줄로 이어져 보인다. */
             const inDrag = (d: number) =>
               dragFrom.current !== null &&
               dragTo !== null &&
@@ -488,7 +488,7 @@ export default function Calendar() {
                 onPointerUp={onCellUp}
                 onPointerCancel={onCellUp}
                 /* 손짓을 pointer로 옮기면서 키보드가 갈 곳을 잃었다.
-                   Enter · Space는 하루를 담고 빼는 것으로 받는다. */
+                   Enter, Space는 하루를 담고 빼는 것으로 받는다. */
                 onKeyDown={(e) => {
                   if (e.key !== "Enter" && e.key !== " ") return;
                   e.preventDefault();
@@ -521,7 +521,7 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* 필터 — 기간만 빼고 내역 화면과 같다. 씀씀이와 같은 부품을 쓴다. */}
+      {/* 필터. 기간만 빼고 내역 화면과 같다. 씀씀이와 같은 부품을 쓴다. */}
       {filterOpen && (
         <EntryFilterPopup
           filter={filter}

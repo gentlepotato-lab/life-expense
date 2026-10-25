@@ -9,8 +9,8 @@ from app.xlsx import sheet_bytes
 # 자리는 main.py에서 /api/profile로 붙인다.
 router = APIRouter()
 
-# 담는 앱 설정. 여기 없는 열쇠는 받지 않는다 —
-# 화면이 잘못 보내도 표가 지저분해지지 않게 한다.
+# 담는 앱 설정. 여기 없는 열쇠는 받지 않는다.
+# 화면이 잘못 보내도 테이블이 지저분해지지 않게 한다.
 PREF_KEYS = {
     "blur_default": "0",
     "home_path": "/",
@@ -18,7 +18,7 @@ PREF_KEYS = {
     # 내역 세 화면에서 카드 아래 메모 판을 보일지. 끄면 메모는 꾹 눌러 뜨는
     # 편집 팝업에서만 본다.
     "memo_show": "1",
-    # 화면이 움직일지. 끄면 애니메이션만 멈추고 하는 일은 그대로다 —
+    # 화면이 움직일지. 끄면 애니메이션만 멈추고 하는 일은 그대로다.
     # 꾹 누르기 진행 표시처럼 "언제 열리는지"를 알리는 움직임은 남는다.
     # (frontend/src/utils/motion.ts).
     "motion_on": "1",
@@ -29,7 +29,7 @@ PREF_KEYS = {
     # (frontend/src/utils/palettes.ts).
     "palette": "jjok",
     # 화면의 밝기. 밝은 쪽을 쓸지, 어두운 쪽을 쓸지, 운영체제를 따라갈지.
-    # 밝은 쪽과 어두운 쪽의 칸은 따로 담는다 — 시스템을 골라도 애써 고른
+    # 밝은 쪽과 어두운 쪽의 칸은 따로 담는다. 시스템을 선택해도 애써 선택한
     # 칸이 살아 있어야 한다.(frontend/src/utils/theme.ts).
     "theme_mode": "light",
     "theme_light": "now",
@@ -42,7 +42,7 @@ def get_profile(db: SessionDep = Depends()):
     """
     쓰는 사람. 아직 아무것도 적지 않았으면 빈 줄을 돌려준다.
 
-    칸은 바깥 인증이 돌려주는 것에 맞췄다. provider가 비어 있으면
+    컬럼은 바깥 인증이 돌려주는 것에 맞췄다. provider가 비어 있으면
     사람이 손으로 적어 넣은 것이다.
     """
     row = db.execute(text("""
@@ -64,7 +64,7 @@ def get_profile(db: SessionDep = Depends()):
 
 @router.post("")
 def save_profile(payload: dict, db: SessionDep = Depends()):
-    """손으로 적는 것만 고친다 — provider·provider_id는 로그인이 채울 자리다."""
+    """손으로 적는 것만 고친다. provider, provider_id는 로그인이 채울 자리다."""
     def cut(key: str, size: int) -> str | None:
         v = (payload.get(key) or "").strip()
         if not v:
@@ -141,8 +141,8 @@ def get_summary(db: SessionDep = Depends()):
     """
     함께한 시간과 버릇.
 
-    화면이 세 달치를 받아 세는 대신 여기서 한 번에 센다 — 처음 적은 날부터
-    지금까지가 셈의 바탕이라 화면으로 다 내려보낼 것이 아니다.
+    화면이 세 달치를 받아 세는 대신 여기서 한 번에 센다. 처음 적은 날부터
+    지금까지가 계산의 바탕이라 화면으로 다 내려보낼 것이 아니다.
     실지출은 v_entries_net을 쓴다. 다른 화면과 같은 잣대여야 한다.
     """
     span = db.execute(text("""
@@ -186,7 +186,7 @@ def get_summary(db: SessionDep = Depends()):
          LIMIT 3
     """)).mappings().all()
 
-    # 자주 간 곳과 많이 쓴 곳은 다르다 — 매일 가는 편의점과 한 번 간 가구점
+    # 자주 간 곳과 많이 쓴 곳은 다르다. 매일 가는 편의점과 한 번 간 가구점
     big_places = db.execute(text(f"""
         SELECT p.place_name AS name
              , SUM(COALESCE(vn.net_amount, e.amount)) AS total
@@ -220,7 +220,7 @@ def get_summary(db: SessionDep = Depends()):
          LIMIT 1
     """)).mappings().first()
 
-    # 가장 길게 이어 적은 날 — 날짜에서 순번을 빼면 이어진 날끼리 같은 값이 된다.
+    # 가장 길게 이어 적은 날. 날짜에서 순번을 빼면 이어진 날끼리 같은 값이 된다.
     streak = db.execute(text("""
         WITH days AS (
             SELECT DISTINCT tx_date FROM life_expense.entries WHERE inout <> 1
@@ -256,7 +256,7 @@ def get_summary(db: SessionDep = Depends()):
     }
 
 
-# 내보낼 표. 적은 차례대로 담는다 — 되살릴 때 가리키는 쪽이 뒤에 오도록.
+# 내보낼 표. 적은 차례대로 담는다. 되살릴 때 가리키는 쪽이 뒤에 오도록.
 EXPORT_TABLES = [
     "categories_lvl1", "categories_lvl2", "categories_lvl3",
     "payment_method_categories", "payment_methods",
@@ -274,8 +274,8 @@ def export_all(db: SessionDep = Depends()):
     """
     적어 온 것을 통째로 파일 하나에 담는다.
 
-    표를 그대로 옮긴다 — 화면이 셈한 값이 아니라 날것이라야 되살릴 수 있다.
-    날짜·시각·소수는 글자로 바꾼다. JSON이 그것들을 모른다.
+    테이블을 그대로 옮긴다. 화면이 계산한 값이 아니라 날것이라야 되살릴 수 있다.
+    날짜, 시각, 소수는 글자로 바꾼다. JSON이 그것들을 모른다.
     """
     from datetime import date, datetime
     from decimal import Decimal
@@ -305,7 +305,7 @@ def export_all(db: SessionDep = Depends()):
 
 
 # 내려받는 지출 내역의 머리글과 뽑는 말. CSV와 엑셀이 같은 것을 내려보내야
-# 하므로 한자리에 둔다 — 한쪽만 고쳐 둘이 어긋나는 일을 막는다.
+# 하므로 한자리에 둔다. 한쪽만 고쳐 둘이 어긋나는 일을 막는다.
 ENTRY_HEAD = ["날짜", "중분류", "소분류", "세분류", "결제 수단", "장소", "메모", "결제액", "실지출"]
 
 ENTRY_SQL = """

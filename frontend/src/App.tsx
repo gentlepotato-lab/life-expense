@@ -18,10 +18,10 @@ import Nudges from "./pages/Nudges";
 import Notices from "./pages/Notices";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
-/* 씀씀이만 따로 떼어 낸다 — 그림 그리는 짐(Recharts)이 무거워서
+/* 씀씀이만 따로 떼어 낸다. 그림 그리는 짐(Recharts)이 무거워서
    이 화면에 들어갈 때만 받아 오게 한다. 다른 화면은 가벼운 그대로다. */
 const Charts = lazy(() => import("./pages/Charts"));
-/* 관리자 페이지도 따로 떼어 낸다 — 사용자가 쓰는 길에 짐을 더하지 않는다.
+/* 관리자 페이지도 따로 떼어 낸다. 사용자가 쓰는 길에 짐을 더하지 않는다.
    이 화면에 들어갈 때만 받아 온다. */
 const Admin = lazy(() => import("./pages/Admin"));
 /* 관리자 자리 다섯도 늦게 불러 온다. 미리 불러 오면 그림 라이브러리까지
@@ -49,7 +49,7 @@ import { applyMotion } from "./utils/motion";
  *   형광펜이 지나간다     2.12 ~ 2.54초
  *
  * 다 쓰자마자 걷으면 쫓기듯 보인다. 마지막 움직임이 멎고도 0.36초를 그대로
- * 두었다가 걷는다 — 사라지는 320ms까지 더해 3.22초다.
+ * 두었다가 걷는다. 사라지는 320ms까지 더해 3.22초다.
  *
  * 2.60초이던 것을 늘린 것은 형광펜이 2.54초에야 끝나기 때문이다. 그대로 두면
  * 다 칠해진 로고를 0.06초밖에 못 보고 넘어가, 전에 "다 끝나기 전에 넘어간다"던
@@ -83,9 +83,9 @@ function useSplashDismiss() {
 }
 
 /**
- * 홈 자리. 돈쓴이에서 고른 첫 화면이 홈이 아니면 그리로 넘긴다.
+ * 홈 자리. 돈쓴이에서 선택한 첫 화면이 홈이 아니면 그리로 넘긴다.
  *
- * 앱을 새로 연 그때 한 번만 넘긴다 — 탭의 홈까지 가로채면 홈에 갈 길이 없다.
+ * 앱을 새로 연 그때 한 번만 넘긴다. 탭의 홈까지 가로채면 홈에 갈 길이 없다.
  */
 function HomeGate() {
   const [to] = useState(takeHome);
@@ -101,7 +101,7 @@ function App() {
   /* 설정은 화면이 뜨기 전에 있어야 하므로 브라우저에 남은 것으로 먼저 그리고,
      서버에서 받아 온 것은 다음에 열 때부터 쓴다.
 
-     마스킹 테이프와 움직임만은 받아 온 그 자리에서 갈아 끼운다 — 둘 다
+     마스킹 테이프와 움직임만은 받아 온 그 자리에서 갈아 끼운다. 둘 다
      표시 하나라 다시 그릴 것이 없고, 다음에 열 때까지 기다릴 까닭도 없다.
      다른 기기에서 끄고 왔으면 이 기기도 그 자리에서 따라 멈춘다. */
   useEffect(() => {
@@ -113,7 +113,7 @@ function App() {
   }, []);
 
   /* 꺼 놓은 메뉴를 한 번 받는다. 받기 전에는 빈 목록이라 전부 켜진 것으로
-     보이고, 그것이 지금 화면과 같은 상태다. 못 받아 와도 마찬가지다 —
+     보이고, 그것이 지금 화면과 같은 상태다. 못 받아 와도 마찬가지다.
      메뉴가 통째로 사라지느니 전부 켜진 채로 두는 편이 낫다. */
   useEffect(() => {
     void loadMenuOff();
@@ -133,8 +133,8 @@ function App() {
           페이지마다 그리면 옮길 때 새로 만들어져 갈래 탭 알약이 튄다. */}
       <PageHead />
 
-      {/* 알림 · 되묻기 · 이름 받기가 서는 자리. 머리말과 같은 까닭으로
-          화면 바깥에 한 번만 둔다 — 화면을 옮겨도 떠 있던 알림이 살아 있어야
+      {/* 알림, 되묻기, 이름 받기가 서는 자리. 머리말과 같은 까닭으로
+          화면 바깥에 한 번만 둔다. 화면을 옮겨도 떠 있던 알림이 살아 있어야
           한다. 뜬 것이 없는 동안에는 아무것도 그리지 않는다. */}
       <NotifyHost />
 
@@ -146,11 +146,11 @@ function App() {
       <ViewTracker />
 
       <Routes>
-        {/* 홈: / — 들어가는 문만 낸 첫 화면 */}
+        {/* 홈: /. 들어가는 문만 낸 첫 화면 */}
         <Route path="/" element={<HomeGate />} />
         {/* 쓰기 페이지 */}
         <Route path="/write" element={<Write />} />
-        {/* 내역 탭 첫 화면 — 셋 중 하나로 들어간다. */}
+        {/* 내역 탭 첫 화면. 셋 중 하나로 들어간다. */}
         <Route path="/history" element={<History />} />
         {/* 지출 내역 페이지 */}
         <Route path="/entries" element={<Entries />} />
@@ -162,7 +162,7 @@ function App() {
         <Route path="/calendar" element={<Calendar />} />
 
         <Route path="/entry-groups" element={<EntryGroups />} />
-        {/* 달력에서 고른 기간의 상세 — 달력에 딸린 화면이다. */}
+        {/* 달력에서 선택한 기간의 상세. 달력에 딸린 화면이다. */}
         <Route path="/calendar/detail" element={<CalendarDetail />} />
         {/* 설정 탭 첫 화면 */}
         <Route path="/settings" element={<Settings />} />
@@ -170,13 +170,13 @@ function App() {
         <Route path="/categories" element={<Categories />} />
         {/* 결제 수단 페이지 */}
         <Route path="/payment-methods" element={<PaymentMethods />} />
-        {/* 함께한 상대 페이지 — 금액 쪼개기의 상대 목록 */}
+        {/* 함께한 상대 페이지. 금액 쪼개기의 상대 목록 */}
         <Route path="/counterparts" element={<Counterparts />} />
-        {/* 안쓴이 도전 — 분류별 목표 금액 */}
+        {/* 안쓴이 도전. 분류별 목표 금액 */}
         <Route path="/goals" element={<Goals />} />
-        {/* 돈쓴이 — 쓰는 사람과 앱 자신 */}
+        {/* 돈쓴이. 쓰는 사람과 앱 자신 */}
         <Route path="/me" element={<Me />} />
-        {/* 어디 쓰나 — 적은 장소와 가게 */}
+        {/* 어디 쓰나. 적은 장소와 가게 */}
         <Route path="/places" element={<Places />} />
         <Route
           path="/charts"
@@ -186,14 +186,14 @@ function App() {
             </Suspense>
           }
         />
-        {/* 씀씀이에서 펼치는 상세 — 씀씀이에 딸린 화면이다.
-            화면 자체는 달력의 상세와 똑같은 것이라(고른 범위와 걸린 조건에
+        {/* 씀씀이에서 펼치는 상세. 씀씀이에 딸린 화면이다.
+            화면 자체는 달력의 상세와 똑같은 것이라(선택한 범위와 걸린 조건에
             드는 내역을 죽 늘어놓는 일) 같은 부품을 쓴다. 주소를 따로 두는
-            까닭은 소속 때문이다 — 이름표도 돌아갈 곳도 아래 막대가 켜는
+            까닭은 소속 때문이다. 이름표도 돌아갈 곳도 아래 막대가 켜는
             묶음도 씀씀이 것이어야 한다. */}
         <Route path="/charts/detail" element={<CalendarDetail />} />
         <Route path="/nudges" element={<Nudges />} />
-        {/* 공지사항 — 홈의 띠가 띄우는 것까지 지난 것을 모두 모은다. */}
+        {/* 공지사항. 홈의 띠가 띄우는 것까지 지난 것을 모두 모은다. */}
         <Route path="/notices" element={<Notices />} />
 
         {/* 관리자 사이트. 메뉴에도 탭에도 띄우지 않는다. 주소를 쳐야
@@ -201,7 +201,7 @@ function App() {
 
             길 하나만 둔다. 탭과 쪽은 관리자 틀이 제 안에서 가른다
             (pages/Admin.tsx). 여기서 쪽마다 lazy로 쪼갰더니 어느 쪽에 처음
-            들어갈 때마다 320ms씩 멈췄다. 받는 데 걸린 참이 아니라, 기다리는
+            들어갈 때마다 320ms씩 멈췄다. 받는 데 걸린 시간이 아니라, 기다리는
             자리(Suspense)가 한 번 뜨고 나면 React가 알맹이를 300ms 뒤에야
             보여 주기 때문이다. 쪽들을 관리자 묶음 하나에 담으면 기다리는
             자리가 아예 뜨지 않는다. */}
@@ -218,7 +218,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* 화면 아래 이동 막대 — 어느 화면에서나 같은 자리에 있다. */}
+      {/* 화면 아래 이동 막대. 어느 화면에서나 같은 자리에 있다. */}
       <TabBar />
     </BrowserRouter>
   );

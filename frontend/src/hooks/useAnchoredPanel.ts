@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 
 /**
- * 어떤 칸 아래에 붙여 띄우는 판의 자리를 셈한다.
+ * 어떤 칸 아래에 붙여 띄우는 판의 자리를 계산한다.
  *
- * 고르개(SingleSelect)가 쓰던 셈을 그대로 뽑아 왔다. 연월 고르개가 같은
- * 자리 셈을 또 적으면 언젠가 한쪽만 고쳐져, 같은 앱 안에서 어떤 판은
+ * 선택기(SingleSelect)가 쓰던 계산을 그대로 뽑아 왔다. 연월 선택기가 같은
+ * 자리 계산을 또 적으면 언젠가 한쪽만 고쳐져, 같은 앱 안에서 어떤 판은
  * 화면을 넘고 어떤 판은 안 넘게 된다.
  *
- * 판은 `position: fixed` 기준으로 놓인다 — 칸이 스크롤되는 통 안에 있어도
- * 판이 잘리지 않게 하려는 것이다. 그래서 스크롤이 일어나면 다시 셈한다.
+ * 판은 `position: fixed` 기준으로 놓인다. 칸이 스크롤되는 통 안에 있어도
+ * 판이 잘리지 않게 하려는 것이다. 그래서 스크롤이 일어나면 다시 계산한다.
  */
 
 export default function useAnchoredPanel(
@@ -48,7 +48,7 @@ export default function useAnchoredPanel(
       const openUp = below < 140 && above > below;
       const maxHeight = Math.max(120, Math.min(cap, openUp ? above : below));
 
-      /* 판은 화면 기준으로 놓인다. transform · will-change 따위를 지닌 조상이
+      /* 판은 화면 기준으로 놓인다. transform, will-change 따위를 지닌 조상이
          있으면 fixed가 그 조상에 기대어 자리가 밀리므로, 그런 자리에 서는
          판은 부르는 쪽에서 body로 띄워 쌓임과 기준을 함께 벗어난다. */
       setStyle(

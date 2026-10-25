@@ -1,13 +1,13 @@
 """
-금액 쪼개기 — 지출 한 건에서 돌려받은 몫을 관리한다.
+금액 쪼개기. 지출 한 건에서 돌려받은 몫을 관리한다.
 
 설계 요지
-  · 원본 금액(amount)은 결제 총액 그대로 둔다. 여기서는 건드리지 않는다.
-  · 실지출 = amount - SUM(splits)이며, 정의는 v_*_net 뷰에 있다.
-  · 분할은 자기 자신을 쪼갤 수 없으므로 깊이는 항상 1이다.
+  - 원본 금액(amount)은 결제 총액 그대로 둔다. 여기서는 건드리지 않는다.
+  - 실지출 = amount - SUM(splits)이며, 정의는 v_*_net 뷰에 있다.
+  - 분할은 자기 자신을 쪼갤 수 없으므로 깊이는 항상 1이다.
 
 내역은 scheduled → pending → entries로 흘러가고 각 단계에 같은 모양의
-분할 표가 있다. 세 단계가 다른 점은 "어느 표의 어느 컬럼을 보느냐" 뿐이라
+분할 테이블이 있다. 세 단계가 다른 점은 "어느 테이블의 어느 컬럼을 보느냐" 뿐이라
 라우터를 하나의 공장 함수로 찍어 낸다.
 """
 from fastapi import APIRouter, Depends, HTTPException
@@ -75,8 +75,8 @@ def make_split_router(owner_model, owner_pk, split_model, split_fk):
     """
     한 단계(entries / pending_entries / scheduled_entries)의 분할 라우터를 만든다.
 
-    owner_model / owner_pk : 원본 표와 그 기본키 컬럼명
-    split_model / split_fk : 분할 표와 원본을 가리키는 컬럼명
+    owner_model / owner_pk : 원본 테이블과 그 기본키 컬럼명
+    split_model / split_fk : 분할 테이블과 원본을 가리키는 컬럼명
     """
     router = APIRouter()
     owner_id_col = getattr(owner_model, owner_pk)

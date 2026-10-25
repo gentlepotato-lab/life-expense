@@ -46,10 +46,10 @@ function ymNow(): string {
  * 싸고 있다는 것뿐이다.
  *
  * 묶음은 세 화면(지출, 대기, 정기)에서 저마다 만들어지는데, 보는 자리는 여기
- * 하나다. 갈래를 나눠 탭을 더 두지 않는다 — 한 화면에 탭이 둘이면 어느 쪽이
+ * 하나다. 갈래를 나눠 탭을 더 두지 않는다. 한 화면에 탭이 둘이면 어느 쪽이
  * 무엇을 가르는지 헷갈린다.
  *
- * 달 이동은 걸친 달로 고른다. 담긴 내역의 첫날과 끝날 사이에 그 달이 들면
+ * 달 이동은 걸친 달로 선택한다. 담긴 내역의 첫날과 끝날 사이에 그 달이 들면
  * 보인다. 그래서 날이 걸쳐 있는 여행은 시작한 달과 끝난 달 모두에서 보인다.
  * 정기 묶음은 날짜가 없어 달과 상관없이 늘 보인다.
  */
@@ -69,23 +69,23 @@ export default function EntryGroups() {
   const [yearMonth, setYearMonth] = useState(ymNow);
   const [groups, setGroups] = useState<EntryGroup[]>([]);
   const [ready, setReady] = useState(false);
-  /* 펼친 묶음. 비어 있으면 모두 접힌 것이다 — 묶음 내역은 접힌 채로
+  /* 펼친 묶음. 비어 있으면 모두 접힌 것이다. 묶음 내역은 접힌 채로
      연다. 묶음이 여럿이면 저마다 날짜 단과 카드를 거느려, 다 펼치면
      무엇이 몇 개인지가 한 화면에 안 들어온다. 접으면 더미 한 장씩이라
      훑기 쉽고, 볼 것만 펼친다. */
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [picked, setPicked] = useState<Set<number>>(new Set());
 
-  /* 고른 것이 있으면 뒤로 가기가 화면을 떠나지 않고 고른 것만 푼다.
-     팝업과 같은 결이다 — 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 고른
+  /* 선택한 것이 있으면 뒤로 가기가 화면을 떠나지 않고 선택한 것만 푼다.
+     팝업과 같은 결이다. 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 선택한
      것이 있는 동안만 서 있으므로, 풀면 막대도 함께 내려간다.
-     Backspace는 받지 않는다 — 고르는 중에 쓰는 키가 아니다. */
+     Backspace는 받지 않는다. 선택하는 중에 쓰는 키가 아니다. */
   useBackClose(picked.size > 0, () => setPicked(new Set()), false);
   const [openId, setOpenId] = useState<number | null>(null);
 
-  /* 묶음 팝업을 여는 유일한 길. 머리말 · 기간 · 메모 · 접힌 한 줄이 모두
-     여기를 지난다 — 자리마다 따로 적으면 한 곳만 막고 나머지를 잊는다.
-     고르는 중에는 열지 않는다. 필터를 막는 것과 같은 까닭이다. */
+  /* 묶음 팝업을 여는 유일한 길. 머리말, 기간, 메모, 접힌 한 줄이 모두
+     여기를 지난다. 자리마다 따로 적으면 한 곳만 막고 나머지를 잊는다.
+     선택하는 중에는 열지 않는다. 필터를 막는 것과 같은 까닭이다. */
   const 묶음열기 = (id: number) => {
     if (picked.size > 0) {
       say.warn("선택한 묶음이 있습니다. 해제한 후 시도해 주세요.");
@@ -99,7 +99,7 @@ export default function EntryGroups() {
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   /* 팝업에서 고치는 중인 값과 실제로 걸려 있는 값을 나눈다. 하나로 두면
-     [적용]을 누르기도 전에 뒤 화면이 먼저 바뀐다 — 지출 내역과 같은 짜임이다. */
+     [적용]을 누르기도 전에 뒤 화면이 먼저 바뀐다. 지출 내역과 같은 짜임이다. */
   const [filter, setFilter] = useState<GroupFilter>(EMPTY_GROUP_FILTER);
   const [applied, setApplied] = useState<GroupFilter>(EMPTY_GROUP_FILTER);
   /* 꾹 눌러 고치는 중인 한 건. 어느 갈래인지는 담긴 묶음이 안다. */
@@ -112,7 +112,7 @@ export default function EntryGroups() {
   const [cat3List, setCat3List] = useState<{ id: number; name: string; cat2_id: number }[]>([]);
   const [payList, setPayList] = useState<{ code: string; name: string; emoji?: string | null; category?: string }[]>([]);
 
-  /* 기준 자료 — 카드가 분류와 결제 수단 이름을 적는 데 쓴다. */
+  /* 기준 자료. 카드가 분류와 결제 수단 이름을 적는 데 쓴다. */
   useEffect(() => {
     const 메타실패 = () => say.warn("기준 자료를 불러오지 못했습니다. 새로 고쳐 주세요.");
     Promise.all([
@@ -167,7 +167,7 @@ export default function EntryGroups() {
 
   useEffect(load, [load]);
 
-  /* 넘겨 볼 수 있는 끝 — 적은 것이 있는 달부터 이 달 두 달 뒤까지.
+  /* 넘겨 볼 수 있는 끝. 적은 것이 있는 달부터 이 달 두 달 뒤까지.
      아직 오지 않은 달이나 적은 것이 하나도 없는 달로는 넘어가지 않는다. */
   const { min: 달바닥, max: 달천장 } = useMonthSpan();
   /* 걸린 기간을 적는 한 줄. 지출 내역이 적는 꼴과 같다. */
@@ -202,7 +202,7 @@ export default function EntryGroups() {
       return next;
     });
 
-  /* 영수증은 고른 묶음에 담긴 내역을 모두 모아 끊는다. 지출 내역의 영수증과
+  /* 영수증은 선택한 묶음에 담긴 내역을 모두 모아 끊는다. 지출 내역의 영수증과
      같은 꼴이라, 받는 쪽이 쓰는 모양으로 맞춰 넘긴다. */
   const receiptRows = useMemo(() => {
     const cat1 = new Map(cat1List.map((c) => [c.id, c.name]));
@@ -256,8 +256,8 @@ export default function EntryGroups() {
             />
             <button
               type="button"
-              /* 고르는 중에는 필터를 열지 않는다. 필터를 걸면 목록이 통째로
-                 바뀌어 고른 것이 가리키던 줄이 사라진다. */
+              /* 선택하는 중에는 필터를 열지 않는다. 필터를 걸면 목록이 통째로
+                 바뀌어 선택한 것이 가리키던 줄이 사라진다. */
               onClick={() => {
                 if (picked.size > 0) {
                   say.warn("선택한 묶음이 있습니다. 해제한 후 시도해 주세요.");
@@ -288,7 +288,7 @@ export default function EntryGroups() {
           return (
             <section key={group.group_id} className="date-group mk-group">
               {/* 머리말은 접든 펼치든 늘 그 자리다. 접고 펼 때 생김새가
-                  통째로 바뀌면 목록이 흔들린다. 바뀌는 것은 그 아래뿐이다 —
+                  통째로 바뀌면 목록이 흔들린다. 바뀌는 것은 그 아래뿐이다.
                   접었을 때는 기간 한 줄, 펼쳤을 때는 날짜 단과 카드. */}
               <GroupHead
                 group={group}
@@ -299,7 +299,7 @@ export default function EntryGroups() {
                 onTogglePick={() => togglePick(group.group_id)}
               />
 
-              {/* 묶음이 걸친 기간 — 이름 바로 아래에 딱지로 선다. 겹 카드는
+              {/* 묶음이 걸친 기간. 이름 바로 아래에 딱지로 선다. 겹 카드는
                   내역 한 건을 적는 자리라 거기에 기간까지 얹으면 그 한 건이
                   기간 전체를 가리키는 것처럼 읽힌다. */}
               {group.date_from && (
@@ -313,7 +313,7 @@ export default function EntryGroups() {
                 </GroupTap>
               )}
 
-              {/* 메모도 묶음을 가리키는 자리다 — 머리말과 같게 눌린다. */}
+              {/* 메모도 묶음을 가리키는 자리다. 머리말과 같게 눌린다. */}
               <GroupTap
                 className="mk-memo"
                 label={open ? `묶음 ${group.name} 접기` : `묶음 ${group.name} 펼치기`}
@@ -360,7 +360,7 @@ export default function EntryGroups() {
                         readOnly={group.kind === "scheduled"}
                         onOpenEditor={(r) => {
                           if (group.kind === "scheduled") return;
-                          /* 고르는 중에는 열지 않는다 — 필터를 막는 것과 같은
+                          /* 선택하는 중에는 열지 않는다. 필터를 막는 것과 같은
                              까닭이다. 꾹 누르기도 클립을 뜯는 것도 여기를 지난다. */
                           if (picked.size > 0) {
                             say.warn("선택한 묶음이 있습니다. 해제한 후 시도해 주세요.");
@@ -369,7 +369,7 @@ export default function EntryGroups() {
                           방금편집.current = true;
                           setEditing({ kind: group.kind, row: r });
                         }}
-                        /* 펼친 묶음은 카드를 눌러도 접힌다 — 펼친 자리에서
+                        /* 펼친 묶음은 카드를 눌러도 접힌다. 펼친 자리에서
                            손이 가장 먼저 닿는 곳이 카드다. */
                         onTap={() => {
                           if (방금편집.current) {

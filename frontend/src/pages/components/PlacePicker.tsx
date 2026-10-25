@@ -3,10 +3,10 @@ import axios from "../../api/client";
 import { loadKakaoMap, 장소찾기적기, 지도적기 } from "../../utils/kakaoMap";
 
 /**
- * 장소 고르기 팝업.
+ * 장소 선택하기 팝업.
  *
  * 저장한 장소를 먼저 찾고, 없으면 카카오에서 찾아 새로 적는다.
- * 쓰기 · 쓴 내역 · 쓰다 만 내역 · 쓸 내역 네 화면이 함께 쓰기 때문에
+ * 쓰기, 쓴 내역, 쓰다 만 내역, 쓸 내역 네 화면이 함께 쓰기 때문에
  * 어느 한 화면에 얹지 않고 여기 따로 둔다.
  */
 const overlayStyle: React.CSSProperties = {
@@ -86,7 +86,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
   useEffect(() => {
     if (!selected || !selected.y || !selected.x) return;
 
-    /* 지도를 그리는 데 걸린 참을 잰다. 타일이 바깥으로 나가므로 한 줄
+    /* 지도를 그리는 데 걸린 시간을 잰다. 타일이 바깥으로 나가므로 한 줄
        남긴다(utils/kakaoMap.ts의 지도적기). */
     const 시작 = performance.now();
     loadKakaoMap().then(() => {
@@ -124,7 +124,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
     await loadKakaoMap();
     const { kakao } = window as any;
     const ps = new kakao.maps.services.Places();
-    /* 찾는 데 걸린 참을 잰다. 브라우저가 바깥을 바로 부르므로, 적어 보내지
+    /* 찾는 데 걸린 시간을 잰다. 브라우저가 바깥을 바로 부르므로, 적어 보내지
        않으면 관리자 사이트의 외부 API 쪽에 아무것도 남지 않는다. */
     const 시작 = performance.now();
     ps.keywordSearch(keyword, (data: any, status: any) => {
@@ -215,10 +215,10 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
           }}
         />
 
-        {/* 출처 전환 — 누른 쪽으로 목록과 제목이 바뀐다. */}
+        {/* 출처 전환. 누른 쪽으로 목록과 제목이 바뀐다. */}
         {/* 찾아본 뒤에만 그쪽이 켜진다. source는 처음부터 "db"라, 켜고 끄는
             잣대로 그것만 쓰면 아직 아무것도 안 찾았는데 한쪽이 눌린 것처럼
-            보였다 — 어느 쪽을 누를지 고르는 자리인데 이미 골라져 있는 꼴이다. */}
+            보였다. 어느 쪽을 누를지 선택하는 자리인데 이미 선택돼 있는 꼴이다. */}
         <div className="place-picker__tabs">
           <button
             type="button"
@@ -241,7 +241,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
           {searched && <span className="place-picker__count">{results.length}건</span>}
         </div>
 
-        {/* 결과 목록 — 한 영역만 쓴다. */}
+        {/* 결과 목록. 한 영역만 쓴다. */}
         <div className="place-picker__list">
           {results.length === 0 ? (
             <div className="popup-empty">
@@ -282,7 +282,7 @@ export default function PlacePicker({ onSelect, onClose }: PlacePickerProps) {
           )}
         </div>
 
-        {/* 지도 — 영역은 항상 잡고, 선택 전에는 안내를 띄운다. */}
+        {/* 지도. 영역은 항상 잡고, 선택 전에는 안내를 띄운다. */}
         <div className="place-picker__mapwrap">
           <div id="popup-map" className="place-picker__map"></div>
           {!selected && (

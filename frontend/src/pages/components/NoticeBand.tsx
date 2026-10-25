@@ -11,13 +11,13 @@ import MegaphoneIcon from "./MegaphoneIcon";
  * **밀어 감추는 것과 읽는 것은 다르다.** 미는 것은 "지금은 안 볼래"일 뿐이라
  * 창을 닫았다 열면 다시 뜬다. 읽음으로 적히는 것은 [읽음]을 눌렀을 때뿐이고,
  * 그때만 서버에 적혀 다른 기기에서도 뜨지 않는다. 밀기만으로 영영 못 보게
- * 하면 실수로 한 번 민 공지를 다시 찾을 길이 없다 — 지난 공지는 공지사항
+ * 하면 실수로 한 번 민 공지를 다시 찾을 길이 없다. 지난 공지는 공지사항
  * 화면에서 다시 읽는다(pages/Notices.tsx).
  *
  * 글 흐름에서 빼내 띄운다(position: absolute). 흐름 안에 두었더니 공지 하나에
  * 홈 카드가 55px, 펼치면 160px씩 내려앉았다. 띄우면 아래 카드가 한 치도
  * 움직이지 않는 대신 띠가 카드 한 장을 덮는데, 밀어 바로 치울 수 있으므로
- * 덮이는 쪽을 골랐다.
+ * 덮이는 쪽을 선택했다.
  *
  * **뜰 공지가 없으면 아무것도 그리지 않는다.** 빈 띠를 높이 0으로 두면 안
  * 된다. 홈은 손이 가장 자주 닿는 화면이라 한 픽셀이라도 밀리면 안 되고,
@@ -52,7 +52,7 @@ function 감춘것(): number[] {
     const 들 = 글 ? (JSON.parse(글) as unknown) : null;
     return Array.isArray(들) ? 들.filter((x): x is number => typeof x === "number") : [];
   } catch {
-    /* 담는 자리를 막아 둔 브라우저도 있다. 그때는 감춘 것이 없는 셈이다. */
+    /* 담는 자리를 막은 브라우저도 있다. 그때는 감춘 것이 없는 셈이다. */
     return [];
   }
 }
@@ -81,15 +81,15 @@ export default function NoticeBand() {
   /* 날아가는 중인가. 끝나면 목록에서 뺀다. */
   const [날림, set날림] = useState(false);
   const 띠칸 = useRef<HTMLElement | null>(null);
-  /* 제목이 칸을 넘었나. 넘으면 뒤쪽이 옅어지다 (...)로 이어진다 — 공지사항
+  /* 제목이 칸을 넘었나. 넘으면 뒤쪽이 옅어지다 (...)로 이어진다. 공지사항
      화면과 내역 카드의 메모가 끊기는 꼴 그대로다. */
   const 제목칸 = useRef<HTMLSpanElement | null>(null);
   const [잘렸나, set잘렸나] = useState(false);
-  /* 접혀 있을 때의 키. 두 군데에 쓴다 — 펼칠 때 윗변을 못 박는 자리와,
+  /* 접혀 있을 때의 키. 두 군데에 쓴다. 펼칠 때 윗변을 못 박는 자리와,
      뒤 장의 키를 앞 장에 맞추는 자리다. 뒤 장에 쓰려면 다시 그려야 하므로
      ref가 아니라 state로 든다. */
   const [접힌키, set접힌키] = useState(0);
-  /* 끄는 동안의 값. 다시 그릴 거리가 아니므로 state로 두지 않는다 —
+  /* 끄는 동안의 값. 다시 그릴 거리가 아니므로 state로 두지 않는다.
      손끝을 따라 옮기는 일은 style로 직접 한다. */
   const 끌기 = useRef({ x: 0, y: 0, 잡았나: false, 가로인가: null as boolean | null, id: -1 });
 
@@ -99,9 +99,9 @@ export default function NoticeBand() {
       .get("/notices", { params: { today: ymd(new Date()) } })
       .then((r) => {
         if (!살아있나) return;
-        /* 아직 안 읽은 것만 서버가 골라 보낸다. 읽은 자리를 서버가 들고
+        /* 아직 안 읽은 것만 서버가 선택해 보낸다. 읽은 자리를 서버가 들고
            있어야 폰에서 읽은 것이 PC에서 또 뜨지 않는다. 이번 판에 밀어
-           감춘 것은 여기서 뺀다 — 그쪽은 서버가 모른다. */
+           감춘 것은 여기서 뺀다. 그쪽은 서버가 모른다. */
         const 숨긴것 = new Set(감춘것());
         set공지들(((r.data as 공지[]) ?? []).filter((n) => !숨긴것.has(n.notice_id)));
       })
@@ -133,7 +133,7 @@ export default function NoticeBand() {
   useEffect(() => {
     if (펼침 || !띠칸.current) return;
     const 잰것 = 띠칸.current.offsetHeight;
-    /* 같은 값이면 다시 그리지 않는다 — 그러지 않으면 재고 그리기를 되풀이한다. */
+    /* 같은 값이면 다시 그리지 않는다. 그러지 않으면 재고 그리기를 되풀이한다. */
     set접힌키((v) => (v === 잰것 ? v : 잰것));
   }, [펼침, 공지들, 잘렸나]);
 
@@ -152,7 +152,7 @@ export default function NoticeBand() {
    * 브라우저가 한 번 그려, 민 공지가 깜빡 다시 떴다가 사라졌다.
    *
    * 풀어 줄 까닭도 없다. 장마다 key 가 공지 번호라, 맨 앞 장은 목록에서
-   * 빠지면서 그 조각째 거둬진다 — 다음 장은 저가 쓰던 다른 조각이다.
+   * 빠지면서 그 조각째 거둬진다. 다음 장은 저가 쓰던 다른 조각이다.
    */
   const 다음장 = () => {
     set공지들((v) => v.slice(1));
@@ -244,7 +244,7 @@ export default function NoticeBand() {
 
        겹쳐 선 장들은 모두 이 조각을 기준으로 같은 자리에 뜨고, 뒤 장만
        위로 밀려 테가 비죽 보인다. 맨 앞 장을 밀어내면 뒤 장이 제 자리로
-       미끄러져 올라온다 — 넘기는 손맛이 거기서 난다.
+       미끄러져 올라온다. 넘기는 손맛이 거기서 난다.
        그리는 차례는 뒤 장부터다. 같은 자리에 겹치므로 나중에 그린 것이
        위에 선다. */
     <div className="notice-dock">
@@ -252,7 +252,7 @@ export default function NoticeBand() {
         const 깊이 = 보일것.length - 1 - 뒤에서;
         const 맨앞 = 깊이 === 0;
         if (!맨앞) {
-          /* 뒤 장은 테와 바탕만 보인다. 글은 눈에 보이지 않게 깔아 두는데,
+          /* 뒤 장은 테와 바탕만 보인다. 글은 눈에 보이지 않게 까는데,
              빈 조각으로 두면 키가 0이 되어 테가 실선 한 줄로만 보이기
              때문이다. visibility 로 감추면 자리는 그대로 남는다. */
           return (
@@ -262,7 +262,7 @@ export default function NoticeBand() {
               data-depth={깊이}
               aria-hidden="true"
               /* 키를 앞 장에서 잰 값으로 못 박는다. 글을 그대로 깔아도 단추와
-                 글줄 셈이 미세하게 달라 2px쯤 어긋났고, 아랫변이 붙박이라
+                 글줄 계산이 미세하게 달라 2px쯤 어긋났고, 아랫변이 붙박이라
                  그만큼 윗변이 위로 올라가 층계처럼 보였다. */
               style={접힌키 ? { height: `${접힌키}px` } : undefined}
             >

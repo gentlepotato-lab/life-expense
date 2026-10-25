@@ -6,12 +6,12 @@ import { type Period } from "../../utils/placeBoard";
 import { ymNow } from "../../utils/schedule";
 
 /**
- * 어디 쓰나의 기간 고르개.
+ * 어디 쓰나의 기간 선택기.
  *
- * 달 단위로만 고른다 — 어느 동네를 다녔는지는 달로 보면 되고, 날짜까지
- * 고르게 하면 고르는 일이 셈보다 번거로워진다.
+ * 달 단위로만 선택한다. 어느 동네를 다녔는지는 달로 보면 되고, 날짜까지
+ * 선택하게 하면 그 일이 계산보다 번거로워진다.
  *
- * 고르는 동안에는 팝업 안에서만 바뀌고, [적용]을 눌러야 화면이 다시 받아
+ * 선택하는 동안에는 팝업 안에서만 바뀌고, [적용]을 눌러야 화면이 다시 받아
  * 온다. 달을 하나 옮길 때마다 500곳을 다시 받아 오면 손이 무겁다.
  */
 export default function PlacePeriodPopup({
@@ -20,7 +20,7 @@ export default function PlacePeriodPopup({
   onApply,
   onClose,
 }: {
-  /** 고를 수 있는 앞뒤 달 — 적은 것이 있는 만큼만 */
+  /** 선택할 수 있는 앞뒤 달. 적은 것이 있는 만큼만 */
   span: { from: string | null; to: string | null };
   period: Period;
   onApply: (next: Period) => void;
@@ -29,16 +29,16 @@ export default function PlacePeriodPopup({
   useBackClose(true, onClose);
   const [draft, setDraft] = useState<Period>(period);
 
-  /* 여기서는 달을 'YYYY-MM'으로 들고 다니고, 고르개는 'YYYYMM'을 주고받는다.
-     고르개 쪽을 고치지 않고 이 자리에서 맞춘다 — 날짜를 적는 꼴은 화면마다
-     사정이 있어, 고르개가 그 사정을 다 알게 하면 곧 지저분해진다. */
+  /* 여기서는 달을 'YYYY-MM'으로 들고 다니고, 선택기는 'YYYYMM'을 주고받는다.
+     선택기 쪽을 고치지 않고 이 자리에서 맞춘다. 날짜를 적는 꼴은 화면마다
+     사정이 있어, 선택기가 그 사정을 다 알게 하면 곧 지저분해진다. */
   const 붙이기 = (v: string) => v.replace("-", "");
   const 떼기 = (v: string) => (v ? `${v.slice(0, 4)}-${v.slice(4)}` : "");
 
-  /* 고를 수 있는 앞뒤 끝 — 적은 것이 있는 만큼만.
+  /* 선택할 수 있는 앞뒤 끝. 적은 것이 있는 만큼만.
      다만 뒤끝은 이번 달까지 연다. 적은 마지막 달이 지난달이면
      처음 보이는 기간(최근 석 달)의 끝달이 잠겨, 칸에는 "2026년 10월"이
-     적혀 있는데 그 10월을 다시 고를 수 없는 꼴이 된다. */
+     적혀 있는데 그 10월을 다시 선택할 수 없는 꼴이 된다. */
   const 이번달 = ymNow();
   const min = span.from ? 붙이기(span.from) : undefined;
   const max = span.to ? (붙이기(span.to) < 이번달 ? 이번달 : 붙이기(span.to)) : undefined;
@@ -86,14 +86,14 @@ export default function PlacePeriodPopup({
           <button className="ui-btn" onClick={() => setDraft({ since: "", until: "" })}>
             초기화
           </button>
-          {/* 다른 팝업과 같은 차례로 — 되돌리는 것 · 닫기 · 하려던 것 */}
+          {/* 다른 팝업과 같은 차례로, 되돌리는 것, 닫기, 하려던 것 */}
           <button className="ui-btn" onClick={onClose}>
             닫기
           </button>
           <button
             className="ui-btn primary"
             onClick={() => {
-              /* 거꾸로 골랐으면 서버가 물리기 전에 여기서 바로잡는다. */
+              /* 거꾸로 선택했으면 서버가 물리기 전에 여기서 바로잡는다. */
               const [a, b] =
                 draft.since && draft.until && draft.since > draft.until
                   ? [draft.until, draft.since]

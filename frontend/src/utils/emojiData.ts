@@ -2,10 +2,10 @@
  * 이모지 목록.
  *
  * 새 패키지를 들이지 않으려고 표를 직접 들고 있다.
- * 한 줄은 "이모지 검색어1 검색어2 ..." 형태이고, 검색어는 한글·영문을
+ * 한 줄은 "이모지 검색어1 검색어2 ..." 형태이고, 검색어는 한글과 영문을
  * 섞는다. 이름을 모를 때도 "밥", "food" 어느 쪽으로든 찾히게 하려는 것이다.
  *
- * 표정을 맨 앞에 둔다. 돈쓴이의 얼굴을 고르는 자리에서 가장 먼저 찾는 것이고,
+ * 표정을 맨 앞에 둔다. 돈쓴이의 얼굴을 선택하는 자리에서 가장 먼저 찾는 것이고,
  * 뒤에 두면 아홉 묶음을 지나서야 나온다.
  */
 
@@ -14,7 +14,7 @@ export type EmojiGroup = { key: string; label: string; items: string[] };
 const RAW: EmojiGroup[] = [
   {
     key: "face",
-    label: "표정·감정",
+    label: "표정, 감정",
     items: [
       "🙂 미소 웃음 smile", "😀 웃음 grin", "😃 활짝 웃음 smile", "😄 즐거움 happy",
       "😁 이 활짝 beam", "😆 폭소 laugh", "😅 식은땀 sweat", "🤣 뒤집어짐 rofl",
@@ -102,7 +102,7 @@ const RAW: EmojiGroup[] = [
   },
   {
     key: "travel",
-    label: "이동·장소",
+    label: "이동, 장소",
     items: [
       "🚌 버스 bus", "🚍 버스 bus", "🚏 정류장 busstop", "🚇 지하철 subway metro",
       "🚆 기차 train", "🚄 고속열차 ktx train", "🚅 고속철 train", "🚈 전철 train",
@@ -136,7 +136,7 @@ const RAW: EmojiGroup[] = [
   },
   {
     key: "life",
-    label: "생활·쇼핑",
+    label: "생활, 쇼핑",
     items: [
       "🛒 장보기 마트 cart shopping", "🛍️ 쇼핑 shopping bag", "🎁 선물 gift", "💐 꽃다발 flower",
       "🌷 꽃 tulip", "🌹 장미 rose", "🥀 시든 꽃 wilted", "🌺 히비스커스 hibiscus",
@@ -169,7 +169,7 @@ const RAW: EmojiGroup[] = [
   },
   {
     key: "health",
-    label: "건강·운동",
+    label: "건강, 운동",
     items: [
       "🏥 병원 hospital", "💊 약 약국 medicine pharmacy", "💉 주사 injection", "🩺 진료 검진 checkup",
       "🩻 엑스레이 xray", "🩹 반창고 bandage", "🦷 치과 dental", "👁️ 안과 eye",
@@ -193,7 +193,7 @@ const RAW: EmojiGroup[] = [
   },
   {
     key: "fun",
-    label: "문화·취미",
+    label: "문화, 취미",
     items: [
       "🎬 영화 movie", "🍿 팝콘 popcorn", "🎭 공연 연극 theater", "🎤 노래방 karaoke",
       "🎵 음악 music", "🎶 음표 notes", "🎧 이어폰 headphone", "🎼 악보 score",
@@ -217,7 +217,7 @@ const RAW: EmojiGroup[] = [
   },
   {
     key: "money",
-    label: "금융·업무",
+    label: "금융, 업무",
     items: [
       "💰 돈 money", "💵 현금 지폐 cash", "💴 엔 yen", "💶 유로 euro",
       "💷 파운드 pound", "🪙 동전 coin", "💳 카드 신용카드 card", "🧾 영수증 receipt",
@@ -243,7 +243,7 @@ const RAW: EmojiGroup[] = [
   },
   {
     key: "people",
-    label: "사람·동물",
+    label: "사람, 동물",
     items: [
       "🧑 사람 person", "👤 익명 anonymous", "👥 사람들 people", "🧑‍🦱 곱슬 curly",
       "👨 남자 man", "👩 여자 woman", "🧒 아이 child", "👶 아기 baby",
@@ -282,7 +282,7 @@ const RAW: EmojiGroup[] = [
   },
   {
     key: "symbol",
-    label: "기호·기타",
+    label: "기호, 기타",
     items: [
       "⭐ 별 즐겨찾기 star", "🌟 반짝 sparkle", "✨ 반짝임 sparkles", "💫 별똥 dizzy",
       "❤️ 하트 heart", "🧡 주황하트 heart", "💛 노랑하트 heart", "💚 초록하트 heart",

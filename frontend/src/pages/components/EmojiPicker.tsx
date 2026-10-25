@@ -4,9 +4,9 @@ import { EMOJI_ALL, EMOJI_GROUPS, searchEmoji } from "../../utils/emojiData";
 import type { EmojiEntry } from "../../utils/emojiData";
 
 /**
- * 묶음 머리말에 붙일 이모지를 고른다.
+ * 묶음 머리말에 붙일 이모지를 선택한다.
  *
- * 직접 입력할 수 있는 칸을 두지 않는다. 목록에서 고른 것만 들어가므로
+ * 직접 입력할 수 있는 칸을 두지 않는다. 목록에서 선택한 것만 들어가므로
  * 이모지가 아닌 글자가 섞일 여지가 없다.
  * 검색칸은 "무엇을 찾을지"를 적는 곳이지 값이 들어가는 곳이 아니다.
  */
@@ -15,7 +15,7 @@ export default function EmojiPicker({
   onChange,
   disabled = false,
   /* 잠겼을 때 누름을 받을 곳. 받을 데가 있으면 진짜 disabled 대신
-     aria-disabled를 단다 — disabled는 누름 자체가 나지 않아 "왜 안 되는지"를
+     aria-disabled를 단다. disabled는 누름 자체가 나지 않아 "왜 안 되는지"를
      알릴 길이 없다. 읽어 주는 기계에게는 여전히 잠긴 것으로 들린다. */
   onLocked,
   title = "이모지 선택",
@@ -28,7 +28,7 @@ export default function EmojiPicker({
 }) {
   const [open, setOpen] = useState(false);
 
-  /* 뒤로 가기는 떠 있는 이 판만 닫는다 — 화면을 떠나면 안 된다.
+  /* 뒤로 가기는 떠 있는 이 판만 닫는다. 화면을 떠나면 안 된다.
      Backspace는 받지 않는다. 이 판 옆에는 글자를 지우는 칸이 흔하다. */
   useBackClose(open, () => setOpen(false), false);
   const [query, setQuery] = useState("");

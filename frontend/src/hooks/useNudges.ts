@@ -15,18 +15,18 @@ import type { Goal } from "../utils/goalStand";
  * 안쓴이 도전이 볼 자료를 한 벌만 받아 이 모듈에 얹는다.
  *
  * 세 달치를 받는 일이라 화면을 옮길 때마다 다시 받아 오면 안 된다. 받아 온
- * 것을 이 모듈에 얹고 화면을 옮겨도 그대로 쓴다 — 계산기가 계산 기록을
+ * 것을 이 모듈에 얹고 화면을 옮겨도 그대로 쓴다. 계산기가 계산 기록을
  * 들고 있는 방식과 같다. 새로 고침을 누르면 페이지가 다시 뜨면서 함께
  * 비워진다.
  *
- * 걸러 내기(Blur · Exclude)는 받아 온 뒤에 한다. 그래야 고정 · 변동 단추를
+ * 걸러 내기(Blur, Exclude)는 받아 온 뒤에 한다. 그래야 고정과 변동 단추를
  * 눌러 켜고 끌 때 다시 받아 오지 않는다.
  *
  * 잔소리는 이 줄을 보지 않는다. 서버가 센 것을 아래 useNudges()가 받아 올
  * 뿐이다(backend/app/nudgecalc.py).
  */
 
-/** 앞뒤로 몇 달치를 보고 셈할지 — 평균을 내려면 한 달로는 모자란다. */
+/** 앞뒤로 몇 달치를 보고 계산할지. 평균을 내려면 한 달로는 모자란다. */
 const MONTHS = 3;
 
 type Raw = Record<string, unknown>;
@@ -35,18 +35,18 @@ type Cat = { id: number; name: string; blur?: number };
 const ymd = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-/** 받아 온 그대로 — 아직 아무것도 걸러 내지 않았다. */
+/** 받아 온 그대로, 아직 아무것도 걸러 내지 않았다. */
 type Loaded = {
   today: string;
   rows: NRow[];
   cat1List: Cat[];
   cat2List: (Cat & { cat1_id: number; inout?: number | null })[];
   cat3List: (Cat & { cat2_id: number })[];
-  /** 건 분류별 목표 — 안쓴이 도전 */
+  /** 건 분류별 목표. 안쓴이 도전 */
   goals: Goal[];
   /** 받은 달들. 이 바깥 달은 그때 따로 받는다(안쓴이 도전의 달 넘기기). */
   months: string[];
-  /** 대기 · 정기의 날것. 다른 달을 셀 때 같은 방식으로 다시 세우려고 남긴다. */
+  /** 대기와 정기의 날것. 다른 달을 셀 때 같은 방식으로 다시 세우려고 남긴다. */
   rawPending: Raw[];
   rawSched: Raw[];
 };
@@ -54,9 +54,9 @@ type Loaded = {
 /**
  * 한 달치 줄을 세운다.
  *
- * 세 갈래(지출 · 대기 · 정기)를 그 달 날짜로만 추려 한 꼴로 맞춘다.
+ * 세 갈래(지출, 대기, 정기)를 그 달 날짜로만 추려 한 꼴로 맞춘다.
  * 처음 받는 석 달도, 안쓴이 도전이 달을 거슬러 가며 따로 받는 달도
- * 이 한 곳을 지난다 — 두 길로 세우면 같은 달인데 숫자가 달라진다.
+ * 이 한 곳을 지난다. 두 길로 세우면 같은 달인데 숫자가 달라진다.
  */
 function 달줄(ym: string, expense: Raw[], pending: Raw[], sched: Raw[]): NRow[] {
   const out: NRow[] = [];
@@ -78,9 +78,9 @@ function 달줄(ym: string, expense: Raw[], pending: Raw[], sched: Raw[]): NRow[
         pay_method: x.pay_method as number,
         memo: x.memo as string,
         place_name: x.place_name as string,
-        /* 카드 실적에서 뺀 건인지 — 잔소리의 카드 실적만 본다. */
+        /* 카드 실적에서 뺀 건인지. 잔소리의 카드 실적만 본다. */
         perf_exclude: (x.perf_exclude as number) ?? 0,
-        /* 손으로 정한 고정 · 변동. 비면 분류에 정한 것을 따른다. */
+        /* 손으로 정한 고정과 변동. 비면 분류에 정한 것을 따른다. */
         fixed_flag: (x.fixed_flag as number | null) ?? null,
         counterpart_ids: (x.counterpart_ids as number[]) ?? [],
       });
@@ -115,7 +115,7 @@ async function load(): Promise<Loaded> {
     axios.get("/goals").then((r) => r.data).catch(() => []),
   ]);
 
-  /* 씀씀이 · 달력과 같은 세 갈래를 모은다.
+  /* 씀씀이와 달력과 같은 세 갈래를 모은다.
      지출만 세면 아직 안 보낸 대기가 통째로 빠져 그 달만 유난히 적어 보인다.
      실제로 2026-08은 대기가 15건(600,710원), 2026-07은 2건(166,050원)이라
      지출만으로 견주면 이번 달이 61% 적게, 셋을 다 세면 33% 적게 나왔다. */
@@ -138,9 +138,9 @@ async function load(): Promise<Loaded> {
 }
 
 /**
- * 받은 석 달 바깥의 한 달을 따로 받는다 — 안쓴이 도전의 달 넘기기.
+ * 받은 석 달 바깥의 한 달을 따로 받는다. 안쓴이 도전의 달 넘기기.
  *
- * 대기 · 정기는 달에 매이지 않는 목록이라 이미 받은 것을 그대로 쓴다.
+ * 대기와 정기는 달에 매이지 않는 목록이라 이미 받은 것을 그대로 쓴다.
  * 지출만 그 달치를 새로 물어 온다.
  */
 export async function 다른달줄(ym: string): Promise<NRow[]> {
@@ -174,11 +174,11 @@ function ensure(): Promise<Loaded | null> {
  * 서버가 센 것을 꼬리표마다 이 모듈에 얹는다.
  *
  * 종 단추는 어느 화면에나 서 있어 화면을 옮길 때마다 다시 마운트된다. 그때
- * 빈 값에서 시작하면 배지의 숫자가 한 번 사라졌다 돌아온다 — 탭을 옮길
+ * 빈 값에서 시작하면 배지의 숫자가 한 번 사라졌다 돌아온다. 탭을 옮길
  * 때마다 깜빡였다. 모래시계 단추(usePending)가 쓰는 방식 그대로 받아 온 것을
  * 들고 있다가 그대로 내준다.
  *
- * 꼬리표가 열쇠인 까닭은 고정 · 변동 고르개가 셈을 바꾸기 때문이다. 잔소리
+ * 꼬리표가 열쇠인 까닭은 고정과 변동 선택기가 계산을 바꾸기 때문이다. 잔소리
  * 화면에서 단추를 눌러 조합을 바꿔도, 한 번 본 조합은 다시 묻지 않는다.
  */
 const 센곳간 = new Map<string, 센것[]>();
@@ -198,7 +198,7 @@ function 센것받기(꼬리표: string): Promise<센것[]> {
         return 센것들;
       })
       .catch(() => {
-        /* 못 받아 오면 아무 말도 하지 않는다 — 틀린 잔소리보다 낫다.
+        /* 못 받아 오면 아무 말도 하지 않는다. 틀린 잔소리보다 낫다.
            곳간에는 얹지 않는다. 다음에 볼 때 다시 묻는다. */
         오는중.delete(꼬리표);
         return [] as 센것[];
@@ -209,7 +209,7 @@ function 센것받기(꼬리표: string): Promise<센것[]> {
 }
 
 /**
- * 한 건 적고 나면 셈이 달라진다 — 다시 받도록 비운다.
+ * 한 건 적고 나면 계산이 달라진다. 다시 받도록 비운다.
  *
  * 도전판이 보는 줄(cached)을 비우는 것만으로는 모자란다. 잔소리는 서버가
  * 세므로, 떠 있는 종 단추와 잔소리 화면에게 "다시 물어라"고 알려야 한다.
@@ -228,7 +228,7 @@ export function invalidateNudges() {
 }
 
 /**
- * 받아 온 것을 걸러 내 셈에 쓸 꼴로 만든다.
+ * 받아 온 것을 걸러 내 계산에 쓸 꼴로 만든다.
  *
  * 거르는 잣대는 씀씀이가 쓰는 것과 같다. 화면마다 따로 거르면 같은 달인데
  * 숫자가 다른 일이 반드시 생긴다.
@@ -240,7 +240,7 @@ function refine(data: Loaded, fixPick: FixedPick, 다른줄?: NRow[]) {
   const keep = (r: { inout?: number | null; cat2_id?: number | null; cat3_id?: number | null }) =>
     passFixed(r, fixPick, fixSets);
 
-  /* 수입은 두 가지로 가른다 — 줄에 붙은 표시와, 그 소분류가 수입인지.
+  /* 수입은 두 가지로 가른다. 줄에 붙은 표시와, 그 소분류가 수입인지.
      씀씀이가 쓰는 잣대 그대로다. */
   const income = new Set(cat2List.filter((c) => c.inout === 1).map((c) => c.id));
   const rows = (다른줄 ?? data.rows).filter(
@@ -258,7 +258,7 @@ function refine(data: Loaded, fixPick: FixedPick, 다른줄?: NRow[]) {
 }
 
 export type NudgeOptions = {
-  /** 가린 갈래를 셈에 넣을지. 넣되 화면에서는 테이프로 덮는다. */
+  /** 가린 갈래를 계산에 넣을지. 넣되 화면에서는 테이프로 덮는다. */
   fixPick?: FixedPick;
   /** 집계에서 뺀 갈래를 뺄지 */
   /** 값을 바꾸면 다시 받는다(비운 뒤에 쓴다) */
@@ -269,13 +269,13 @@ export type NudgeOptions = {
  * 잔소리를 받아 온다.
  *
  * 세는 일은 서버가 한다(GET /api/nudges). 전에는 이 자리에서 열 군데를 부른
- * 뒤 화면에서 셈했는데, 종 단추가 모든 화면에 서 있어서 화면을 옮길 때마다
+ * 뒤 화면에서 계산했는데, 종 단추가 모든 화면에 서 있어서 화면을 옮길 때마다
  * 그 열 번이 돌았다. 지금은 요청 하나다.
  *
  * 오늘 날짜는 이쪽이 보낸다. 서버 시각대를 믿으면 폰이 자정을 넘길 때 하루
  * 어긋난다.
  *
- * 고정 · 변동 고르개는 질의 변수로 넘긴다. 받아 온 뒤에 거르던 때와 달리
+ * 고정과 변동 선택기는 질의 변수로 넘긴다. 받아 온 뒤에 거르던 때와 달리
  * 조합마다 한 번은 물어야 하지만, 한 번 본 조합은 위 센곳간에 얹혀 다시
  * 묻지 않는다.
  */
@@ -295,7 +295,7 @@ export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]
   }, []);
 
   useEffect(() => {
-    /* 이미 들고 있으면 그 자리에서 쓴다 — 기다리는 틈이 없어야 깜빡이지
+    /* 이미 들고 있으면 그 자리에서 쓴다. 기다리는 틈이 없어야 깜빡이지
        않는다. 비운 뒤라면 곳간이 비어 있어 저절로 다시 묻는다. */
     const 든것 = 센곳간.get(꼬리표);
     if (든것) {
@@ -326,7 +326,7 @@ export default function useNudges(options: NudgeOptions = {}): { nudges: Nudge[]
 export function useGoalBoard(options: NudgeOptions & { ym?: string } = {}): {
   goals: Goal[];
   rows: NRow[];
-  /** 가린 갈래에서 온 줄 — 상세에서 금액에만 테이프를 붙인다. */
+  /** 가린 갈래에서 온 줄. 상세에서 금액에만 테이프를 붙인다. */
   masked: Set<string>;
   today: string;
   catPath: (r: { cat1_id?: number | null; cat2_id?: number | null; cat3_id?: number | null }) => string;
@@ -373,7 +373,7 @@ export function useGoalBoard(options: NudgeOptions & { ym?: string } = {}): {
       };
     }
     /* 받은 석 달 안이면 그대로 쓰고, 바깥이면 따로 받은 줄을 쓴다.
-       아직 못 받았으면 빈 줄로 둔다 — 다른 달 숫자를 잠깐 보여 주느니 낫다. */
+       아직 못 받았으면 빈 줄로 둔다. 다른 달 숫자를 잠깐 보여 주느니 낫다. */
     const 딴 = ym && !data.months.includes(ym)
       ? (딴달 && 딴달.ym === ym ? 딴달.rows : [])
       : undefined;

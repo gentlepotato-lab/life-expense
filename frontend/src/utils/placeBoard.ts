@@ -1,7 +1,7 @@
 /**
- * 어디 쓰나 — 장소 한 벌을 넷으로 돌려 보는 셈.
+ * 어디 쓰나. 장소 한 벌을 넷으로 돌려 보는 계산.
  *
- * 기간만 서버에서 걸러 오고, 고르고 묶는 일은 여기서 한다. 넷을 따로 받아
+ * 기간만 서버에서 걸러 오고, 선택하고 묶는 일은 여기서 한다. 넷을 따로 받아
  * 오면 같은 것을 네 번 세게 되고, 500곳 남짓이라 한 벌이 무겁지 않다.
  */
 
@@ -22,17 +22,17 @@ export type BoardPlace = {
   total: number;
   last_used: string | null;
   /** 가린 갈래가 한 건이라도 섞여 있는지. 서버가 함께 보내 주는 값이다.
-      이 판의 금액은 모두 여러 건을 모은 집계라 테이프를 붙이지 않는다 —
+      이 판의 금액은 모두 여러 건을 모은 집계라 테이프를 붙이지 않는다.
       덮는 곳은 개별 내역 카드뿐이다. */
   has_blur: boolean;
 };
 
-/** 서버가 알려 주는, 고를 수 있는 앞뒤 달 */
+/** 서버가 알려 주는, 선택할 수 있는 앞뒤 달 */
 export type BoardSpan = { from: string | null; to: string | null };
 
 export type BoardData = { span: BoardSpan; places: BoardPlace[] };
 
-/** 건 기간 — 달 단위(`YYYY-MM`)다. 빈 글자는 안 건 것이다. */
+/** 건 기간. 달 단위(`YYYY-MM`)다. 빈 글자는 안 건 것이다. */
 export type Period = { since: string; until: string };
 
 export const NO_PERIOD: Period = { since: "", until: "" };
@@ -42,15 +42,15 @@ export const DEFAULT_MONTHS = 3;
 
 const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 
-/** 오늘이 든 달까지 거슬러 n달 — 석 달이면 지지난달부터 이번 달까지다. */
+/** 오늘이 든 달까지 거슬러 n달. 석 달이면 지지난달부터 이번 달까지다. */
 export function recentMonths(n: number = DEFAULT_MONTHS): Period {
   const now = new Date();
   const back = new Date(now.getFullYear(), now.getMonth() - (n - 1), 1);
   return { since: ym(back), until: ym(now) };
 }
 
-/* 고를 수 있는 달을 하나하나 늘어놓던 monthOptions는 걷어 냈다.
-   이제 기간 고르개가 연월 달력(MonthPicker)을 쓰므로, 앞뒤 끝만 넘겨 주면
+/* 선택할 수 있는 달을 하나하나 늘어놓던 monthOptions는 걷어 냈다.
+   이제 기간 선택기가 연월 달력(MonthPicker)을 쓰므로, 앞뒤 끝만 넘겨 주면
    그쪽이 가둔다. 서른 줄짜리 목록을 만들 까닭이 없어졌다. */
 
 /** 건 기간을 단추에 적을 말로 */
@@ -76,10 +76,10 @@ export const VIEWS: { key: BoardView; label: string }[] = [
   { key: "kind", label: "업종" },
 ];
 
-/** 접을 수 있는 잣대 — 묶음이 있는 둘뿐이다. */
+/** 접을 수 있는 잣대. 묶음이 있는 둘뿐이다. */
 export const FOLDS: BoardView[] = ["where", "kind"];
 
-/** 묶음을 무엇으로 세울지 — 다녀온 횟수인가 쓴 돈인가 */
+/** 묶음을 무엇으로 세울지. 다녀온 횟수인가 쓴 돈인가 */
 export type BoardSort = "visits" | "money";
 
 export const SORTS: { key: BoardSort; label: string }[] = [
@@ -91,7 +91,7 @@ export const SORTS: { key: BoardSort; label: string }[] = [
  * 묶음 하나.
  *
  * 지역은 시도 아래 시군구가 한 겹 더 있다(children). 업종은 한 겹뿐이라
- * 곳들이 바로 달린다(places). 자주 · 많이는 묶음이 하나뿐이다.
+ * 곳들이 바로 달린다(places). 자주와 많이는 묶음이 하나뿐이다.
  */
 export type BoardNode = {
   key: string;
@@ -105,7 +105,7 @@ export type BoardNode = {
   children: BoardNode[];
 };
 
-/** 이름 · 동네 · 업종 어느 쪽으로 쳐도 걸리게 한다. */
+/** 이름, 동네, 업종 어느 쪽으로 쳐도 걸리게 한다. */
 export function narrow(rows: BoardPlace[], q: string): BoardPlace[] {
   const key = q.trim().toLowerCase();
   if (!key) return rows;
@@ -135,8 +135,8 @@ const hits = (list: BoardPlace[]) => list.reduce((n, p) => n + p.used_count, 0);
 /**
  * 묶음 차례.
  *
- * 자주 간 쪽과 많이 쓴 쪽은 다르다 — 매일 들르는 편의점이 있는 동네와,
- * 한 번 갔지만 큰돈을 쓴 동네가 그렇다. 어느 쪽으로 볼지는 화면에서 고른다.
+ * 자주 간 쪽과 많이 쓴 쪽은 다르다. 매일 들르는 편의점이 있는 동네와,
+ * 한 번 갔지만 큰돈을 쓴 동네가 그렇다. 어느 쪽으로 볼지는 화면에서 선택한다.
  */
 const bulkBy = (sort: BoardSort) => (a: BoardNode, b: BoardNode) =>
   (sort === "visits" ? b.visits - a.visits : b.total - a.total) ||
@@ -159,8 +159,8 @@ function bagBy(rows: BoardPlace[], name: (p: BoardPlace) => string) {
 /**
  * 잣대대로 묶어 돌려준다.
  *
- * 자주 · 많이는 묶음이 하나뿐이라 줄만 세운다. 업종은 한 겹, 지역은
- * 시도 아래 시군구까지 두 겹이다 — 분류 화면이 중분류 아래 소분류를 두는
+ * 자주와 많이는 묶음이 하나뿐이라 줄만 세운다. 업종은 한 겹, 지역은
+ * 시도 아래 시군구까지 두 겹이다. 분류 화면이 중분류 아래 소분류를 두는
  * 것과 같은 짜임이라, 접고 펴는 손놀림도 그쪽과 같다.
  */
 export function board(
@@ -172,7 +172,7 @@ export function board(
   const byPlace = placeBy(sort);
 
   if (view === "often" || view === "much") {
-    /* 자주 · 많이는 잣대 이름이 곧 세우는 기준이라 정렬 고르개를 두지 않는다. */
+    /* 자주와 많이는 잣대 이름이 곧 세우는 기준이라 정렬 선택기를 두지 않는다. */
     const sorted = [...rows].sort(view === "often" ? often : rich);
     return [
       {
@@ -228,7 +228,7 @@ export function board(
     .sort(byBulk);
 }
 
-/** 묶음과 그 아래 묶음의 열쇠를 모두 모은다 — 모두 펼치기에 쓴다. */
+/** 묶음과 그 아래 묶음의 열쇠를 모두 모은다. 모두 펼치기에 쓴다. */
 export function allKeys(nodes: BoardNode[]): string[] {
   const out: string[] = [];
   for (const n of nodes) {

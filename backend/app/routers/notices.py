@@ -1,7 +1,7 @@
 """
 공지사항.
 
-홈 맨 위에 한 줄 띠로 뜬다. 적고 고치는 것은 관리자 페이지가
+홈 맨 위에 한 줄 띠로 뜬다. 적고 고치는 것은 관리자 사이트가
 맡는다(app/routers/admin.py).
 
 읽은 표시도 여기서 맡는다. 어디까지 읽었는지는 쓰는 사람마다 다르므로
@@ -77,13 +77,13 @@ def _안읽음들(db) -> set[int]:
 
 @router.get("")
 def list_notices(
-    today: str = Query(..., min_length=10, max_length=10, description="YYYY-MM-DD — 부르는 쪽의 날짜"),
+    today: str = Query(..., min_length=10, max_length=10, description="YYYY-MM-DD. 부르는 쪽의 날짜"),
     db: SessionDep = Depends(),
 ):
     """
     오늘 걸렸고 아직 안 읽은 공지를 차례대로 돌려준다.
 
-    오늘 날짜는 부르는 쪽이 보낸다. 잔소리와 같은 까닭이다 — 서버 시각대를
+    오늘 날짜는 부르는 쪽이 보낸다. 잔소리와 같은 까닭이다. 서버 시각대를
     믿으면 폰이 자정을 넘길 때 하루 어긋난다.
 
     뜨는 기간은 비울 수 있다. 시작이 비면 처음부터, 끝이 비면 끝없이 뜬다.
@@ -118,7 +118,7 @@ def list_notices(
 
 @router.get("/all")
 def list_all_notices(
-    today: str = Query(..., min_length=10, max_length=10, description="YYYY-MM-DD — 부르는 쪽의 날짜"),
+    today: str = Query(..., min_length=10, max_length=10, description="YYYY-MM-DD. 부르는 쪽의 날짜"),
     db: SessionDep = Depends(),
 ):
     """
@@ -128,10 +128,10 @@ def list_all_notices(
     자리가 따로 있어야 한다. 그 자리가 이 길이다.
 
     끝 날짜는 보지 않는다. 뜨는 기간이 지난 공지도 여기서는 읽을 수 있어야
-    한다. 시작 날짜는 본다 — 아직 뜰 때가 아닌 공지를 미리 보일 까닭은
+    한다. 시작 날짜는 본다. 아직 뜰 때가 아닌 공지를 미리 보일 까닭은
     없다. 꺼 둔 공지는 내보내지 않는다.
 
-    차례는 새것부터다. 띠는 sort_order를 앞세우지만 여기는 읽어 둔 것을
+    차례는 새것부터다. 띠는 sort_order를 앞세우지만 여기는 읽은 것을
     되짚는 자리라, 최근 것이 위에 서는 쪽이 찾기 쉽다.
 
     읽은 자리도 함께 적어 보낸다. 화면이 안 읽은 것에 표를 단다.
@@ -167,7 +167,7 @@ def mark_read(payload: dict, db: SessionDep = Depends()):
     """
     여기까지 읽었다고 적는다.
 
-    뒤로 물리지 않는다 — 이미 적힌 번호보다 작은 것이 와도 그대로 둔다.
+    뒤로 물리지 않는다. 이미 적힌 번호보다 작은 것이 와도 그대로 둔다.
     기기 둘에서 번갈아 읽을 때 읽은 자리가 되감기면 안 된다.
     """
     try:

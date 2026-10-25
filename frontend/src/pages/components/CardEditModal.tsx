@@ -16,18 +16,18 @@ type CardEditModalProps = {
    * 바닥 왼쪽 끝에 들어가는 것.
    *
    * 그 자리는 본디 [삭제]가 쓴다. 지울 것이 없는 팝업(쓰기)에서 비우느니
-   * 건너뛰는 단추를 둔다 — 잔소리 상세도 같은 자리에 같은 단추를 단다.
+   * 건너뛰는 단추를 둔다. 잔소리 상세도 같은 자리에 같은 단추를 단다.
    */
   footerLead?: ReactNode;
   /**
    * [삭제] 바로 오른쪽에 붙는 것.
    *
-   * 지우는 것과 성격이 다른 또 하나의 손잡이가 필요할 때 쓴다 — 정기 내역의
+   * 지우는 것과 성격이 다른 또 하나의 손잡이가 필요할 때 쓴다. 정기 내역의
    * [감추기]가 그 자리다. footerExtra는 저장 쪽에 붙으므로 뜻이 다르다.
    */
   footerAfterDelete?: ReactNode;
   /**
-   * 머리말 아래에 붙는 날짜·시간 입력 줄.
+   * 머리말 아래에 붙는 날짜와 시간 입력 줄.
    * 본문 그리드 사이에 끼면 칸이 좁아지고, 어차피 머리말이 날짜를 말하고 있으므로
    * 시점에 관한 입력은 여기에 모은다.
    */
@@ -54,7 +54,7 @@ export default function CardEditModal({
   headerFields,
   children,
 }: CardEditModalProps) {
-  // 뒤로 가기 · Backspace · Esc로 닫기.
+  // 뒤로 가기, Backspace, Esc로 닫기.
   // 이 컴포넌트는 열려 있을 때만 그려지므로 항상 열린 상태로 넘긴다.
   useBackClose(true, onClose);
 
@@ -124,7 +124,7 @@ export default function CardEditModal({
  * 편집 팝업 안의 입력 한 칸.
  *
  * 팝업 본문은 12칸 그리드다. span으로 칸 수를 지정해 좌우 분할을 만든다.
- *   12 = 한 줄 전체 · 8 = 2/3 · 6 = 2분할 · 4 = 3분할 · 3 = 4분할
+ *   12 = 한 줄 전체, 8 = 2/3, 6 = 2분할, 4 = 3분할, 3 = 4분할
  * 칸 수를 명시하므로 입력 내용 길이와 무관하게 폭이 고정된다.
  */
 export function EditField({

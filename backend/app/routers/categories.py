@@ -1,5 +1,5 @@
 """
-분류(3뎁스) — 중분류 · 소분류 · 세분류.
+분류(3뎁스). 중분류, 소분류, 세분류.
 
 자리는 main.py에서 /api/categories로 붙인다.
 """
@@ -20,7 +20,7 @@ def cat1(db=Depends(get_db)):
         .order_by(CategoryL1.sort_order)
     ).all()
     # 감춘 것도 함께 준다. 지난 내역이 그 분류를 가리키고 있어 이름을 찾으려면
-    # 목록에 있어야 하기 때문이다. 고르는 목록에서 빼는 일은 화면이 한다.
+    # 목록에 있어야 하기 때문이다. 선택하는 목록에서 빼는 일은 화면이 한다.
     return [
         {"id": i, "name": n, "emoji": e, "is_active": a, "blur": b}
         for i, n, e, a, b in rows

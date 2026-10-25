@@ -32,26 +32,26 @@ import EntryEditHost, { type EditMeta } from "./components/EntryEditHost";
 import type { GroupKind } from "../utils/groups";
 
 /**
- * 달력에서 고른 기간의 상세.
+ * 달력에서 선택한 기간의 상세.
  *
  * 달력이 하루를 한 칸으로 줄여 보여 주는 화면이라면, 여기는 그 기간을 카드로 펼친다.
- * 카드는 지출 · 대기 · 정기 세 화면의 것을 그대로 가져다 쓴다. 같은 것을 다시
+ * 카드는 지출, 대기, 정기 세 화면의 것을 그대로 가져다 쓴다. 같은 것을 다시
  * 만들면 언젠가 서로 달라지기 때문이다. 다만 여기서는 보기만 하므로
  * 꾹 눌러 편집하거나 전송하는 동작은 끈다(readOnly).
  *
- * 어디를 볼지는 주소가 들고 있다 — `?days=2026-08-03,2026-08-07&src=expense,pending,scheduled`.
- * 고른 날은 이어져 있을 필요가 없다. 예전 주소(`?from=…&to=…`)로 들어와도
- * 그 사이의 날을 모두 고른 것으로 보고 그대로 연다.
+ * 어디를 볼지는 주소가 들고 있다. `?days=2026-08-03,2026-08-07&src=expense,pending,scheduled`.
+ * 선택한 날은 이어져 있을 필요가 없다. 예전 주소(`?from=…&to=…`)로 들어와도
+ * 그 사이의 날을 모두 선택한 것으로 보고 그대로 연다.
  * 달력에 걸려 있던 필터는 history에 실려 온다. 달력에 보이던 것과
  * 여기 보이는 것이 어긋나면 안 되기 때문이다.
  */
 
-/** 그날의 카드 한 장 — 어느 자료에서 왔는지 함께 들고 다닌다. */
+/** 그날의 카드 한 장. 어느 자료에서 왔는지 함께 들고 다닌다. */
 /** 갈래를 영수증에 적을 말로. 바뀌지 않으므로 밖에 둔다. */
 const 갈래말 = { expense: "지출", pending: "대기", scheduled: "정기" } as const;
 
 type Item = {
-  /** 고를 때 쓰는 열쇠. 갈래를 붙여야 entry_id와 schedule_id가 겹치지 않는다. */
+  /** 선택할 때 쓰는 열쇠. 갈래를 붙여야 entry_id와 schedule_id가 겹치지 않는다. */
   key: string;
   src: Src;
   /** 날짜별로 묶기 위한 값. 정기는 다음 예정일에서 뽑는다. */
@@ -72,7 +72,7 @@ function shortDate(v: string): string {
   return `${Number(m[2])}. ${Number(m[3])}.`;
 }
 
-/** 날짜 부분만 잘라 낸다 — "2026-08-03 09:00:00"도 받는다. */
+/** 날짜 부분만 잘라 낸다. "2026-08-03 09:00:00"도 받는다. */
 function dateOnly(v: unknown): string {
   return v ? String(v).substring(0, 10) : "";
 }
@@ -82,7 +82,7 @@ export default function CalendarDetail() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  /* 고른 날들. 예전 주소로 들어오면 from~to 사이를 채워 같은 꼴로 만든다. */
+  /* 선택한 날들. 예전 주소로 들어오면 from~to 사이를 채워 같은 꼴로 만든다. */
   const days = useMemo(() => {
     const listed = (params.get("days") ?? "").split(",").filter(Boolean);
     if (listed.length) return [...new Set(listed)].sort();
@@ -107,8 +107,8 @@ export default function CalendarDetail() {
     return new Set<Src>(raw.length ? raw : SRC_ORDER);
   }, [params]);
 
-  /* 달력 · 씀씀이가 고른 갈래를 그대로 물려받는다. 꼬리표가 없는 주소로
-     들어오면 넷 다 켠 것으로 본다 — 앞 화면에 보이던 것과 어긋나지 않게. */
+  /* 달력과 씀씀이가 선택한 갈래를 그대로 물려받는다. 꼬리표가 없는 주소로
+     들어오면 넷 다 켠 것으로 본다. 앞 화면에 보이던 것과 어긋나지 않게. */
   const fixPick = useMemo(() => fxPickFrom(params.get("fx")), [params]);
 
   /* 달력에 걸려 있던 조건. 주소만으로 들어왔다면 조건 없이 본다. */
@@ -120,7 +120,7 @@ export default function CalendarDetail() {
   /* 어느 화면에서 왔는지. 뒤로 가기는 늘 바로 앞 화면으로 돌아가므로
      이름만 그 화면 것으로 적는다.
      실려 오지 않았으면(주소만으로 들어왔거나 새로 고쳤으면) 이 화면이 딸린
-     자리의 이름을 쓴다 — 같은 화면이 두 주소를 섬기고 있어서다. */
+     자리의 이름을 쓴다. 같은 화면이 두 주소를 섬기고 있어서다. */
   /* 이 화면은 두 주소를 섬긴다. 내보낸 파일의 이름도 들어온 쪽을 따른다. */
   const 어디서 = location.pathname.startsWith("/charts") ? "charts" : "calendar";
   const 화면이름 = 어디서 === "charts" ? "씀씀이" : "달력";
@@ -132,13 +132,13 @@ export default function CalendarDetail() {
     [location.state, location.pathname]
   );
 
-  /* 고르는 목록 — 카드가 이름을 찾는 데 쓴다.
+  /* 선택하는 목록. 카드가 이름을 찾는 데 쓴다.
      결제 수단은 화면마다 코드를 숫자로도 문자로도 쓰고 있어 두 벌을 만든다.
      카드 안의 비교 방식을 건드리지 않으려면 이쪽에서 맞춰 주는 편이 낫다. */
   const [cat1List, setCat1List] = useState<{ id: number; name: string; emoji?: string | null; blur?: number }[]>([]);
   const [cat2List, setCat2List] = useState<CategoryL2Meta[]>([]);
   const [cat3List, setCat3List] = useState<CategoryL3Meta[]>([]);
-  /* 구분(`카드`인지)도 함께 든다 — 카드로 그은 줄에만 실적 제외 기호가
+  /* 구분(`카드`인지)도 함께 든다. 카드로 그은 줄에만 실적 제외 기호가
      서기 때문이다. 이 화면에서는 보기만 하므로 켜고 끄는 손은 넘기지 않는다. */
   /* 결제 수단 목록은 하나면 된다. 한때 숫자로 담은 것과 글자로 담은 것을
      따로 들고 있었는데, 받는 쪽이 저마다 다른 꼴로 견줬기 때문이다. 이제
@@ -208,7 +208,7 @@ export default function CalendarDetail() {
       setPeRows(
         pe.filter((x) => inRange(dateOnly(x.tx_date))).map((x) => ({ ...x, reveal_amount: false }))
       );
-      /* 정기 카드는 시각 문자열을 들고 있는 편을 좋아한다 — 정기 내역 화면과 같게 맞춘다. */
+      /* 정기 카드는 시각 문자열을 들고 있는 편을 좋아한다. 정기 내역 화면과 같게 맞춘다. */
       setScRows(
         sc.filter((x) => inRange(dateOnly(x.next_run_at))).map((x) => ({
           ...x,
@@ -224,14 +224,14 @@ export default function CalendarDetail() {
     };
   }, [days, reloadKey]);
 
-  /* Blur는 중 · 소 · 세 어디에 걸려도 함께 덮인다. */
+  /* Blur는 중, 소, 세 어디에 걸려도 함께 덮인다. */
   const blurSets = useMemo(
     () => blurSetsFrom(cat1List, cat2List, cat3List),
     [cat1List, cat2List, cat3List]
   );
 
-  /* 고정 · 변동도 카드에 그대로 보인다. 여기서는 보기만 한다 — 손대는 자리는
-     지출 · 대기 · 정기 세 화면이다. */
+  /* 고정과 변동도 카드에 그대로 보인다. 여기서는 보기만 한다. 손대는 자리는
+     지출, 대기, 정기 세 화면이다. */
   const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
 
   const editMeta: EditMeta = useMemo(
@@ -239,7 +239,7 @@ export default function CalendarDetail() {
     [cat1List, cat2List, cat3List, payList]
   );
 
-  /* 달력이 쓰던 판정을 그대로 쓴다 — 달력 칸과 여기 카드가 어긋나지 않게 */
+  /* 달력이 쓰던 판정을 그대로 쓴다. 달력 칸과 여기 카드가 어긋나지 않게 */
   const passes = useCallback(
     (src: Src, x: Record<string, unknown>, date: string) => {
       const probe: CalRow = {
@@ -255,7 +255,7 @@ export default function CalendarDetail() {
         pay_method: x.pay_method as number,
         memo: x.memo as string,
         place_name: x.place_name as string,
-        /* 손으로 정한 고정 · 변동. 비면 분류에 정한 것을 따른다. */
+        /* 손으로 정한 고정과 변동. 비면 분류에 정한 것을 따른다. */
         fixed_flag: (x.fixed_flag as number | null) ?? null,
         counterpart_ids: (x.counterpart_ids as number[]) ?? [],
       };
@@ -271,7 +271,7 @@ export default function CalendarDetail() {
       if (!srcOn.has(src)) return;
       list.forEach((x) => {
         const date = dateOnly(x[dateField]);
-        /* 달력과 같은 셈이어야 한다 — 달력에서 뺀 것은 여기서도 뺀다. */
+        /* 달력과 같은 계산이어야 한다. 달력에서 뺀 것은 여기서도 뺀다. */
         if (!passFixed(x as { inout?: number }, fixPick, fixSets)) return;
         if (!passes(src, x, date)) return;
         out.push({
@@ -290,7 +290,7 @@ export default function CalendarDetail() {
     add("pending", peRows, "tx_date");
     add("scheduled", scRows, "next_run_at");
 
-    /* 늦은 날이 위로 — 지출 내역과 같은 순서다.
+    /* 늦은 날이 위로, 지출 내역과 같은 순서다.
        같은 날 안에서는 자료 순서를 지킨다. */
     return out.sort((a, b) =>
       a.tx_date === b.tx_date
@@ -306,15 +306,15 @@ export default function CalendarDetail() {
     [items]
   );
 
-  /* ── 영수증으로 뽑을 것 고르기 ──────────────────────────────
+  /* ── 영수증으로 뽑을 것 선택하기 ────────────────────────────
      한 화면에 세 갈래가 섞여 있어 열쇠에 갈래를 붙인다. entry_id와
      schedule_id는 서로 다른 표의 번호라 그냥 쓰면 겹친다. */
   const [pickedKeys, setPickedKeys] = useState<Set<string>>(new Set());
 
-  /* 고른 것이 있으면 뒤로 가기가 화면을 떠나지 않고 고른 것만 푼다.
-     팝업과 같은 결이다 — 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 고른
+  /* 선택한 것이 있으면 뒤로 가기가 화면을 떠나지 않고 선택한 것만 푼다.
+     팝업과 같은 결이다. 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 선택한
      것이 있는 동안만 서 있으므로, 풀면 막대도 함께 내려간다.
-     Backspace는 받지 않는다 — 고르는 중에 쓰는 키가 아니다. */
+     Backspace는 받지 않는다. 선택하는 중에 쓰는 키가 아니다. */
   useBackClose(pickedKeys.size > 0, () => setPickedKeys(new Set()), false);
   const [receiptOpen, setReceiptOpen] = useState(false);
 
@@ -353,7 +353,7 @@ export default function CalendarDetail() {
     });
   }, [picked, cat1List, cat2Map, cat3Map, payList]);
 
-  /* 접은 날짜. 비어 있으면 전부 펼쳐진 상태다 — 내역 세 화면과 같다. */
+  /* 접은 날짜. 비어 있으면 전부 펼쳐진 상태다. 내역 세 화면과 같다. */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const toggleDay = (d: string) =>
     setCollapsedDays((prev) => {
@@ -363,7 +363,7 @@ export default function CalendarDetail() {
       return next;
     });
 
-  /* 가린 금액을 끌어서 잠깐 보기 — 자료별로 그 줄만 바꾼다. */
+  /* 가린 금액을 끌어서 잠깐 보기. 자료별로 그 줄만 바꾼다. */
   const reveal = useCallback(
     (
       setter: React.Dispatch<React.SetStateAction<Record<string, unknown>[]>>,
@@ -394,7 +394,7 @@ export default function CalendarDetail() {
     []
   );
 
-  /* 머리말 — 죽 이어 고르면 예전처럼 "8. 3. ~ 8. 7.", 띄엄띄엄 고르면 날을 늘어놓는다.
+  /* 머리말. 죽 이어 선택하면 예전처럼 "8. 3. ~ 8. 7.", 띄엄띄엄 선택하면 날을 늘어놓는다.
      너무 길어지면 앞의 둘만 적고 나머지는 수로 접는다. */
   const rangeLabel = useMemo(() => {
     if (!days.length) return "";
@@ -405,8 +405,8 @@ export default function CalendarDetail() {
     const run = days.every((d, i) => i === 0 || step(days[i - 1], d) === 1);
     if (run) return `${shortDate(days[0])} ~ ${shortDate(days[days.length - 1])}`;
 
-    if (days.length <= 3) return days.map(shortDate).join(" · ");
-    return `${days.slice(0, 2).map(shortDate).join(" · ")} 외 ${days.length - 2}일`;
+    if (days.length <= 3) return days.map(shortDate).join(", ");
+    return `${days.slice(0, 2).map(shortDate).join(", ")} 외 ${days.length - 2}일`;
   }, [days]);
   const toTimeString = useCallback((hour?: number, minute?: number) => {
     if (typeof hour !== "number" || typeof minute !== "number") return "00:00";
@@ -415,7 +415,7 @@ export default function CalendarDetail() {
 
   return (
     <div className="page-wrap">
-      {/* 되돌아가기 + 고른 기간 — 내역 세 화면과 같은 툴바 */}
+      {/* 되돌아가기 + 선택한 기간. 내역 세 화면과 같은 툴바 */}
       <div className="toolbar-wrap">
         <div className="toolbar">
           <div className="cal-back">
@@ -440,7 +440,7 @@ export default function CalendarDetail() {
         </div>
       </div>
 
-      {/* 카드 리스트 — 날짜별 단으로 묶어서 표시 */}
+      {/* 카드 리스트. 날짜별 단으로 묶어서 표시 */}
       <div className="card-list">
         {dateGroups.map((group) => (
           <section key={group.date || "no-date"} className="date-group">
@@ -544,7 +544,7 @@ export default function CalendarDetail() {
       <QuickActions onSaved={() => setReloadKey((k) => k + 1)} />
 
       {/* 달력 상세와 씀씀이 상세가 같은 화면이라 한 번만 붙이면 둘 다 된다.
-          고른 날을 그대로 넘긴다 — 기간으로 펴면 안 고른 날이 섞인다. */}
+          선택한 날을 그대로 넘긴다. 기간으로 펴면 안 선택한 날이 섞인다. */}
       <ExportButton
         길="detail"
         이름={화면이름}

@@ -6,7 +6,7 @@ def run_scheduled_entries():
     """매분 실행되는 스케줄된 항목 처리 작업
 
     (잘됐나, 한 줄)을 돌려준다. 등록부가 그것을 그대로 job_runs에 적는다
-    (app/scheduler/registry.py). 탈은 여기서 삼킨다 — 한 바퀴가 터져도
+    (app/scheduler/registry.py). 탈은 여기서 삼킨다. 한 바퀴가 터져도
     다음 바퀴는 돌아야 한다.
     """
     db: Session = SessionLocal()

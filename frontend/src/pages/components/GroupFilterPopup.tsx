@@ -17,7 +17,7 @@ export default function GroupFilterPopup({
 }: {
   filter: GroupFilter;
   setFilter: React.Dispatch<React.SetStateAction<GroupFilter>>;
-  /** 적용하지 않고 닫을 때 — 고치던 값을 되돌리는 것은 부르는 쪽 몫이다. */
+  /** 적용하지 않고 닫을 때. 고치던 값을 되돌리는 것은 부르는 쪽 몫이다. */
   onClose: () => void;
   onApply: () => void;
 }) {
@@ -37,7 +37,7 @@ export default function GroupFilterPopup({
         </header>
 
         <div className="popup-body edit-grid">
-          {/* 거르는 자리는 지난 어느 때로도 갈 수 있어야 한다 —
+          {/* 거르는 자리는 지난 어느 때로도 갈 수 있어야 한다.
               머리의 연월을 누르면 한 해가 펼쳐진다. */}
           <EditField label="시작일" span={6}>
             <DayPicker
@@ -86,7 +86,7 @@ export default function GroupFilterPopup({
           >
             초기화
           </button>
-          {/* 편집 팝업과 같은 차례로 — 되돌리는 것, 닫기, 하려던 것 */}
+          {/* 편집 팝업과 같은 차례로, 되돌리는 것, 닫기, 하려던 것 */}
           <button type="button" className="ui-btn" onClick={onClose}>
             닫기
           </button>

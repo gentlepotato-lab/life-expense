@@ -24,18 +24,18 @@ import { BulbOnIcon, BulbOffIcon } from "./components/SkipIcons";
 import { say } from "../utils/notify";
 import Waiting from "./components/Waiting";
 /**
- * 돈쓴이 — 쓰는 사람과 앱 자신.
+ * 돈쓴이. 쓰는 사람과 앱 자신.
  *
  * 다른 화면이 모두 돈에 대한 것이라면 여기는 사람에 대한 것이다.
- * 누구인가 · 얼마나 함께했나 · 어떤 버릇이 있나 · 어떻게 볼까 · 어떻게 내려받나.
+ * 누구인가, 얼마나 함께했나, 어떤 버릇이 있나, 어떻게 볼까, 어떻게 내려받나.
  *
- * 프로필 칸은 바깥 인증(구글·카카오)이 돌려주는 것에 맞췄다. 아직 로그인이
+ * 프로필 칸은 바깥 인증(구글과 카카오)이 돌려주는 것에 맞췄다. 아직 로그인이
  * 없어 손으로 적지만, 나중에 로그인을 붙이면 그 값이 그대로 이 자리에 들어온다.
- * 그래서 provider가 있는 줄은 손으로 고치지 못하게 막는다 — 바깥에서 온 것을
+ * 그래서 provider가 있는 줄은 손으로 고치지 못하게 막는다. 바깥에서 온 것을
  * 여기서 덮어써 봐야 다음 로그인에 다시 덮인다.
  *
- * 틀은 씀씀이·잔소리가 쓰는 카드(.chart-card)를 그대로 쓴다. 고치는 흐름은
- * 설정 세 화면과 같다 — [편집]으로 열고 [저장]으로 담는다.
+ * 틀은 씀씀이와 잔소리가 쓰는 카드(.chart-card)를 그대로 쓴다. 고치는 흐름은
+ * 설정 세 화면과 같다. [편집]으로 열고 [저장]으로 담는다.
  */
 
 type Profile = {
@@ -71,19 +71,19 @@ const EMPTY: Profile = {
 
 const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
 
-/** 어디로 들어왔는지 — 로그인을 붙이면 여기 이름이 찍힌다. */
+/** 어디로 들어왔는지. 로그인을 붙이면 여기 이름이 찍힌다. */
 const PROVIDER_NAME: Record<string, string> = { google: "구글", kakao: "카카오" };
 
 /**
- * 첫 화면으로 고를 수 있는 곳 — 모든 화면.
+ * 첫 화면으로 선택할 수 있는 곳. 모든 화면.
  *
- * 아래 이동 막대의 세 묶음(홈 · 내역 · 설정)을 그대로 따라 늘어놓고, 묶음에
+ * 아래 이동 막대의 세 묶음(홈, 내역, 설정)을 그대로 따라 늘어놓고, 묶음에
  * 딸린 화면은 `홈 > 쓰기`처럼 어디에 딸린 것인지 함께 적는다. 목록은
  * pageTitles가 들고 있는 것을 그대로 쓰므로, 화면을 하나 더해도 여기가
  * 저절로 따라온다.
  *
- * 기간이 붙어야 열리는 화면(달력의 기간 내역)은 뺀다 — 첫 화면으로 열면
- * 고른 날이 없어 빈 화면이 된다.
+ * 기간이 붙어야 열리는 화면(달력의 기간 내역)은 뺀다. 첫 화면으로 열면
+ * 선택한 날이 없어 빈 화면이 된다.
  */
 const TAB_GROUPS: { name: string; root: string; kids: string[] }[] = [
   { name: "홈", root: "/", kids: HOME_TABS.filter((t) => t !== "/") },
@@ -96,7 +96,7 @@ const HOME_CHOICES = TAB_GROUPS.flatMap((g) => [
   ...g.kids.map((to) => ({ value: to, label: `${g.name} > ${PAGE_TITLE[to]}` })),
 ]);
 
-/** 지난 날을 사람이 읽는 말로 — "2년 2개월째" */
+/** 지난 날을 사람이 읽는 말로, "2년 2개월째" */
 function since(from: string): string {
   const a = new Date(`${from}T00:00:00`);
   const b = new Date();
@@ -110,7 +110,7 @@ function since(from: string): string {
     : `${years}년째 내역 입력 중`;
 }
 
-/** 순위 한 줄 — 이름과 값 */
+/** 순위 한 줄. 이름과 값 */
 function RankRow({ rank, name, right }: { rank: number; name: string; right: string }) {
   return (
     <div className="me-rank">
@@ -121,7 +121,7 @@ function RankRow({ rank, name, right }: { rank: number; name: string; right: str
   );
 }
 
-/** 곳간에 쌓인 것 — 청록 딱지로 늘어놓는다. */
+/** 곳간에 쌓인 것. 청록 딱지로 늘어놓는다. */
 function Tags({ items }: { items: string[] }) {
   return (
     <div className="tag-row">
@@ -140,7 +140,7 @@ export default function Me() {
   const [prefs, setPrefs] = useState<Prefs>({});
   const [summary, setSummary] = useState<Summary | null>(null);
   const [ready, setReady] = useState(false);
-  /* [편집]을 누른 순간의 모습 — 바뀐 것이 없으면 그렇게 알린다. */
+  /* [편집]을 누른 순간의 모습. 바뀐 것이 없으면 그렇게 알린다. */
   const [before, setBefore] = useState("");
 
   /* 빛깔 예시 팝업을 열었는지 */
@@ -153,13 +153,13 @@ export default function Me() {
   const lockCover = () => <EditLockCover editMode={editMode} onLock={showLock} />;
 
   /**
-   * 켬·끔 한 쌍.
+   * 켬과 끔 한 쌍.
    *
    * 정기 내역 편집 팝업의 한 번 건너뛰기와 같은 스위치다. 켜진 전구가 켬,
-   * 꺼진 전구가 끔이다. 알약 하나로 적던 때와 달리 고를 것이 둘임을 눌러 보지
+   * 꺼진 전구가 끔이다. 알약 하나로 적던 때와 달리 선택할 것이 둘임을 눌러 보지
    * 않아도 알고, 같은 일을 하는 자리가 화면마다 같은 모양으로 선다.
    *
-   * 보기 모드에서는 손만 막는다 — 흐려지지 않아, 무엇이 걸려 있는지 알려고
+   * 보기 모드에서는 손만 막는다. 흐려지지 않아, 무엇이 걸려 있는지 알려고
    * 편집을 켰다 끌 일이 없다. 누름은 줄을 덮은 잠금 판이 받아 말을 띄운다.
    */
   const onoff = (key: string, name: string, 켬말: string, 끔말: string) => {
@@ -225,21 +225,21 @@ export default function Me() {
     setPrefs((prev) => ({ ...prev, [key]: value }));
 
   /**
-   * 줄에서 골라져 있는 밝기 칸.
+   * 줄에서 선택돼 있는 밝기 칸.
    *
    * 화면에 끼워진 칸(currentStep)과 다를 수 있다. 밝기는 담아야 끼워지므로,
-   * 고치는 동안에는 고른 것과 끼워진 것이 갈린다. 빛깔 알약과 예시 그림은
-   * 고른 쪽을 따라가야 한다 — 흰 종이를 골라 놓고 예시만 새벽빛으로 뜨면
+   * 고치는 동안에는 선택한 것과 끼워진 것이 갈린다. 빛깔 알약과 예시 그림은
+   * 선택한 쪽을 따라가야 한다. 흰 종이를 선택해 놓고 예시만 새벽빛으로 뜨면
    * 벌이 아니라 밝기를 견주게 된다.
    */
-  const 고른칸 = () =>
+  const 선택한칸 = () =>
     resolveStep(
       prefs.theme_mode ?? DEFAULT_MODE,
       prefs.theme_light ?? DEFAULT_LIGHT,
       prefs.theme_dark ?? DEFAULT_DARK
     );
 
-  /* 칸을 고르면 그 칸이 선 쪽에 담고, 보는 쪽도 그쪽으로 옮긴다. 밝은 칸과
+  /* 칸을 선택하면 그 칸이 선 쪽에 담고, 보는 쪽도 그쪽으로 옮긴다. 밝은 칸과
      어두운 칸을 따로 기억해야 시스템으로 옮겨도 살아남는다. */
   const pickStep = (s: Step) =>
     setPrefs((prev) => ({
@@ -248,7 +248,7 @@ export default function Me() {
       [s.dark ? "theme_dark" : "theme_light"]: s.key,
     }));
 
-  /* 뒤로 가기 · Esc로 편집을 무른다. 화면을 떠나는 대신 편집만 닫는다 —
+  /* 뒤로 가기, Esc로 편집을 무른다. 화면을 떠나는 대신 편집만 닫는다.
      다른 설정 화면이 모두 그렇다. 여기는 고치기 전 값을 지문으로만 들고
      있어 되돌릴 수 없으므로, 서버에서 다시 읽어 손댄 내용을 버린다.
      Backspace는 받지 않는다. 이름이나 한마디를 지우다 칸이 비면 그 키가
@@ -280,7 +280,7 @@ export default function Me() {
       await axios.post("/profile/prefs", prefs);
       /* 고친 이름이 쪽지와 앞머리에도 바로 반영되게 한다. */
       putWho({ name: profile.display_name ?? "", emoji: profile.emoji ?? "" });
-      /* 담긴 뒤에 붙인다. 고르는 동안 미리 바뀌면 담지 않고 나가도 그대로
+      /* 담긴 뒤에 붙인다. 선택하는 동안 미리 바뀌면 담지 않고 나가도 그대로
          남아, 담은 것과 보이는 것이 어긋난다. */
       applyTape(prefs.tape_style ?? DEFAULT_TAPE);
       /* 밝기가 먼저다. 어두운 칸이면 벌도 어두운 쪽 모습으로 끼워야 해서,
@@ -300,7 +300,7 @@ export default function Me() {
     }
   };
 
-  /* 바깥에서 온 프로필은 손으로 고치지 못한다 — 다음 로그인에 다시 덮인다. */
+  /* 바깥에서 온 프로필은 손으로 고치지 못한다. 다음 로그인에 다시 덮인다. */
   const fromOutside = !!profile.provider;
   const face = profile.emoji || "🙂";
   const name = profile.display_name || "이름 없음";
@@ -325,13 +325,13 @@ export default function Me() {
           <section className="chart-card chart-card--wide">
             <div className="me-head">
               {!fromOutside && lockCover()}
-              {/* 편집 중에는 얼굴 자체가 고르는 단추다 — 따로 칸을 두면 이모지가
+              {/* 편집 중에는 얼굴 자체가 선택하는 단추다. 따로 칸을 두면 이모지가
                   아닌 글자가 들어갈 여지가 생기고, 무엇을 누를지도 헷갈린다. */}
               {editMode && !fromOutside && !profile.avatar_url ? (
                 <span className="me-face me-face--pick">
                   <EmojiPicker
                     value={profile.emoji}
-                    title="얼굴 고르기"
+                    title="얼굴 선택하기"
                     onChange={(v) => set("emoji", v ?? "")}
                   />
                 </span>
@@ -354,10 +354,10 @@ export default function Me() {
                         placeholder="(이름)"
                         value={profile.display_name ?? ""}
                         onChange={(e) => {
-                          /* 이름은 글자 수가 아니라 폭으로 끊는다 — 한글 일곱
+                          /* 이름은 글자 수가 아니라 폭으로 끊는다. 한글 일곱
                              자만큼이고, 폭이 좁은 영문은 그만큼 더 들어간다.
                              넘겨 치면 받지 않고
-                             왜 안 들어가는지 그 칸에 한 줄 띄운다 — 아무 일도
+                             왜 안 들어가는지 그 칸에 한 줄 띄운다. 아무 일도
                              일어나지 않으면 고장으로 읽힌다.
                              줄이는 쪽은 막지 않는다. 일곱 자보다 긴 이름이 이미
                              적혀 있으면 한 글자도 지울 수 없게 된다. */
@@ -420,7 +420,7 @@ export default function Me() {
               <h3 className="chart-card__title">함께한 쓰기</h3>
             </header>
 
-            {/* 단위는 숫자 오른쪽에 붙인다 — 줄을 바꿔 놓으면 칸만 길어진다. */}
+            {/* 단위는 숫자 오른쪽에 붙인다. 줄을 바꿔 놓으면 칸만 길어진다. */}
             <div className="chart-tiles me-tiles">
               <div className="chart-tile">
                 <span className="chart-tile__label">쓴 건수</span>
@@ -444,7 +444,7 @@ export default function Me() {
               </div>
             </div>
 
-            {/* 딱지 차례 — 내역(대기·정기) 다음에 곳간을 두고, 분류는 중·소·세
+            {/* 딱지 차례. 내역(대기와 정기) 다음에 곳간을 두고, 분류는 중, 소, 세
                 차례대로 놓는다. 셋이 흩어져 있으면 깊이가 눈에 잡히지 않는다. */}
             <Tags
               items={[
@@ -571,7 +571,7 @@ export default function Me() {
 
             {/* 움직임은 꾸밈이라 끌 수 있어야 하고, 끈다고 하는 일이 달라져서는
                 안 된다. 끄면 미끄러지고 떠오르는 동안만 사라져 끝난 자리가 곧바로
-                선다 — 꾹 누르기 진행 표시처럼 "언제 열리는지"를 알리는 움직임은
+                선다. 꾹 누르기 진행 표시처럼 "언제 열리는지"를 알리는 움직임은
                 남는다(index.css 160절). */}
             <div className="me-pref">
               {lockCover()}
@@ -586,7 +586,7 @@ export default function Me() {
               </div>
             </div>
 
-            {/* 테이프 무늬 — 고르는 것은 위 다섯과 같다. [저장]을 눌러야 담기고,
+            {/* 테이프 무늬. 선택하는 것은 위 다섯과 같다. [저장]을 눌러야 담기고,
                 담기는 그때 화면 곳곳의 테이프가 바뀐다. */}
             <div className="me-pref me-pref--tape">
               {lockCover()}
@@ -611,10 +611,10 @@ export default function Me() {
               </div>
             </div>
 
-            {/* 빛깔 — 고르는 손놀림은 위 테이프 줄과 같다. [저장]을 눌러야
+            {/* 빛깔. 선택하는 손놀림은 위 테이프 줄과 같다. [저장]을 눌러야
                 담기고, 담기는 그때 화면 곳곳의 색이 바뀐다.
                 눈 단추는 담기 전에 미리 보라고 둔 것이다. 여섯 벌을 머릿속에
-                그려 놓고 고르기는 어렵다. */}
+                그려 놓고 선택하기는 어렵다. */}
             {/* 빛깔과 밝기는 저마다 한 줄이되, 두 줄의 오른쪽 끝은 하나로
                 합쳐 눈 단추를 세운다. 미리 보는 것이 둘을 함께 보는 일이라
                 어느 한 줄에만 붙으면 그 줄만의 것으로 읽힌다. */}
@@ -633,7 +633,7 @@ export default function Me() {
                       className={`me-pal__btn${on ? " on" : ""}`}
                       style={{
                         background: (() => {
-                          const t = swatchOf(p, 고른칸().dark);
+                          const t = swatchOf(p, 선택한칸().dark);
                           return `linear-gradient(90deg, ${t.primary} 0 33.34%, ${t.success} 33.34% 66.67%, ${t.danger} 66.67% 100%)`;
                         })(),
                       }}
@@ -648,9 +648,9 @@ export default function Me() {
               </div>
             </div>
 
-            {/* 밝기 — 칸 일곱. 밝은 칸을 고르면 밝은 쪽 값으로, 어두운 칸을
-                고르면 어두운 쪽 값으로 담는다. 양쪽을 따로 기억하므로
-                밝은 칸과 어두운 칸을 오가도 애써 고른 칸이 살아 있다. */}
+            {/* 밝기. 칸 일곱. 밝은 칸을 선택하면 밝은 쪽 값으로, 어두운 칸을
+                선택하면 어두운 쪽 값으로 담는다. 양쪽을 따로 기억하므로
+                밝은 칸과 어두운 칸을 오가도 애써 선택한 칸이 살아 있다. */}
             <div className="me-pref me-pref--step">
               {lockCover()}
               <span className="me-pref__name">배경 밝기</span>
@@ -658,7 +658,7 @@ export default function Me() {
                 {STEPS.map((s) => {
                   /* 예전에는 운영체제를 따라가는 자리가 있었다. 걷어 냈지만
                      그때 저장된 값이 남아 있을 수 있어, 그런 경우에는 지금
-                     끼워진 칸을 고른 것으로 보여 준다 — 아무 칸에도 불이
+                     끼워진 칸을 선택한 것으로 보여 준다. 아무 칸에도 불이
                      들어오지 않으면 고장으로 읽힌다. */
                   const 자동 = (prefs.theme_mode ?? DEFAULT_MODE) === "system";
                   const 쓰는것 = s.dark
@@ -667,7 +667,7 @@ export default function Me() {
                   const 같은쪽 = s.dark
                     ? (prefs.theme_mode ?? DEFAULT_MODE) === "dark"
                     : (prefs.theme_mode ?? DEFAULT_MODE) === "light";
-                  const on = 자동 ? 고른칸().key === s.key : 같은쪽 && 쓰는것 === s.key;
+                  const on = 자동 ? 선택한칸().key === s.key : 같은쪽 && 쓰는것 === s.key;
                   return (
                     <button
                       key={s.key}
@@ -689,7 +689,7 @@ export default function Me() {
 
               </div>
 
-              {/* 편집이 아닐 때도 누름은 받는다 — disabled로 막으면 눌러도
+              {/* 편집이 아닐 때도 누름은 받는다. disabled로 막으면 눌러도
                   아무 일이 없어 고장으로 읽힌다. 왜 안 되는지 한 줄 띄운다. */}
               <button
                 type="button"
@@ -747,7 +747,7 @@ export default function Me() {
       {palOpen && (
         <PalettePopup
           value={prefs.palette ?? DEFAULT_PALETTE}
-          step={고른칸()}
+          step={선택한칸()}
           onPick={(key) => setPref("palette", key)}
           onPickStep={pickStep}
           onClose={() => setPalOpen(false)}

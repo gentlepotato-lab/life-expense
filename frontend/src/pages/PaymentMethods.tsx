@@ -35,9 +35,9 @@ import { manwon } from "../utils/amount";
 import { say, ask, askText } from "../utils/notify";
 import Collapse from "./components/Collapse";
 /**
- * 카드 줄 — 꾹 누르면 그 카드의 혜택이 펼쳐진다.
+ * 카드 줄. 꾹 누르면 그 카드의 혜택이 펼쳐진다.
  *
- * 줄마다 hook을 걸어야 해서 따로 뗀다. 고치는 중에는 걸지 않는다 —
+ * 줄마다 hook을 걸어야 해서 따로 뗀다. 고치는 중에는 걸지 않는다.
  * 그때는 이름을 누르면 고쳐 쓰는 칸이 되고 끌어 옮기기도 열려 있다.
  */
 function PmRow({
@@ -93,7 +93,7 @@ type Category = {
   sort_order: number;
 };
 
-/** 이 구분에 든 것만 실적 구간을 적을 수 있다 — 씀씀이의 카드 실적과 같은 잣대다. */
+/** 이 구분에 든 것만 실적 구간을 적을 수 있다. 씀씀이의 카드 실적과 같은 잣대다. */
 const CARD_CATEGORY = "카드";
 
 /** 드롭다운에서 "새로 만들기"를 뜻하는 값 */
@@ -104,7 +104,7 @@ const groupLabel = (c: Category | null) => c?.name ?? "구분 없음";
 export default function PaymentMethods() {
   const [editMode, setEditMode] = useState(false);
 
-  /* 편집이 아닐 때 잠긴 조각을 누르면 왜 안 되는지 알린다 — 다른 설정 화면과
+  /* 편집이 아닐 때 잠긴 조각을 누르면 왜 안 되는지 알린다. 다른 설정 화면과
      같은 갈고리다. */
   const { lockAt, showLock, tipRef } = useEditLock(editMode);
   /* 펼친 카드와 그 카드의 실적 구간 */
@@ -116,7 +116,7 @@ export default function PaymentMethods() {
 
   /**
    * 연회비는 칸을 떠날 때 그 카드만 따로 저장한다.
-   * 이름·구분과 함께 저장(편집 → 저장)에 태우면 줄을 펼쳐 놓고 고칠 수가 없다 —
+   * 이름과 구분과 함께 저장(편집 → 저장)에 태우면 줄을 펼쳐 놓고 고칠 수가 없다.
    * 펼치기는 편집 모드가 아닐 때만 되기 때문이다.
    */
   const saveFee = async (methodId: number, value: string) => {
@@ -134,7 +134,7 @@ export default function PaymentMethods() {
       prev.map((x) => (x.method_id === methodId ? { ...x, annual_fee: value } : x))
     );
 
-  /** 카드 한 장의 구간을 다시 읽는다. 받아 온 것을 그대로도 돌려준다 —
+  /** 카드 한 장의 구간을 다시 읽는다. 받아 온 것을 그대로도 돌려준다.
       바로 뒤에 쓰려면 상태가 갱신되기를 기다릴 수 없다. */
   const loadTiers = async (methodId: number): Promise<TierDraft[]> => {
     try {
@@ -174,7 +174,7 @@ export default function PaymentMethods() {
   /**
    * 고쳐 쓰는 꼴(TierDraft)을 보는 꼴(PerkTier)로 옮긴다.
    *
-   * 고치는 쪽은 칸에 그대로 담기게 글로 들고 있고 보는 쪽은 셈할 수 있게
+   * 고치는 쪽은 칸에 그대로 담기게 글로 들고 있고 보는 쪽은 계산할 수 있게
    * 숫자로 든다. 한쪽을 다른 쪽에 맞추면 둘 중 하나가 불편해지므로 여기서
    * 갈아 준다.
    */
@@ -190,7 +190,7 @@ export default function PaymentMethods() {
     }));
 
   /* 구간은 줄을 펼칠 때 받아 온다. 접힌 채로 꾹 눌러 들어올 수도 있어,
-     아직 없으면 먼저 받는다. 적은 구간이 없으면 펼칠 것이 없다 —
+     아직 없으면 먼저 받는다. 적은 구간이 없으면 펼칠 것이 없다.
      빈 팝업을 띄우는 대신 아무 일도 하지 않는다. */
   const openPerks = async (m: { method_id: number; method_name: string }) => {
     const drafts = tiers[m.method_id] ?? (await loadTiers(m.method_id));
@@ -198,7 +198,7 @@ export default function PaymentMethods() {
     setPerkOf({ name: m.method_name, tiers: perkTiersOf(drafts) });
   };
 
-  /* 펼칠 때 처음 한 번만 받아 온다 — 카드가 몇 장뿐이라 미리 다 받을 이유가 없다. */
+  /* 펼칠 때 처음 한 번만 받아 온다. 카드가 몇 장뿐이라 미리 다 받을 이유가 없다. */
   const toggleCard = (methodId: number) => {
     setOpenCards((prev) => {
       const next = new Set(prev);
@@ -265,7 +265,7 @@ export default function PaymentMethods() {
   const [addOpen, setAddOpen] = useState(false);
 
   /* 담는 팝업이 떠 있는 동안은 뒤 화면이 굴러가지 않는다. 떠 있는 단추들도
-     이 표를 보고 비킨다 — 다른 화면의 팝업과 같은 규칙이다. */
+     이 표를 보고 비킨다. 다른 화면의 팝업과 같은 규칙이다. */
   useEffect(() => {
     if (!addOpen) return;
     document.documentElement.classList.add("modal-open");
@@ -290,7 +290,7 @@ export default function PaymentMethods() {
   const [beforeEdit, setBeforeEdit] = useState<any[]>([]);
   const [beforeCategories, setBeforeCategories] = useState<Category[]>([]);
 
-  /* 뒤로 가기 · Backspace로 편집을 무른다 — 편집 전 상태로 되돌린다. */
+  /* 뒤로 가기, Backspace로 편집을 무른다. 편집 전 상태로 되돌린다. */
   useBackClose(editMode, () => {
     setList(beforeEdit);
     setCategories(beforeCategories);
@@ -380,7 +380,7 @@ export default function PaymentMethods() {
     });
   };
 
-  // 드래그 정렬 — 같은 묶음 안에서만 자리를 바꾼다.
+  // 드래그 정렬. 같은 묶음 안에서만 자리를 바꾼다.
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -394,7 +394,7 @@ export default function PaymentMethods() {
     setList(reordered);
   };
 
-  /** 감추기 — 고르는 목록에서 뺀다. 지난 내역은 그대로 이 수단을 가리킨다. */
+  /** 감추기. 선택하는 목록에서 뺀다. 지난 내역은 그대로 이 수단을 가리킨다. */
   const toggleHidden = (methodId: number) =>
     setList((prev) =>
       prev.map((x) =>
@@ -641,7 +641,7 @@ export default function PaymentMethods() {
               onToggle={() => toggleGroup(groupLabel(g.cat))}
               label={groupLabel(g.cat)}
             />
-            {/* 이모지는 이름 앞에 — 세 화면이 같은 순서다.
+            {/* 이모지는 이름 앞에. 세 화면이 같은 순서다.
                 구분이 있는 묶음만 이모지를 붙일 수 있다. */}
             {g.cat && (
               <EmojiPicker
@@ -778,7 +778,7 @@ export default function PaymentMethods() {
                         <button
                           type="button"
                           className={`set-hide-btn ${m.is_active ? "" : "on"}`}
-                          title={m.is_active ? "감춘다 — 고르는 목록에서 빠진다." : "다시 보이게 한다."}
+                          title={m.is_active ? "감춘다. 선택하는 목록에서 빠진다." : "다시 보이게 한다."}
                           onClick={() => toggleHidden(m.method_id)}
                         >
                           {m.is_active ? "감추기" : "감춤"}
@@ -799,7 +799,7 @@ export default function PaymentMethods() {
                     </div>
                   )}
 
-                  {/* 카드만 실적 구간을 갖는다. 접는 삼각형은 줄 오른쪽 끝에 —
+                  {/* 카드만 실적 구간을 갖는다. 접는 삼각형은 줄 오른쪽 끝에.
                       다른 줄의 자리를 밀지 않는다. */}
                   {g.cat?.name === CARD_CATEGORY && (
                     <CollapseToggle
@@ -853,8 +853,8 @@ export default function PaymentMethods() {
                       </div>
                     ))}
 
-                    {/* 테두리 없는 글자 단추 — "모두 펼치기|접기"와 같은 결이다.
-                        [혜택]은 같은 줄 오른쪽 끝에 — 적은 것이 있을 때만. */}
+                    {/* 테두리 없는 글자 단추. "모두 펼치기|접기"와 같은 결이다.
+                        [혜택]은 같은 줄 오른쪽 끝에. 적은 것이 있을 때만. */}
                     {!editMode && (
                       <div className="pm-tier-foot">
                         <button
@@ -890,7 +890,7 @@ export default function PaymentMethods() {
         </DndContext>
       </div>
 
-      {/* 보기만 하는 혜택 팝업 — 씀씀이의 카드 실적에서 뜨는 그것과 같은 부품 */}
+      {/* 보기만 하는 혜택 팝업. 씀씀이의 카드 실적에서 뜨는 그것과 같은 부품 */}
       {perkOf && (
         <CardPerkPopup
           cardName={perkOf.name}
@@ -903,7 +903,7 @@ export default function PaymentMethods() {
         <CardTierModal
           cardName={tierOf.method.method_name}
           tier={tierOf.draft}
-          /* 이 카드가 이미 쓰고 있는 혜택 — 어느 구간의 것인지 이름표에 적는다.
+          /* 이 카드가 이미 쓰고 있는 혜택. 어느 구간의 것인지 이름표에 적는다.
              같은 이름이 구간마다 있고 내용도 다를 수 있어 이름만으로는 못 가른다. */
           hints={(tiers[tierOf.method.method_id] ?? []).flatMap((t, i) =>
             i === tierOf.index
@@ -920,7 +920,7 @@ export default function PaymentMethods() {
         />
       )}
 
-      {/* 담기 — 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다. */}
+      {/* 담기. 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다. */}
       {addOpen && (
         <CardEditModal
           title="새 항목"
@@ -929,7 +929,7 @@ export default function PaymentMethods() {
           saveLabel="추가"
         >
           <div className="edit-grid">
-            {/* 1행 — 이름과 그 묶음. 성격이 하나라 가르지 않는다. */}
+            {/* 1행. 이름과 그 묶음. 성격이 하나라 가르지 않는다. */}
             <EditField label="결제 수단" span={6} required>
             <input
               className="cat-input"

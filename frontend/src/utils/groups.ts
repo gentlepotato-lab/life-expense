@@ -1,5 +1,5 @@
 /**
- * 묶음 — 따로 든 내역 여럿을 한 덩이로 본다.
+ * 묶음. 따로 든 내역 여럿을 한 덩이로 본다.
  *
  * 쪼개기(N빵)가 한 건 안을 나누는 것이라면, 묶음은 독립된 건 여럿을 하나로
  * 모은다. 여행이나 행사처럼 날이 걸쳐 있고 분류도 제각각인 지출을 한자리에서
@@ -28,7 +28,7 @@ export type GroupItem = {
   perf_exclude: number;
   fixed_flag: number | null;
   group_id: number | null;
-  /** 든 묶음의 이름. 서버가 내역 줄에 실어 보낸다 — 이미 묶인 것을
+  /** 든 묶음의 이름. 서버가 내역 줄에 실어 보낸다. 이미 묶인 것을
       가릴 때 따로 물어볼 것이 없다. */
   group_name?: string | null;
   split_amount?: number;
@@ -42,7 +42,7 @@ export type EntryGroup = {
   memo: string | null;
   kind: GroupKind;
   count: number;
-  /** 수입 − 지출. 화면이 쓰는 셈과 같다. */
+  /** 수입 − 지출. 화면이 쓰는 계산과 같다. */
   net: number;
   has_in: boolean;
   has_out: boolean;
@@ -51,7 +51,7 @@ export type EntryGroup = {
   items: GroupItem[];
 };
 
-/** 화면 이름 — 안내 문구와 팝업 제목이 함께 쓴다. */
+/** 화면 이름. 안내 문구와 팝업 제목이 함께 쓴다. */
 export const KIND_NAME: Record<GroupKind, string> = {
   entry: "지출 내역",
   pending: "대기 내역",

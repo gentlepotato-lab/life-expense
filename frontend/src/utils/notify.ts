@@ -1,7 +1,7 @@
 /**
- * 알림 · 되묻기 · 이름 받기를 앱의 것으로.
+ * 알림, 되묻기, 이름 받기를 앱의 것으로.
  *
- * 그동안은 alert · confirm · prompt를 그대로 썼다. 화면이 멈추고, 생김새가
+ * 그동안은 alert, confirm, prompt를 그대로 썼다. 화면이 멈추고, 생김새가
  * 기기마다 다르고, 말투도 바꿀 수 없었다. 앱으로 내보낼 것을 생각하면
  * 그대로 둘 수 없는 자리다.
  *
@@ -12,7 +12,7 @@
  *   if (!window.confirm("지울까?"))   →  if (!(await ask({ ... })))
  *   window.prompt("이름?", now)      →  await askText({ ... })
  *
- * 그리는 일은 NotifyHost가 한다. 여기서는 그쪽으로 넘기기만 한다 —
+ * 그리는 일은 NotifyHost가 한다. 여기서는 그쪽으로 넘기기만 한다.
  * 리액트 밖에서도 부를 수 있어야 해서 맥락(Context)을 쓰지 않았다.
  */
 
@@ -20,9 +20,9 @@
 export type Tone = "ok" | "warn" | "bad";
 
 export type AskOpts = {
-  /** 팝업 제목. 하려는 일의 이름이다 — "중분류 제거" */
+  /** 팝업 제목. 하려는 일의 이름이다. "중분류 제거" */
   title: string;
-  /** 무슨 일이 일어나는지. 평문만 받는다 — 이름이 그대로 들어오므로 */
+  /** 무슨 일이 일어나는지. 평문만 받는다. 이름이 그대로 들어오므로 */
   body?: string;
   /** 붉게 적을 한 줄. "되돌릴 수 없습니다." 따위 */
   warn?: string;
@@ -71,11 +71,11 @@ function push(tone: Tone, text: string): void {
 }
 
 export const say = {
-  /** 끝났다 — 저장 · 제거 · 추가 · 전송 */
+  /** 끝났다. 저장, 제거, 추가, 전송 */
   ok: (text: string) => push("ok", text),
-  /** 막혔다 — 빠진 칸 · 겹치는 이름 · 바뀐 것 없음 */
+  /** 막혔다. 빠진 칸, 겹치는 이름, 바뀐 것 없음 */
   warn: (text: string) => push("warn", text),
-  /** 안 됐다 — 서버가 물린 것 · 뜻밖의 탈 */
+  /** 안 됐다. 서버가 물린 것과 뜻밖의 탈 */
   bad: (text: string) => push("bad", text),
 };
 

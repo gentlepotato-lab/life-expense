@@ -7,7 +7,7 @@ import { blurSetsFrom, isBlurred } from "../utils/calendarFilter";
  *
  * 모래시계 단추는 어느 화면에나 떠 있다. 배지에 적을 수와 팝업이 넘겨 볼
  * 카드가 같은 줄에서 나와야, 배지에는 5라 적혀 있는데 열면 넉 장인 일이
- * 생기지 않는다. 받아 온 것을 이 모듈에 얹고 화면을 옮겨도 그대로 쓴다 —
+ * 생기지 않는다. 받아 온 것을 이 모듈에 얹고 화면을 옮겨도 그대로 쓴다.
  * 잔소리(useNudges)가 쓰는 방식 그대로다.
  *
  * 한 건 보내거나 적고 나면 invalidatePending()으로 비운다.
@@ -20,7 +20,7 @@ type Cat = { id: number; name: string; blur?: number };
 export type PendingCardRow = {
   entry_id: number;
   date: string;
-  /** 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다 — 목록 카드와 같은 잣대다. */
+  /** 쪼갠 건은 실지출(net)을 대표 금액으로 삼는다. 목록 카드와 같은 잣대다. */
   amount: number;
   /** 쪼개기 전 금액. 쪼갠 건에만 있다. */
   gross: number | null;
@@ -82,7 +82,7 @@ function ensure(): Promise<Loaded | null> {
   return inflight;
 }
 
-/** 보내거나 고치고 나면 수가 달라진다 — 다음에 볼 때 다시 받도록 비운다. */
+/** 보내거나 고치고 나면 수가 달라진다. 다음에 볼 때 다시 받도록 비운다. */
 export function invalidatePending() {
   cached = null;
   inflight = null;
@@ -122,7 +122,7 @@ export default function usePending(reloadKey = 0): {
     const payName = new Map(payList.map((p) => [p.code, p.name]));
 
     /* 날짜가 빠른 것부터 넘긴다. 밀린 것을 앞에서 치우는 자리라 오래된
-       것이 먼저 와야 한다 — 받아 오는 차례는 최신이 앞이다. 같은 날이면
+       것이 먼저 와야 한다. 받아 오는 차례는 최신이 앞이다. 같은 날이면
        먼저 적은 것이 앞이다(entry_id). */
     const 차례 = [...data.rows].sort((a, b) => {
       const x = String(a.tx_date ?? "").slice(0, 10);

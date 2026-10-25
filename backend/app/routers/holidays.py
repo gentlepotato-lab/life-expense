@@ -32,7 +32,7 @@ def 특일정보URL(year: int, month: int, 열쇠: str | None) -> str:
 
     열쇠를 주면 붙이고 주지 않으면 뺀 채로 만든다. 기록에 적는 쪽이 뺀 것을
     쓴다(app/routers/action_logs.py의 바깥적기). 주소를 두 번 적지 않으려고
-    한 곳에서 짓는다 — 두 곳에 적으면 물음표 뒤가 언젠가 어긋난다.
+    한 곳에서 짓는다. 두 곳에 적으면 물음표 뒤가 언젠가 어긋난다.
     """
     묶음 = [
         f"pageNo=1",
@@ -112,7 +112,7 @@ def fetch_kasi_holidays(year: int, month: int):
 def update_holidays_core(db: Session, year: int, month: int) -> bool:
     """그 달의 휴일을 다시 적재한다. 반영했으면 True.
 
-    조회를 먼저 하고 성공했을 때만 표를 고친다. 예전에는 반대였다. 월 전체를
+    조회를 먼저 하고 성공했을 때만 테이블을 고친다. 예전에는 반대였다. 월 전체를
     주말만 휴일로 되돌려 커밋한 다음 API 결과로 덮었는데, 그 사이 조회가
     실패하면 덮을 것이 없어 이미 알고 있던 공휴일까지 평일로 남았다.
     """

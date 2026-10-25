@@ -8,9 +8,9 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
  * 뛰어 아래 내용이 툭툭 밀렸고, 뒤엣것은 그냥 굼떴다. 걸음 폭을 비슷하게
  * 맞춰야 둘 다 고르게 보인다.
  *
- * 180ms 아래로는 내리지 않는다 — 그보다 짧으면 틀이 열 개도 안 되어 곡선을
+ * 180ms 아래로는 내리지 않는다. 그보다 짧으면 틀이 열 개도 안 되어 곡선을
  * 나눠 가질 자리가 없다. 420ms 위로도 올리지 않는다. 아주 긴 목록까지 비례해
- * 늘리면 접는 데만 1초가 걸려, 고르기 전에 느린 것이 먼저 거슬린다.
+ * 늘리면 접는 데만 1초가 걸려, 선택하기 전에 느린 것이 먼저 거슬린다.
  */
 function 걸릴시간(키: number) {
   return Math.round(Math.min(420, Math.max(180, 150 + 키 * 0.24)));
@@ -30,7 +30,7 @@ function 걸릴시간(키: number) {
  * 안쪽이 다시 그려지지 않는다.
  *
  * 접은 뒤에는 안쪽을 떼어 낸다. 접은 것까지 계속 그리면 긴 목록에서
- * 그만큼 값을 치른다 — 지금까지와 같다.
+ * 그만큼 값을 치른다. 지금까지와 같다.
  *
  * 움직임을 끄면(돈쓴이) 곧바로 접히고 펴진다. 끄는 것은 움직임뿐이고 하는
  * 일은 그대로다(160절).
@@ -41,7 +41,7 @@ export default function Collapse({ open, children }: { open: boolean; children: 
   /* 움직이는 중인지. 이때만 상자가 생긴다. */
   const [moving, setMoving] = useState(false);
   const ref = useRef<HTMLSpanElement | null>(null);
-  /* 처음 그릴 때는 움직이지 않는다 — 화면을 열자마자 다 펴지는 꼴이 된다. */
+  /* 처음 그릴 때는 움직이지 않는다. 화면을 열자마자 다 펴지는 꼴이 된다. */
   const 처음 = useRef(true);
   const 타이머 = useRef<number | null>(null);
 
@@ -71,25 +71,25 @@ export default function Collapse({ open, children }: { open: boolean; children: 
     setMoving(true);
   }, [open]);
 
-  /* 상자가 생긴 뒤라야 키를 잴 수 있다 — display: contents인 동안에는
+  /* 상자가 생긴 뒤라야 키를 잴 수 있다. display: contents인 동안에는
      잴 것이 없다. 그래서 재는 일은 한 틀 뒤인 여기서 한다. */
   useLayoutEffect(() => {
     if (!moving) return;
     const el = ref.current;
     if (!el) return;
 
-    /* 시작 키를 적고 그 자리에서 한 번 셈하게 한 뒤에 끝 키를 적는다.
-       셈하지 않고 바로 끝 키를 적으면 둘이 한 칠에 들어가 끌 것이 없다.
+    /* 시작 키를 적고 그 자리에서 한 번 계산하게 한 뒤에 끝 키를 적는다.
+       계산하지 않고 바로 끝 키를 적으면 둘이 한 칠에 들어가 끌 것이 없다.
        틀을 미루는 것으로도 되지만 그만큼(두 틀, 30ms쯤) 가만히 있다가
        움직이기 시작해 머뭇거리는 것처럼 보였다. */
     /* 안쪽이 미끄러지는 일은 CSS의 짜인 움직임(animation)에 맡긴다.
-       트랜지션으로 두었더니 걸리지 않았다 — 안쪽은 쉴 때 상자가 없다가
+       트랜지션으로 두었더니 걸리지 않았다. 안쪽은 쉴 때 상자가 없다가
        (display: contents) 움직이는 순간 생기는데, 상자가 없던 자리에서는
        끌어 줄 앞 값이 없기 때문이다. 짜인 움직임은 그 자리에서도 돈다. */
     const 속키 = el.scrollHeight;
     const 길이 = 걸릴시간(속키);
     /* 이번 한 번에만 걸리는 시간. 바깥 겹과 안쪽 겹이 같은 값을 보도록
-       CSS 변수로 적는다 — 안쪽은 짜인 움직임이라 따로 적을 자리가 없다. */
+       CSS 변수로 적는다. 안쪽은 짜인 움직임이라 따로 적을 자리가 없다. */
     el.style.setProperty("--collapse-run", `${길이}ms`);
 
     const 끝키 = open ? `${속키}px` : "0px";

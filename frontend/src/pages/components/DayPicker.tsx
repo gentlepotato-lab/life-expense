@@ -6,14 +6,14 @@ import MonthGrid from "./MonthGrid";
 import { dateLabel, todayStr, viewOf, ymOfView, type View } from "../../utils/day";
 
 /**
- * 하루를 고르는 달력.
+ * 하루를 선택하는 달력.
  *
  * 브라우저가 주는 날짜 칸(input[type=date])을 대신한다. 그 칸은 기기마다
- * 생김새가 달라 — 안드로이드 · 아이폰 · 윈도가 제가끔 다른 달력을 띄운다 —
- * 같은 앱 안에서 날짜 고르는 모습이 셋이 됐다. 여기서 쓰는 달력은 쓰기
+ * 생김새가 달라. 안드로이드, 아이폰, 윈도가 제가끔 다른 달력을 띄운다.
+ * 같은 앱 안에서 날짜 선택하는 모습이 셋이 됐다. 여기서 쓰는 달력은 쓰기
  * 슬라이드의 것과 같은 것(DayGrid)이라, 주말 빛깔도 공휴일 빨강도 한 벌이다.
  *
- * 방아쇠와 판은 다른 고르개(SingleSelect · MonthPicker)의 것을 그대로 쓴다.
+ * 방아쇠와 판은 다른 선택기(SingleSelect, MonthPicker)의 것을 그대로 쓴다.
  * 한 줄에 나란히 서는 칸들이라 눌리기 전 모습이 다르면 줄이 어긋나 보인다.
  */
 export default function DayPicker({
@@ -26,8 +26,8 @@ export default function DayPicker({
    * 머리의 연월을 눌러 한 해를 펼칠 수 있게 한다.
    *
    * 기간을 거르는 자리에만 켠다. 지난해 영수증을 찾을 때 달을 열몇 번
-   * 넘기는 대신 한 번에 건너뛴다. 적는 자리(쓰기 · 내역 편집)는 거의
-   * 언제나 요 며칠이라 켜지 않는다 — 고르는 길이 둘이면 손이 멈칫한다.
+   * 넘기는 대신 한 번에 건너뛴다. 적는 자리(쓰기와 내역 편집)는 거의
+   * 언제나 요 며칠이라 켜지 않는다. 선택하는 길이 둘이면 손이 멈칫한다.
    */
   monthJump = false,
 }: {
@@ -39,17 +39,17 @@ export default function DayPicker({
 }) {
   const [open, setOpen] = useState(false);
 
-  /* 뒤로 가기는 떠 있는 이 판만 닫는다 — 화면을 떠나면 안 된다.
+  /* 뒤로 가기는 떠 있는 이 판만 닫는다. 화면을 떠나면 안 된다.
      Backspace는 받지 않는다. 이 판 옆에는 글자를 지우는 칸이 흔하다. */
   useBackClose(open, () => setOpen(false), false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const style = useAnchoredPanel(open, wrapRef, { minWidth: 272, maxHeight: 400 });
 
   const [view, setView] = useState<View>(() => viewOf(value));
-  /** 지금 판에 펼친 것 — 날짜인가 달인가. */
+  /** 지금 판에 펼친 것. 날짜인가 달인가. */
   const [mode, setMode] = useState<"day" | "month">("day");
 
-  /* 열 때마다 고른 날의 달로 되돌리고 날짜 쪽으로 편다. 지난번에 넘긴
+  /* 열 때마다 선택한 날의 달로 되돌리고 날짜 쪽으로 편다. 지난번에 넘긴
      달이 남아 있으면 엉뚱한 달이 펼쳐진다. */
   useEffect(() => {
     if (open) {
@@ -117,8 +117,8 @@ export default function DayPicker({
               onHeadClick={monthJump ? () => setMode("month") : undefined}
             />
           ) : (
-            /* 달을 고르면 값이 바뀌는 것이 아니라 그 달로 넘어간다 —
-               여기서 고르려던 것은 어디까지나 하루다. */
+            /* 달을 선택하면 값이 바뀌는 것이 아니라 그 달로 넘어간다.
+               여기서 선택하려던 것은 어디까지나 하루다. */
             <MonthGrid
               year={view.y}
               onYear={(y) => setView({ ...view, y })}
@@ -131,7 +131,7 @@ export default function DayPicker({
           )}
 
           {/* 줄을 긋고 아래에 따로 둔다. 격자 안에 끼우면 날 가운데 하나처럼
-              읽힌다. 연월 고르개의 비우기와 같은 자리, 같은 꼴이다. */}
+              읽힌다. 연월 선택기의 비우기와 같은 자리, 같은 꼴이다. */}
           <div className="dp-foot">
             <button type="button" className="dp-foot__btn" onClick={() => choose(todayStr())}>
               오늘

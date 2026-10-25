@@ -7,9 +7,9 @@ import ExportIcon from "./ExportIcon";
 import { drawReceipt, receiptMeta, type ReceiptRow } from "../../utils/receipt";
 
 /**
- * 내보내기 — 화면 오른쪽 아래에 떠 있는 단추.
+ * 내보내기. 화면 오른쪽 아래에 떠 있는 단추.
  *
- * 맨 위로(ScrollTopButton) 바로 위에 선다. 떠 있는 자리를 고른 까닭은
+ * 맨 위로(ScrollTopButton) 바로 위에 선다. 떠 있는 자리를 선택한 까닭은
  * 도구 줄에 자리가 없기 때문이다. 가장 좁은 360px에서 알약 하나를 더
  * 끼우면 도구 줄이 두 줄이 되어 아래 내용이 통째로 밀린다. 떠 있는 것은
  * 내용 위에 겹쳐 뜨므로 한 칸도 밀지 않는다.
@@ -19,7 +19,7 @@ import { drawReceipt, receiptMeta, type ReceiptRow } from "../../utils/receipt";
  */
 
 type Props = {
-  /** 서버의 어느 길로 물을지 — /api/export/{길} */
+  /** 서버의 어느 길로 물을지. /api/export/{길} */
   길: string;
   /** 그 길에 넘길 조건. 화면이 지금 걸고 있는 그대로다. */
   params?: Record<string, unknown>;
@@ -74,7 +74,7 @@ export default function ExportButton({ 길, params, 이름, 빔, 영수증 = tru
     }
 
     /* 되묻고 간다. 떠 있는 단추라 굴리다 스치기 쉬운 자리인데, 세 해치를
-       한 번에 담으면 4초가 걸린다. 무엇이 담기는지도 함께 적는다 — 화면에
+       한 번에 담으면 4초가 걸린다. 무엇이 담기는지도 함께 적는다. 화면에
        걸린 조건 그대로 나가므로 지금 보고 있는 것이 곧 파일이다. */
     const 예 = await ask({
       title: "Excel로 내려받기",

@@ -1,12 +1,12 @@
 /**
- * 정기 내역의 주기 · 시작 · 끝을 다루는 셈과 이름표.
+ * 정기 내역의 주기, 시작, 끝을 다루는 계산과 이름표.
  *
  * 카드와 등록 팝업과 편집 팝업, 세 곳이 같은 말을 써야 한다. 한 곳에만
- * 적고 세 곳이 꺼내 쓴다 — 나누어 적으면 "격월"과 "2개월"처럼 같은
+ * 적고 세 곳이 꺼내 쓴다. 나누어 적으면 "격월"과 "2개월"처럼 같은
  * 것을 다르게 부르는 일이 생긴다.
  *
  * 연월은 'YYYYMM' 여섯 자다. 글자로 담아도 대소 비교가 곧 시간 순서라
- * 셈이 간단하다. backend/app/routers/scheduled_entries.py와 같은 꼴이다.
+ * 계산이 간단하다. backend/app/routers/scheduled_entries.py와 같은 꼴이다.
  */
 
 /** 화면에 이름표가 있는 주기만 쓴다. DB의 CHECK와 같은 목록이다. */
@@ -31,7 +31,7 @@ export function intervalLabel(n: number | string | null | undefined): string {
   return INTERVAL_OPTIONS.find((o) => o.value === key)?.label ?? "매월";
 }
 
-/** '202601' → "2026년 1월". 고르개와 팝업에서 쓴다. */
+/** '202601' → "2026년 1월". 선택기와 팝업에서 쓴다. */
 export function ymLong(ym: string): string {
   return `${Number(ym.slice(0, 4))}년 ${Number(ym.slice(4))}월`;
 }

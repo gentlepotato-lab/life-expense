@@ -8,11 +8,11 @@ import { 옮긴달 } from "../../hooks/useMonthSpan";
 /**
  * 달을 넘기는 막대.
  *
- * 지출 내역 · 묶은 내역 · 씀씀이 · 안쓴이 도전이 같은 것을 쓴다. 네 군데에
+ * 지출 내역, 묶은 내역, 씀씀이, 안쓴이 도전이 같은 것을 쓴다. 네 군데에
  * 같은 모양을 따로 적었더니 넘길 수 있는 끝이 화면마다 달라졌다.
  *
- * 연월 글씨를 누르면 열두 칸 달력이 펼쳐진다 — 한 해 전으로 가려고 ‹ 를
- * 열두 번 누르게 하지 않는다. 달력은 연월 고르개(MonthPicker)와 같은 격자를
+ * 연월 글씨를 누르면 열두 칸 달력이 펼쳐진다. 한 해 전으로 가려고 ‹ 를
+ * 열두 번 누르게 하지 않는다. 달력은 연월 선택기(MonthPicker)와 같은 격자를
  * 쓴다.
  *
  * 달력만 body에 띄운다. 이 막대가 선 자리(.toolbar-wrap.is-pinned)는
@@ -22,10 +22,10 @@ import { 옮긴달 } from "../../hooks/useMonthSpan";
 export default function MonthNav({
   ym,
   onChange,
-  /** 넘겨 볼 수 있는 맨 앞 · 맨 뒤 연월 'YYYY-MM'. 없으면 가두지 않는다. */
+  /** 넘겨 볼 수 있는 맨 앞과 맨 뒤 연월 'YYYY-MM'. 없으면 가두지 않는다. */
   min,
   max,
-  /** 고치는 중처럼 달을 옮겨서는 안 되는 때 — 화살표도 달력도 잠근다. */
+  /** 고치는 중처럼 달을 옮겨서는 안 되는 때. 화살표도 달력도 잠근다. */
   disabled = false,
   className = "",
 }: {
@@ -38,12 +38,12 @@ export default function MonthNav({
 }) {
   const [open, setOpen] = useState(false);
 
-  /* 뒤로 가기는 떠 있는 이 판만 닫는다 — 화면을 떠나면 안 된다.
+  /* 뒤로 가기는 떠 있는 이 판만 닫는다. 화면을 떠나면 안 된다.
      Backspace는 받지 않는다. 이 판 옆에는 글자를 지우는 칸이 흔하다. */
   useBackClose(open, () => setOpen(false), false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  /* 판은 연월 글씨 바로 아래에 붙인다 — 막대 왼쪽 끝(‹)에 맞추면 누른 자리와
+  /* 판은 연월 글씨 바로 아래에 붙인다. 막대 왼쪽 끝(‹)에 맞추면 누른 자리와
      뜨는 자리가 어긋난다. */
   const labelRef = useRef<HTMLDivElement | null>(null);
   const style = useAnchoredPanel(open, labelRef, { minWidth: 232, maxHeight: 300 });
@@ -53,7 +53,7 @@ export default function MonthNav({
 
   const [year, setYear] = useState(() => Number(ym.slice(0, 4)));
 
-  /* 열 때마다 보고 있는 달의 해로 되돌린다 — 지난번에 넘긴 해가 남아 있으면
+  /* 열 때마다 보고 있는 달의 해로 되돌린다. 지난번에 넘긴 해가 남아 있으면
      엉뚱한 해가 펼쳐진다. */
   useEffect(() => {
     if (open) setYear(Number(ym.slice(0, 4)));
@@ -61,7 +61,7 @@ export default function MonthNav({
 
   useEffect(() => {
     if (!open) return;
-    /* 달력이 막대 밖(body)에 있으므로 두 군데를 모두 안쪽으로 친다 —
+    /* 달력이 막대 밖(body)에 있으므로 두 군데를 모두 안쪽으로 친다.
        한쪽만 보면 달을 누르는 순간 닫혀 그 누름이 허공에 떨어진다. */
     const outside = (e: Event) => {
       const t = e.target as Node;

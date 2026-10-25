@@ -3,18 +3,18 @@ import useBackClose from "../../hooks/useBackClose";
 import { bindNotify, type AskOpts, type TextOpts, type Tone } from "../../utils/notify";
 
 /**
- * 알림 · 되묻기 · 이름 받기를 그리는 자리.
+ * 알림, 되묻기, 이름 받기를 그리는 자리.
  *
  * App에 한 번만 매단다. 아무것도 뜨지 않은 동안에는 아무것도 그리지 않는다.
  *
  * 되묻기와 이름 받기는 앱이 이미 쓰는 팝업 부품을 그대로 쓴다
- * (.popup-overlay · .popup-panel--framed · .popup-head · .btn-row.popup-foot).
+ * (.popup-overlay, .popup-panel--framed, .popup-head, .btn-row.popup-foot).
  * 새 틀을 만들면 다른 팝업과 한 식구로 보이지 않는다.
  */
 
 type Note = { id: number; tone: Tone; text: string };
 
-/** 결마다 머무는 시간. 안 된 일은 더 오래 둔다 — 놓치면 안 되는 말이다. */
+/** 결마다 머무는 시간. 안 된 일은 더 오래 둔다. 놓치면 안 되는 말이다. */
 const STAY: Record<Tone, number> = { ok: 2200, warn: 2800, bad: 4000 };
 
 /** 한꺼번에 쌓이는 수. 넘치면 오래된 것부터 걷는다. */
@@ -82,10 +82,10 @@ export default function NotifyHost() {
      오르내려, 눈이 늘 같은 데를 보지 못한다. 그래서 낮은 쪽을 143으로 올려 맞춘다.
 
      제목 밑에 한 줄이 들어서면서 둘 다 18px씩 깊어졌다(74 → 92, 117 → 135).
-     여기 값도 125에서 143으로 그만큼 따라 내린다 — 그러지 않으면 갈래 탭이 선
+     여기 값도 125에서 143으로 그만큼 따라 내린다. 그러지 않으면 갈래 탭이 선
      여덟 화면에서만 알림이 머리말에 가린다.
 
-     그래도 재는 까닭은 머리말이 더 길어질 수 있어서다 — 제목이 접히거나 갈래가
+     그래도 재는 까닭은 머리말이 더 길어질 수 있어서다. 제목이 접히거나 갈래가
      늘면 143으로는 가린다. 둘 가운데 깊은 쪽을 쓴다. */
   const 기본자리 = 143;
   const [머리밑, set머리밑] = useState<number | null>(null);
@@ -120,7 +120,7 @@ export default function NotifyHost() {
     });
   }, []);
 
-  /* 뒤로 가기 · Esc로도 닫힌다 — 다른 팝업과 같은 잣대다.
+  /* 뒤로 가기, Esc로도 닫힌다. 다른 팝업과 같은 잣대다.
      되묻기가 먼저 걸리도록 둘을 따로 건다. */
   useBackClose(!!ask, closeAsk);
   useBackClose(!!text, closeText);
@@ -161,7 +161,7 @@ export default function NotifyHost() {
               {ask.opts.warn && <p className="ask-warn">{ask.opts.warn}</p>}
             </div>
 
-            {/* 다른 팝업과 같은 차례 — 닫기가 왼쪽, 하려던 것이 오른쪽 */}
+            {/* 다른 팝업과 같은 차례. 닫기가 왼쪽, 하려던 것이 오른쪽 */}
             <div className="btn-row popup-foot popup-foot--tight">
               <button className="ui-btn" onClick={closeAsk}>
                 닫기

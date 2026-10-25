@@ -4,7 +4,7 @@ import axios from "../api/client";
  * 앱 설정을 화면들이 나눠 쓰는 자리.
  *
  * 설정은 돈쓴이에서 담고 서버가 들고 있지만, 쓰는 쪽은 첫 그림을 그리는 그
- * 순간에 값이 있어야 한다 — Blur를 켠 채로 열지 끈 채로 열지는 useState의
+ * 순간에 값이 있어야 한다. Blur를 켠 채로 열지 끈 채로 열지는 useState의
  * 초깃값에서 정해지므로, 받아 온 뒤에 알려 줘 봐야 이미 늦다. 그래서 받아 온
  * 값을 브라우저에 한 벌 남기고 다음 번에는 그것으로 먼저 그린다. 서버에서
  * 받아 온 값은 뒤따라 와서 이 자리를 갱신하고, 다음에 열 때부터 반영된다.
@@ -12,7 +12,7 @@ import axios from "../api/client";
 
 export type Prefs = Record<string, string>;
 
-/** 저장된 것이 없을 때의 값 — 서버의 PREF_KEYS와 같아야 한다. */
+/** 저장된 것이 없을 때의 값. 서버의 PREF_KEYS와 같아야 한다. */
 const FALLBACK: Prefs = {
   blur_default: "1",
   home_path: "/",
@@ -47,12 +47,12 @@ export function pref(key: string): string {
   return cache[key] ?? FALLBACK[key] ?? "";
 }
 
-/** 켬·끔으로 쓰는 값 */
+/** 켬과 끔으로 쓰는 값 */
 export function prefOn(key: string): boolean {
   return pref(key) === "1";
 }
 
-/** 새 값으로 갈아 끼운다 — 돈쓴이에서 담고 나면 부른다. */
+/** 새 값으로 갈아 끼운다. 돈쓴이에서 담고 나면 부른다. */
 export function putPrefs(next: Prefs): void {
   cache = { ...FALLBACK, ...next };
   try {

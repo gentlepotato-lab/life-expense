@@ -6,8 +6,8 @@ import type { BoardPlace } from "../../utils/placeBoard";
 /**
  * 장소 하나를 지도에 찍어 보여 준다.
  *
- * 껍데기는 다른 팝업과 같은 틀(popup-overlay · popup-panel--framed)이다.
- * 쓰기에서 장소를 고를 때 뜨는 지도와 같은 모양으로, 고른 곳에 핀 하나를
+ * 껍데기는 다른 팝업과 같은 틀(popup-overlay, popup-panel--framed)이다.
+ * 쓰기에서 장소를 선택할 때 뜨는 지도와 같은 모양으로, 선택한 곳에 핀 하나를
  * 꽂고 그 자리를 가운데에 둔다.
  */
 const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
@@ -41,7 +41,7 @@ export default function PlaceMapPopup({
   useEffect(() => {
     if (place.lat === null || place.lng === null) return;
     let alive = true;
-    /* 지도를 그리는 데 걸린 참을 잰다(utils/kakaoMap.ts의 지도적기). */
+    /* 지도를 그리는 데 걸린 시간을 잰다(utils/kakaoMap.ts의 지도적기). */
     const 시작 = performance.now();
 
     void loadKakaoMap().then(() => {
@@ -74,7 +74,7 @@ export default function PlaceMapPopup({
         </header>
 
         <div className="popup-body wh-detail">
-          {/* 지도는 자리를 늘 잡는다 — 좌표가 없으면 그 자리에 까닭을 적는다. */}
+          {/* 지도는 자리를 늘 잡는다. 좌표가 없으면 그 자리에 까닭을 적는다. */}
           <div className="wh-map">
             {place.lat !== null && place.lng !== null ? (
               <div className="wh-map__box" ref={box} />
@@ -115,7 +115,7 @@ export default function PlaceMapPopup({
               <span className="chart-tile__label">마지막 방문</span>
               <span className="me-tile__foot">
                 <span className="chart-tile__value wh-tile__day">
-                  {place.last_used ? day(place.last_used) : "—"}
+                  {place.last_used ? day(place.last_used) : "-"}
                 </span>
               </span>
             </div>

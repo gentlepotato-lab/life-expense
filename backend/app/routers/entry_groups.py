@@ -1,12 +1,12 @@
 """
-묶음 — 따로 든 내역 여럿을 한 덩이로 본다.
+묶음. 따로 든 내역 여럿을 한 덩이로 본다.
 
 쪼개기(N빵)가 한 건 안을 나누는 것이라면, 묶음은 독립된 건 여럿을 하나로
 모은다. 여행이나 행사처럼 날이 걸쳐 있고 분류도 제각각인 지출을 한자리에서
 보려는 것이다.
 
-갈래(kind)는 어느 화면의 내역을 묶었는지다. 지출과 대기와 정기는 표가 달라
-한 묶음이 둘을 섞어 담지 않는다. 담는 쪽은 group_id 한 칸이라 한 건은 한
+갈래(kind)는 어느 화면의 내역을 묶었는지다. 지출과 대기와 정기는 테이블이 달라
+한 묶음이 둘을 섞어 담지 않는다. 담는 쪽은 group_id 한 컬럼이라 한 건은 한
 묶음에만 든다.
 """
 
@@ -23,7 +23,7 @@ router = APIRouter()
 
 KINDS = ("entry", "pending", "scheduled")
 
-# 갈래마다 담는 표와 열쇠 칸이 다르다. 분기를 여기 한 곳에만 둔다.
+# 갈래마다 담는 테이블과 열쇠 컬럼이 다르다. 분기를 여기 한 곳에만 둔다.
 MODELS = {
     "entry": (Entry, "entry_id"),
     "pending": (PendingEntry, "entry_id"),
@@ -47,7 +47,7 @@ def _ym_range(ym: str) -> tuple[date, date]:
     return start, end
 
 
-# 담긴 내역 한 줄. 내역 카드가 그리는 데 필요한 것만 고른다.
+# 담긴 내역 한 줄. 내역 카드가 그리는 데 필요한 것만 선택한다.
 # 지출과 대기가 표만 다르고 모양은 같아 한 틀에서 찍는다.
 _ITEM_SQL = """
     SELECT t.{pk} AS entry_id
@@ -137,7 +137,7 @@ def _in_month(items: list[dict], start: date, end: date) -> bool:
     """그 달에 든 내역이 하나라도 있는가.
 
     기간이 겹치는지로 보면 9월과 11월에만 든 묶음이 10월에도 보인다.
-    담긴 날을 하나씩 본다 — 묶음 하나에 든 건수는 많아야 수십이다.
+    담긴 날을 하나씩 본다. 묶음 하나에 든 건수는 많아야 수십이다.
     """
     lo, hi = str(start), str(end)
     return any(lo <= i["tx_date"] < hi for i in items if i.get("tx_date"))
@@ -158,7 +158,7 @@ def _in_span(items: list[dict], 부터: str | None, 까지: str | None) -> bool:
 
 
 def _summarize(items: list[dict]) -> dict:
-    """묶음 머리말이 쓰는 값. 합계는 화면과 같은 셈이다(수입 − 지출)."""
+    """묶음 머리말이 쓰는 값. 합계는 화면과 같은 계산이다(수입 − 지출)."""
     net = 0.0
     has_in = False
     has_out = False
@@ -194,12 +194,12 @@ def list_entry_groups(
     """
     묶음 목록. 담긴 내역까지 함께 준다.
 
-    ym을 주면 그 달의 내역이 든 묶음만 고른다. 날이 걸쳐 있는 여행은 그
-    여행에 든 날이 있는 달마다 보인다 — 9월 말에 떠나 10월 초에 돌아왔으면
+    ym을 주면 그 달의 내역이 든 묶음만 선택한다. 날이 걸쳐 있는 여행은 그
+    여행에 든 날이 있는 달마다 보인다. 9월 말에 떠나 10월 초에 돌아왔으면
     두 달 모두에서 보인다.
 
-    date_from과 date_to를 주면 그 기간에 든 내역이 있는 묶음만 고른다.
-    기간을 주면 달은 보지 않는다 — 달 단위를 넘어 보려고 거는 것이기 때문이다.
+    date_from과 date_to를 주면 그 기간에 든 내역이 있는 묶음만 선택한다.
+    기간을 주면 달은 보지 않는다. 달 단위를 넘어 보려고 거는 것이기 때문이다.
     이름과 메모는 대소문자를 가리지 않고 포함만 본다.
 
     정기 묶음은 날짜가 없으므로 달과 기간을 가리지 않고 늘 보인다.
@@ -220,7 +220,7 @@ def list_entry_groups(
         items = rows.get(g.group_id, [])
         summary = _summarize(items)
         if 기간 and kind != "scheduled":
-            # 기간을 걸면 담긴 날로만 고른다. 아무것도 담기지 않은 묶음은
+            # 기간을 걸면 담긴 날로만 선택한다. 아무것도 담기지 않은 묶음은
             # 걸릴 날이 없으므로 빠진다.
             if not _in_span(items, date_from, date_to):
                 continue
@@ -311,7 +311,7 @@ def list_candidates(
 
 
 def _attach(db, kind: str, group_id: int, ids: list[int]) -> int:
-    """고른 내역을 묶음에 담는다. 이미 다른 묶음에 든 것은 건너뛴다."""
+    """선택한 내역을 묶음에 담는다. 이미 다른 묶음에 든 것은 건너뛴다."""
     if not ids:
         return 0
     model, pk = MODELS[kind]
@@ -329,7 +329,7 @@ def _attach(db, kind: str, group_id: int, ids: list[int]) -> int:
 
 @router.post("")
 def create_entry_group(payload: EntryGroupIn, db: SessionDep = Depends()):
-    """묶음을 만들고 고른 내역을 담는다."""
+    """묶음을 만들고 선택한 내역을 담는다."""
     _check_kind(payload.kind)
     name = payload.name.strip()
     if not name:

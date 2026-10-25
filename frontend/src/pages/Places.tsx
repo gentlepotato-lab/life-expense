@@ -26,29 +26,29 @@ import {
 } from "../utils/placeBoard";
 
 /**
- * 어디 쓰나 — 적은 장소와 가게.
+ * 어디 쓰나. 적은 장소와 가게.
  *
- * 쓰기에서 장소를 고를 때마다 카카오에서 받아 적은 것들이 쌓여 있는데,
- * 그동안은 고를 때 말고는 볼 자리가 없었다. 어디를 자주 가는지 · 어디에
- * 많이 쓰는지 · 어느 동네에 · 어떤 업종에 다니는지를 한 화면에서 돌려 본다.
+ * 쓰기에서 장소를 선택할 때마다 카카오에서 받아 적은 것들이 쌓여 있는데,
+ * 그동안은 선택할 때 말고는 볼 자리가 없었다. 어디를 자주 가는지, 어디에
+ * 많이 쓰는지, 어느 동네에, 어떤 업종에 다니는지를 한 화면에서 돌려 본다.
  *
- * 잣대 넷은 받아 온 한 벌을 돌려 쓴다(utils/placeBoard.ts) — 넷을 따로 받아
+ * 잣대 넷은 받아 온 한 벌을 돌려 쓴다(utils/placeBoard.ts). 넷을 따로 받아
  * 오면 같은 것을 네 번 세게 되고, 500곳 남짓이라 한 벌이 무겁지 않다.
- * 기간만은 서버에서 걸러 온다. 그 기간에 간 곳만 남기고 셈도 그때 것만
- * 세야 하는데, 화면에는 셈한 값만 내려와 있어 다시 셀 재료가 없다.
+ * 기간만은 서버에서 걸러 온다. 그 기간에 간 곳만 남기고 계산도 그때 것만
+ * 세야 하는데, 화면에는 계산한 값만 내려와 있어 다시 셀 재료가 없다.
  *
  * 찾기는 누를 때만 걸린다. 한 글자마다 500곳을 다시 훑을 이유가 없다.
  *
- * 넷 다 맨 위 한 줄(.wh-top)이 같은 자리에 선다 — 잣대를 옮길 때마다 아래가
+ * 넷 다 맨 위 한 줄(.wh-top)이 같은 자리에 선다. 잣대를 옮길 때마다 아래가
  * 위아래로 흔들리지 않게 하려는 것이다.
  *
- * 한 줄을 누르면 그 자리가 지도에 찍힌다. 쓰기에서 장소를 고를 때 뜨는
+ * 한 줄을 누르면 그 자리가 지도에 찍힌다. 쓰기에서 장소를 선택할 때 뜨는
  * 지도와 같은 모양이다.
  */
 const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
 
 /**
- * 묶음의 셈 — 청록 딱지로.
+ * 묶음의 합계. 청록 딱지로.
  *
  * 다녀온 횟수를 함께 적는다. 묶음 차례를 횟수로 세울 수 있는데 그 값이
  * 안 보이면 왜 그 차례로 섰는지 알 길이 없다.
@@ -66,7 +66,7 @@ function Sum({ node }: { node: BoardNode }) {
 /**
  * 묶음 차례를 무엇으로 세울지.
  *
- * 모두 펼치기|접기와 같은 짜임이다 — 이고 있는 말(`정렬`)을 앞에 두고,
+ * 모두 펼치기|접기와 같은 짜임이다. 이고 있는 말(`정렬`)을 앞에 두고,
  * 누르는 자리는 `횟수`와 `금액`뿐이다.
  */
 function SortButtons({
@@ -83,7 +83,7 @@ function SortButtons({
       </span>
       <span className="set-bulk__pair">
         {SORTS.map((s, i) => (
-          /* 가름선은 단추와 형제로 둔다 — 한 겹 더 감싸면 묶음 간격이 한쪽에만
+          /* 가름선은 단추와 형제로 둔다. 한 겹 더 감싸면 묶음 간격이 한쪽에만
              붙어 가름선 양옆이 어긋난다. */
           <Fragment key={s.key}>
             {i > 0 && <span className="set-bulk__sep" aria-hidden="true" />}
@@ -104,7 +104,7 @@ function SortButtons({
 }
 
 /**
- * 한 줄 — 차례 · 이름 · 어디에 있는 무엇인지 · 값.
+ * 한 줄. 차례, 이름, 어디에 있는 무엇인지, 값.
  *
  * 곁말은 잣대에 따라 덜어 낸다. 지역으로 묶어 놓고 줄마다 또 구를 적거나,
  * 업종으로 묶어 놓고 줄마다 또 업종을 적으면 묶음 이름을 두 번 읽는 셈이다.
@@ -127,7 +127,10 @@ function PlaceRow({
      줄에 적을 때는 동 이름만 남긴다. */
   const dong = place.town ? place.town.split(" ")[0] : null;
   const where = view === "where" ? dong : place.district || place.city;
-  const sub = [where, view === "kind" ? null : place.kind].filter(Boolean).join(" · ");
+  /* 업종 값에 쉼표가 들어 있다(카카오가 주는 `가정,생활`). 쉼표로 이으면
+     동네와 업종의 경계가 업종 안의 쉼표와 섞이므로 괄호로 묶는다. */
+  const 업종 = view === "kind" ? null : place.kind;
+  const sub = where && 업종 ? `${where}(${업종})` : where || 업종 || "";
 
   return (
     <button type="button" className="wh-row" onClick={onPick}>
@@ -153,7 +156,7 @@ export default function Places() {
   const [sort, setSort] = useState<BoardSort>("money");
   const [period, setPeriod] = useState<Period>(recentMonths);
   const [periodOpen, setPeriodOpen] = useState(false);
-  /* 친 글자와 건 글자를 따로 든다 — 누를 때만 걸린다. */
+  /* 친 글자와 건 글자를 따로 든다. 누를 때만 걸린다. */
   const [typed, setTyped] = useState("");
   const [find, setFind] = useState("");
   const [picked, setPicked] = useState<BoardPlace | null>(null);
@@ -171,14 +174,14 @@ export default function Places() {
       })
       .then((r) => {
         setRows(r.data.places);
-        /* 고를 수 있는 앞뒤 달은 기간을 걸어도 그대로다. */
+        /* 선택할 수 있는 앞뒤 달은 기간을 걸어도 그대로다. */
         setSpan(r.data.span);
       })
       .catch(() => setRows([]))
       .finally(() => setReady(true));
   }, [period]);
 
-  /* 처음에는 모두 펼친다. 잣대를 옮기거나 새로 받아 오면 다시 펼친다 —
+  /* 처음에는 모두 펼친다. 잣대를 옮기거나 새로 받아 오면 다시 펼친다.
      찾는 글자만 바뀔 때는 건드리지 않는다. 접은 것이 되살아나면 어디를
      보고 있었는지 놓친다. */
   useEffect(() => {
@@ -216,9 +219,9 @@ export default function Places() {
   const onPeriod = !!(period.since || period.until);
   const title = VIEWS.find((v) => v.key === view)?.label ?? "";
 
-  /* 차례는 묶음마다 1부터 매긴다 — 자주 간 곳은 묶음이 하나라 통째로 1부터다. */
-  /* 줄 오른쪽에 무엇을 적을지. 묶음이 있는 잣대에서는 정렬 고르개를 따르고,
-     자주 간 곳 · 많이 쓴 곳은 잣대 이름이 곧 기준이라 그것을 따른다. */
+  /* 차례는 묶음마다 1부터 매긴다. 자주 간 곳은 묶음이 하나라 통째로 1부터다. */
+  /* 줄 오른쪽에 무엇을 적을지. 묶음이 있는 잣대에서는 정렬 선택기를 따르고,
+     자주 간 곳과 많이 쓴 곳은 잣대 이름이 곧 기준이라 그것을 따른다. */
   const byMoney = folds ? sort === "money" : view === "much";
 
   const rowsOf = (list: BoardPlace[]) =>
@@ -233,7 +236,7 @@ export default function Places() {
       />
     ));
 
-  /** 묶음 머리말 — 겹에 따라 크기만 다르고 짜임은 같다. */
+  /** 묶음 머리말. 겹에 따라 크기만 다르고 짜임은 같다. */
   const head = (node: BoardNode, deep: boolean) => (
     <div className={`wh-head${deep ? " wh-head--in" : ""}`}>
       <CollapseToggle
@@ -289,7 +292,7 @@ export default function Places() {
         <button type="button" className="ui-btn wh-find__go" onClick={() => setFind(typed)}>
           찾기
         </button>
-        {/* 곳 수는 늘 전체 기준이다 — 걸러 낸 수는 아래 딱지로 따로 적힌다. */}
+        {/* 곳 수는 늘 전체 기준이다. 걸러 낸 수는 아래 딱지로 따로 적힌다. */}
         <span className="set-group__count">{rows.length}</span>
       </div>
 
@@ -315,7 +318,7 @@ export default function Places() {
       {ready && found === 0 && <div className="page-empty">찾는 곳이 없습니다.</div>}
 
       {/* 잣대나 정렬을 바꾸면 목록이 통째로 다시 선다. 열쇠를 바꿔 새로 그리게
-          두고 스르르 들어오게 한다 — 줄이 소리 없이 뒤바뀌면 눌린 것이
+          두고 스르르 들어오게 한다. 줄이 소리 없이 뒤바뀌면 눌린 것이
           먹혔는지 알기 어렵다. */}
       <div className="wh-list" key={`${view}:${sort}`}>
         {ready && !folds && <div className="wh-body">{rowsOf(nodes[0]?.places ?? [])}</div>}

@@ -50,7 +50,7 @@ export function formatDateLabel(date: string): string {
  * 두 끝이 같은 날이면 날짜 하나만 적는다. 하루를 걸었는데 "10. 21. (수) ~
  * 10. 21. (수)"로 같은 날이 두 번 적히면 기간처럼 읽힌다.
  *
- * 한쪽만 들어오면 그쪽만 적고 빈자리는 물결 옆을 비워 둔다. 지출 내역의
+ * 한쪽만 들어오면 그쪽만 적고 빈자리는 물결 옆을 비운다. 지출 내역의
  * 필터가 시작이나 끝 하나만 걸 수 있어서다.
  */
 export function formatRangeLabel(from: string, to: string): string {

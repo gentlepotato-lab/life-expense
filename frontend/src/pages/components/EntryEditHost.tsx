@@ -32,7 +32,7 @@ const 자리: Record<GroupKind, { base: string; pk: string }> = {
 };
 
 /**
- * 한 건을 고치는 팝업 — 제 화면이 아닌 곳에서 부른다.
+ * 한 건을 고치는 팝업. 제 화면이 아닌 곳에서 부른다.
  *
  * 묶음 내역과 기간 내역은 세 갈래(지출, 대기, 정기)의 건을 한자리에 모아
  * 보여 준다. 고치는 자리가 거기에도 있어야 하는데, 세 화면의 편집 팝업을
@@ -40,7 +40,7 @@ const 자리: Record<GroupKind, { base: string; pk: string }> = {
  * 부품(EntryEditFields)을 쓰고, 여기서는 담고 저장하는 일만 맡는다.
  *
  * 고친 뒤에는 부르는 쪽이 다시 받아 온다(onSaved). 이 자리에서 목록을
- * 손보지 않는다 — 어느 목록에 들어 있는지는 부르는 쪽만 안다.
+ * 손보지 않는다. 어느 목록에 들어 있는지는 부르는 쪽만 안다.
  *
  * 정기는 받지 않는다. 한 건이 아니라 앞으로 계속 올 약속이라, 주기와 휴일
  * 처리와 끝 달과 감추기를 함께 봐야 고친 뜻이 온전해진다. 날짜와 금액만
@@ -98,7 +98,7 @@ export default function EntryEditHost({
   const setField = (field: string, value: unknown) => {
     setDraft((prev) => {
       const next = { ...prev, [field]: value };
-      /* 소분류가 IN/OUT을 정한다. 지출 내역의 편집과 같은 셈이다. */
+      /* 소분류가 IN/OUT을 정한다. 지출 내역의 편집과 같은 계산이다. */
       if (field === "cat2_id") {
         const 소 = meta.cat2List.find((c) => c.id === value);
         if (소 && 소.inout !== null && 소.inout !== undefined) next.inout = 소.inout;
@@ -131,7 +131,7 @@ export default function EntryEditHost({
     }
 
     /* 장소는 place_id가 있으면 서버가 그 장소를 그대로 쓴다. 나머지 칸은
-       고르개로 새 장소를 골랐을 때만 채워진다. */
+       선택기로 새 장소를 선택했을 때만 채워진다. */
     const 담을것 = {
       [pk]: id,
       tx_date: String(draft.tx_date).substring(0, 10),

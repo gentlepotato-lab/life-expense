@@ -5,30 +5,30 @@ import { ymLong } from "../../utils/schedule";
 import MonthGrid from "./MonthGrid";
 
 /**
- * 연월 하나를 고르는 작은 달력.
+ * 연월 하나를 선택하는 작은 달력.
  *
- * 열두 칸 격자는 날짜 고르개와 나눠 쓰는 것(MonthGrid)이다. 여기서는 그것을
+ * 열두 칸 격자는 날짜 선택기와 나눠 쓰는 것(MonthGrid)이다. 여기서는 그것을
  * 떠 있는 판에 얹고, 비우는 단추만 아래에 붙인다.
  *
- * 방아쇠는 다른 고르개(SingleSelect)의 것을 그대로 쓴다. 한 줄에 나란히
+ * 방아쇠는 다른 선택기(SingleSelect)의 것을 그대로 쓴다. 한 줄에 나란히
  * 서는 칸들이라 눌리기 전 모습이 다르면 줄이 어긋나 보인다.
  */
 export default function MonthPicker({
   value,
   onChange,
-  /** 고를 수 있는 맨 앞 · 맨 뒤 연월 'YYYYMM'. 없으면 가두지 않는다. */
+  /** 선택할 수 있는 맨 앞과 맨 뒤 연월 'YYYYMM'. 없으면 가두지 않는다. */
   min,
   max,
-  /** 고른 값 뒤에 붙는 말 — "부터", "까지". */
+  /** 선택한 값 뒤에 붙는 말. "부터", "까지". */
   suffix = "",
   placeholder = "(연월)",
   /** 비울 수 있는 칸인가. 켜면 판 아래에 그 단추가 선다. */
   clearable = false,
   clearLabel = "없음",
-  /** 잠긴 칸인가 — 편집 모드가 아닐 때 읽기만 되는 자리에 쓴다. */
+  /** 잠긴 칸인가. 편집 모드가 아닐 때 읽기만 되는 자리에 쓴다. */
   disabled = false,
-  /* 잠겼을 때 누름을 받을 곳. 받을 데가 있으면 왜 안 되는지 알린다 —
-     색·이모지 고르개와 같은 갈고리다. */
+  /* 잠겼을 때 누름을 받을 곳. 받을 데가 있으면 왜 안 되는지 알린다.
+     색과 이모지 선택기와 같은 갈고리다. */
   onLocked,
 }: {
   value: string | null | undefined;
@@ -44,18 +44,18 @@ export default function MonthPicker({
 }) {
   const [open, setOpen] = useState(false);
 
-  /* 뒤로 가기는 떠 있는 이 판만 닫는다 — 화면을 떠나면 안 된다.
+  /* 뒤로 가기는 떠 있는 이 판만 닫는다. 화면을 떠나면 안 된다.
      Backspace는 받지 않는다. 이 판 옆에는 글자를 지우는 칸이 흔하다. */
   useBackClose(open, () => setOpen(false), false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const style = useAnchoredPanel(open, wrapRef, { minWidth: 232, maxHeight: 300 });
 
-  /* 펼쳐 보는 해. 고른 값이 있으면 그 해에서 시작한다. */
+  /* 펼쳐 보는 해. 선택한 값이 있으면 그 해에서 시작한다. */
   const [year, setYear] = useState(() =>
     value ? Number(value.slice(0, 4)) : new Date().getFullYear()
   );
 
-  /* 열 때마다 고른 값의 해로 되돌린다 — 지난번에 넘긴 해가 남아 있으면
+  /* 열 때마다 선택한 값의 해로 되돌린다. 지난번에 넘긴 해가 남아 있으면
      엉뚱한 해가 펼쳐진다. */
   useEffect(() => {
     if (open) {
@@ -127,7 +127,7 @@ export default function MonthPicker({
             }}
           />
 
-          {/* 비우기 — 골랐던 것을 물리는 자리다. 격자 안에 끼우면 열두 달
+          {/* 비우기. 선택했던 것을 물리는 자리다. 격자 안에 끼우면 열두 달
               가운데 하나처럼 읽히므로 줄을 그어 아래에 따로 둔다. */}
           {clearable && (
             <button

@@ -65,13 +65,13 @@ export default function EntryEditFields({
   payList: { code: string; name: string; emoji?: string | null; is_active?: number }[];
   splits: SplitDraft[];
   setSplits: (next: SplitDraft[]) => void;
-  /** 장소 고르개를 연다. 고른 뒤 무엇을 할지는 부르는 쪽이 정한다. */
+  /** 장소 선택기를 연다. 선택한 뒤 무엇을 할지는 부르는 쪽이 정한다. */
   onPickPlace: () => void;
 }) {
   return (
     <>
       <div className="edit-grid">
-        {/* 1행 — 분류 3단 */}
+        {/* 1행. 분류 3단 */}
         <EditField label="중분류" span={4} required>
           <SingleSelect
             noun="중분류"
@@ -107,16 +107,16 @@ export default function EntryEditFields({
           />
         </EditField>
 
-        {/* 2행 — 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
+        {/* 2행. 거래 속성. IN/OUT은 소분류가 결정하므로 분류 바로 아래에 둔다. */}
         <EditField label="IN/OUT" span={4} required>
           <span className={`inout-chip ${draft.inout === 1 ? "in" : draft.inout === -1 ? "out" : ""}`}>
-            {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "—"}
+            {draft.inout === 1 ? "IN(+)" : draft.inout === -1 ? "OUT(−)" : "-"}
           </span>
         </EditField>
 
         {/* 열쇠는 글자로 맞춘다. 화면마다 숫자로도 문자열로도 담고 있어,
-            엄격하게 견주면 담은 꼴이 다른 화면에서만 고른 것이 비어 보였다.
-            담을 때는 숫자로 돌려놓는다 — 표에 들어가는 값은 숫자다. */}
+            엄격하게 견주면 담은 꼴이 다른 화면에서만 선택한 것이 비어 보였다.
+            담을 때는 숫자로 돌려놓는다. 표에 들어가는 값은 숫자다. */}
         <EditField label="결제 수단" span={4} required>
           <SingleSelect
             noun="결제 수단"
@@ -137,10 +137,10 @@ export default function EntryEditFields({
           />
         </EditField>
 
-        {/* 3행 — 장소 */}
+        {/* 3행. 장소 */}
         <EditField label="장소/가게" span={12}>
           <div className="edit-place">
-            <span className="edit-place__name">📍 {draft.place_name || "—"}</span>
+            <span className="edit-place__name">📍 {draft.place_name || "-"}</span>
             <button
               type="button"
               className="ui-btn small edit-location-btn"
@@ -151,7 +151,7 @@ export default function EntryEditFields({
           </div>
         </EditField>
 
-        {/* 4행 — 메모 */}
+        {/* 4행. 메모 */}
         <EditField label="메모" span={12}>
           <GrowArea
             className="memo-input memo-area"
@@ -162,7 +162,7 @@ export default function EntryEditFields({
         </EditField>
       </div>
 
-      {/* 금액 쪼개기 — 지출일 때만 의미가 있다. */}
+      {/* 금액 쪼개기. 지출일 때만 의미가 있다. */}
       {draft.inout === -1 && (
         <>
           <EditDivider />

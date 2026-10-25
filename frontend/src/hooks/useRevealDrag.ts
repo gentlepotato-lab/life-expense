@@ -11,7 +11,7 @@ import { useCallback, useRef } from "react";
 const THRESHOLD = 12;
 
 export default function useRevealDrag(setRevealed: (on: boolean) => void) {
-  /* 이미 열렸으면 같은 값을 거듭 넣지 않는다 — 끄는 동안 다시 그리지 않게 */
+  /* 이미 열렸으면 같은 값을 거듭 넣지 않는다. 끄는 동안 다시 그리지 않게 */
   const openRef = useRef(false);
 
   return useCallback(
@@ -45,7 +45,7 @@ export default function useRevealDrag(setRevealed: (on: boolean) => void) {
       };
 
       /* 잡는 단계로 듣는다. 씀씀이의 말풍선처럼 중간에서 손짓을 끊어야 하는
-         자리가 있어서다 — 거기서 끊기면 거품 단계로 듣는 이 손은 못 듣는다.
+         자리가 있어서다. 거기서 끊기면 거품 단계로 듣는 이 손은 못 듣는다.
          끊는 곳이 없는 다른 화면에서는 듣는 차례만 앞설 뿐 하는 일이 같다. */
       window.addEventListener("mousemove", onMove, true);
       window.addEventListener("touchmove", onMove, { passive: true, capture: true });

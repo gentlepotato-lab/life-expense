@@ -21,14 +21,14 @@ function PenMark() {
 }
 
 /**
- * 묶음 — 담긴 내역을 보고, 이름과 메모를 고치고, 더 담거나 뺀다.
+ * 묶음. 담긴 내역을 보고, 이름과 메모를 고치고, 더 담거나 뺀다.
  *
  * 이름과 메모는 쉬고 있을 때 글로 서고 누르면 그 자리가 입력칸이 된다.
  * 처음부터 칸으로 두면 고칠 일이 없는데도 고치는 자리처럼 보인다. 칸과 글의
  * 키가 같아 바뀌는 순간에도 아래가 들썩이지 않는다.
  *
  * [묶음 풀기]는 묶음만 없애고 담겨 있던 내역은 그대로 둔다.
- * [묶음에서 빼기]는 선택한 것만 푼다 — `해제`는 이 앱에서 고른 것을 푼다는
+ * [묶음에서 빼기]는 선택한 것만 푼다. `해제`는 이 앱에서 선택한 것을 푼다는
  * 뜻으로 이미 쓰고 있어, 하는 일을 그대로 적었다.
  */
 export default function GroupPopup({
@@ -42,7 +42,7 @@ export default function GroupPopup({
   meta: GroupMeta;
   /** 내역 추가가 처음 보여 줄 달 */
   ym: string;
-  /** 담긴 것이 바뀌었다 — 연 쪽이 다시 받아 온다. */
+  /** 담긴 것이 바뀌었다. 연 쪽이 다시 받아 온다. */
   onChanged: () => void;
   onClose: () => void;
 }) {
@@ -93,7 +93,7 @@ export default function GroupPopup({
    * 담기면 고치던 중에 손이 빗나가도 그대로 남아, 무엇이 담겼는지 알 수
    * 없었다. 담는 때를 누르는 사람이 정하는 쪽이 맞다.
    *
-   * 담고 나면 닫는다 — 이 앱의 다른 [저장]이 모두 그렇다.
+   * 담고 나면 닫는다. 이 앱의 다른 [저장]이 모두 그렇다.
    */
   const save = async () => {
     if (busy) return;
@@ -168,7 +168,7 @@ export default function GroupPopup({
   return (
     <>
       {/* 내역 추가가 떠 있는 동안에는 치운다. 추가도 제 겹을 깔아, 그대로 두면
-          겹이 둘로 겹쳐 보인다 — 팝업을 포개지 않고 갈아 끼운다. 지우지 않고
+          겹이 둘로 겹쳐 보인다. 팝업을 포개지 않고 갈아 끼운다. 지우지 않고
           감추기만 하므로 고치던 이름과 메모, 목록을 내린 자리가 그대로 있다. */}
       <div
         className={`popup-overlay${addOpen ? " popup-overlay--swapped" : ""}`}
@@ -243,7 +243,7 @@ export default function GroupPopup({
           </div>
 
           <div className="popup-body" style={{ paddingTop: 0 }}>
-            {/* 담긴 수와 상관없이 두 칸 반 자리다 — 한 건짜리든 서른 건짜리든
+            {/* 담긴 수와 상관없이 두 칸 반 자리다. 한 건짜리든 서른 건짜리든
                 판의 키가 같다. 넘치는 것은 이 안에서만 굴러간다. */}
             <div className="mk-list mk-list--fixed">
               {group.items.length === 0 ? (
@@ -271,7 +271,7 @@ export default function GroupPopup({
             </button>
           </div>
 
-          {/* 다른 팝업과 같은 차례로 — 되돌리는 것, 닫기, 하려던 것 */}
+          {/* 다른 팝업과 같은 차례로, 되돌리는 것, 닫기, 하려던 것 */}
           <div className="btn-row popup-foot mk-foot">
             <button type="button" className="ui-btn" onClick={unlink} disabled={busy}>
               묶음 풀기

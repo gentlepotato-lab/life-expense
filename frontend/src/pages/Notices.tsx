@@ -39,7 +39,7 @@ const ymd = (d: Date) =>
  * 공지 한 장.
  *
  * 머리말을 누르면 본문이 펼쳐진다. 제목이 칸을 넘으면 뒤쪽이 옅어지다
- * (...)로 이어진다 — 내역 카드의 메모가 끊기는 꼴 그대로다
+ * (...)로 이어진다. 내역 카드의 메모가 끊기는 꼴 그대로다
  * (pages/components/MemoPad.tsx).
  *
  * 카드마다 훅을 하나씩 걸어야 하므로 부품으로 뗀다. 이름을 영어로 적는 것은
@@ -77,7 +77,7 @@ function NoticeCard({
 
   return (
     <section className={`card notice-card${폈나 ? " is-open" : ""}`}>
-      {/* 머리말은 설정 탭의 것과 같은 짜임이다 — 삼각형이 왼쪽 끝에 서고
+      {/* 머리말은 설정 탭의 것과 같은 짜임이다. 삼각형이 왼쪽 끝에 서고
           그 옆에 알맹이가 온다(.set-group__head). 삼각형과 글 칸은 나란한
           형제다. 단추 안에 단추를 넣으면 안 되고, 전역 button 규칙이
           white-space를 nowrap으로 못 박아 긴 제목이 칸 밖으로 뻗었다. */}
@@ -95,7 +95,7 @@ function NoticeCard({
           </span>
           <span ref={제목칸} className="notice-card__title">
             {n.title}
-            {/* 끊긴 끝 — 뒤쪽을 길게 걸쳐 옅어지다 (...)로 이어진다. 짧게
+            {/* 끊긴 끝. 뒤쪽을 길게 걸쳐 옅어지다 (...)로 이어진다. 짧게
                 덮으면 끝이 딱 떨어져 테이프를 붙여 놓은 것처럼 보인다. */}
             {잘렸나 && (
               <span className="notice-card__fade" aria-hidden="true">
@@ -108,7 +108,7 @@ function NoticeCard({
           {n.unread && !폈나 && <span className="notice-card__new">안 읽음</span>}
         </button>
         {/* 읽음 표를 뒤집는 체크 상자. 읽은 것은 홈의 띠에 다시 뜨지 않으므로,
-            다시 받아 보려면 여기서 되돌려야 한다. 펼쳤을 때만 선다 — 접힌
+            다시 받아 보려면 여기서 되돌려야 한다. 펼쳤을 때만 선다. 접힌
             목록에 줄마다 상자가 서면 목록이 아니라 설정 화면처럼 읽힌다.
             꼴은 앱이 쓰던 체크 상자 그대로다(.cp-toggle). */}
         {폈나 && (
@@ -225,8 +225,8 @@ export default function Notices() {
           {날묶음.map((묶음) => (
             <section key={묶음.date || "날짜없음"} className="date-group">
               {/* 등록한 날은 카드 밖, 단 머리말이 말한다. 내역 화면이 쓰는
-                  그 부품이다. 셈할 돈이 없으므로 합계는 접는다(hideSum).
-                  접는 손잡이는 달지 않는다 — 카드마다 제 손잡이가 있어,
+                  그 부품이다. 계산할 돈이 없으므로 합계는 접는다(hideSum).
+                  접는 손잡이는 달지 않는다. 카드마다 제 손잡이가 있어,
                   접는 자리가 둘이면 어느 것을 누른 것인지 헷갈린다. */}
               <DateGroupHeader
                 label={묶음.label}

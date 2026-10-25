@@ -33,12 +33,12 @@ import usePeel from "../hooks/usePeel";
 import { blurSetsFrom, isBlurred, fixedSetsFrom, isFixed } from "../utils/calendarFilter";
 import DayPicker from "./components/DayPicker";
 import { say, ask } from "../utils/notify";
-import { 골라제거 } from "../utils/bulkDelete";
-/* 실적 제외를 켜고 끌 때 손대는 줄 — 그 일에 쓰는 두 칸만 본다.
+import { 선택제거 } from "../utils/bulkDelete";
+/* 실적 제외를 켜고 끌 때 손대는 줄. 그 일에 쓰는 두 칸만 본다.
    카드가 받는 줄은 통째로 넓은 갈래지만, 여기서는 좁혀 쓴다. */
 type PerfRow = { entry_id: number; perf_exclude?: number | null };
 
-/** 고정 · 변동을 뒤집을 때 필요한 것만 */
+/** 고정과 변동을 뒤집을 때 필요한 것만 */
 type FixedRow = { entry_id: number; fixed_flag?: number | null };
 
 const EMPTY_FILTER = {
@@ -49,7 +49,7 @@ const EMPTY_FILTER = {
   cat3: [] as number[],
   pay: [] as string[],
   memo: "",
-  /* 지출을 적을 때 고를 수 있는 것은 모두 걸러 낼 수 있어야 한다. */
+  /* 지출을 적을 때 선택할 수 있는 것은 모두 걸러 낼 수 있어야 한다. */
   inout: 0,                 // 0 = 가리지 않음, 1 = 들어옴, -1 = 나감
   amountMin: "",
   amountMax: "",
@@ -90,7 +90,7 @@ export default function Entries() {
     { code: string; name: string; emoji?: string | null; is_active?: number; category?: string }[]
   >([]);
 
-  // 편집 팝업 상태 — 카드를 꾹 누르면 열린다.
+  // 편집 팝업 상태. 카드를 꾹 누르면 열린다.
   const [draft, setDraft] = useState<any | null>(null);
   const [splits, setSplits] = useState<SplitDraft[]>([]);
   const [placePickerOpen, setPlacePickerOpen] = useState(false);
@@ -99,7 +99,7 @@ export default function Entries() {
   /* 거르는 동안 덮는 판. 300ms가 지나야 나타난다(Waiting). */
   const [찾는중, set찾는중] = useState(false);
 
-  /* 뒤로 가기 · Backspace로 지금 열린 것만 닫는다.
+  /* 뒤로 가기, Backspace로 지금 열린 것만 닫는다.
      카드 편집 팝업은 CardEditModal이 스스로 처리한다. */
   useBackClose(filterOpen, () => closeFilter());
   useBackClose(placePickerOpen, () => setPlacePickerOpen(false));
@@ -109,7 +109,7 @@ export default function Entries() {
   const [filter, setFilter] = useState(EMPTY_FILTER);
   const [appliedFilter, setAppliedFilter] = useState(EMPTY_FILTER);
 
-  /* 함께한 상대 목록 — 필터에서 고르기 위해 받는다. */
+  /* 함께한 상대 목록. 필터에서 선택하기 위해 받는다. */
   const [cpList, setCpList] = useState<{ counterpart_id: number; name: string }[]>([]);
   const [filterRangeLabel, setFilterRangeLabel] = useState("");
 
@@ -127,7 +127,7 @@ export default function Entries() {
       .then((r) =>
         setPayList(
           r.data.map((p: any) => ({
-            /* 열쇠는 글자로 담는다. 화면의 고르개가 쓰는 값이 글자이고,
+            /* 열쇠는 글자로 담는다. 화면의 선택기가 쓰는 값이 글자이고,
                선언도 글자다. 숫자로 담았더니 선언과 어긋난 채 any에
                가려, 다른 꼴로 담은 화면에서만 짝이 안 맞았다. */
             code: String(p.method_id),
@@ -135,7 +135,7 @@ export default function Entries() {
             is_active: p.is_active,
             /* 카드인 줄에만 실적 제외 기호가 선다. */
             category: p.category,
-            /* 이모지는 결제 수단이 아니라 그 구분(카드 · 계좌 등)에 붙는다.
+            /* 이모지는 결제 수단이 아니라 그 구분(카드와 계좌 등)에 붙는다.
                같은 구분에 든 수단끼리는 같은 이모지가 선다. */
             emoji: p.category_emoji ?? null,
           }))
@@ -164,7 +164,7 @@ export default function Entries() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yearMonth]);
 
-  /* 넘겨 볼 수 있는 끝 — 적은 것이 있는 달부터 이 달 두 달 뒤까지.
+  /* 넘겨 볼 수 있는 끝. 적은 것이 있는 달부터 이 달 두 달 뒤까지.
      아직 오지 않은 달이나 적은 것이 하나도 없는 달로는 넘어가지 않는다. */
   const { min: 달바닥, max: 달천장 } = useMonthSpan();
 
@@ -187,16 +187,16 @@ export default function Entries() {
   // 편집 팝업
   // ------------------------------------
 
-  /* 고른 것이 있는지. openEditor가 부를 때 읽으므로 ref로 든다 —
-     상태를 그대로 쓰면 고를 때마다 openEditor가 새로 서서 카드
+  /* 선택한 것이 있는지. openEditor가 부를 때 읽으므로 ref로 든다.
+     상태를 그대로 쓰면 선택할 때마다 openEditor가 새로 서서 카드
      수십 장이 함께 다시 그려진다. */
-  const 고른것있나 = useRef(false);
+  const 선택한것있나 = useRef(false);
   const openEditor = useCallback((row: any) => {
-    /* 고르는 중에는 편집 팝업을 열지 않는다. 꾹 누르기도, 쪽지나 클립을
-       뜯는 것도 이 한 곳을 지난다. 고른 채로 한 건을 고치면 목록이 다시
-       그려지면서 고른 것이 가리키던 줄이 어긋난다 — 필터를 막는 것과 같은
+    /* 선택하는 중에는 편집 팝업을 열지 않는다. 꾹 누르기도, 쪽지나 클립을
+       뜯는 것도 이 한 곳을 지난다. 선택한 채로 한 건을 고치면 목록이 다시
+       그려지면서 선택한 것이 가리키던 줄이 어긋난다. 필터를 막는 것과 같은
        까닭이다. */
-    if (고른것있나.current) {
+    if (선택한것있나.current) {
       say.warn("선택한 내역이 있습니다. 해제한 후 시도해 주세요.");
       return;
     }
@@ -251,7 +251,7 @@ export default function Entries() {
     });
   };
 
-  // 팝업에서 저장 — 해당 건만 반영한다.
+  // 팝업에서 저장. 해당 건만 반영한다.
   const saveDraft = async () => {
     if (!draft) return;
 
@@ -261,7 +261,7 @@ export default function Entries() {
       return;
     }
 
-    // 분할 검증 — 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다.
+    // 분할 검증. 빈 줄은 버리고, 합계가 결제 금액을 넘으면 막는다.
     const cleanSplits = splits.filter(
       (s) => s.amount !== "" && Number(s.amount) > 0
     );
@@ -275,7 +275,7 @@ export default function Entries() {
       return;
     }
 
-    // 정제(clean) payload 생성 — API는 배열을 받으므로 1건짜리 배열로 보낸다.
+    // 정제(clean) payload 생성. API는 배열을 받으므로 1건짜리 배열로 보낸다.
     const clean = [{
       entry_id: draft.entry_id,
       tx_date: draft.tx_date?.substring(0, 10),
@@ -338,12 +338,12 @@ export default function Entries() {
     }
   };
 
-  /* 카드 실적에서 뺄지 — 기호를 누르는 즉시 담는다.
+  /* 카드 실적에서 뺄지. 기호를 누르는 즉시 담는다.
      목록을 다시 읽지 않고 그 줄만 갈아 끼운다. 한 칸만 바뀌는 일에
      한 달치를 다시 받아 오면 훑던 자리가 흔들린다. 담기지 않으면
      되돌려 손이 헛놀지 않게 한다. */
   const togglePerfExclude = useCallback(async (row: PerfRow, next: boolean) => {
-    /* 고정 · 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
+    /* 고정과 변동 기호와 나란히 선 작은 기호라 손가락이 스치기 쉽다.
        그쪽과 같이 한 번 묻는다. */
     if (
       !(await ask({
@@ -368,14 +368,14 @@ export default function Entries() {
     }
   }, []);
 
-  /* 고정인지 변동인지 — 카드 실적 제외와 같은 방식이다. 기호를 누르는 즉시
+  /* 고정인지 변동인지. 카드 실적 제외와 같은 방식이다. 기호를 누르는 즉시
      담고, 그 줄만 갈아 끼운다. 담기지 않으면 되돌린다.
 
      여기서 누르면 그 건에 손으로 정한 것이 되어, 뒤에 분류 설정을 바꿔도
      이 건은 그대로다. */
   const toggleFixed = useCallback(async (row: FixedRow, next: boolean) => {
     /* 기호가 작고 결제 수단 바로 옆이라 손가락이 스치기 쉽다. 잘못 눌러도
-       곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기 · 확정과 같이 한 번 묻는다. */
+       곧바로 바뀌면 바뀐 줄도 모르고 지나간다. 지우기와 확정과 같이 한 번 묻는다. */
     if (
       !(await ask({
         title: "고정/변동 바꾸기",
@@ -812,7 +812,7 @@ export default function Entries() {
     [filter.cp, cpList]
   );
 
-  // 날짜별 단 — 서버 정렬(tx_date DESC)을 그대로 보존한다.
+  // 날짜별 단. 서버 정렬(tx_date DESC)을 그대로 보존한다.
   // 소분류에 blur가 걸린 항목이 섞이면 합계도 가려야 하므로 판정 함수를 넘긴다.
   /* 접은 날짜. 비어 있으면 전부 펼쳐진 상태다(지금까지와 같은 모습) */
   const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
@@ -826,13 +826,13 @@ export default function Entries() {
       return next;
     });
 
-  /* Blur는 중 · 소 · 세 어디에 걸려도 함께 덮인다. */
+  /* Blur는 중, 소, 세 어디에 걸려도 함께 덮인다. */
   const blurSets = useMemo(
     () => blurSetsFrom(cat1List, cat2List, cat3List),
     [cat1List, cat2List, cat3List]
   );
 
-  /* 고정 · 변동은 소 · 세에만 둔다. 건에 손으로 정한 것이 있으면 그것이 먼저다. */
+  /* 고정, 변동은 소, 세에만 둔다. 건에 손으로 정한 것이 있으면 그것이 먼저다. */
   const fixSets = useMemo(() => fixedSetsFrom(cat2List, cat3List), [cat2List, cat3List]);
 
   const dateGroups = useMemo(
@@ -848,13 +848,13 @@ export default function Entries() {
      판마다 저절로 이어 붙이는 쪽도 해 봤는데, 이을 때마다 앞의 단을 다시
      훑느라 다 채우는 데 20초가 걸려 더 나빴다.
 
-     단이 적으면(한판) 지금까지처럼 통째로 그린다 — 보통 한 달은 열몇 단이라
+     단이 적으면(한판) 지금까지처럼 통째로 그린다. 보통 한 달은 열몇 단이라
      이 길로 가므로 달라지는 것이 없다. */
   const 한판 = 40;
   const 첫판 = 12;
   const 덧판 = 12;
   const [보인단, set보인단] = useState(0);
-  /* 목록이 통째로 바뀐 때만 다시 잇는다 — 카드 하나를 건드릴 때마다 처음부터
+  /* 목록이 통째로 바뀐 때만 다시 잇는다. 카드 하나를 건드릴 때마다 처음부터
      이으면 보던 자리가 맨 위로 튄다. 줄 수와 양 끝 열쇠로 가린다. 실적 제외나
      고정 뒤집기는 셋 다 그대로라 다시 잇지 않고, 조회나 달 넘기기는 바뀐다.
      부르는 자리를 하나라도 빠뜨리면 멈추므로 손으로 올리지 않는다. */
@@ -886,7 +886,7 @@ export default function Entries() {
     return () => window.removeEventListener("scroll", 더);
   }, [보인단, dateGroups.length]);
 
-  /* 모두 펼치기와 모두 접기 — 단이 많으면 한 판이 길다. 덮개를 먼저 띄워
+  /* 모두 펼치기와 모두 접기. 단이 많으면 한 판이 길다. 덮개를 먼저 띄워
      한 번 그려진 뒤에 손대야 기다리는 줄 안다(Waiting은 300ms 뒤에 뜬다). */
   const 모두 = useCallback((다음: Set<string>, 단수: number) => {
     if (단수 <= 60) {
@@ -900,16 +900,16 @@ export default function Entries() {
     }, 360);
   }, []);
 
-  /* ── 영수증으로 뽑을 것 고르기 ──────────────────────────────
-     고른 것은 지금 화면에 보이는 줄에서만 센다. 달을 옮기거나 걸러서
-     사라진 건이 고른 채 남아 있으면, 눈에 없는 것이 영수증에 찍힌다. */
+  /* ── 영수증으로 뽑을 것 선택하기 ────────────────────────────
+     선택한 것은 지금 화면에 보이는 줄에서만 센다. 달을 옮기거나 걸러서
+     사라진 건이 선택한 채 남아 있으면, 눈에 없는 것이 영수증에 찍힌다. */
   const [pickedIds, setPickedIds] = useState<Set<number>>(new Set());
-  고른것있나.current = pickedIds.size > 0;
+  선택한것있나.current = pickedIds.size > 0;
 
-  /* 고른 것이 있으면 뒤로 가기가 화면을 떠나지 않고 고른 것만 푼다.
-     팝업과 같은 결이다 — 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 고른
+  /* 선택한 것이 있으면 뒤로 가기가 화면을 떠나지 않고 선택한 것만 푼다.
+     팝업과 같은 결이다. 지금 떠 있는 것을 먼저 거둔다. 아래 막대는 선택한
      것이 있는 동안만 서 있으므로, 풀면 막대도 함께 내려간다.
-     Backspace는 받지 않는다 — 고르는 중에 쓰는 키가 아니다. */
+     Backspace는 받지 않는다. 선택하는 중에 쓰는 키가 아니다. */
   useBackClose(pickedIds.size > 0, () => setPickedIds(new Set()), false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [makeOpen, setMakeOpen] = useState(false);
@@ -933,7 +933,7 @@ export default function Entries() {
     [rows, pickedIds]
   );
 
-  /* 영수증 한 줄로 옮긴다. 보이는 그대로를 담는다 — 쪼갠 건은 실지출이다. */
+  /* 영수증 한 줄로 옮긴다. 보이는 그대로를 담는다. 쪼갠 건은 실지출이다. */
   const receiptRows = useMemo<ReceiptRow[]>(() => {
     const name1 = new Map(cat1List.map((c) => [c.id, c.name]));
     const name2 = new Map(cat2List.map((c) => [c.id, c.name]));
@@ -959,7 +959,7 @@ export default function Entries() {
   return (
     <div className="page-wrap">
 
-      {/* 월 넘기기 — 화살표로 앞뒤 달을 오간다. 고르면 바로 불러오므로 조회 버튼이 없다. */}
+      {/* 월 넘기기. 화살표로 앞뒤 달을 오간다. 선택하면 바로 불러오므로 조회 버튼이 없다. */}
       <div className="toolbar-wrap">
         <div className="toolbar">
           {/* 필터가 걸리면 달 단위가 아니므로 월 넘기기를 감춘다.
@@ -979,8 +979,8 @@ export default function Entries() {
             />
             <button
               type="button"
-              /* 고르는 중에는 필터를 열지 않는다. 필터를 걸면 목록이 통째로
-                 바뀌어 고른 것이 가리키던 줄이 사라진다. */
+              /* 선택하는 중에는 필터를 열지 않는다. 필터를 걸면 목록이 통째로
+                 바뀌어 선택한 것이 가리키던 줄이 사라진다. */
               onClick={() => {
                 if (picked.length > 0) {
                   say.warn("선택한 내역이 있습니다. 해제한 후 시도해 주세요.");
@@ -999,9 +999,9 @@ export default function Entries() {
         </div>
       </div>
 
-      {/* 카드 리스트 — 날짜별 단으로 묶어서 표시 */}
+      {/* 카드 리스트. 날짜별 단으로 묶어서 표시 */}
       <div className="card-list">
-        {/* 비어 있으면 그렇다고 말한다 — 내역 탭 네 화면이 같은 꼴로 말한다. */}
+        {/* 비어 있으면 그렇다고 말한다. 내역 탭 네 화면이 같은 꼴로 말한다. */}
         {dateGroups.length === 0 && <p className="page-empty">지출 내역이 없습니다.</p>}
         {dateGroups.slice(0, 보인단).map((group) => (
           <section key={group.date || "no-date"} className="date-group">
@@ -1056,7 +1056,7 @@ export default function Entries() {
             danger: true,
           });
           if (!예) return;
-          const { 성공, 실패 } = await 골라제거(
+          const { 성공, 실패 } = await 선택제거(
             "/entries",
             picked.map((r) => r.entry_id)
           );
@@ -1141,14 +1141,14 @@ export default function Entries() {
             aria-label="필터"
           >
 
-            {/* 머리·본문·바닥을 편집 팝업과 같은 짜임으로 */}
+            {/* 머리, 본문, 바닥을 편집 팝업과 같은 짜임으로 */}
             <header className="popup-head">
               <h3 className="popup-head__title">필터</h3>
             </header>
 
             {/* 편집 팝업과 같은 12칸 격자. 성격이 다른 묶음 사이는 구분선으로 가른다. */}
             <div className="popup-body edit-grid">
-              {/* 거르는 자리는 지난 어느 때로도 갈 수 있어야 한다 —
+              {/* 거르는 자리는 지난 어느 때로도 갈 수 있어야 한다.
                   머리의 연월을 누르면 한 해가 펼쳐진다. */}
               <EditField label="시작일" span={6}>
                 <DayPicker
@@ -1303,7 +1303,7 @@ export default function Entries() {
                   cp: [] as number[],
                 })
               }>초기화</button>
-              {/* 편집 팝업과 같은 차례로 — 되돌리는 것 · 닫기 · 하려던 것 */}
+              {/* 편집 팝업과 같은 차례로, 되돌리는 것, 닫기, 하려던 것 */}
               <button className="ui-btn" onClick={closeFilter}>닫기</button>
               <button className="ui-btn primary" onClick={applyFilter}>적용</button>
             </div>
@@ -1402,7 +1402,7 @@ export default function Entries() {
 }
 
 // ------------------------------------
-// 카드 한 장 — 표시 전용. 꾹 누르면 편집 팝업이 열린다.
+// 카드 한 장. 표시 전용. 꾹 누르면 편집 팝업이 열린다.
 // ------------------------------------
 export const EntryCard = memo(function EntryCard({
   row,
@@ -1428,14 +1428,14 @@ export const EntryCard = memo(function EntryCard({
   payList: { code: string; name: string; category?: string }[];
   onOpenEditor: (row: any) => void;
   onStartReveal: (id: number, e: any) => void;
-  /* 뜯는 동안 뜨는 한 줄. 고치지 못하는 화면에서만 쓴다 — 어디로 가야
+  /* 뜯는 동안 뜨는 한 줄. 고치지 못하는 화면에서만 쓴다. 어디로 가야
      고치는지를 적는다. 넘기지 않으면 그 카드에서는 안내가 뜨지 않는다. */
   peelTip?: string;
-  /* 고른 건인지. 넘기지 않으면 고르기 상자가 서지 않는다 — 기간 상세처럼
+  /* 선택한 건인지. 넘기지 않으면 선택하기 상자가 서지 않는다. 기간 상세처럼
      보기만 하는 화면은 지금까지와 같은 꼴을 지킨다. */
   picked?: boolean;
   onTogglePick?: (id: number) => void;
-  /* 중 · 소 · 세 어디에 Blur가 걸렸는지는 화면이 셈해서 넘긴다.
+  /* 중, 소, 세 어디에 Blur가 걸렸는지는 화면이 계산해서 넘긴다.
      넘기지 않으면 예전처럼 소분류만 본다. */
   blurred?: boolean;
   /* 보기만 하는 화면(기간 상세)에서는 꾹 눌러 편집하지 않는다.
@@ -1443,14 +1443,14 @@ export const EntryCard = memo(function EntryCard({
   readOnly?: boolean;
   /* 카드 실적에서 뺄지를 켜고 끈다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onTogglePerfExclude?: (row: PerfRow, next: boolean) => void;
-  /* 이 건이 고정인지 — 건에 정한 것이 없으면 분류를 따라 화면이 셈해서 넘긴다. */
+  /* 이 건이 고정인지. 건에 정한 것이 없으면 분류를 따라 화면이 계산해서 넘긴다. */
   fixed?: boolean;
-  /* 고정 · 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
+  /* 고정과 변동을 뒤집는다. 넘기지 않으면 기호가 보기 전용이 된다. */
   onToggleFixed?: (row: FixedRow, next: boolean) => void;
   /* 묶인 건으로 그릴지. 넘기지 않으면 건에 적힌 묶음과 돈쓴이의
      `내역에 묶음 보이기`를 함께 본다. 묶음 내역은 늘 켜서 넘긴다. */
   clipped?: boolean;
-  /* 그냥 눌렀을 때. 넘기지 않으면 아무 일도 없다 — 지금까지와 같다.
+  /* 그냥 눌렀을 때. 넘기지 않으면 아무 일도 없다. 지금까지와 같다.
      묶음 내역이 쓴다. 거기서는 펼친 묶음을 카드로도 접을 수 있어야 한다. */
   onTap?: () => void;
 }) {
@@ -1461,14 +1461,14 @@ export const EntryCard = memo(function EntryCard({
   const peel = usePeel(openEditor);
 
   /* 묶인 건은 왼쪽 위 책갈피가 클립이 된다(index.css 166절).
-     켜고 끄는 설정을 두었다가 걷었다 — 묶어 놓고 묶인 줄 알리지 않을 까닭이
+     켜고 끄는 설정을 두었다가 걷었다. 묶어 놓고 묶인 줄 알리지 않을 까닭이
      없고, 끄면 묶음을 풀 자리도 함께 멀어졌다. */
   const isClipped = clipped ?? row.group_id != null;
 
-  const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "—";
+  const cat1Name = cat1List.find((c) => c.id === row.cat1_id)?.name ?? "-";
   const isBlur = blurred ?? (cat2List.find(c => c.id === row.cat2_id)?.blur === 1);
   /* 글자로 견준다. 결제 수단 열쇠를 화면마다 숫자로도 문자열로도 담고 있어,
-     엄격하게 견주면 담은 꼴이 다른 화면에서만 이름을 못 찾았다 — 묶음 내역이
+     엄격하게 견주면 담은 꼴이 다른 화면에서만 이름을 못 찾았다. 묶음 내역이
      그랬다. 어느 꼴로 담기든 같은 열쇠면 같은 것으로 본다. */
   const pay = payList.find((p) => String(p.code) === String(row.pay_method));
 
@@ -1485,7 +1485,7 @@ export const EntryCard = memo(function EntryCard({
       onClick={onTap}
       title={readOnly ? undefined : "꾹 눌러서 편집"}
     >
-      {/* IN/OUT 표시 — 종이 왼쪽 위 귀퉁이를 접은 자국.
+      {/* IN/OUT 표시. 종이 왼쪽 위 귀퉁이를 접은 자국.
           묶인 건에서는 그 자리가 클립이 된다. 요소는 그대로 두어야 금액
           빛깔 규칙(.card:has(.in-bar))이 살아 있다. */}
       <div
@@ -1496,8 +1496,8 @@ export const EntryCard = memo(function EntryCard({
       >
         {isClipped && <ClipMark />}
       </div>
-      {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리 · 접혀 넘어오는 조각.
-          어느 화면에서나 떼어진다 — 뜯는 손맛이 화면마다 달라지면 고장 난
+      {/* 접은 자국을 잡는 자리와, 끌 때 비는 자리와 접혀 넘어오는 조각.
+          어느 화면에서나 떼어진다. 뜯는 손맛이 화면마다 달라지면 고장 난
           것으로 읽힌다. 고치지 못하는 화면에서는 끝까지 떼어도 열 팝업이
           없으니 제자리로 펴져 붙고, 대신 아래 한 줄이 어디서 고치는지를
           알린다. */}
@@ -1506,7 +1506,7 @@ export const EntryCard = memo(function EntryCard({
         <span className="peel-flap__face" />
       </span>
       <span className="peel-grip" data-no-longpress aria-hidden="true" {...peel} />
-      {/* 뜯는 동안만 뜨는 한 줄. 늘 그린 채로 보이고 숨기는 일은 CSS가 맡는다 —
+      {/* 뜯는 동안만 뜨는 한 줄. 늘 그린 채로 보이고 숨기는 일은 CSS가 맡는다.
           끄는 중에 React가 다시 그리면 뜯는 겹이 쥐고 있던 class가 지워진다. */}
       {안내 && (
         <span className="peel-tip" aria-hidden="true">
@@ -1523,7 +1523,7 @@ export const EntryCard = memo(function EntryCard({
           <span className="cat-sep"> &gt; </span>
 
           <span className="cat-text">
-            {cat2List.find((c) => c.id === row.cat2_id)?.name ?? "—"}
+            {cat2List.find((c) => c.id === row.cat2_id)?.name ?? "-"}
           </span>
 
           {row.cat3_name && (
@@ -1540,7 +1540,7 @@ export const EntryCard = memo(function EntryCard({
           readOnly={readOnly || !onToggleFixed}
           onToggle={(next) => onToggleFixed?.(row, next)}
         />
-        {/* 카드로 그은 건에만 실적 제외 기호가 선다. 현금 · 계좌이체에는
+        {/* 카드로 그은 건에만 실적 제외 기호가 선다. 현금과 계좌이체에는
             실적이라는 것이 없다. */}
         {pay?.category === "카드" && (
           <PerfExcludeButton
@@ -1566,11 +1566,11 @@ export const EntryCard = memo(function EntryCard({
 
       {/* ───── 2행: 장소 + 결제 수단 ───── */}
       {/* 메모를 카드 밖 제 판(MemoPad)으로 옮기면서 결제 수단이 혼자 한 줄을
-          차지했다. 장소와 같은 줄로 올려 정기와 같은 두 칸 짜임이 된다 —
+          차지했다. 장소와 같은 줄로 올려 정기와 같은 두 칸 짜임이 된다.
           장소는 왼쪽 끝, 결제 수단은 오른쪽 끝. 사이를 가르던 기호 둘은
           첫 줄 금액 옆으로 올라가, 이 줄은 글 둘이 제 폭을 다 쓴다. */}
       <div className="entry-ln">
-        {/* 고르기 상자. 대기 내역과 같은 자리다 — 장소와 결제 수단이 선 줄의
+        {/* 선택하기 상자. 대기 내역과 같은 자리다. 장소와 결제 수단이 선 줄의
             왼쪽 끝. 분류 줄에 넣으면 분류 글이 통째로 밀려 쪽마다 자리가
             달라진다. 카드를 꾹 누르면 편집 팝업이 열리므로 뺀다. */}
         {onTogglePick && (
@@ -1594,7 +1594,7 @@ export const EntryCard = memo(function EntryCard({
 
       <MemoPad memo={row.memo} />
 
-      {/* 쪼갠 건 — 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다.
+      {/* 쪼갠 건. 카드 바닥에 붙는 칸. 누르면 그 아래로 함께한 사람과 몫이 펼쳐진다.
           카드 안 금액 옆에 끼웠더니 자리가 붕 떠 보였다. */}
       {hasSplit && (
         <div className={`split-tab${open ? " open" : ""}`}>
@@ -1606,7 +1606,7 @@ export const EntryCard = memo(function EntryCard({
             title={open ? "몫 접기" : "함께한 사람 보기"}
             onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
           >
-            {/* 뺄셈 한 덩어리 — "모두 펼치기|접기"와 같은 음영을 깔고 손잡이만 밖에 둔다. */}
+            {/* 뺄셈 한 덩어리. "모두 펼치기|접기"와 같은 음영을 깔고 손잡이만 밖에 둔다. */}
             <span className="amount-split__calc">
               {row.amount.toLocaleString("ko-KR")}
               <span className="amount-split__op"> − </span>

@@ -3,7 +3,7 @@
  *
  * 화면에 보이는 것과 복사되는 그림이 **같은 붓**에서 나와야 한다. DOM으로
  * 한 벌, canvas로 또 한 벌 그리면 둘이 어긋나는 날이 반드시 온다. 그래서
- * 팝업도 canvas로 그린다 — 머리, 항목, 발 셋을 따로 그려 가운데만 굴리고,
+ * 팝업도 canvas로 그린다. 머리, 항목, 발 셋을 따로 그려 가운데만 굴리고,
  * 복사할 때는 셋을 이어 한 장으로 그린다.
  *
  * 글꼴은 고정폭을 쓴다. 금액이 자릿수대로 서야 영수증으로 읽힌다. 한글은
@@ -68,7 +68,7 @@ const yy = (d: string) => d.slice(2, 4) + d.slice(5, 7) + d.slice(8, 10);
  * 영수증 번호. 기간과 뽑은 때를 모두 담는다.
  *
  * 뽑은 때는 초까지 적는다. 분까지만 적으면 같은 기간을 한 분 안에 두 번
- * 뽑았을 때 같은 번호가 나온다 — 번호는 팝업을 열 때 한 번 잡히므로,
+ * 뽑았을 때 같은 번호가 나온다. 번호는 팝업을 열 때 한 번 잡히므로,
  * 복사해 보고 닫았다가 다시 열어 공유하는 흐름이면 충분히 생긴다.
  * 초를 붙이면 1초만 떨어져도 반드시 달라진다.
  */
@@ -85,7 +85,7 @@ export function receiptNo(from: string, to: string, at: Date): string {
 }
 
 /* 요일은 영어 세 글자로 적는다. 고정폭 글꼴이라 한글보다 자리가 고르다.
-   영수증 번호에는 넣지 않는다 — 번호는 숫자만으로 읽혀야 한다. */
+   영수증 번호에는 넣지 않는다. 번호는 숫자만으로 읽혀야 한다. */
 const 요일표 = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /** YYYY-MM-DD의 요일. 문자열을 그대로 쪼개 세므로 시간대에 끌려가지 않는다. */
@@ -132,7 +132,7 @@ export type ReceiptMeta = {
   no: string;
 };
 
-/** 고른 줄에서 머리말에 적을 것을 셈한다. */
+/** 선택한 줄에서 머리말에 적을 것을 계산한다. */
 export function receiptMeta(rows: ReceiptRow[], at = new Date()): ReceiptMeta {
   const 날 = rows.map((r) => r.date).sort();
   const from = 날[0] ?? "";
@@ -258,7 +258,7 @@ function 한줄(p: Pen | null, ctx: CanvasRenderingContext2D, r: ReceiptRow, y0:
   ctx.font = 글꼴(11, 600);
   const 분류폭 = INNER - 금액폭 - 틈;
   const 첫줄폭 = 분류폭 - 딱폭 - 4;
-  const 조각 = 접기(ctx, r.cat || "—", 분류폭);
+  const 조각 = 접기(ctx, r.cat || "-", 분류폭);
 
   /* 첫 줄은 딱지만큼 좁다. 넘치면 다시 접는다. */
   let 줄들 = 조각;
@@ -302,7 +302,7 @@ function 한줄(p: Pen | null, ctx: CanvasRenderingContext2D, r: ReceiptRow, y0:
     }
   }
 
-  /* 아랫줄 — 날짜, 장소, 결제 수단 */
+  /* 아랫줄. 날짜, 장소, 결제 수단 */
   y += 13;
   if (p) {
     p.ctx.font = 글꼴(9.5);
@@ -364,7 +364,7 @@ function 발(p: Pen | null, m: ReceiptMeta, 합: number): number {
     p.ctx.fillText("합계", PAD, y);
     p.ctx.font = 글꼴(17, 700);
     p.ctx.textAlign = "right";
-    /* 날짜 단 머리말과 같은 꼴로 적는다 — 부호를 앞에 두고 숫자는 절댓값,
+    /* 날짜 단 머리말과 같은 꼴로 적는다. 부호를 앞에 두고 숫자는 절댓값,
        빼기는 글자용 − 를 쓴다. 색도 줄 금액과 같은 두 빛을 쓴다. */
     const 부호 = 합 > 0 ? "+" : 합 < 0 ? "−" : "";
     p.ctx.fillStyle = 합 > 0 ? 빛.수입 : 합 < 0 ? 빛.지출 : 빛.글;
@@ -416,9 +416,9 @@ function 발(p: Pen | null, m: ReceiptMeta, 합: number): number {
 export type Part = "head" | "list" | "foot" | "all";
 
 /**
- * 고른 줄의 합계.
+ * 선택한 줄의 합계.
  *
- * 날짜 단 머리말의 셈(수입 − 지출)과 같다. 영수증만 거꾸로 세면 같은 줄을
+ * 날짜 단 머리말의 계산(수입 − 지출)과 같다. 영수증만 거꾸로 세면 같은 줄을
  * 놓고 화면과 영수증의 부호가 어긋난다.
  */
 function 합계(rows: ReceiptRow[]): number {

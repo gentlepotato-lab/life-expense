@@ -24,7 +24,7 @@ export type MenuEntry = {
   key: string;
   /** 그 메뉴가 여는 화면의 경로. */
   path: string;
-  /** 어느 탭에 속한 메뉴인지 — 관리자 페이지가 묶어서 보여 준다. */
+  /** 어느 탭에 속한 메뉴인지. 관리자 페이지가 묶어서 보여 준다. */
   group: "내역" | "설정";
   /**
    * 그 화면을 가리키는 다른 자리.
@@ -75,7 +75,7 @@ export function putMenuOff(keys: string[]): void {
   듣는이.forEach((f) => f());
 }
 
-/** 목록이 바뀌면 알린다 — 그려진 메뉴를 다시 그리게 한다. */
+/** 목록이 바뀌면 알린다. 그려진 메뉴를 다시 그리게 한다. */
 export function onMenuOff(f: () => void): () => void {
   듣는이.add(f);
   return () => {
@@ -92,7 +92,7 @@ export function isMenuOff(path: string): boolean {
 /**
  * 꺼진 경로를 걸러 낸다.
  *
- * 목록이 비어 있으면 받은 배열을 그대로 돌려준다 — 새 배열을 만들지 않아야
+ * 목록이 비어 있으면 받은 배열을 그대로 돌려준다. 새 배열을 만들지 않아야
  * 메뉴를 쥔 쪽이 공연히 다시 그리지 않는다.
  */
 export function keepOn(paths: string[]): string[] {

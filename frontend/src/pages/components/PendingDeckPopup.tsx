@@ -56,7 +56,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
   const { rows, ready } = usePending(reloadKey);
 
   /* 몇째 장을 보고 있는지. 보내면 그 장이 빠지므로 자리는 그대로 두고
-     다음 장이 올라온다 — 마지막 장이었으면 그 앞 장이 올라온다. */
+     다음 장이 올라온다. 마지막 장이었으면 그 앞 장이 올라온다. */
   const [at, setAt] = useState(0);
   const [sending, setSending] = useState(false);
   /* 가린 금액을 끄는 동안만 드러낸다. 손을 떼면 다시 덮인다. */
@@ -78,7 +78,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
      같은 장이 또 나와, 어디까지 봤는지 알 수 없어진다. */
   const next = useCallback(() => {
     /* 자리를 바꾸는 updater 안에서 다른 상태를 건드리면 그 값이 이번 그림에
-       반영되지 않는다 — 넘기는 쪽이 늘 오른쪽으로만 보이던 까닭이다.
+       반영되지 않는다. 넘기는 쪽이 늘 오른쪽으로만 보이던 까닭이다.
        지금 자리를 보고 밖에서 둘을 함께 정한다. */
     setAt((i) => {
       if (i >= 남은 - 1) return i;
@@ -100,7 +100,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
       say.ok("전송 완료-!! ;-)");
       invalidatePending();
       invalidateNudges();
-      /* 보낸 장이 빠지면 뒤가 당겨 온다. 자리가 끝을 넘지 않게 당긴다 —
+      /* 보낸 장이 빠지면 뒤가 당겨 온다. 자리가 끝을 넘지 않게 당긴다.
          마지막 장을 보냈으면 그 앞 장으로 간다. 처음으로 되돌리지 않는다. */
       setAt((i) => Math.max(0, Math.min(i, 남은 - 2)));
       setReloadKey((k) => k + 1);
@@ -112,7 +112,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
     }
   }, [지금, sending, 남은]);
 
-  /* 가로로 끄는 몸짓이 둘이다 — 금액 드러내기와 장 넘기기.
+  /* 가로로 끄는 몸짓이 둘이다. 금액 드러내기와 장 넘기기.
      금액 위에서 시작한 끌기는 넘기지 않는다. 겹치면 테이프를 걷으려다
      장이 넘어가 버린다.
 
@@ -123,7 +123,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
   const [끄는중, set끄는중] = useState(false);
 
   /* 메모는 세로로 굴리는 자리다. 거기서 시작한 끌기까지 카드를 끌면 두
-     몸짓이 한 자리에서 다툰다 — 굴리려다 장이 밀리고, 밀려다 글이 굴러간다.
+     몸짓이 한 자리에서 다툰다. 굴리려다 장이 밀리고, 밀려다 글이 굴러간다.
 
      다만 굴릴 것이 없는 메모(짧거나 비어 있는 것)까지 비켜면 카드의 절반이
      밀리지 않는 죽은 자리가 된다. 지금 이 메모가 실제로 굴러가는지를 보고
@@ -142,7 +142,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
       return;
     }
     /* 손가락을 이 자리에 묶는다. 끄는 동안 카드가 다시 그려져도 뗀 것을
-       놓치지 않는다 — 놓치면 한 번 민 것이 두 번으로 세어진다. */
+       놓치지 않는다. 놓치면 한 번 민 것이 두 번으로 세어진다. */
     e.currentTarget.setPointerCapture(e.pointerId);
     끌기.current = { x: e.clientX, 금액: false, id: e.pointerId };
     set끄는중(true);
@@ -171,12 +171,12 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
     set민거리(0);
     const v = e.clientX - d.x;
     if (Math.abs(v) < SWIPE) return;
-    /* 왼쪽으로 밀면 다음 장, 오른쪽으로 밀면 앞 장 — 종이를 넘기는 쪽이다. */
+    /* 왼쪽으로 밀면 다음 장, 오른쪽으로 밀면 앞 장. 종이를 넘기는 쪽이다. */
     if (v < 0) next();
     else prev();
   };
 
-  /* 뒤에 비치는 장. 지금 장 뒤에 아직 몇 장이 남았는지를 그린다 —
+  /* 뒤에 비치는 장. 지금 장 뒤에 아직 몇 장이 남았는지를 그린다.
      전체 수를 보면 마지막 장인데도 뒤에 넉 장이 깔려 있어, 다 본 줄
      모르고 계속 밀게 된다. 다섯 장(지금 것 + 넉 장)을 넘지 않는다.
      스무 장이 겹치면 더미가 아니라 얼룩으로 보인다. */
@@ -191,7 +191,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
      뻗으니, 남는 자리(18 − 겹수 × 4)를 반씩 나눠 양쪽에 두면 몇 장이 쌓여
      있든 더미가 한가운데 선다.
 
-     카드 폭은 건드리지 않는다 — 폭이 함께 바뀌면 넘길 때마다 글이 다시
+     카드 폭은 건드리지 않는다. 폭이 함께 바뀌면 넘길 때마다 글이 다시
      접혀 카드 속이 들썩인다. */
   const 치우침 = (18 - 겹수 * 4) / 2;
 
@@ -234,7 +234,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
                     key={i}
                     className="pd-leaf"
                     aria-hidden="true"
-                    /* 오른쪽으로 비껴 쌓는다 — 옆으로 넘기는 몸짓과 같은
+                    /* 오른쪽으로 비껴 쌓는다. 옆으로 넘기는 몸짓과 같은
                        방향이라, 다음 장이 그쪽에 있다는 것이 그림으로 읽힌다.
                        카드가 오른쪽에 18px을 비우고 그 안에서 겹친다. */
                     style={{
@@ -262,10 +262,10 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
                 >
                   <span className="ws-tag ws-tag--now pd-when">{지금.date}</span>
                   <div className="pd-cat">
-                    <span>{지금.cat || "—"}</span>
+                    <span>{지금.cat || "-"}</span>
                   </div>
-                  {/* 가림은 목록과 한 꼴이다 — masked · revealed를 그대로 입어
-                      돈쓴이에서 고른 테이프가 여기에도 그대로 붙는다. */}
+                  {/* 가림은 목록과 한 꼴이다. masked, revealed를 그대로 입어
+                      돈쓴이에서 선택한 테이프가 여기에도 그대로 붙는다. */}
                   <div
                     className={`pd-amt ${지금.blur && !reveal ? "masked" : "revealed"}`}
                     onPointerDown={(e) => 지금.blur && 누름(e, true)}
@@ -290,7 +290,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
                 </article>
               </div>
 
-              {/* 넘길 수 있다는 것은 글로 적지 않는다 — 화살표 둘과 가운데
+              {/* 넘길 수 있다는 것은 글로 적지 않는다. 화살표 둘과 가운데
                   점들이 "양쪽으로 미는 것"을 그대로 보여 준다. */}
               <div className="pd-swipe" aria-hidden="true">
                 <svg viewBox="0 0 76 12" fill="none" stroke="currentColor" strokeWidth={1.6}
@@ -318,7 +318,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
           </>
         )}
 
-        {/* 발은 잔소리 팝업과 같은 차례다 — 왼쪽이 그 화면으로, 오른쪽이 닫기. */}
+        {/* 발은 잔소리 팝업과 같은 차례다. 왼쪽이 그 화면으로, 오른쪽이 닫기. */}
         <div className="btn-row popup-foot">
           <button
             type="button"

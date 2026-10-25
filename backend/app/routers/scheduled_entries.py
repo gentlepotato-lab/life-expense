@@ -16,8 +16,8 @@ router = APIRouter()
 # `말일`을 가리키는 day_of_month 값.
 #
 # 달마다 끝 날이 달라 하나의 숫자로는 적을 수 없다. 1~31 바깥의 값을 하나
-# 정하고 셈할 때 그 달의 끝 날로 바꿔 쓴다. 0이 아니라 32인 것은, 0이
-# 화면 쪽에서 "안 고름"과 구별되지 않기 때문이다.
+# 정하고 계산할 때 그 달의 끝 날로 바꿔 쓴다. 0이 아니라 32인 것은, 0이
+# 화면 쪽에서 "안 선택함"과 구별되지 않기 때문이다.
 LAST_DAY = 32
 
 
@@ -34,7 +34,7 @@ def list_scheduled_entries(
 ):
     """모든 스케줄된 항목 조회
 
-    감춘 항목은 기본으로 빼고 준다. 달력 · 씀씀이 · 잔소리도 이 길을 쓰는데,
+    감춘 항목은 기본으로 빼고 준다. 달력, 씀씀이, 잔소리도 이 길을 쓰는데,
     감춘 것은 앞으로 안 오는 것이라 거기에 섞이면 안 된다. 정기 내역 화면만
     `감춘 항목 보기`를 켰을 때 include_hidden으로 함께 받아 간다.
     """
@@ -172,7 +172,7 @@ def create_scheduled_entry(payload: ScheduledEntryIn, db: SessionDep = Depends()
 
 @router.put("/{schedule_id}/perf-exclude")
 def set_perf_exclude(schedule_id: int, value: int = Query(...), db: SessionDep = Depends()):
-    """카드 실적에서 뺄지를 켜고 끈다. 지출 · 대기와 같은 자리다.
+    """카드 실적에서 뺄지를 켜고 끈다. 지출, 대기와 같은 자리다.
 
     여기서 켜면 이 스케줄이 대기 내역으로 나갈 때마다 표가 따라간다.
     """
@@ -205,14 +205,14 @@ def update_scheduled_entry(schedule_id: int, payload: ScheduledEntryUpdate, db: 
     
     update_data = payload.model_dump(exclude_unset=True)
 
-    # 다음 실행 일시를 다시 셈해야 하는 자리들. 주기 넷이 늘었다.
+    # 다음 실행 일시를 다시 계산해야 하는 자리들. 주기 넷이 늘었다.
     WHEN_KEYS = [
         'day_of_month', 'hour', 'minute', 'holiday_handling',
         'interval_months', 'anchor_ym', 'end_ym', 'skip_ym',
     ]
 
     # 바뀐 값과 지금 값을 섞어 놓고 한꺼번에 따진다. 주기만 고치고 끝은
-    # 그대로 두는 경우가 흔해, 보내지 않은 칸은 지금 값으로 메워야 한다.
+    # 그대로 두는 경우가 흔해, 보내지 않은 컬럼은 지금 값으로 메워야 한다.
     def now_or_new(key):
         return update_data.get(key, getattr(schedule, key))
 
@@ -234,13 +234,13 @@ def update_scheduled_entry(schedule_id: int, payload: ScheduledEntryUpdate, db: 
     if 'amount' in update_data and update_data['amount'] is not None and update_data['amount'] < 0:
         raise HTTPException(status_code=400, detail="amount must be 0 or more")
 
-    # 감출지 말지가 다음 실행 일시를 가른다. 그래서 주기 · 날짜보다 먼저 본다 —
+    # 감출지 말지가 다음 실행 일시를 가른다. 그래서 주기와 날짜보다 먼저 본다.
     # 감춘 줄에 예정일이 남아 있으면 안 오는데 날짜만 서 있는 자리가 된다.
     hidden_now = update_data.get('is_active', schedule.is_active) == 0
     unhiding = update_data.get('is_active') == 1 and schedule.is_active == 0
 
     if hidden_now:
-        # 감춘다 — 언제 오는가는 볼 것이 없다. 다른 칸을 함께 고쳤어도 그렇다.
+        # 감춘다. 언제 오는가는 볼 것이 없다. 다른 컬럼을 함께 고쳤어도 그렇다.
         validate_span(
             now_or_new('interval_months'), now_or_new('anchor_ym'),
             now_or_new('end_ym'), now_or_new('skip_ym'),
@@ -282,11 +282,11 @@ def delete_scheduled_entry(schedule_id: int, db: SessionDep = Depends()):
 
     예전에는 is_active를 0으로 내리고 월례 청소가 나중에 지웠다. 이제
     is_active 0은 "감춤"이라는 다른 뜻을 지니므로, 지우는 일은 여기서 끝낸다.
-    되돌릴 수 없다 — 잠시 치우려는 것이라면 감추기를 쓴다.
+    되돌릴 수 없다. 잠시 치우려는 것이라면 감추기를 쓴다.
 
     함께 걸린 몫(scheduled_entry_splits)은 FK가 ON DELETE CASCADE라 따라
-    지워진다. 이미 대기 · 지출로 나간 내역은 이 표를 가리키지 않으므로
-    그대로 남는다 — 지난 기록이 사라지지는 않는다.
+    지워진다. 이미 대기와 지출로 나간 내역은 이 테이블을 가리키지 않으므로
+    그대로 남는다. 지난 기록이 사라지지는 않는다.
     """
     schedule = db.query(ScheduledEntry).filter(ScheduledEntry.schedule_id == schedule_id).first()
     if not schedule:
@@ -373,7 +373,7 @@ def _first_valid_from(d: date, day_of_month: int) -> date:
     31일 설정이면 2월처럼 그 날이 없는 달은 건너뛴다. 예전에는 이 처리가
     자리마다 달라서, 같은 "매월 31일"인데 어떤 길로 가면 2월 28일로 당겨지고
     어떤 길로 가면 2월을 건너뛰었다. 한 곳으로 모아 건너뛰기로 맞춘다.
-    그 달의 끝 날에 두려면 말일(32)을 고르면 된다.
+    그 달의 끝 날에 두려면 말일(32)을 선택하면 된다.
 
     말일은 day_in_month가 그 달 끝 날로 바꿔 주므로 늘 첫 달에서 끝난다.
     """
@@ -430,7 +430,7 @@ def calculate_next_run_at(
     #
     # 2단계는 휴일 처리 **전** 날짜로 과거인지 따진다. 그런데 '휴일 전'은
     # 날짜를 앞으로 당기므로, 원래 날짜는 아직 안 왔는데 당겨진 날짜는 이미
-    # 지나 있을 수 있다 — 매월 25일·휴일 전인 스케줄을 추석(2026-09-24~26)
+    # 지나 있을 수 있다. 매월 25일과 휴일 전인 스케줄을 추석(2026-09-24~26)
     # 앞의 9월 23일 오후에 고치면 "9월 23일 오전 10시"가 나왔다. 이미 지난
     # 자리라 스케줄러가 매분 다시 집어 들고, 화면에도 지난 날로 적힌다.
     #
@@ -453,14 +453,14 @@ def calculate_next_run_at(
 
     return target_datetime
 
-# ── 주기 · 끝 · 건너뛰기 ────────────────────────────────────────────────
+# ── 주기, 끝, 건너뛰기 ──────────────────────────────────────────────────
 #
-# 위의 calculate_next_run_at은 "매월 N일"만 안다. 격월 · 분기 · 반년 · 매년과
-# 끝나는 달 · 남은 횟수 · 한 번 건너뛰기는 그 위에 얹는다.
+# 위의 calculate_next_run_at은 "매월 N일"만 안다. 격월, 분기, 반년, 매년과
+# 끝나는 달, 남은 횟수, 한 번 건너뛰기는 그 위에 얹는다.
 #
 # 매월이면서 끝도 건너뜀도 없는 스케줄은 아래 calculate_next_run_span이 손대지
-# 않고 위 함수로 그대로 흘려보낸다. 지금까지 돌던 스케줄의 셈이 한 톨도
-# 달라지지 않게 하려는 것이다 — 달력 셈은 잔가지가 많아, 고쳐 쓰는 것보다
+# 않고 위 함수로 그대로 흘려보낸다. 지금까지 돌던 스케줄의 계산이 한 톨도
+# 달라지지 않게 하려는 것이다. 달력 계산은 잔가지가 많아, 고쳐 쓰는 것보다
 # 건드리지 않는 편이 확실하다.
 
 
@@ -484,9 +484,9 @@ def validate_span(
     end_ym: str | None,
     skip_ym: str | None,
 ) -> None:
-    """주기 · 끝 · 건너뛰기를 따져 본다. DB의 CHECK보다 앞서 걸러 낸다.
+    """주기, 끝, 건너뛰기를 따져 본다. DB의 CHECK보다 앞서 걸러 낸다.
 
-    셋 다 None이면 볼 것이 없다 — 지금까지의 매월 스케줄이 그 자리다.
+    셋 다 None이면 볼 것이 없다. 지금까지의 매월 스케줄이 그 자리다.
     """
     if interval_months is not None and interval_months not in INTERVALS:
         raise HTTPException(
@@ -499,7 +499,7 @@ def validate_span(
 
 
 def _ym_step(year: int, month: int, n: int) -> tuple[int, int]:
-    """n달 뒤의 연 · 월."""
+    """n달 뒤의 연과 월."""
     t = year * 12 + (month - 1) + n
     return t // 12, t % 12 + 1
 
@@ -532,7 +532,7 @@ def calculate_next_run_span(
 ) -> datetime | None:
     """다음 실행 일시. 더 올 자리가 없으면 None을 준다.
 
-    None은 "끝났다"는 뜻이다. 부르는 쪽은 next_run_at을 비우면 된다 —
+    None은 "끝났다"는 뜻이다. 부르는 쪽은 next_run_at을 비우면 된다.
     비어 있는 줄은 스케줄러가 집어 들지 않으므로 그것으로 멈춘다.
     """
     # 지금까지와 똑같은 스케줄은 손대지 않는다.
@@ -549,7 +549,7 @@ def calculate_next_run_span(
     year, month = base_date.year, base_date.month
 
     # 매월이면 열세 달, 매년이면 열세 해를 본다. 그 안에 자리가 없으면
-    # 앞으로도 없다 — 끝나는 달에 걸렸거나 날이 없는 달만 이어진 것이다.
+    # 앞으로도 없다. 끝나는 달에 걸렸거나 날이 없는 달만 이어진 것이다.
     for _ in range(13 * max(1, interval_months)):
         ym = _ym(year, month)
         if end_ym and ym > end_ym:
@@ -578,9 +578,9 @@ def calculate_next_run_span(
 
 
 def _advance(schedule: ScheduledEntry, db: Session) -> datetime | None:
-    """한 건이 나간 뒤(또는 건너뛴 뒤) 다음 자리를 셈한다.
+    """한 건이 나간 뒤(또는 건너뛴 뒤) 다음 자리를 계산한다.
 
-    끝나는 달을 지나면 None이다. 줄은 그대로 두고 next_run_at만 비운다 —
+    끝나는 달을 지나면 None이다. 줄은 그대로 두고 next_run_at만 비운다.
     끝난 스케줄이 소리 없이 사라지면 무엇이 끝났는지 알 길이 없다.
     """
     return calculate_next_run_span(
@@ -609,7 +609,7 @@ def process_scheduled_entries(db: Session):
     ).all()
 
     created_count = 0
-    # 만든 것은 없어도 다음 실행 일시만 고친 경우를 따로 센다 — 아래 커밋
+    # 만든 것은 없어도 다음 실행 일시만 고친 경우를 따로 센다. 아래 커밋
     # 조건에 쓴다.
     fixed_count = 0
 
@@ -659,7 +659,7 @@ def process_scheduled_entries(db: Session):
         created_count += 1
 
         # 건너뛰기 표는 한 번 쓰고 버린다. 건너뛴 다음 회차가 실제로 나간
-        # 이 자리에서 스스로 꺼진다 — 달이 바뀌었다고 지우면 아직 오지도
+        # 이 자리에서 스스로 꺼진다. 달이 바뀌었다고 지우면 아직 오지도
         # 않은 회차를 두고 표를 먼저 떼는 셈이라, 매년처럼 사이가 먼
         # 스케줄에서는 무엇을 건너뛴 것인지 알 길이 없어진다.
         if schedule.skip_ym and schedule.skip_ym < _ym(target_date.year, target_date.month):
@@ -675,8 +675,8 @@ def process_scheduled_entries(db: Session):
             schedule.is_active = 0
 
     # 만든 것이 없어도 고친 것이 있으면 담아야 한다. 예전에는 만든 것만
-    # 보고 커밋해서, 중복 막이로 건너뛰며 다시 셈한 다음 실행 일시가
-    # 세션이 닫힐 때 버려졌다 — 같은 스케줄을 매분 다시 집어 드는 꼴이었고,
+    # 보고 커밋해서, 중복 막이로 건너뛰며 다시 계산한 다음 실행 일시가
+    # 세션이 닫힐 때 버려졌다. 같은 스케줄을 매분 다시 집어 드는 꼴이었고,
     # 다른 스케줄이 같은 분에 걸려 커밋이 일어날 때만 우연히 고쳐졌다.
     if created_count > 0 or fixed_count > 0:
         db.commit()
@@ -694,7 +694,7 @@ def migrate_next_run_at(db: SessionDep = Depends()):
     updated = 0
     skipped = 0
     for schedule in schedules:
-        # 비어 있는 next_run_at은 이제 두 가지를 뜻한다 — 아직 셈하지 않았거나,
+        # 비어 있는 next_run_at은 이제 두 가지를 뜻한다. 아직 계산하지 않았거나,
         # 다 끝났거나. 끝난 줄을 여기서 다시 채우면 끝난 스케줄이 되살아난다.
         if schedule.end_ym and schedule.end_ym < _ym(datetime.now().year, datetime.now().month):
             skipped += 1

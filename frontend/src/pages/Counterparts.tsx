@@ -96,7 +96,7 @@ function SortableRow({
   );
 }
 
-/** 비교용 지문 — 저장 시 "정말 바뀐 게 있는지" 판단한다.
+/** 비교용 지문. 저장 시 "정말 바뀐 게 있는지" 판단한다.
     배열 순서를 그대로 쓰므로 순서만 바꿔도 "변경됨"으로 잡힌다. */
 const fingerprint = (list: Counterpart[]) =>
   JSON.stringify(
@@ -110,20 +110,20 @@ const fingerprint = (list: Counterpart[]) =>
   );
 
 /**
- * 금액 쪼개기에서 "누구에게 돌려받았는지"(Who?)를 고르기 위한 목록 관리.
- * 분할 편집 중에 즉석 등록도 되지만, 구분·메모 정리와 오타 수정은 여기서 한다.
+ * 금액 쪼개기에서 "누구에게 돌려받았는지"(Who?)를 선택하기 위한 목록 관리.
+ * 분할 편집 중에 즉석 등록도 되지만, 구분과 메모 정리와 오타 수정은 여기서 한다.
  */
 export default function Counterparts() {
   const [list, setList] = useState<Counterpart[]>([]);
-  // 불러오는 중과 "없음"을 가른다. 목표 · 어디 쓰나와 같은 방식이다.
+  // 불러오는 중과 "없음"을 가른다. 목표와 어디 쓰나와 같은 방식이다.
   const [ready, setReady] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
-  /* 편집이 아닐 때 잠긴 조각을 누르면 왜 안 되는지 알린다 — 다른 설정 화면과
+  /* 편집이 아닐 때 잠긴 조각을 누르면 왜 안 되는지 알린다. 다른 설정 화면과
      같은 갈고리다. */
   const { lockAt, showLock, tipRef } = useEditLock(editMode);
   const [showInactive, setShowInactive] = useState(false);
-  // 편집 진입 시점의 상태 — 변경 여부 판단에만 쓴다.
+  // 편집 진입 시점의 상태. 변경 여부 판단에만 쓴다.
   const [beforeEdit, setBeforeEdit] = useState("");
   /** 접은 묶음. 비어 있으면 전부 펼쳐진 상태다(기존과 같은 모습) */
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -134,7 +134,7 @@ export default function Counterparts() {
   const [addOpen, setAddOpen] = useState(false);
 
   /* 담는 팝업이 떠 있는 동안은 뒤 화면이 굴러가지 않는다. 떠 있는 단추들도
-     이 표를 보고 비킨다 — 다른 화면의 팝업과 같은 규칙이다. */
+     이 표를 보고 비킨다. 다른 화면의 팝업과 같은 규칙이다. */
   useEffect(() => {
     if (!addOpen) return;
     document.documentElement.classList.add("modal-open");
@@ -143,10 +143,10 @@ export default function Counterparts() {
   const [newName, setNewName] = useState("");
   const [newMemo, setNewMemo] = useState("");
   const [addCategoryId, setAddCategoryId] = useState<number | null>(null);
-  /* 담던 것을 뒤로 가기로 접는다 — 설정 탭 네 화면이 모두 그렇다. */
+  /* 담던 것을 뒤로 가기로 접는다. 설정 탭 네 화면이 모두 그렇다. */
 
 
-  /* 뒤로 가기 · Backspace로 편집을 무른다.
+  /* 뒤로 가기, Backspace로 편집을 무른다.
      여기는 편집 전 목록을 지문으로만 들고 있어 되돌릴 수 없으므로
      서버에서 다시 읽어 손댄 내용을 버린다. */
   useBackClose(editMode, () => {
@@ -182,10 +182,10 @@ export default function Counterparts() {
         (c) => (c.category_id ?? null) === (cat?.category_id ?? null)
       ),
     }))
-    // 편집 중에는 빈 구분도 보여 준다. 그래야 이모지·색을 붙이거나 지울 수 있다.
+    // 편집 중에는 빈 구분도 보여 준다. 그래야 이모지와 색을 붙이거나 지울 수 있다.
     .filter((g) => g.items.length > 0 || (editMode && g.cat));
 
-  /** 저장할 때 쓰는 최종 순서 — 화면에 보이는 그대로다. */
+  /** 저장할 때 쓰는 최종 순서, 화면에 보이는 그대로다. */
   const orderedForSave = groups.flatMap((g) => g.items);
 
   /** 구분(묶음) 자체의 순서를 바꾼다. */
@@ -264,7 +264,7 @@ export default function Counterparts() {
         name,
         category_id: addCategoryId,
         memo: newMemo.trim() || null,
-        /* 맨 뒤에 붙인다 — 담자마자 제 구분 묶음의 끝에 선다. */
+        /* 맨 뒤에 붙인다. 담자마자 제 구분 묶음의 끝에 선다. */
         sort_order: list.length + 1,
       });
     } catch (err) {
@@ -280,7 +280,7 @@ export default function Counterparts() {
     say.ok("추가 완료-!! ;-)");
   };
 
-  /** 추가 양식에서 구분을 새로 만든다 — 결제 수단과 같은 흐름이다. */
+  /** 추가 양식에서 구분을 새로 만든다. 결제 수단과 같은 흐름이다. */
   const createCategoryForAdd = async () => {
     const name = (
       await askText({ title: "새 구분", label: "새 구분 이름을 입력해 주세요.", go: "추가" })
@@ -303,7 +303,7 @@ export default function Counterparts() {
     setEditMode(true);
   };
 
-  /** 편집 모드에서 바꾼 이름·구분·메모를 한 번에 반영한다. */
+  /** 편집 모드에서 바꾼 이름, 구분, 메모를 한 번에 반영한다. */
   const handleSave = async () => {
     const rows = list;
 
@@ -344,7 +344,7 @@ export default function Counterparts() {
         };
         await axios.put(`/counterparts/${c.counterpart_id}`, body);
       }
-      // 구분의 이모지·색은 분류 행에 저장한다.
+      // 구분의 이모지와 색은 분류 행에 저장한다.
       await axios.post(
         "/counterparts/categories/save",
         categories.map((c, i) => ({
@@ -393,7 +393,7 @@ export default function Counterparts() {
 
   /**
    * 감추기 / 보이기.
-   * 이름·구분·메모와 같은 흐름을 타도록 여기서는 화면만 바꾸고,
+   * 이름, 구분, 메모와 같은 흐름을 타도록 여기서는 화면만 바꾸고,
    * 실제 반영은 저장할 때 함께 한다. 저장하지 않으면 없던 일이 된다.
    */
   const toggleHidden = (id: number) => {
@@ -469,7 +469,7 @@ export default function Counterparts() {
               editMode ? "editing" : ""
             }`}
           >
-            {/* 아바타는 두 모드에 공통 — 편집에 들어가도 좌우 위치가 그대로다. */}
+            {/* 아바타는 두 모드에 공통. 편집에 들어가도 좌우 위치가 그대로다. */}
             <span
               className="cp-avatar"
               style={{
@@ -527,7 +527,7 @@ export default function Counterparts() {
                   className={`cp-hide-btn ${c.is_active ? "" : "on"}`}
                   title={
                     c.is_active
-                      ? "감춘다 — 분할 편집의 Who? 목록에서 빠진다."
+                      ? "감춘다. 분할 편집의 Who? 목록에서 빠진다."
                       : "다시 보이게 한다."
                   }
                   onClick={() => toggleHidden(c.counterpart_id)}
@@ -593,7 +593,7 @@ export default function Counterparts() {
         </div>
 
         <div className="cp-list">
-          {/* 칸 구성은 카드를 고칠 때와 같다 — 이름, 구분, 한마디. */}
+          {/* 칸 구성은 카드를 고칠 때와 같다. 이름, 구분, 한마디. */}
           {!ready && <Waiting />}
 
           {ready && list.length === 0 && (
@@ -651,7 +651,7 @@ export default function Counterparts() {
                   <span className="cp-group__dot" />
                 )}
 
-                {/* 이모지는 이름 앞에 — 세 화면이 같은 순서다. */}
+                {/* 이모지는 이름 앞에. 세 화면이 같은 순서다. */}
                 {g.cat && (
                   <EmojiPicker
                     value={g.cat.emoji ?? null}
@@ -689,7 +689,7 @@ export default function Counterparts() {
               {/* 접힌 묶음은 줄을 그리지 않는다. */}
               <Collapse open={!collapsed.has(groupLabel(g.cat))}>
               <>
-              {/* 순서 변경은 같은 묶음 안에서만 — 구분을 바꾸면 묶음이 바뀐다. */}
+              {/* 순서 변경은 같은 묶음 안에서만. 구분을 바꾸면 묶음이 바뀐다. */}
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -722,8 +722,8 @@ export default function Counterparts() {
         </div>
       </div>
 
-      {/* 담기 — 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다.
-          결제 수단과 차례가 같다 — 이름이 먼저, 구분이 그 옆, 메모가 아래. */}
+      {/* 담기. 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다.
+          결제 수단과 차례가 같다. 이름이 먼저, 구분이 그 옆, 메모가 아래. */}
       {addOpen && (
         <CardEditModal
           title="새 항목"
@@ -732,7 +732,7 @@ export default function Counterparts() {
           saveLabel="추가"
         >
           <div className="edit-grid">
-            {/* 1행 — 이름과 그 묶음. 결제 수단과 같은 차례·같은 칸 수다. */}
+            {/* 1행. 이름과 그 묶음. 결제 수단과 같은 차례와 같은 칸 수다. */}
             <EditField label="이름" span={6} required>
             <input
               className="cat-input"
@@ -773,7 +773,7 @@ export default function Counterparts() {
 
             <EditDivider />
 
-            {/* 2행 — 한마디. 누구인지와는 성격이 달라 가른다. */}
+            {/* 2행. 한마디. 누구인지와는 성격이 달라 가른다. */}
             <EditField label="메모" span={12}>
               <input
                 className="cat-input"

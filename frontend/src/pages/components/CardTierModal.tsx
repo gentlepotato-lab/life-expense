@@ -7,12 +7,12 @@ import GrowArea from "./GrowArea";
  * 실적 구간 하나를 적는 팝업.
  *
  * 결제 수단 화면에서 카드 줄을 펼치고 [+]를 누르거나, 이미 적은 구간의
- * [상세]를 누르면 열린다. 한 번에 한 구간만 다룬다 — 여러 구간을 한 판에
+ * [상세]를 누르면 열린다. 한 번에 한 구간만 다룬다. 여러 구간을 한 판에
  * 늘어놓으면 판이 늘었다 줄었다 하고, 지금 무엇을 고치는지도 흐려진다.
  *
  * 두 단이 딸린다.
- *   혜택(디지털 구독 할인 · 월간 통합 할인한도 이내, 결제금액 100% 할인)
- *     └ 대상(OTT — 넷플릭스, 유튜브프리미엄 …)
+ *   혜택(디지털 구독 할인과 월간 통합 할인한도 이내, 결제금액 100% 할인)
+ *     └ 대상(OTT. 넷플릭스, 유튜브프리미엄 …)
  *
  * 담는 곳은 화면이 갖고 있다. 여기서는 고친 구간 하나만 돌려주고,
  * 카드 한 장치를 통째로 저장하는 일은 부르는 쪽이 맡는다.
@@ -28,10 +28,10 @@ export type TierBenefit = {
 };
 export type TierDraft = { threshold: string; benefits: TierBenefit[] };
 
-/** 이미 적은 혜택 한 벌 — 고르면 내용까지 그대로 옮겨 온다. */
+/** 이미 적은 혜택 한 벌. 선택하면 내용까지 그대로 옮겨 온다. */
 export type BenefitHint = { label: string; benefit: TierBenefit };
 
-/** 화면 안에서만 쓰는 줄 번호 — 저장하면 서버가 새로 매긴다. */
+/** 화면 안에서만 쓰는 줄 번호. 저장하면 서버가 새로 매긴다. */
 let seq = 0;
 const nextKey = () => {
   seq += 1;
@@ -69,7 +69,7 @@ export default function CardTierModal({
   cardName: string;
   /** 고칠 구간. 새로 만들 때는 null */
   tier: TierDraft | null;
-  /** 이 카드에 이미 적은 혜택들 — 고르면 내용까지 그대로 채운다. */
+  /** 이 카드에 이미 적은 혜택들. 선택하면 내용까지 그대로 채운다. */
   hints: BenefitHint[];
   onClose: () => void;
   onSave: (next: TierDraft) => void;
@@ -77,7 +77,7 @@ export default function CardTierModal({
   const [threshold, setThreshold] = useState(tier?.threshold ?? "");
   const [benefits, setBenefits] = useState<Benefit[]>(() => {
     if (!tier) {
-      /* 새로 만들 때는 빈 칸을 한 벌 깐다 — 텅 빈 판만 뜨면
+      /* 새로 만들 때는 빈 칸을 한 벌 깐다. 텅 빈 판만 뜨면
          무엇을 어디에 적는 자리인지 알 수가 없다. 내용이 없으므로
          이대로 두고 저장해도 담기지 않는다. */
       return [
@@ -116,16 +116,16 @@ export default function CardTierModal({
   const patch = (key: string, next: (b: Benefit) => Benefit) =>
     setBenefits((prev) => prev.map((b) => (b.key === key ? next(b) : b)));
 
-  /* 혜택 이름을 누르면 이미 쓰던 이름을 골라 넣을 수 있게 한다.
+  /* 혜택 이름을 누르면 이미 쓰던 이름을 선택해 넣을 수 있게 한다.
      한 구간에 붙는 혜택은 다음 구간에도 그대로 붙는 일이 많아, 매번
      다시 치면 같은 것이 조금씩 다른 이름으로 쌓인다.
 
      칸 목록은 키가 못 박힌 채 굴러서, 안쪽에 붙이면 잘린다.
-     화면에 붙이고(position: fixed) 자리만 칸에서 받아 온다 —
-     결제 수단 고르기(SingleSelect)가 쓰는 방식 그대로다. */
+     화면에 붙이고(position: fixed) 자리만 칸에서 받아 온다.
+     결제 수단 선택하기(SingleSelect)가 쓰는 방식 그대로다. */
   const [hintFor, setHintFor] = useState<string | null>(null);
 
-  /* 떠 있는 추천 목록도 뒤로 가기로는 그것만 닫는다 — 뒤에 깔린 편집 팝업이
+  /* 떠 있는 추천 목록도 뒤로 가기로는 그것만 닫는다. 뒤에 깔린 편집 팝업이
      함께 닫히면 적던 것을 잃는다. Backspace는 글자를 지우는 데 쓴다. */
   useBackClose(hintFor !== null, () => setHintFor(null), false);
   const [hintBox, setHintBox] = useState<{ top: number; left: number; width: number }>({
@@ -187,7 +187,7 @@ export default function CardTierModal({
       onSave={save}
       saveDisabled={!dirty || threshold.trim() === ""}
     >
-      {/* 키를 미리 잡는다 — 혜택을 늘리고 줄일 때마다 판이 들썩이면
+      {/* 키를 미리 잡는다. 혜택을 늘리고 줄일 때마다 판이 들썩이면
           지금 무엇을 고치고 있었는지 눈이 놓친다. */}
       <div className="tier-pop" onScroll={followHints}>
         <div className="tier-pop__amount">
@@ -243,7 +243,7 @@ export default function CardTierModal({
                        mousedown은 blur보다 먼저라 여기서 받는다. */
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      /* 이름만이 아니라 적은 것을 통째로 물어 온다 —
+                      /* 이름만이 아니라 적은 것을 통째로 물어 온다.
                          같은 이름이라도 구간마다 내용과 대상이 다르다. */
                       patch(b.key, (x) => ({
                         ...x,
@@ -273,7 +273,7 @@ export default function CardTierModal({
               onChange={(v) => patch(b.key, (x) => ({ ...x, description: v }))}
             />
 
-            {/* 월간 통합 할인한도 — 상세 글에 섞어 적으면 셈에 쓸 수가 없다. */}
+            {/* 월간 통합 할인한도. 상세 글에 섞어 적으면 계산에 쓸 수가 없다. */}
             <div className="benefit__limit">
               <span className="edit-field__label">한도</span>
               <input
@@ -306,7 +306,7 @@ export default function CardTierModal({
                       }))
                     }
                   />
-                  {/* 가맹점만 적는 칸이 아니다 — `아파트 관리비, 도시가스,
+                  {/* 가맹점만 적는 칸이 아니다. `아파트 관리비, 도시가스,
                       전기요금`처럼 그 영역에서 무엇이 걸리는지를 적는다. */}
                   <GrowArea
                     className="target__detail"

@@ -13,7 +13,7 @@ def run_monthly_cleanup():
     - admin_sessions에서 90일이 지나 닫힌 행 삭제 → 로그인 기록
 
     정기 내역(scheduled_entries)은 더 이상 여기서 지우지 않는다. 아래 주석을
-    보라 — is_active의 뜻이 바뀌었다.
+    보라. is_active의 뜻이 바뀌었다.
     """
     db: Session = SessionLocal()
 
@@ -25,11 +25,11 @@ def run_monthly_cleanup():
         """))
         deleted_pending = result_pending.rowcount
 
-        # 2. scheduled_entries에서 is_active=0인 행 삭제 — 걷었다(2026-10-01)
+        # 2. scheduled_entries에서 is_active=0인 행 삭제, 걷었다(2026-10-01)
         #
         # is_active = 0 은 예전에 "지워진 스케줄"이라는 뜻이었고, 이 자리가
         # 그것을 한 달에 한 번 실제로 지웠다. 이제 그 값은 "감춘 스케줄"을
-        # 뜻한다 — 사용자가 잠시 치운 것이고, 끝나는 달이 지나 저절로
+        # 뜻한다. 사용자가 잠시 치운 것이고, 끝나는 달이 지나 저절로
         # 감춰진 것도 여기 든다. 그대로 두면 감춘 항목이 20일마다 소리 없이
         # 사라진다.
         #

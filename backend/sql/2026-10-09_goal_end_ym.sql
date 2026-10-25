@@ -3,7 +3,7 @@
 -- 시작 연월만으로는 그만둔 도전을 접을 데가 없었다. 한 번 건 도전은 영영
 -- 걸린 것이 되어, 몇 해 뒤에도 그 달의 성적에 끼어든다.
 --
--- 비우면 끝이 없다는 뜻이다 — 지금 건 것은 모두 그렇다.
+-- 비우면 끝이 없다는 뜻이다. 지금 건 것은 모두 그렇다.
 
 ALTER TABLE life_expense.category_goals
     ADD COLUMN IF NOT EXISTS end_ym char(7) NULL;

@@ -12,11 +12,11 @@ import type { LockAt } from "../../hooks/useEditLock";
  */
 
 /**
- * 덮개 — 편집이 아닐 때만 깔린다. 편집 중에는 아무것도 그리지 않는다.
+ * 덮개. 편집이 아닐 때만 깔린다. 편집 중에는 아무것도 그리지 않는다.
  *
  * 줄 하나를 통째로 잠그는 자리(돈쓴이의 설정 줄)에 쓴다. 줄 안에 편집과
  * 상관없이 눌러야 하는 것(접고 펴기 같은 것)이 있으면 이것 말고 조각마다
- * `aria-disabled`를 달고 누름을 받는 쪽을 쓴다 — 덮개는 그런 것까지 막는다.
+ * `aria-disabled`를 달고 누름을 받는 쪽을 쓴다. 덮개는 그런 것까지 막는다.
  */
 export function EditLockCover({
   editMode,
@@ -36,7 +36,7 @@ export function EditLockCover({
   );
 }
 
-/** 안내 한 줄 — 화면에 하나면 된다. 화면 맨 끝에 둔다. */
+/** 안내 한 줄. 화면에 하나면 된다. 화면 맨 끝에 둔다. */
 export function EditLockTip({
   lockAt,
   tipRef,

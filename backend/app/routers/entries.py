@@ -53,7 +53,7 @@ def set_perf_exclude(entry_id: int, value: int = Query(...), db: SessionDep = De
 def set_fixed(entry_id: int, value: str = Query(...), db: SessionDep = Depends()):
     """이 건이 고정인지 변동인지를 손으로 정한다.
 
-    비우면 분류(소 · 세)에 정한 것을 따른다. 손으로 정하면 그 건에만
+    비우면 분류(소와 세)에 정한 것을 따른다. 손으로 정하면 그 건에만
     남아, 뒤에 분류 설정을 바꿔도 이 건은 그대로다. 카드 실적 제외와 같이
     한 칸만 손대는 자리다.
     """
@@ -72,7 +72,7 @@ def _check_bulk_row(r: dict) -> None:
 
     이 길은 dict를 그대로 받아 raw SQL로 넘긴다. 장소 메타가 줄마다 달라
     스키마 하나로 묶기 어려웠던 탓인데, 그래서 금액이 음수든 inout이 5든
-    그대로 들어가 집계가 깨졌다. 숫자로 셈하는 칸만 여기서 막는다.
+    그대로 들어가 집계가 깨졌다. 숫자로 계산하는 컬럼만 여기서 막는다.
     """
     if r.get("entry_id") is None:
         raise HTTPException(status_code=400, detail="entry_id is required")
@@ -404,7 +404,7 @@ def get_month_span(db: SessionDep = Depends()):
 
     달을 넘겨 보는 화면들이 어디까지 거슬러 갈 수 있는지 묻는 자리다.
     적은 것이 하나도 없는 달까지 끝없이 넘어가면 빈 화면만 지나간다.
-    한 줄짜리 셈이라 화면마다 한 번씩 물어도 무겁지 않다.
+    한 줄짜리 계산이라 화면마다 한 번씩 물어도 무겁지 않다.
     """
     row = db.execute(text("""
         SELECT to_char(MIN(tx_date), 'YYYY-MM') AS first_ym
@@ -676,8 +676,8 @@ def filter_entries(
     pay: str | None = Query(None),
     # >>> END ADD
     memo: str | None = Query(None),
-    # 지출을 적을 때 고를 수 있는 것은 모두 걸러 낼 수 있어야 한다.
-    # 그래서 나감/들어옴 · 금액 구간 · 장소 · 함께한 상대를 여기에 더한다.
+    # 지출을 적을 때 선택할 수 있는 것은 모두 걸러 낼 수 있어야 한다.
+    # 그래서 나감/들어옴, 금액 구간, 장소, 함께한 상대를 여기에 더한다.
     inout: int | None = Query(None),
     amount_min: float | None = Query(None),
     amount_max: float | None = Query(None),
@@ -760,7 +760,7 @@ def filter_entries(
         sql += " AND e.inout = :inout"
         params["inout"] = inout
 
-    # 금액 구간 — 한쪽만 채워도 걸린다.
+    # 금액 구간. 한쪽만 채워도 걸린다.
     if amount_min is not None:
         sql += " AND e.amount >= :amount_min"
         params["amount_min"] = amount_min
@@ -773,7 +773,7 @@ def filter_entries(
         sql += " AND p.place_name ILIKE :place"
         params["place"] = f"%{place}%"
 
-    # 함께한 상대 — 그 사람과 나눈 건이 하나라도 있으면 걸린다.
+    # 함께한 상대. 그 사람과 나눈 건이 하나라도 있으면 걸린다.
     counterpart_list = _parse_int_list(counterpart)
     if counterpart_list:
         sql += """

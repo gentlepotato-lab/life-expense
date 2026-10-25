@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
  * 일도 일어나지 않으면 고장으로 오해한다. 그래서 누름을 받아 그 자리에 한 줄
  * 띄운다.
  *
- * 안내는 줄에 매달지 않고 누른 그 자리에 띄운다 — 줄에 매달면 줄이 길수록
+ * 안내는 줄에 매달지 않고 누른 그 자리에 띄운다. 줄에 매달면 줄이 길수록
  * 엉뚱한 곳에 떠서 무엇을 눌렀는지가 흐려진다.
  *
  * 돈쓴이에서 쓰던 것을 그대로 꺼내 왔다. 편집 모드를 둔 화면이 여럿이라
@@ -17,7 +17,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 /**
  * 안내가 떠 있는 자리. n은 다시 띄울 때마다 오르는 번호다.
  *
- * say를 주면 그 말을 대신 띄운다 — 잠긴 까닭이 "편집이 아니라서"만은
+ * say를 주면 그 말을 대신 띄운다. 잠긴 까닭이 "편집이 아니라서"만은
  * 아니기 때문이다(담는 중이라 못 고치는 자리도 있다).
  */
 export type LockAt = { x: number; y: number; n: number; say?: string } | null;
@@ -31,7 +31,7 @@ export default function useEditLock(editMode: boolean) {
   const seq = useRef(0);
   const tipRef = useRef<HTMLSpanElement>(null);
 
-  /* 누름뿐 아니라 입력에서도 부른다 — 글자 수가 넘칠 때 그 칸에 띄운다.
+  /* 누름뿐 아니라 입력에서도 부른다. 글자 수가 넘칠 때 그 칸에 띄운다.
      쓰는 것은 누른 자리와 칸의 네모뿐이라, 그 둘만 있으면 받는다. */
   const showLock = useCallback(
     (
@@ -63,7 +63,7 @@ export default function useEditLock(editMode: boolean) {
     []
   );
 
-  /* 편집으로 들어가면 안내는 할 말을 잃는다 — 띄운 채 들어가면 이제 고칠
+  /* 편집으로 들어가면 안내는 할 말을 잃는다. 띄운 채 들어가면 이제 고칠
      수 있는데도 못 고친다는 말이 남는다. */
   useEffect(() => {
     if (editMode) setLockAt(null);

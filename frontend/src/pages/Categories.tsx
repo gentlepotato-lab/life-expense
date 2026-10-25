@@ -30,7 +30,7 @@ import { say, ask } from "../utils/notify";
 import Collapse from "./components/Collapse";
 import Waiting from "./components/Waiting";
 /**
- * 고정 · 변동 고르개가 입을 빛깔 — 그 갈래가 나가는 돈인지 들어오는 돈인지를
+ * 고정과 변동 선택기가 입을 빛깔. 그 갈래가 나가는 돈인지 들어오는 돈인지를
  * 따른다. 이름 앞의 +/− 점(.cat2-inout)이 이미 그 빛깔이라, 한 줄 안에서
  * 두 가지가 다른 말을 하지 않게 한다. 세분류는 딸린 소분류를 따른다.
  */
@@ -72,7 +72,7 @@ function SortableItem({ id, children, dragHandle = false }: SortableItemProps) {
 
 export default function Categories() {
   const [editMode, setEditMode] = useState(false);
-  // 불러오는 중과 "없음"을 가른다. 목표 · 어디 쓰나와 같은 방식이다.
+  // 불러오는 중과 "없음"을 가른다. 목표와 어디 쓰나와 같은 방식이다.
   const [ready, setReady] = useState(false);
   const [cat1, setCat1] = useState<any[]>([]);
   const [cat2, setCat2] = useState<any[]>([]);
@@ -82,7 +82,7 @@ export default function Categories() {
   const [addOpen, setAddOpen] = useState(false);
 
   /* 담는 팝업이 떠 있는 동안은 뒤 화면이 굴러가지 않는다. 떠 있는 단추들도
-     이 표를 보고 비킨다 — 다른 화면의 팝업과 같은 규칙이다. */
+     이 표를 보고 비킨다. 다른 화면의 팝업과 같은 규칙이다. */
   useEffect(() => {
     if (!addOpen) return;
     document.documentElement.classList.add("modal-open");
@@ -118,7 +118,7 @@ export default function Categories() {
   const cat2View = seen(cat2);
   const cat3View = seen(cat3);
 
-  /** 접을 수 있는 모든 줄 — 중분류 전체 + 세분류를 가진 소분류 */
+  /** 접을 수 있는 모든 줄. 중분류 전체 + 세분류를 가진 소분류 */
   const allCollapsibleKeys = () => [
     ...cat1View.map((c) => `1:${c.cat1_id}`),
     ...cat2View
@@ -136,7 +136,7 @@ export default function Categories() {
   const [beforeEditCat2, setBeforeEditCat2] = useState<any[]>([]);
   const [beforeEditCat3, setBeforeEditCat3] = useState<any[]>([]);
 
-  /* 뒤로 가기 · Backspace로 편집을 무른다.
+  /* 뒤로 가기, Backspace로 편집을 무른다.
      편집에 들어올 때 뜬 원본으로 되돌리므로 손댄 내용은 버려진다.
      추가 칸이 열려 있으면 그것부터 닫는다(나중에 연 것이 먼저 닫힌다). */
   useBackClose(editMode, () => {
@@ -146,7 +146,7 @@ export default function Categories() {
     setEditMode(false);
   });
 
-  /* 편집이 아닐 때 고정 · 변동과 Blur를 누르면 왜 안 되는지 알린다.
+  /* 편집이 아닐 때 고정과 변동과 Blur를 누르면 왜 안 되는지 알린다.
      조각이 옅어진 것만으로는 "지금은 못 고친다"가 읽히지 않는다. */
   const { lockAt, showLock, tipRef } = useEditLock(editMode);
 
@@ -204,7 +204,7 @@ export default function Categories() {
       .finally(() => setReady(true));
   }, []);
 
-  /* 고정 · 변동 — 달마다 같은 자리에 오는 돈인지. 중분류에는 두지 않는다.
+  /* 고정과 변동. 달마다 같은 자리에 오는 돈인지. 중분류에는 두지 않는다.
      한 중분류 안에서도 소분류마다 갈리기 때문이다(저축은 고정, 투자는 변동).
      Blur와 같이 저장을 눌러야 반영된다. */
   const setFixed2 = (id: number, v: number) =>
@@ -212,7 +212,7 @@ export default function Categories() {
   const setFixed3 = (id: number, v: number) =>
     setCat3(cat3.map((x) => (x.cat3_id === id ? { ...x, fixed: v } : x)));
 
-  /* Blur — Exclude와 같이 저장을 눌러야 반영된다.
+  /* Blur. Exclude와 같이 저장을 눌러야 반영된다.
      예전에는 소분류만 있었고 누르는 즉시 저장됐다. 되돌리기(뒤로 가기)가
      듣지 않던 자리라 셋을 같은 방식으로 맞춘다. */
   const toggleBlur1 = (id: number) =>
@@ -222,7 +222,7 @@ export default function Categories() {
   const toggleBlur3 = (id: number) =>
     setCat3(cat3.map((x) => (x.cat3_id === id ? { ...x, blur: x.blur ? 0 : 1 } : x)));
 
-  /** 소분류의 IN/OUT을 뒤집는다 — 값은 -1 아니면 1 둘뿐이다. */
+  /** 소분류의 IN/OUT을 뒤집는다. 값은 -1 아니면 1 둘뿐이다. */
   const toggleInout = (id: number) =>
     setCat2(cat2.map((x) => (x.cat2_id === id ? { ...x, inout: x.inout === 1 ? -1 : 1 } : x)));
 
@@ -285,7 +285,7 @@ export default function Categories() {
     }
 
     // 변경 체크 & 저장 로직 기존 그대로
-    /* 고정 · 변동도 함께 본다 — 이것만 건드리고 저장하면
+    /* 고정과 변동도 함께 본다. 이것만 건드리고 저장하면
        "변경된 내용이 없습니다"로 되돌아가 버린다. */
     const changed =
       JSON.stringify(beforeEditCat1.map(c => [c.cat1_id, c.cat1_name, c.emoji ?? null, c.is_active, c.blur ?? 0])) !==
@@ -352,7 +352,7 @@ export default function Categories() {
   };
 
   /**
-   * 감추기 — 고르는 목록에서 뺀다. Blur(금액 가리기)와는 다른 것이다.
+   * 감추기. 선택하는 목록에서 뺀다. Blur(금액 가리기)와는 다른 것이다.
    * 지난 내역은 이 분류를 계속 가리키므로 지우지 않고 감추기만 한다.
    */
   const toggleHidden1 = (id: number) =>
@@ -698,7 +698,7 @@ export default function Categories() {
               <div key={c1.cat1_id} className="cat-group">
                 <SortableItem id={c1.cat1_id} dragHandle={editMode}>
                   {/* 중분류는 이 묶음의 머리말이다.
-                      Counterparts·Payment Methods의 묶음 머리말과 같은 모양으로 둔다.
+                      Counterparts, Payment Methods의 묶음 머리말과 같은 모양으로 둔다.
                       이름 칸을 클릭해 고치는 기존 동작은 그대로다. */}
                   <div className="set-group__head cat1-head">
                     <CollapseToggle
@@ -708,7 +708,7 @@ export default function Categories() {
                       label={c1.cat1_name}
                     />
 
-                    {/* 이름 · 이모지 · 건수를 한 덩어리로 묶는다.
+                    {/* 이름, 이모지, 건수를 한 덩어리로 묶는다.
                         이 덩어리 전체가 클릭 영역이라 이름을 고치기 위한
                         누를 곳이 좁아지지 않는다. */}
                     <div
@@ -718,7 +718,7 @@ export default function Categories() {
                         setCat1(cat1.map(x => x.cat1_id === c1.cat1_id ? { ...x, editing: true } : x))
                       }
                     >
-                      {/* 이모지는 이름 앞에 — 세 화면이 같은 순서다. */}
+                      {/* 이모지는 이름 앞에. 세 화면이 같은 순서다. */}
                       <EmojiPicker
                         value={c1.emoji ?? null}
                         disabled={!editMode}
@@ -749,13 +749,13 @@ export default function Categories() {
 
                       {/* 건수는 이름 바로 오른쪽. 줄 맨 오른쪽에 두었더니 이름이
                           짧은 줄에서는 멀찍이 떨어져 어느 분류의 수인지 한눈에
-                          이어지지 않았다. 이름 · 이모지와 한 덩어리로 묶는다. */}
+                          이어지지 않았다. 이름과 이모지와 한 덩어리로 묶는다. */}
                       <span className="set-group__count">
                         {cat2View.filter((c) => c.cat1_id === c1.cat1_id).length}
                       </span>
                     </div>
 
-                    {/* 건 Blur는 보기 모드에서도 보인다 — 무엇이 걸려 있는지
+                    {/* 건 Blur는 보기 모드에서도 보인다. 무엇이 걸려 있는지
                         알려고 편집을 켰다 끄게 하지 않는다. 누르는 것만 막는다. */}
                     <button
                       type="button"
@@ -774,7 +774,7 @@ export default function Categories() {
                       <button
                         type="button"
                         className={`set-hide-btn ${c1.is_active ? "" : "on"}`}
-                        title={c1.is_active ? "감춘다 — 고르는 목록에서 빠진다." : "다시 보이게 한다."}
+                        title={c1.is_active ? "감춘다. 선택하는 목록에서 빠진다." : "다시 보이게 한다."}
                         onClick={() => toggleHidden1(c1.cat1_id)}
                       >
                         {c1.is_active ? "감추기" : "감춤"}
@@ -820,13 +820,13 @@ export default function Categories() {
                                 hidden={!cat3View.some((c) => c.cat2_id === c2.cat2_id)}
                                 label={c2.cat2_name}
                               />
-                              {/* IN/OUT 자리 — 보기는 색점, 편집은 누르는 [+]/[−].
+                              {/* IN/OUT 자리. 보기는 색점, 편집은 누르는 [+]/[−].
                                   두 모드가 같은 폭을 쓰므로 이름이 움직이지 않는다. */}
                               {editMode ? (
                                 <button
                                   type="button"
                                   className={`cat2-inout ${c2.inout === 1 ? "in" : "out"}`}
-                                  title={c2.inout === 1 ? "IN — 눌러서 OUT 으로" : "OUT — 눌러서 IN 으로"}
+                                  title={c2.inout === 1 ? "IN, 눌러서 OUT 으로" : "OUT, 눌러서 IN 으로"}
                                   aria-label={c2.inout === 1 ? "IN" : "OUT"}
                                   onClick={() => toggleInout(c2.cat2_id)}
                                 >
@@ -864,7 +864,7 @@ export default function Categories() {
                                         x.cat2_id === c2.cat2_id ? { ...x, editing: true } : x
                                       ));
                                     } else {
-                                      /* 다시 누르면 접는다 — 열 때 누른 그 자리를
+                                      /* 다시 누르면 접는다. 열 때 누른 그 자리를
                                          또 눌러 닫는 것이 열고 닫는 가장 짧은 길이다.
                                          잘못 눌러 열린 칸을 닫으려고 다른 데를
                                          찾아다니지 않게 한다. */
@@ -880,7 +880,7 @@ export default function Categories() {
                               )}
 
                               {/* 세분류를 거느린 줄에만 건수를 단다. 중분류 머리와
-                                  같이 이름 바로 오른쪽이다 — 접힌 채로도 안에 몇
+                                  같이 이름 바로 오른쪽이다. 접힌 채로도 안에 몇
                                   갈래가 들었는지 보인다. */}
                               {cat3View.some((c) => c.cat2_id === c2.cat2_id) && (
                                 <span className="set-group__count">
@@ -899,7 +899,7 @@ export default function Categories() {
                                   type="button"
                                   className={c2.fixed ? "on" : ""}
                                   aria-disabled={!editMode || undefined}
-                                  title="고정 — 달마다 같은 자리에 온다."
+                                  title="고정, 달마다 같은 자리에 온다."
                                   aria-label="고정"
                                   aria-pressed={!!c2.fixed}
                                   onClick={(e) => {
@@ -913,7 +913,7 @@ export default function Categories() {
                                   type="button"
                                   className={c2.fixed ? "" : "on"}
                                   aria-disabled={!editMode || undefined}
-                                  title="변동 — 그때그때 달라진다."
+                                  title="변동, 그때그때 달라진다."
                                   aria-label="변동"
                                   aria-pressed={!c2.fixed}
                                   onClick={(e) => {
@@ -944,7 +944,7 @@ export default function Categories() {
                                 <button
                                   type="button"
                                   className={`set-hide-btn ${c2.is_active ? "" : "on"}`}
-                                  title={c2.is_active ? "감춘다 — 고르는 목록에서 빠진다." : "다시 보이게 한다."}
+                                  title={c2.is_active ? "감춘다. 선택하는 목록에서 빠진다." : "다시 보이게 한다."}
                                   onClick={() => toggleHidden2(c2.cat2_id)}
                                 >
                                   {c2.is_active ? "감추기" : "감춤"}
@@ -1039,8 +1039,8 @@ export default function Categories() {
                                           </span>
                                         )}
 
-                                        {/* 소분류가 고정이면 딸린 세분류도 고정이다
-                                            — Blur와 같은 셈법이라 그때는 잠긴다. */}
+                                        {/* 소분류가 고정이면 딸린 세분류도 고정이다.
+                                            Blur와 같은 계산법이라 그때는 잠긴다. */}
                                         <span
                                           className={`set-fixed${inoutTone(c2.inout)}${
                                             c2.fixed ? " set-fixed--lock" : ""
@@ -1053,7 +1053,7 @@ export default function Categories() {
                                             className={c2.fixed || c3.fixed ? "on" : ""}
                                             disabled={editMode && !!c2.fixed}
                                             aria-disabled={!editMode || !!c2.fixed || undefined}
-                                            title="고정 — 달마다 같은 자리에 온다."
+                                            title="고정, 달마다 같은 자리에 온다."
                                             aria-label="고정"
                                             aria-pressed={!!(c2.fixed || c3.fixed)}
                                             onClick={(e) => {
@@ -1068,7 +1068,7 @@ export default function Categories() {
                                             className={c2.fixed || c3.fixed ? "" : "on"}
                                             disabled={editMode && !!c2.fixed}
                                             aria-disabled={!editMode || !!c2.fixed || undefined}
-                                            title="변동 — 그때그때 달라진다."
+                                            title="변동, 그때그때 달라진다."
                                             aria-label="변동"
                                             aria-pressed={!(c2.fixed || c3.fixed)}
                                             onClick={(e) => {
@@ -1098,7 +1098,7 @@ export default function Categories() {
                                           <button
                                             type="button"
                                             className={`set-hide-btn ${c3.is_active ? "" : "on"}`}
-                                            title={c3.is_active ? "감춘다 — 고르는 목록에서 빠진다." : "다시 보이게 한다."}
+                                            title={c3.is_active ? "감춘다. 선택하는 목록에서 빠진다." : "다시 보이게 한다."}
                                             onClick={() => toggleHidden3(c3.cat3_id)}
                                           >
                                             {c3.is_active ? "감추기" : "감춤"}
@@ -1134,8 +1134,8 @@ export default function Categories() {
         </DndContext>
       </div>
 
-      {/* 담기 — 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다.
-          분류가 3뎁스라 기존 중분류/소분류를 고르면 그 아래에 붙는 기존
+      {/* 담기. 떠 있는 단추를 누르면 뜬다. 칸 차례와 말은 펼치던 폼 그대로다.
+          분류가 3뎁스라 기존 중분류/소분류를 선택하면 그 아래에 붙는 기존
           동작도 그대로 옮겨 왔다. */}
       {addOpen && (
         <CardEditModal
@@ -1145,11 +1145,11 @@ export default function Categories() {
           saveLabel="추가"
         >
           <div className="edit-grid">
-            {/* 1행 — 분류 3단. 내역 편집과 같은 차례·같은 칸 수다. 성격이
+            {/* 1행. 분류 3단. 내역 편집과 같은 차례와 같은 칸 수다. 성격이
                 하나라 가르지 않는다.
 
-                새로 만드는 중이면 고르는 칸이 있던 그 자리가 이름 칸으로
-                바뀐다 — 칸이 늘었다 줄었다 하지 않으니 팝업도 안 흔들린다. */}
+                새로 만드는 중이면 선택하는 칸이 있던 그 자리가 이름 칸으로
+                바뀐다. 칸이 늘었다 줄었다 하지 않으니 팝업도 안 흔들린다. */}
             <EditField label="중분류" span={4} required>
             {addCat1Mode ? (
               <input

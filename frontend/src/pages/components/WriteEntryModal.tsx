@@ -10,7 +10,7 @@ import GoToButton from "./GoToButton";
  * 떠오른 것을 그 자리에서 적고 닫는 쪽이 흐름이 끊기지 않는다.
  *
  * 칸은 쓰기 화면과 같은 것(EntryForm)을 쓰고, 껍데기만 카드 편집 팝업의
- * 틀(CardEditModal)을 두른다 — 다른 팝업과 배치 · 정렬이 어긋나지 않는다.
+ * 틀(CardEditModal)을 두른다. 다른 팝업과 배치와 정렬이 어긋나지 않는다.
  */
 export default function WriteEntryModal({
   onClose,
@@ -18,7 +18,7 @@ export default function WriteEntryModal({
 }: {
   onClose: () => void;
   /** 저장한 뒤 목록을 다시 읽으라고 알린다.
-      적힌 것이 그 화면 목록에 안 드러나는 곳(대기 · 정기)은 넘기지 않는다. */
+      적힌 것이 그 화면 목록에 안 드러나는 곳(대기와 정기)은 넘기지 않는다. */
   onSaved?: () => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);

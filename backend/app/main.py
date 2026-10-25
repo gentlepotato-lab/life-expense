@@ -57,7 +57,7 @@ def add_inout_columns():
 
 @app.on_event("startup")
 def create_entry_groups():
-    """묶음 표와, 세 내역 표에 묶음을 가리키는 칸을 만든다.
+    """묶음 테이블과, 세 내역 테이블에 묶음을 가리키는 컬럼을 만든다.
 
     이미 있으면 아무 일도 하지 않는다(IF NOT EXISTS). 묶음을 풀 때 담겨
     있던 내역이 함께 지워지면 안 되므로 ON DELETE SET NULL로 건다.
@@ -125,7 +125,7 @@ app.add_middleware(
 # 가르면 고칠 때마다 두 곳을 손봐야 한다.
 API = "/api"
 
-# 규칙 — 한 자원은 한 자리, 한 파일, 한 화면을 갖는다.
+# 규칙. 한 자원은 한 자리, 한 파일, 한 화면을 갖는다.
 #
 #   /api/categories        categories.py         Categories.tsx
 #   /api/payment-methods   payment_methods.py    PaymentMethods.tsx
@@ -137,7 +137,7 @@ API = "/api"
 #   /api/holidays          holidays.py           (화면 없음)
 #
 # 자리는 여기 한 곳에서만 붙인다. 라우터 파일 안에서 또 붙이지 않는다.
-# 예전에는 분류·결제 수단·상대가 /api/meta라는 껍데기 밑에 묶여 있었는데,
+# 예전에는 분류, 결제 수단, 상대가 /api/meta라는 껍데기 밑에 묶여 있었는데,
 # 셋 다 어엿한 자원이라 그 껍데기를 없앴다.
 app.include_router(categories.router, prefix=f"{API}/categories", tags=["categories"])
 app.include_router(payment_methods.router, prefix=f"{API}/payment-methods", tags=["payment_methods"])
@@ -151,25 +151,25 @@ app.include_router(pending_entries.router, prefix=f"{API}/pending-entries", tags
 app.include_router(scheduled_entries.router, prefix=f"{API}/scheduled-entries", tags=["scheduled_entries"])
 app.include_router(places.router, prefix=f"{API}/places", tags=["places"])
 app.include_router(holidays.router, prefix=f"{API}/holidays", tags=["holidays"])
-# 잔소리 — 부를 때 세어 돌려준다. 적는 것은 없다(app/nudgecalc.py).
+# 잔소리. 부를 때 세어 돌려준다. 적는 것은 없다(app/nudgecalc.py).
 app.include_router(nudges.router, prefix=f"{API}/nudges", tags=["nudges"])
-# 공지사항 — 홈 위쪽 띠가 읽는다. 적는 것은 관리자 페이지가 맡는다.
+# 공지사항. 홈 위쪽 띠가 읽는다. 적는 것은 관리자 사이트가 맡는다.
 app.include_router(notices.router, prefix=f"{API}/notices", tags=["notices"])
-# 애니메이션 문구 — 쪽지와 앞머리 화면이 읽는다.
+# 애니메이션 문구. 쪽지와 앞머리 화면이 읽는다.
 app.include_router(doodle_items.router, prefix=f"{API}/doodle-items", tags=["doodle_items"])
-# 행동 기록 — 화면이 모아 보낸 것을 적기만 한다. 보는 길은 관리자 쪽이다.
+# 행동 기록. 화면이 모아 보낸 것을 적기만 한다. 보는 길은 관리자 쪽이다.
 app.include_router(action_logs.router, prefix=f"{API}/action-logs", tags=["action_logs"])
-# 관리자 페이지. GET /prefs 하나만 암호 없이 열려 있다(app/routers/admin.py).
+# 관리자 사이트. GET /prefs 하나만 암호 없이 열려 있다(app/routers/admin.py).
 app.include_router(admin.router, prefix=f"{API}/admin", tags=["admin"])
 # 화면마다 걸린 조건 그대로 엑셀로 내보낸다.
 app.include_router(exports.router, prefix=f"{API}/export", tags=["export"])
 
-# 금액 쪼개기 — 세 자원에 똑같이 /{id}/splits로 붙는다.
+# 금액 쪼개기. 세 자원에 똑같이 /{id}/splits로 붙는다.
 app.include_router(splits.router, prefix=f"{API}/entries", tags=["splits"])
 app.include_router(splits.pending_router, prefix=f"{API}/pending-entries", tags=["splits"])
 app.include_router(splits.scheduled_router, prefix=f"{API}/scheduled-entries", tags=["splits"])
 
-# 쓰기 슬라이드(beta) — 시범 기능이라 길을 한자리에 모았다.
+# 쓰기 슬라이드(beta). 시범 기능이라 길을 한자리에 모았다.
 # 접을 때는 이 한 줄만 걷으면 된다.
 app.include_router(write_slide.router, prefix=f"{API}/write-slide", tags=["write_slide"])
 

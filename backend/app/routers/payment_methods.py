@@ -6,14 +6,14 @@ from app.deps import SessionDep
 # 자리는 main.py에서 /api/payment-methods로 붙인다.
 router = APIRouter()
 
-# 목록 조회 — 자원 제 자리
+# 목록 조회. 자원 제 자리
 @router.get("")
 def list_methods(db: SessionDep = Depends()):
     rows = db.execute(text("""
         SELECT p.method_id
              , p.method_name
              , p.category_id
-             -- 구분 이름·이모지는 분류 표에서 그대로 가져온다.
+             -- 구분 이름과 이모지는 분류 테이블에서 그대로 가져온다.
              -- 이름이 바뀌어도 FK로 따라오므로 끊기지 않는다.
              , c.name  AS category
              , c.emoji AS category_emoji
@@ -203,7 +203,7 @@ def save_annual_fee(method_id: int, payload: dict, db: SessionDep = Depends()):
     """
     연회비만 따로 저장한다.
 
-    카드 한 장에 하나뿐인 값이라 실적 구간에 끼울 수 없고, 이름·구분을 함께
+    카드 한 장에 하나뿐인 값이라 실적 구간에 끼울 수 없고, 이름과 구분을 함께
     고치는 저장(/save)에 태우면 줄을 펼쳐 놓고 고칠 수가 없다.
     """
     raw = payload.get("annual_fee")
@@ -284,7 +284,7 @@ def save_tiers(method_id: int, payload: list[dict], db: SessionDep = Depends()):
     """
     구간을 통째로 갈아 끼운다.
 
-    한 건씩 견줘 고치는 대신 지우고 다시 넣는다 — 구간은 많아야 몇 줄이고,
+    한 건씩 견줘 고치는 대신 지우고 다시 넣는다. 구간은 많아야 몇 줄이고,
     아직 tier_id를 가리키는 곳이 없어 갈아 끼워도 잃을 것이 없다.
     혜택은 FK가 CASCADE라 구간을 지우면 함께 지워진다.
     """
@@ -311,7 +311,7 @@ def save_tiers(method_id: int, payload: list[dict], db: SessionDep = Depends()):
 
             for j, b in enumerate(tier.get("benefits") or []):
                 name = (b.get("content") or "").strip()
-                # 이름 없는 줄은 담지 않는다 — 설명만 있는 혜택은 뜻이 없다.
+                # 이름 없는 줄은 담지 않는다. 설명만 있는 혜택은 뜻이 없다.
                 if not name:
                     continue
                 desc = (b.get("description") or "").strip()

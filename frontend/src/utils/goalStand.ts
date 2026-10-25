@@ -1,10 +1,10 @@
 /**
- * 안쓴이 도전 — 분류별 목표를 이번 달 씀씀이와 견주는 셈.
+ * 안쓴이 도전. 분류별 목표를 이번 달 씀씀이와 견주는 계산.
  *
- * 화면(안쓴이 도전)과 잔소리가 같은 값을 말해야 하므로 셈은 여기 한 곳에만 둔다.
+ * 화면(안쓴이 도전)과 잔소리가 같은 값을 말해야 하므로 계산은 여기 한 곳에만 둔다.
  * 두 곳에서 따로 세면 같은 달인데 숫자가 다른 일이 반드시 생긴다.
  *
- * 세는 잣대는 씀씀이·잔소리와 같다 — 지출·대기·정기 세 갈래를 모두 세고,
+ * 세는 잣대는 씀씀이와 잔소리와 같다. 지출, 대기, 정기 세 갈래를 모두 세고,
  * N빵 뒤 내 몫(net)을 센다. 수입과 Exclude는 부르는 쪽에서 이미 걸러 낸 뒤다.
  */
 
@@ -15,12 +15,12 @@ export type Goal = {
   cat2_id: number | null;
   cat3_id: number | null;
   amount: number;
-  /** 왜 이 목표를 걸었는지 — 금액만으로는 남지 않는다. */
+  /** 왜 이 목표를 걸었는지. 금액만으로는 남지 않는다. */
   memo: string | null;
-  /** "식비 > 점심" — 서버가 붙여 준다. */
+  /** "식비 > 점심". 서버가 붙여 준다. */
   path: string;
   emoji: string | null;
-  /** 어느 달부터 센 도전인지 — "2026-10". 그 전 달은 이 도전이 없던 달이다. */
+  /** 어느 달부터 센 도전인지. "2026-10". 그 전 달은 이 도전이 없던 달이다. */
   start_ym: string;
   /** 어느 달까지 센 도전인지. 비어 있으면 끝이 없다. */
   end_ym: string | null;
@@ -40,7 +40,7 @@ export function 걸린달(goal: Goal, ym: string): boolean {
 }
 
 /**
- * 그 달에 걸려 있지 않았다면 왜인지 — 아직 시작 전인가, 이미 끝났는가.
+ * 그 달에 걸려 있지 않았다면 왜인지. 아직 시작 전인가, 이미 끝났는가.
  *
  * 흐리게 미는 것은 같지만 할 말이 다르다. "2026년 10월부터"와 "2026년
  * 9월까지"는 읽는 사람에게 전혀 다른 소식이다.
@@ -51,7 +51,7 @@ export function 비낀까닭(goal: Goal, ym: string): "before" | "after" | null 
   return null;
 }
 
-/** 셈에 쓰는 줄이 갖춰야 할 것 */
+/** 계산에 쓰는 줄이 갖춰야 할 것 */
 export type GoalRow = {
   key: string;
   date: string;
@@ -64,13 +64,13 @@ export type GoalRow = {
   memo?: string | null;
 };
 
-/** 달 후반부터만 칭찬한다 — 3일차에 "목표까지 47만 원 남았습니다"는 아무 말도 아니다. */
+/** 달 후반부터만 칭찬한다. 3일차에 "목표까지 47만 원 남았습니다"는 아무 말도 아니다. */
 export const PRAISE_FROM_DAY = 20;
 
 /**
  * 이 줄이 그 목표의 가지 아래인가.
  *
- * 목표가 중분류에만 걸려 있으면 그 아래 소·세분류가 모두 들어온다.
+ * 목표가 중분류에만 걸려 있으면 그 아래 소와 세분류가 모두 들어온다.
  * 겹쳐 건 목표들은 서로 나누지 않고 저마다 제 가지를 통째로 센다.
  */
 export function inGoal(goal: Goal, row: GoalRow): boolean {
@@ -95,7 +95,7 @@ export type GoalStand = {
   over: boolean;
   /** 아직 안 넘겼지만 이대로면 넘긴다. */
   willOver: boolean;
-  /** 그 목표에 든 줄들 — 상세에 펼친다. */
+  /** 그 목표에 든 줄들. 상세에 펼친다. */
   rows: GoalRow[];
 };
 
@@ -107,7 +107,7 @@ function daysInMonth(ym: string): number {
 /**
  * 목표 하나를 이번 달 줄들과 견준다.
  *
- * @param today "YYYY-MM-DD" — 오늘까지 며칠이 지났는지로 남은 속도를 어림한다.
+ * @param today "YYYY-MM-DD". 오늘까지 며칠이 지났는지로 남은 속도를 어림한다.
  */
 export function standOf(goal: Goal, rows: GoalRow[], today: string): GoalStand {
   const ym = today.slice(0, 7);

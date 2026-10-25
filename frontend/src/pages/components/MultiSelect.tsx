@@ -16,7 +16,7 @@ interface MultiSelectProps<T> {
   placeholder?: string;
   onSpecialClick?: (value: T) => boolean;
   isOptionChecked?: (value: T) => boolean;
-  /** 고르는 것이 무엇인지 — 찾은 게 없을 때 그 말로 알린다. */
+  /** 선택하는 것이 무엇인지. 찾은 게 없을 때 그 말로 알린다. */
   noun?: string;
 }
 
@@ -31,20 +31,20 @@ export default function MultiSelect<T>({
 }: MultiSelectProps<T>) {
   const [open, setOpen] = useState(false);
 
-  /* 뒤로 가기는 떠 있는 이 판만 닫는다 — 화면을 떠나면 안 된다.
+  /* 뒤로 가기는 떠 있는 이 판만 닫는다. 화면을 떠나면 안 된다.
      Backspace는 받지 않는다. 이 판 옆에는 글자를 지우는 칸이 흔하다. */
   useBackClose(open, () => setOpen(false), false);
-  /* 친 글자 — 닫으면 비운다. 지난번 친 것이 남아 있으면
+  /* 친 글자. 닫으면 비운다. 지난번 친 것이 남아 있으면
      다음에 열었을 때 목록이 비어 보인다. */
   const [query, setQuery] = useState("");
-  /* 이모지 자리 — 한 줄이라도 이모지가 있으면 모든 줄에 같은 폭으로 낸다.
+  /* 이모지 자리. 한 줄이라도 이모지가 있으면 모든 줄에 같은 폭으로 낸다.
      없는 줄만 왼쪽으로 붙으면 이름의 선이 들쭉날쭉해진다. */
   const 이모지칸 = options.some(o => o.icon);
 
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
-  // 드롭다운 위치 계산 — 화면 밖으로 나가지 않도록 가둔다.
+  // 드롭다운 위치 계산. 화면 밖으로 나가지 않도록 가둔다.
   useEffect(() => {
     if (!open || !wrapRef.current) return;
 

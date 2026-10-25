@@ -20,7 +20,7 @@ export type GroupMeta = {
  * 묶음 팝업들이 함께 쓰는 내역 목록.
  *
  * 날짜 단 머리말과 내역 카드를 그대로 쓴다. 팝업이라고 다른 꼴로 그리면
- * 같은 내역이 화면마다 달라 보인다 — 네 내역 화면이 이미 이 짜임이다.
+ * 같은 내역이 화면마다 달라 보인다. 네 내역 화면이 이미 이 짜임이다.
  * 정기 내역은 날짜가 없어 한 단으로 모인다("날짜 없음").
  */
 export default function GroupItemList({
@@ -34,7 +34,7 @@ export default function GroupItemList({
   meta: GroupMeta;
   /** 어느 화면의 내역인지. 뜯었을 때 어디서 고치는지를 알리는 데 쓴다. */
   kind?: GroupKind;
-  /** 고른 건들. 넘기지 않으면 고르기 상자가 서지 않는다. */
+  /** 선택한 건들. 넘기지 않으면 선택하기 상자가 서지 않는다. */
   picked?: Set<number>;
   onTogglePick?: (id: number) => void;
 }) {

@@ -15,14 +15,14 @@ type Counterpart = { counterpart_id: number; name: string };
 type Category = { category_id: number; name: string; emoji?: string | null };
 
 /**
- * "[+] 새로 등록"을 고르면 담긴 팝업이 등록 화면으로 바뀐다.
+ * "[+] 새로 등록"을 선택하면 담긴 팝업이 등록 화면으로 바뀐다.
  *
  * 전에는 그 줄 안에서 이름 칸과 단추 둘을 나눠 썼다. Who? 칸은 12칸 그리드의
  * 4칸뿐이라 360px에서 이름 칸에 남는 자리가 60px도 되지 않아, 적을 수가
  * 없었다. 단추 둘이 그 좁은 칸을 또 갈라 먹었다.
  *
  * 그렇다고 팝업 위에 팝업을 또 띄우지는 않는다. 담긴 팝업이 그 자리에서
- * 등록 화면으로 바뀐다 — 새로 띄우는 것이 아니라 같은 판을 메우는 것이라
+ * 등록 화면으로 바뀐다. 새로 띄우는 것이 아니라 같은 판을 메우는 것이라
  * 아래 칸이 한 칸도 밀리지 않는다.
  *
  * 칸 짜임은 함께한 상대 화면의 [새 항목]과 같다(이름, 구분, 메모). 같은 것을
@@ -55,7 +55,7 @@ export default function SplitEditor({
   const [newMemo, setNewMemo] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
-  /* 덮을 자리. 팝업 안이면 그 팝업을, 아니면 이 편집기 제 몸을 덮는다 —
+  /* 덮을 자리. 팝업 안이면 그 팝업을, 아니면 이 편집기 제 몸을 덮는다.
      쓰기 화면처럼 팝업이 아닌 데서도 쓰이기 때문이다.
 
      그릴 때 ref를 바로 읽으면 안 된다. 그 값은 지난번에 그린 결과라 처음
@@ -79,7 +79,7 @@ export default function SplitEditor({
   }, []);
 
   /* 등록 판이 떠 있는 동안 원래 판은 치운다. 둘을 함께 두면 팝업이 겹쳐
-     보인다 — 한 자리에 하나만 선다. */
+     보인다. 한 자리에 하나만 선다. */
   useEffect(() => {
     if (newAt === null || !치울판) return;
     치울판.classList.add("split-hidden");
@@ -187,7 +187,7 @@ export default function SplitEditor({
         name,
         category_id: newCategoryId,
         memo: newMemo.trim() || null,
-        /* 맨 뒤에 붙인다 — 함께한 상대 화면에서 담을 때와 같다. */
+        /* 맨 뒤에 붙인다. 함께한 상대 화면에서 담을 때와 같다. */
         sort_order: list.length + 1,
       });
       loadCounterparts();
@@ -208,7 +208,7 @@ export default function SplitEditor({
 
   return (
     <div className="split-editor" ref={뿌리ref}>
-      {/* 머리말 — 팝업의 다른 라벨과 같은 급으로 보이게 한다. */}
+      {/* 머리말. 팝업의 다른 라벨과 같은 급으로 보이게 한다. */}
       <div className="split-editor__head">
         <span className="split-editor__title">N빵(돌려받음)</span>
         <button type="button" className="ui-btn small" onClick={addRow}>
@@ -216,7 +216,7 @@ export default function SplitEditor({
         </button>
       </div>
 
-      {/* 위쪽 본문과 같은 12칸 그리드 — Who?·금액·메모가 분류 3단과 열을 맞춘다.
+      {/* 위쪽 본문과 같은 12칸 그리드. Who?, 금액, 메모가 분류 3단과 열을 맞춘다.
 
           줄이 없어도 그린다. 담을 때마다 이 칸이 생겼다 없어졌다 하면 팝업
           크기가 그만큼 들썩인다. */}
@@ -320,7 +320,7 @@ export default function SplitEditor({
         <p className="split-editor__warn">쪼갠 합계가 결제 금액을 넘었습니다.</p>
       )}
 
-      {/* 등록 화면 — 담긴 팝업을 덮는다. 머리말과 바닥은 팝업의 것을 그대로
+      {/* 등록 화면. 담긴 팝업을 덮는다. 머리말과 바닥은 팝업의 것을 그대로
           써서, 덮인 줄 모르고 그 팝업이 바뀐 것처럼 보이게 한다. */}
       {newAt !== null &&
         걸자리 &&
@@ -347,7 +347,7 @@ export default function SplitEditor({
 
             <div className="edit-modal__body">
               <div className="edit-grid">
-                {/* 1행 — 이름과 그 묶음. 함께한 상대 화면의 [새 항목]과 같은 차례, 같은 칸 수다. */}
+                {/* 1행. 이름과 그 묶음. 함께한 상대 화면의 [새 항목]과 같은 차례, 같은 칸 수다. */}
                 <div className="edit-field edit-field--span-6">
                   <label className="edit-field__label">
                     이름
@@ -395,7 +395,7 @@ export default function SplitEditor({
 
                 <div className="edit-divider" aria-hidden="true" />
 
-                {/* 2행 — 한마디. 누구인지와는 성격이 달라 가른다. */}
+                {/* 2행. 한마디. 누구인지와는 성격이 달라 가른다. */}
                 <div className="edit-field edit-field--span-12">
                   <label className="edit-field__label">메모</label>
                   <div className="edit-field__control">

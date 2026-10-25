@@ -9,9 +9,9 @@ import Waiting from "./Waiting";
 /**
  * 종 단추를 눌렀을 때 뜨는 잔소리.
  *
- * 껍데기는 다른 팝업과 같은 틀(popup-overlay · popup-panel--framed)이고,
- * 속은 잔소리 화면과 같은 묶음(NudgeGroup)이다 — 두 자리가 다른 말을
- * 하면 안 되므로 셈도 모습도 한 벌만 쓴다.
+ * 껍데기는 다른 팝업과 같은 틀(popup-overlay, popup-panel--framed)이고,
+ * 속은 잔소리 화면과 같은 묶음(NudgeGroup)이다. 두 자리가 다른 말을
+ * 하면 안 되므로 계산도 모습도 한 벌만 쓴다.
  */
 export default function NudgePopup({
   nudges,
@@ -33,7 +33,7 @@ export default function NudgePopup({
   /* 팝업은 뒤로 가기용 자리를 하나 밀고 있다. 그냥 옮기면 그 자리를
      되감으면서 방금 연 화면에서 튕겨 나온다. 먼저 뒤로 가서 팝업을 닫고,
      그 되감기가 끝난 뒤에 옮긴다.
-     귀 기울이는 일을 useEffect가 아니라 누르는 그 자리에서 붙인다 —
+     귀 기울이는 일을 useEffect가 아니라 누르는 그 자리에서 붙인다.
      팝업이 닫히면서 사라지는 바람에 정작 신호를 못 받는 일을 막는다. */
   const goNudges = () => {
     const onPop = () => {

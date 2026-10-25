@@ -44,7 +44,7 @@ export default function DateGroupHeader({
         <CollapseToggle open={!!open} onToggle={onToggle} label={label} />
       )}
 
-      {/* 날짜를 눌러도 접힌다 — 손가락으로 겨누기 쉬운 넓은 자리 */}
+      {/* 날짜를 눌러도 접힌다. 손가락으로 겨누기 쉬운 넓은 자리 */}
       <span
         className="date-group__label"
         onClick={collapsible ? onToggle : undefined}
