@@ -21821,8 +21821,9 @@ html:has(.note-pop) .add-btn {
 .admin-legend {
   display: flex;
   align-items: center;
-  /* 묶음과 묶음 사이. 기호와 이름 사이(3px)보다 넉넉해야 넷이 넷으로 읽힌다. */
-  gap: 12px;
+  /* 묶음과 묶음 사이. 기호와 이름 사이(3px)보다 넉넉해야 넷이 넷으로 읽히되,
+     그 셋 배면 범례가 줄의 절반을 먹는다. 세 배 조금 못 되게 둔다. */
+  gap: 8px;
   margin-bottom: var(--space-1);
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
