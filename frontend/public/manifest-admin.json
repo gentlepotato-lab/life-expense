@@ -1,7 +1,7 @@
 {
   "id": "/admin",
-  "name": "돈을 쓰다 관리자",
-  "short_name": "관리자",
+  "name": "돈을 쓰다(admin)",
+  "short_name": "돈을 쓰다(admin)",
   "description": "돈을 쓰다 운영 화면",
   "lang": "ko",
   "start_url": "/admin",
