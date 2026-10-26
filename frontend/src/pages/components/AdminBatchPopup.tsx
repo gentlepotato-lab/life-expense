@@ -1,6 +1,7 @@
 import useBackClose from "../../hooks/useBackClose";
 import useScrollLock from "../../hooks/useScrollLock";
 import SingleSelect from "./SingleSelect";
+import TimePicker from "./TimePicker";
 import { EditField, EditDivider } from "./CardEditModal";
 
 /**
@@ -12,7 +13,8 @@ import { EditField, EditDivider } from "./CardEditModal";
  * 손이 헷갈리지 않는다.
  *
  * 묻는 칸은 정기 내역이 묻는 것과 같은 꼴로 둔다(pages/EntriesScheduled.tsx).
- * 날짜는 사용자 사이트의 DayPicker로, 시각은 type="time" 칸으로 받는다. 거기도 「매월 몇 일
+ * 날짜와 시각 모두 사용자 사이트가 쓰는 선택기로 받는다(DayPicker, TimePicker).
+ * 거기도 「매월 몇 일
  * 몇 시」를 묻는 자리라, 다른 꼴로 물으면 같은 앱으로 읽히지 않는다.
  */
 
@@ -93,12 +95,10 @@ export default function AdminBatchPopup({
               )}
 
               <EditField label="시간" span={값.kind === "monthly" ? 6 : 12} required>
-                <input
-                  type="time"
-                  className="ui-input"
-                  step="60"
+                <TimePicker
                   value={값.time}
-                  onChange={(e) => on바뀜({ ...값, time: e.target.value })}
+                  onChange={(v) => on바뀜({ ...값, time: v })}
+                  step={1}
                 />
               </EditField>
 

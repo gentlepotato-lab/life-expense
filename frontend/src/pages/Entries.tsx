@@ -1061,7 +1061,9 @@ export default function Entries() {
             picked.map((r) => r.entry_id)
           );
           setPickedIds(new Set());
-          await loadData();
+          /* loadData가 아니라 reload다. 제거하고 통째로 다시 받으면
+             걸어 놓은 조건이 풀려 안 보이던 줄이 되살아난다. */
+          await reload();
           if (실패 === 0) say.ok(`${성공}건을 제거했습니다.`);
           else if (성공 === 0) say.bad("제거하지 못했습니다. 다시 시도해 주세요.");
           else say.warn(`${성공}건을 제거했습니다. ${실패}건은 제거하지 못했습니다.`);

@@ -3131,7 +3131,10 @@ button {
 /* 날짜 선택하는 자리. 달을 넘기는 손잡이는 달력과 씀씀이와 같은 모양
    (.month-nav__arrow)을 쓴다. 넘긴다는 일이 같으면 단추도 같아야 한다.
    주말 빛깔과 오늘 동그라미도 달력 화면의 잣대를 그대로 가져왔다. */
-.daygrid {
+/* 연월 격자(.cal-frame)도 같은 테를 쓴다. 둘을 바꿔 끼우는 자리에서
+   테가 사라지면 속이 허공에 뜬 것처럼 읽히고 자리가 흔들린다. */
+.daygrid,
+.cal-frame {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
@@ -3320,8 +3323,13 @@ button {
 }
 
 /* 줄을 긋고 아래에 따로 둔다. 연월 선택기의 비우기와 같은 자리, 같은 꼴이다.
-   둘이 서면 자리를 고루 나눈다. */
-.dp-foot {
+   둘이 서면 자리를 고루 나눈다.
+
+   시각 선택기의 [지금]도 같은 자리에 같은 꼴로 선다(191절). 값을 따로 적어
+   두 벌로 두면 언젠가 한쪽만 고쳐져, 같은 앱 안에서 [오늘]과 [지금]의 글씨가
+   달라진다. 한 벌로 적는다. */
+.dp-foot,
+.tp-foot {
   display: flex;
   gap: 4px;
   margin-top: 8px;
@@ -3329,7 +3337,8 @@ button {
   border-top: 1px solid var(--color-border);
 }
 
-.dp-foot__btn {
+.dp-foot__btn,
+.tp-foot__btn {
   flex: 1 1 0;
   height: 30px;
   min-height: 30px;
@@ -3344,7 +3353,8 @@ button {
   cursor: pointer;
 }
 
-.dp-foot__btn:hover {
+.dp-foot__btn:hover,
+.tp-foot__btn:hover {
   background: color-mix(in srgb, var(--color-primary) 8%, transparent);
   color: var(--color-primary);
 }
@@ -3812,19 +3822,6 @@ button {
   padding-left: 2px;
 }
 
-/* 날짜와 시간 입력의 네이티브 아이콘이 폭을 밀지 않도록 */
-.edit-field__control input[type="date"],
-.edit-field__control input[type="time"] {
-  padding-right: 6px;
-}
-
-.edit-field__control input[type="date"]::-webkit-calendar-picker-indicator,
-.edit-field__control input[type="time"]::-webkit-calendar-picker-indicator {
-  margin-left: 0;
-  padding: 0;
-  opacity: 0.55;
-  cursor: pointer;
-}
 
 /* 셀렉트 표시부의 값과 플레이스홀더도 같은 크기로 */
 .edit-field__control .ms-value,
@@ -23395,3 +23392,110 @@ textarea.admin-area:focus {
 .admin-more-all__btn:hover {
   color: var(--color-text-primary);
 }
+
+/* ─────────────────────────────────────────────
+   191. 시각 선택기(2026-10-26)
+   ───────────────────────────────────────────── */
+
+/* 브라우저가 주는 시간 칸은 기기마다 생김새가 다르고, 크롬과 엣지에서는
+   a.m., p.m.을 자판으로만 바꾼다. 웹 앱에는 자판이 없어 그 자리를 비운 채로
+   둘 수밖에 없었다. 날짜와 연월을 앱의 것으로 바꾼 것(날짜 선택기, 연월
+   선택기)과 같은 까닭이다. 판은 다른 선택기와 같은 틀(.ms-dropdown)을 쓰고,
+   안에 굴리는 세 줄과 [지금]만 새로 둔다.
+
+   열두 시와 예순 분을 모두 늘어놓으면 숫자가 벽을 이룬다. 굴려서 가운데
+   띠에 세우는 꼴이라 1분씩 끊는 자리(관리자 배치)도 같은 높이에 담긴다. */
+.tp-panel {
+  overflow: hidden;
+  padding: 8px;
+}
+
+/* 세 줄을 나란히. 시, 분, a.m./p.m. 차례다. 다섯 칸이 보이는 높이로 가둔다. */
+.tp-dial {
+  --tp-item: 34px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  height: calc(var(--tp-item) * 5);
+}
+
+/* 가운데 띠. 여기에 선 것이 고른 것이다. 굴림을 가로막지 않도록 비킨다. */
+.tp-dial__band {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: var(--tp-item);
+  transform: translateY(-50%);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
+  pointer-events: none;
+}
+
+/* 아직 아무것도 고르지 않았으면 띠를 옅게 둔다. 띠가 또렷하면 가운데 선
+   숫자가 이미 적힌 값처럼 읽힌다. */
+.tp-panel--empty .tp-dial__band {
+  background: color-mix(in srgb, var(--color-text-tertiary) 10%, transparent);
+}
+
+/* 굴러가는 한 줄. 위아래 여백은 첫 칸과 끝 칸도 가운데에 설 수 있게 하는
+   자리다. (줄 높이 - 칸 높이) / 2만큼이다. */
+.tp-wheel {
+  position: relative;
+  overflow-y: auto;
+  padding: calc(var(--tp-item) * 2) 0;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  /* 위아래로 갈수록 흐려진다. 가운데가 지금 고르는 자리임을 글씨로 적지
+     않고 알린다. */
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent 0, #000 26%, #000 74%, transparent 100%);
+  mask-image: linear-gradient(to bottom,
+    transparent 0, #000 26%, #000 74%, transparent 100%);
+}
+
+.tp-wheel::-webkit-scrollbar {
+  display: none;
+}
+
+.tp-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--tp-item);
+  min-height: var(--tp-item);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1;
+  scroll-snap-align: center;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.12s ease;
+}
+
+.tp-item:hover {
+  color: var(--color-text-secondary);
+}
+
+/* 띠에 선 칸. 한 급 키우고 물들여, 굴리는 동안에도 어디에 와 있는지 보인다. */
+.tp-item.on {
+  color: var(--color-primary);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+}
+
+.tp-panel--empty .tp-item.on {
+  color: var(--color-text-secondary);
+}
+
+/* [지금]의 자리와 꼴은 날짜 선택기의 [오늘]과 한 벌로 적었다(위의 날짜
+   선택기 절). 여기서 또 적지 않는다. */
+

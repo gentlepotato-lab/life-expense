@@ -24,6 +24,7 @@ import GroupMakePopup from "./components/GroupMakePopup";
 import type { ReceiptRow } from "../utils/receipt";
 import MemoPad from "./components/MemoPad";
 import AddButton from "./components/AddButton";
+import TimePicker from "./components/TimePicker";
 import PerfExcludeButton from "./components/PerfExcludeButton";
 import FixedMark from "./components/FixedMark";
 import { BulbOnIcon, BulbOffIcon } from "./components/SkipIcons";
@@ -166,8 +167,10 @@ export default function EntriesScheduled() {
   // 장소 선택. 편집 팝업(draft)과 신규 등록 폼(form) 중 어디에 반영할지
   const [placePickerFor, setPlacePickerFor] = useState<"draft" | "form" | null>(null);
 
-  /* 뒤로 가기, Backspace로 지금 열린 것만 닫는다. */
-  useBackClose(showForm, () => setShowForm(false));
+  /* 새 정기 지출 팝업의 뒤로 가기는 CardEditModal이 제 몫으로 건다.
+     여기서 또 걸면 한 팝업에 귀가 둘이 되어, 고르개를 닫을 때 걷는 울림을
+     앞의 귀가 삼키고 뒤의 귀가 그것을 진짜 뒤로 가기로 알아 팝업까지 닫았다.
+     날을 선택하면 팝업이 닫히던 것이 이것이었다. */
 
   /* 폼을 닫고 적던 값을 비운다. 바깥을 눌러 닫을 때와 [닫기]가 같게 움직인다. */
   const closeForm = useCallback(() => {
@@ -183,22 +186,19 @@ export default function EntriesScheduled() {
   const [formPlace, setFormPlace] = useState<any | null>(null);
   const [formPlaceName, setFormPlaceName] = useState("");
 
-  // 팝업 열림/닫힘 시 배경 스크롤 제어
+  /* 팝업이 떠 있는 동안 뒤 화면 스크롤을 막는다. 내역, 대기 내역과 같은 꼴이다.
+     여기만 body에 pointer-events: none까지 걸었는데, 그러면 팝업이 떠 있어도
+     눌려야 하는 계산기 단추까지 함께 막혔다. 떠 있는 단추를 비키게 하는 일은
+     CSS가 .popup-overlay를 보고 이미 하고 있다(183절). */
   useEffect(() => {
     if (showForm || draft || placePickerFor) {
       document.documentElement.classList.add("modal-open");
-      // showForm일 때만 pointerEvents 설정(쓰기와 계산기 팝업은 QuickActions가 따로 맡는다)
-      if (showForm) {
-        document.body.style.pointerEvents = "none";
-      }
     } else {
       document.documentElement.classList.remove("modal-open");
-      document.body.style.pointerEvents = "auto";
     }
 
     return () => {
       document.documentElement.classList.remove("modal-open");
-      document.body.style.pointerEvents = "auto";
     };
   }, [showForm, draft, placePickerFor]);
 
@@ -918,13 +918,10 @@ export default function EntriesScheduled() {
               </EditField>
 
               <EditField label="시간" span={6} required>
-                <input
-                  type="time"
-                  name="time"
+                <TimePicker
                   value={form.time}
-                  onChange={handleChange}
-                  className="ui-input"
-                  step="300"
+                  onChange={(v) => setForm({ ...form, time: v })}
+                  step={5}
                 />
               </EditField>
             </>
@@ -1244,11 +1241,10 @@ export default function EntriesScheduled() {
               </EditField>
 
               <EditField label="시간" span={6} required>
-                <input
-                  type="time"
+                <TimePicker
                   value={draft.time || toTimeString(draft.hour, draft.minute)}
-                  onChange={(e) => setField("time", e.target.value)}
-                  step="300"
+                  onChange={(v) => setField("time", v)}
+                  step={5}
                 />
               </EditField>
             </>

@@ -5,7 +5,8 @@ import { visible } from "../../utils/visible";
 import { apiErrorMessage } from "../../utils/apiError";
 import { loadKakaoMap, 장소찾기적기, 지도적기 } from "../../utils/kakaoMap";
 import DayGrid from "./DayGrid";
-import { todayStr, viewOf, type View } from "../../utils/day";
+import MonthGrid from "./MonthGrid";
+import { todayStr, viewOf, ymOfView, type View } from "../../utils/day";
 import { formatDateLabel } from "../../utils/dateGroup";
 import { say } from "../../utils/notify";
 /**
@@ -73,6 +74,10 @@ export default function WriteSlideModal({
   const [txDate, setTxDate] = useState(todayStr);
   /* 달력이 펼쳐 보이는 달. 달력 쪽이 밖에서 쥐도록 바뀌어 여기서 들고 있다. */
   const [calView, setCalView] = useState<View>(() => viewOf(todayStr()));
+  /* 달력의 머리를 누르면 연월 격자로 바꿔 끼운다. 날 선택기와 같은 짜임이다
+     (DayPicker.tsx). 열두 달 앞뒤를 화살표로만 넘기면 지난해 날을 적을 때
+     열두 번을 눌러야 한다. */
+  const [calMode, setCalMode] = useState<"day" | "month">("day");
   const [cat1, setCat1] = useState<Cat1 | null>(null);
   const [cat2, setCat2] = useState<Cat2 | null>(null);
   const [cat3, setCat3] = useState<Cat3 | null>(null);
@@ -344,12 +349,29 @@ export default function WriteSlideModal({
               <div className="ws-lab">날짜</div>
               {/* 달력을 바로 펼친다. 날짜는 이미 오늘로 잡혀 있으니 여기까지
                   돌아온 사람은 다른 날을 선택하러 온 것이다. */}
-              <DayGrid
-                value={txDate}
-                view={calView}
-                onView={setCalView}
-                onPick={(d) => pickAnd(() => setTxDate(d))}
-              />
+              {calMode === "day" ? (
+                <DayGrid
+                  value={txDate}
+                  view={calView}
+                  onView={setCalView}
+                  onPick={(d) => pickAnd(() => setTxDate(d))}
+                  onHeadClick={() => setCalMode("month")}
+                />
+              ) : (
+                /* 달을 선택하면 값이 바뀌는 것이 아니라 그 달로 넘어간다.
+                   여기서 선택하려던 것은 어디까지나 하루다. */
+                <div className="cal-frame">
+                  <MonthGrid
+                    year={calView.y}
+                    onYear={(y) => setCalView({ ...calView, y })}
+                    value={ymOfView(calView)}
+                    onPick={(ym) => {
+                      setCalView({ y: Number(ym.slice(0, 4)), m: Number(ym.slice(4)) });
+                      setCalMode("day");
+                    }}
+                  />
+                </div>
+              )}
             </>
           )}
 

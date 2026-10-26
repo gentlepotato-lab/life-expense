@@ -209,6 +209,8 @@ export default function EntriesPending() {
     }));
     setRows(mapped);
     setAllRows(mapped);
+    /* 갓 받은 줄을 돌려준다. 조건을 다시 거는 쪽이 상태를 기다리지 않게.*/
+    return mapped;
   };
 
   useEffect(() => {
@@ -405,11 +407,11 @@ export default function EntriesPending() {
       await api.put(`/entries-pending/${draft.entry_id}/splits`, cleanSplits);
       closeEditor();
       say.ok("저장 완료-!! ;-)");
-      await loadData();
+      const 받은줄 = await loadData();
 
       // 필터가 활성화되어 있으면 다시 적용
       if (isFilterActive) {
-        applyFilter();
+        applyFilter(받은줄);
       }
     } catch (err) {
       console.error(err);
@@ -551,11 +553,11 @@ export default function EntriesPending() {
       setPickedIds(new Set());
 
       // 데이터 다시 로드(sended = 0인 항목만 표시됨)
-      await loadData();
+      const 받은줄 = await loadData();
 
       // 필터가 활성화되어 있으면 다시 적용
       if (isFilterActive) {
-        applyFilter();
+        applyFilter(받은줄);
       }
     } catch (err) {
       console.error(err);
@@ -875,11 +877,13 @@ export default function EntriesPending() {
     setFilterOpen(false);
   };
 
-  const applyFilter = () => {
+  /* 거를 줄을 넘겨받으면 그것으로 거른다. 상태로 든 allRows는 loadData가
+     막 바꾼 뒤에도 지난 값이라, 다시 받고 바로 거를 때는 넘겨받아야 한다. */
+  const applyFilter = (source?: typeof allRows) => {
     /* 초안을 그대로 확정한다. 여기부터 화면에 반영된다. */
     setAppliedFilter(filter);
 
-    let filtered = [...allRows];
+    let filtered = [...(source ?? allRows)];
 
     if (filter.dateFrom) {
       filtered = filtered.filter((r) => r.tx_date >= filter.dateFrom);
@@ -1069,7 +1073,9 @@ export default function EntriesPending() {
             picked.map((r) => r.entry_id)
           );
           setPickedIds(new Set());
-          await loadData();
+          const 받은줄 = await loadData();
+          /* 통째로 다시 받으면 걸어 놓은 조건이 풀린다. 다시 건다. */
+          if (isFilterActive) applyFilter(받은줄);
           if (실패 === 0) say.ok(`${성공}건을 제거했습니다.`);
           else if (성공 === 0) say.bad("제거하지 못했습니다. 다시 시도해 주세요.");
           else say.warn(`${성공}건을 제거했습니다. ${실패}건은 제거하지 못했습니다.`);
@@ -1417,7 +1423,7 @@ export default function EntriesPending() {
               <button className="ui-btn" onClick={closeFilter}>
                 닫기
               </button>
-              <button className="ui-btn primary" onClick={applyFilter}>
+              <button className="ui-btn primary" onClick={() => applyFilter()}>
                 적용
               </button>
             </div>
