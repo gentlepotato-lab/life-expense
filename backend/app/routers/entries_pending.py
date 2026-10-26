@@ -75,7 +75,7 @@ def load_meta_maps(db):
 def set_perf_exclude(entry_id: int, value: int = Query(...), db: SessionDep = Depends()):
     """카드 실적에서 뺄지를 켜고 끈다. 지출 내역과 같은 자리다."""
     result = db.execute(text("""
-        UPDATE life_expense.pending_entries
+        UPDATE life_expense.entries_pending
            SET perf_exclude = :v
          WHERE entry_id = :id
     """), {"v": 1 if value else 0, "id": entry_id})
@@ -87,7 +87,7 @@ def set_fixed(entry_id: int, value: str = Query(...), db: SessionDep = Depends()
     """이 건이 고정인지 변동인지를 손으로 정한다. 지출 내역과 같은 자리다."""
     v = None if value == "" else (1 if value in ("1", "true", "fixed") else 0)
     result = db.execute(text("""
-        UPDATE life_expense.pending_entries
+        UPDATE life_expense.entries_pending
            SET fixed_flag = :v
          WHERE entry_id = :id
     """), {"v": v, "id": entry_id})
@@ -95,7 +95,7 @@ def set_fixed(entry_id: int, value: str = Query(...), db: SessionDep = Depends()
     return {"status": "ok", "updated": result.rowcount}
 
 @router.get("")
-def list_pending_entries(db: SessionDep = Depends()):
+def list_entries_pending(db: SessionDep = Depends()):
     sql = text("""
         SELECT p.*
              , pl.place_name
@@ -120,17 +120,17 @@ def list_pending_entries(db: SessionDep = Depends()):
              , eg.name AS group_name
              , COALESCE(
                    (SELECT array_agg(DISTINCT s.counterpart_id)
-                      FROM life_expense.pending_entry_splits s
+                      FROM life_expense.entries_pending_splits s
                      WHERE s.pending_id = p.entry_id
                        AND s.counterpart_id IS NOT NULL),
                    '{}'
                ) AS counterpart_ids
-        FROM life_expense.pending_entries p
+        FROM life_expense.entries_pending p
         LEFT JOIN life_expense.places pl
                ON p.place_id = pl.place_id
-        LEFT JOIN life_expense.v_pending_entries_net vn
+        LEFT JOIN life_expense.v_entries_pending_net vn
                ON vn.entry_id = p.entry_id
-        LEFT JOIN life_expense.entry_groups eg
+        LEFT JOIN life_expense.entries_groups eg
                ON eg.group_id = p.group_id
         WHERE p.sended = 0
         ORDER BY p.tx_date DESC, p.entry_id DESC
@@ -148,7 +148,7 @@ def _carry_splits(db, pending_id: int, entry_id: int) -> None:
     copy_splits(db, PendingEntrySplit, "pending_id", pending_id,
                 EntrySplit, "entry_id", entry_id)
 
-@router.post("/send/{entry_id}")
+@router.post("/{entry_id}/send")
 def send_pending(entry_id: int, db: SessionDep = Depends()):
 
     p = db.get(PendingEntry, entry_id)
@@ -177,8 +177,8 @@ def send_pending(entry_id: int, db: SessionDep = Depends()):
 
     return {"status": "ok", "entry_id": new_entry.entry_id}
 
-@router.post("/send-all")
-def send_all_pending(db: SessionDep = Depends()):
+@router.post("/send")
+def send_all_entries_pending(db: SessionDep = Depends()):
     """모든 pending entries를 entries로 전송(sended = 0인 항목만)"""
     
     # sended = 0인 모든 pending entries 조회
@@ -218,8 +218,8 @@ def send_all_pending(db: SessionDep = Depends()):
 class SendFilteredRequest(BaseModel):
     entry_ids: List[int]
 
-@router.post("/send-filtered")
-def send_filtered_pending(payload: SendFilteredRequest, db: SessionDep = Depends()):
+@router.post("/send/filtered")
+def send_filtered_entries_pending(payload: SendFilteredRequest, db: SessionDep = Depends()):
     """필터링된 pending entries를 entries로 전송"""
     
     if not payload.entry_ids:
@@ -402,7 +402,7 @@ def bulk_update_pending(payload: List[PendingUpdate], db: SessionDep = Depends()
 
         # ---- UPDATE 실행 ----
         sql = text("""
-            UPDATE life_expense.pending_entries
+            UPDATE life_expense.entries_pending
                SET tx_date=:tx_date,
                    cat1_id=:cat1_id,
                    cat2_id=:cat2_id,
@@ -507,9 +507,9 @@ def update_pending(entry_id: int, payload: PendingUpdate, db: SessionDep = Depen
         db.flush()
         place_id = new_place.place_id
 
-    # ⑤ pending_entries UPDATE
+    # ⑤ entries_pending UPDATE
     sql = text("""
-        UPDATE life_expense.pending_entries
+        UPDATE life_expense.entries_pending
            SET tx_date=:tx_date,
                cat1_id=:cat1_id,
                cat2_id=:cat2_id,
@@ -543,7 +543,7 @@ def update_pending(entry_id: int, payload: PendingUpdate, db: SessionDep = Depen
 @router.delete("/{entry_id}")
 def delete_pending(entry_id: int, db: SessionDep = Depends()):
     db.execute(
-        text("DELETE FROM life_expense.pending_entries WHERE entry_id = :id"),
+        text("DELETE FROM life_expense.entries_pending WHERE entry_id = :id"),
         {"id": entry_id}
     )
     db.commit()

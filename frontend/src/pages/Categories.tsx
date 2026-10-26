@@ -341,7 +341,7 @@ export default function Categories() {
 
     // 실패하면 알린다. 편집 상태도 그대로 두어 다시 저장할 수 있게 한다.
     axios
-      .post("/categories/save", payload)
+      .put("/categories", payload)
       .then(() => {
         say.ok("저장 완료-!! ;-)");
         setEditMode(false);
@@ -391,7 +391,7 @@ export default function Categories() {
       if (existCat1) {
         cat1_id = existCat1.cat1_id;
       } else {
-        const res1 = await axios.post("/categories/add/lvl1", null, {
+        const res1 = await axios.post("/categories/lvl1", null, {
           params: { name: cat1Name }
         });
         cat1_id = res1.data.cat1_id;
@@ -405,7 +405,7 @@ export default function Categories() {
       if (existCat2) {
         cat2_id = existCat2.cat2_id;
       } else {
-        const res2 = await axios.post("/categories/add/lvl2", null, {
+        const res2 = await axios.post("/categories/lvl2", null, {
           params: { cat1_id, name: cat2Name }
         });
         cat2_id = res2.data.cat2_id;
@@ -417,7 +417,7 @@ export default function Categories() {
           c => c.cat2_id === cat2_id && c.cat3_name === cat3Name
         );
         if (!existCat3) {
-          await axios.post("/categories/add/lvl3", null, {
+          await axios.post("/categories/lvl3", null, {
             params: { cat2_id, name: cat3Name }
           });
         } else {
@@ -456,7 +456,7 @@ export default function Categories() {
             c => c.cat2_id === cat2_id && c.cat3_name === cat3Name
           );
           if (!existCat3) {
-            await axios.post("/categories/add/lvl3", null, {
+            await axios.post("/categories/lvl3", null, {
               params: { cat2_id, name: cat3Name }
             });
             say.ok("추가 완료-!! ;-)");
@@ -476,14 +476,14 @@ export default function Categories() {
       }
 
       // 소분류 자체가 없으면 새로 추가
-      const res2 = await axios.post("/categories/add/lvl2", null, {
+      const res2 = await axios.post("/categories/lvl2", null, {
         params: { cat1_id: selectedCat1ForAdd, name: cat2Name }
       });
       cat2_id = res2.data.cat2_id;
 
       // 세분류가 있다면 이어서 생성
       if (cat3Name) {
-        await axios.post("/categories/add/lvl3", null, {
+        await axios.post("/categories/lvl3", null, {
           params: { cat2_id, name: cat3Name }
         });
       }
@@ -507,7 +507,7 @@ export default function Categories() {
         c => c.cat2_id === selectedCat2ForAdd && c.cat3_name === cat3Name
       );
       if (!existCat3) {
-        await axios.post("/categories/add/lvl3", null, {
+        await axios.post("/categories/lvl3", null, {
           params: { cat2_id: selectedCat2ForAdd, name: cat3Name }
         });
         say.ok("추가 완료-!! ;-)");
@@ -577,7 +577,7 @@ export default function Categories() {
       return;
 
     try {
-      await axios.delete("/categories/delete/lvl1", { params: { cat1_id } });
+      await axios.delete("/categories/lvl1", { params: { cat1_id } });
       refreshListsAll();
       say.ok("제거 완료-!! ;-)");
     } catch (err: any) {
@@ -602,7 +602,7 @@ export default function Categories() {
       return;
 
     try {
-      await axios.delete("/categories/delete/lvl2", { params: { cat2_id } });
+      await axios.delete("/categories/lvl2", { params: { cat2_id } });
       refreshListsAll();
       say.ok("제거 완료-!! ;-)");
       setSelectedCat2ForAdd(null);
@@ -628,7 +628,7 @@ export default function Categories() {
       return;
 
     try {
-      await axios.delete("/categories/delete/lvl3", { params: { cat3_id } });
+      await axios.delete("/categories/lvl3", { params: { cat3_id } });
       refreshListsAll();
       say.ok("제거 완료-!! ;-)");
     } catch (err: any) {

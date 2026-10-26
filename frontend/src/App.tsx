@@ -2,8 +2,8 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Write from "./pages/Write";
 import Entries from "./pages/Entries";
-import PendingEntries from "./pages/PendingEntries";
-import ScheduledEntries from "./pages/ScheduledEntries";
+import EntriesPending from "./pages/EntriesPending";
+import EntriesScheduled from "./pages/EntriesScheduled";
 import Categories from "./pages/Categories";
 import PaymentMethods from "./pages/PaymentMethods";
 import Counterparts from "./pages/Counterparts";
@@ -11,8 +11,8 @@ import Goals from "./pages/Goals";
 import Me from "./pages/Me";
 import Places from "./pages/Places";
 import Calendar from "./pages/Calendar";
-import EntryGroups from "./pages/EntryGroups";
-import CalendarDetail from "./pages/CalendarDetail";
+import EntriesGroups from "./pages/EntriesGroups";
+import PeriodDetail from "./pages/PeriodDetail";
 import Home from "./pages/Home";
 import Nudges from "./pages/Nudges";
 import Notices from "./pages/Notices";
@@ -155,15 +155,15 @@ function App() {
         {/* 지출 내역 페이지 */}
         <Route path="/entries" element={<Entries />} />
         {/* 대기 내역 페이지 */}
-        <Route path="/pending-entries" element={<PendingEntries />} />
+        <Route path="/entries-pending" element={<EntriesPending />} />
         {/* 정기 내역 페이지 */}
-        <Route path="/scheduled-entries" element={<ScheduledEntries />} />
+        <Route path="/entries-scheduled" element={<EntriesScheduled />} />
         {/* 달력 페이지 */}
         <Route path="/calendar" element={<Calendar />} />
 
-        <Route path="/entry-groups" element={<EntryGroups />} />
+        <Route path="/entries-groups" element={<EntriesGroups />} />
         {/* 달력에서 선택한 기간의 상세. 달력에 딸린 화면이다. */}
-        <Route path="/calendar/detail" element={<CalendarDetail />} />
+        <Route path="/calendar/detail" element={<PeriodDetail />} />
         {/* 설정 탭 첫 화면 */}
         <Route path="/settings" element={<Settings />} />
         {/* 분류 페이지 */}
@@ -191,7 +191,7 @@ function App() {
             드는 내역을 죽 늘어놓는 일) 같은 부품을 쓴다. 주소를 따로 두는
             까닭은 소속 때문이다. 이름표도 돌아갈 곳도 아래 막대가 켜는
             묶음도 씀씀이 것이어야 한다. */}
-        <Route path="/charts/detail" element={<CalendarDetail />} />
+        <Route path="/charts/detail" element={<PeriodDetail />} />
         <Route path="/nudges" element={<Nudges />} />
         {/* 공지사항. 홈의 띠가 띄우는 것까지 지난 것을 모두 모은다. */}
         <Route path="/notices" element={<Notices />} />

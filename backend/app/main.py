@@ -5,24 +5,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.routers import (
-    action_logs,
+    logs_action,
     admin,
     categories,
     charts,
     counterparts,
-    doodle_items,
+    doodles,
     entries,
-    entry_groups,
+    entries_groups,
     exports,
     goals,
     holidays,
     notices,
     nudges,
     payment_methods,
-    pending_entries,
+    entries_pending,
     places,
     profile,
-    scheduled_entries,
+    entries_scheduled,
     splits,
     write_slide,
 )
@@ -56,7 +56,7 @@ def add_inout_columns():
         print(f"⚠️ 컬럼 작업 중 오류 (이미 적용되어 있을 수 있음): {e}")
 
 @app.on_event("startup")
-def create_entry_groups():
+def create_entries_groups():
     """묶음 테이블과, 세 내역 테이블에 묶음을 가리키는 컬럼을 만든다.
 
     이미 있으면 아무 일도 하지 않는다(IF NOT EXISTS). 묶음을 풀 때 담겨
@@ -65,7 +65,7 @@ def create_entry_groups():
     try:
         with engine.connect() as conn:
             conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS life_expense.entry_groups (
+                CREATE TABLE IF NOT EXISTS life_expense.entries_groups (
                     group_id   SERIAL PRIMARY KEY,
                     name       VARCHAR(60) NOT NULL,
                     memo       VARCHAR(200),
@@ -76,8 +76,8 @@ def create_entry_groups():
             """))
             for table, index in (
                 ("entries", "ix_entries_group"),
-                ("pending_entries", "ix_pending_group"),
-                ("scheduled_entries", "ix_scheduled_group"),
+                ("entries_pending", "ix_entries_pending_group"),
+                ("entries_scheduled", "ix_entries_scheduled_group"),
             ):
                 conn.execute(text(f"""
                     ALTER TABLE life_expense.{table}
@@ -90,8 +90,8 @@ def create_entry_groups():
             # 제약은 IF NOT EXISTS가 없다. 이름으로 있는지 보고 없을 때만 건다.
             for table, fk in (
                 ("entries", "fk_entries_group"),
-                ("pending_entries", "fk_pending_group"),
-                ("scheduled_entries", "fk_scheduled_group"),
+                ("entries_pending", "fk_entries_pending_group"),
+                ("entries_scheduled", "fk_entries_scheduled_group"),
             ):
                 exists = conn.execute(text("""
                     SELECT 1 FROM pg_constraint WHERE conname = :fk
@@ -100,7 +100,7 @@ def create_entry_groups():
                     conn.execute(text(f"""
                         ALTER TABLE life_expense.{table}
                         ADD CONSTRAINT {fk} FOREIGN KEY (group_id)
-                            REFERENCES life_expense.entry_groups (group_id)
+                            REFERENCES life_expense.entries_groups (group_id)
                             ON DELETE SET NULL
                     """))
             conn.commit()
@@ -131,8 +131,8 @@ API = "/api"
 #   /api/payment-methods   payment_methods.py    PaymentMethods.tsx
 #   /api/counterparts      counterparts.py       Counterparts.tsx
 #   /api/entries           entries.py            Entries.tsx
-#   /api/pending-entries   pending_entries.py    PendingEntries.tsx
-#   /api/scheduled-entries scheduled_entries.py  ScheduledEntries.tsx
+#   /api/entries-pending   entries_pending.py    EntriesPending.tsx
+#   /api/entries-scheduled entries_scheduled.py  EntriesScheduled.tsx
 #   /api/places            places.py             components/PlacePicker.tsx
 #   /api/holidays          holidays.py           (화면 없음)
 #
@@ -146,9 +146,9 @@ app.include_router(goals.router, prefix=f"{API}/goals", tags=["goals"])
 app.include_router(charts.router, prefix=f"{API}/charts", tags=["charts"])
 app.include_router(profile.router, prefix=f"{API}/profile", tags=["profile"])
 app.include_router(entries.router, prefix=f"{API}/entries", tags=["entries"])
-app.include_router(entry_groups.router, prefix=f"{API}/entry-groups", tags=["entry_groups"])
-app.include_router(pending_entries.router, prefix=f"{API}/pending-entries", tags=["pending_entries"])
-app.include_router(scheduled_entries.router, prefix=f"{API}/scheduled-entries", tags=["scheduled_entries"])
+app.include_router(entries_groups.router, prefix=f"{API}/entries-groups", tags=["entries_groups"])
+app.include_router(entries_pending.router, prefix=f"{API}/entries-pending", tags=["entries_pending"])
+app.include_router(entries_scheduled.router, prefix=f"{API}/entries-scheduled", tags=["entries_scheduled"])
 app.include_router(places.router, prefix=f"{API}/places", tags=["places"])
 app.include_router(holidays.router, prefix=f"{API}/holidays", tags=["holidays"])
 # 잔소리. 부를 때 세어 돌려준다. 적는 것은 없다(app/nudgecalc.py).
@@ -156,18 +156,18 @@ app.include_router(nudges.router, prefix=f"{API}/nudges", tags=["nudges"])
 # 공지사항. 홈 위쪽 띠가 읽는다. 적는 것은 관리자 사이트가 맡는다.
 app.include_router(notices.router, prefix=f"{API}/notices", tags=["notices"])
 # 애니메이션 문구. 쪽지와 앞머리 화면이 읽는다.
-app.include_router(doodle_items.router, prefix=f"{API}/doodle-items", tags=["doodle_items"])
+app.include_router(doodles.router, prefix=f"{API}/doodles", tags=["doodles"])
 # 행동 기록. 화면이 모아 보낸 것을 적기만 한다. 보는 길은 관리자 쪽이다.
-app.include_router(action_logs.router, prefix=f"{API}/action-logs", tags=["action_logs"])
+app.include_router(logs_action.router, prefix=f"{API}/logs-action", tags=["logs_action"])
 # 관리자 사이트. GET /prefs 하나만 암호 없이 열려 있다(app/routers/admin.py).
 app.include_router(admin.router, prefix=f"{API}/admin", tags=["admin"])
 # 화면마다 걸린 조건 그대로 엑셀로 내보낸다.
-app.include_router(exports.router, prefix=f"{API}/export", tags=["export"])
+app.include_router(exports.router, prefix=f"{API}/exports", tags=["export"])
 
 # 금액 쪼개기. 세 자원에 똑같이 /{id}/splits로 붙는다.
 app.include_router(splits.router, prefix=f"{API}/entries", tags=["splits"])
-app.include_router(splits.pending_router, prefix=f"{API}/pending-entries", tags=["splits"])
-app.include_router(splits.scheduled_router, prefix=f"{API}/scheduled-entries", tags=["splits"])
+app.include_router(splits.pending_router, prefix=f"{API}/entries-pending", tags=["splits"])
+app.include_router(splits.scheduled_router, prefix=f"{API}/entries-scheduled", tags=["splits"])
 
 # 쓰기 슬라이드(beta). 시범 기능이라 길을 한자리에 모았다.
 # 접을 때는 이 한 줄만 걷으면 된다.

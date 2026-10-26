@@ -8,24 +8,24 @@ logger = logging.getLogger(__name__)
 def run_monthly_cleanup():
     """
     매월 1회 실행되는 데이터 정리 작업
-    - pending_entries 테이블에서 sended=1인 행 삭제 → 전송 완료된 항목
-    - action_logs에서 90일이 지난 행 삭제 → 관리자 사이트가 보는 기록
-    - admin_sessions에서 90일이 지나 닫힌 행 삭제 → 로그인 기록
+    - entries_pending 테이블에서 sended=1인 로우 삭제 → 전송 완료된 항목
+    - logs_action에서 90일이 지난 로우 삭제 → 관리자 사이트가 보는 기록
+    - sessions_admin에서 90일이 지나 닫힌 로우 삭제 → 로그인 기록
 
-    정기 내역(scheduled_entries)은 더 이상 여기서 지우지 않는다. 아래 주석을
+    정기 내역(entries_scheduled)은 더 이상 여기서 지우지 않는다. 아래 주석을
     보라. is_active의 뜻이 바뀌었다.
     """
     db: Session = SessionLocal()
 
     try:
-        # 1. pending_entries에서 sended=1인 행 삭제
+        # 1. entries_pending에서 sended=1인 로우 삭제
         result_pending = db.execute(text("""
-            DELETE FROM life_expense.pending_entries
+            DELETE FROM life_expense.entries_pending
                 WHERE sended = 1
         """))
         deleted_pending = result_pending.rowcount
 
-        # 2. scheduled_entries에서 is_active=0인 행 삭제, 걷었다(2026-10-01)
+        # 2. entries_scheduled에서 is_active=0인 로우 삭제, 걷었다(2026-10-01)
         #
         # is_active = 0 은 예전에 "지워진 스케줄"이라는 뜻이었고, 이 자리가
         # 그것을 한 달에 한 번 실제로 지웠다. 이제 그 값은 "감춘 스케줄"을
@@ -33,34 +33,34 @@ def run_monthly_cleanup():
         # 감춰진 것도 여기 든다. 그대로 두면 감춘 항목이 20일마다 소리 없이
         # 사라진다.
         #
-        # 지우는 일은 이제 DELETE /api/scheduled-entries/{id} 한 곳에서만
+        # 지우는 일은 이제 DELETE /api/entries-scheduled/{id} 한 곳에서만
         # 일어난다. 되살릴 여지를 두지 않고 그 자리에서 아주 지운다.
         #
         # result_scheduled = db.execute(text("""
-        #     DELETE FROM life_expense.scheduled_entries
+        #     DELETE FROM life_expense.entries_scheduled
         #         WHERE is_active = 0
         # """))
         # deleted_scheduled = result_scheduled.rowcount
 
-        # 3. action_logs에서 90일이 지난 행 삭제
+        # 3. logs_action에서 90일이 지난 로우 삭제
         #
         # 대시보드가 묻는 기간은 길어야 석 달이다. 그보다 오래된 줄은 아무도
-        # 보지 않으면서 테이블만 불린다. 지우는 차례가 ix_action_logs_when의
+        # 보지 않으면서 테이블만 불린다. 지우는 차례가 ix_logs_action_when의
         # 첫 칸과 같아 훑는 값도 싸다.
         result_logs = db.execute(text("""
-            DELETE FROM life_expense.action_logs
+            DELETE FROM life_expense.logs_action
                 WHERE created_at < now() - interval '90 days'
         """))
         deleted_logs = result_logs.rowcount
 
-        # 4. admin_sessions에서 90일이 지나 닫힌 줄 삭제
+        # 4. sessions_admin에서 90일이 지나 닫힌 로우 삭제
         #
         # 그 줄이 곧 로그인 기록이라 들어올 때마다 걷지 않는다. 닫힌 줄만
         # 지우므로 열려 있는 기기는 건드리지 않는다. 날수는 액션 기록과 같은
         # 90일로 둔다. 관리자 쪽이 두 기록을 나란히 보여 주는데, 한쪽만 더
         # 오래 남으면 같은 기간을 보는 것이 아니게 된다.
         result_sessions = db.execute(text("""
-            DELETE FROM life_expense.admin_sessions
+            DELETE FROM life_expense.sessions_admin
                 WHERE expires_at <= now()
                   AND created_at < now() - interval '90 days'
         """))

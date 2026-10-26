@@ -40,8 +40,8 @@ class PaymentMethod(Base):
     __tablename__ = "payment_methods"
     method_id = Column(Integer, primary_key=True, autoincrement=True)
     method_name = Column(String, nullable=False, unique=True)
-    # 구분은 payment_method_categories 행을 가리킨다.
-    category_id = Column(Integer, ForeignKey("payment_method_categories.category_id", ondelete="SET NULL"))
+    # 구분은 payment_methods_categories 로우를 가리킨다.
+    category_id = Column(Integer, ForeignKey("payment_methods_categories.category_id", ondelete="SET NULL"))
     # 카드 연회비. 카드가 아닌 것은 비운다.
     annual_fee = Column(Numeric(14, 2))
     sort_order = Column(Integer, default=0, nullable=True)
@@ -58,7 +58,7 @@ class EntryGroup(Base):
     한 묶음이 둘을 섞어 담지 않는다. 섞으면 합계의 뜻이 흐려지고, 대기가
     전송되는 순간 같은 건이 두 테이블에 걸친다.
     """
-    __tablename__ = "entry_groups"
+    __tablename__ = "entries_groups"
 
     group_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(60), nullable=False)
@@ -112,7 +112,7 @@ class Entry(Base):
     # 어느 묶음에 들어 있는지. 묶음을 풀면 비워진다(SET NULL).
     group_id = Column(
         Integer,
-        ForeignKey("entry_groups.group_id", ondelete="SET NULL"),
+        ForeignKey("entries_groups.group_id", ondelete="SET NULL"),
         nullable=True,
     )
     place = relationship("Place", back_populates="entries")
@@ -132,7 +132,7 @@ class Entry(Base):
 class Place(Base):
     __tablename__ = "places"
     __table_args__ = (
-        UniqueConstraint("lat", "lng", name="uniq_place_lat_lng"),
+        UniqueConstraint("lat", "lng", name="uniq_places_lat_lng"),
     )
 
     place_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -162,13 +162,13 @@ class Place(Base):
     entries = relationship("Entry", back_populates="place")
 
 class PendingEntry(Base):
-    __tablename__ = "pending_entries"
+    __tablename__ = "entries_pending"
     # 목록은 늘 sended = 0만 본다. schedule_id는 정기 내역이 매분 중복을
     # 확인할 때 쓴다.
     __table_args__ = (
-        Index("ix_pending_sended", "sended"),
-        Index("ix_pending_schedule", "schedule_id", "tx_date"),
-        Index("ix_pending_group", "group_id"),
+        Index("ix_entries_pending_sended", "sended"),
+        Index("ix_entries_pending_schedule", "schedule_id", "tx_date"),
+        Index("ix_entries_pending_group", "group_id"),
     )
 
     entry_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -194,13 +194,13 @@ class PendingEntry(Base):
     # 이 값으로 서로를 구분한다.
     schedule_id = Column(
         Integer,
-        ForeignKey("scheduled_entries.schedule_id", ondelete="SET NULL"),
+        ForeignKey("entries_scheduled.schedule_id", ondelete="SET NULL"),
         nullable=True,
     )
     # 어느 묶음에 들어 있는지. 묶음을 풀면 비워진다(SET NULL).
     group_id = Column(
         Integer,
-        ForeignKey("entry_groups.group_id", ondelete="SET NULL"),
+        ForeignKey("entries_groups.group_id", ondelete="SET NULL"),
         nullable=True,
     )
 
@@ -250,11 +250,11 @@ class Holiday(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 class ScheduledEntry(Base):
-    __tablename__ = "scheduled_entries"
+    __tablename__ = "entries_scheduled"
     # 스케줄러가 매분 next_run_at으로 선택한다.
     __table_args__ = (
-        Index("ix_scheduled_next_run", "next_run_at"),
-        Index("ix_scheduled_group", "group_id"),
+        Index("ix_entries_scheduled_next_run", "next_run_at"),
+        Index("ix_entries_scheduled_group", "group_id"),
     )
 
     schedule_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -297,7 +297,7 @@ class ScheduledEntry(Base):
     # 어느 묶음에 들어 있는지. 묶음을 풀면 비워진다(SET NULL).
     group_id = Column(
         Integer,
-        ForeignKey("entry_groups.group_id", ondelete="SET NULL"),
+        ForeignKey("entries_groups.group_id", ondelete="SET NULL"),
         nullable=True,
     )
 
@@ -313,8 +313,8 @@ class Counterpart(Base):
 
     counterpart_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False, unique=True)
-    # 구분은 counterpart_categories 행을 가리킨다.
-    category_id = Column(Integer, ForeignKey("counterpart_categories.category_id", ondelete="SET NULL"))
+    # 구분은 counterparts_categories 로우를 가리킨다.
+    category_id = Column(Integer, ForeignKey("counterparts_categories.category_id", ondelete="SET NULL"))
     memo = Column(String(200))
     sort_order = Column(Integer, nullable=False, default=0)
     is_active = Column(SmallInteger, nullable=False, default=1)
@@ -338,10 +338,10 @@ class EntrySplit(Base):
     entries.amount는 결제 총액 그대로 두고, 실지출은 amount - SUM(splits)로 본다.
     분할은 자기 자신을 다시 쪼갤 수 없으므로 깊이는 항상 1이다.
     """
-    __tablename__ = "entry_splits"
+    __tablename__ = "entries_splits"
     # 함께한 상대를 지우기 전에 쓰임을 센다.
     __table_args__ = (
-        Index("ix_entry_splits_counterpart", "counterpart_id"),
+        Index("ix_entries_splits_counterpart", "counterpart_id"),
     )
 
     split_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -366,13 +366,13 @@ class EntrySplit(Base):
 
 class PendingEntrySplit(Base):
     """
-    Pending 단계의 분할. entry_splits와 같은 모양이다.
-    전송(send)할 때 entry_splits로 복사된다.
+    Pending 단계의 분할. entries_splits와 같은 모양이다.
+    전송(send)할 때 entries_splits로 복사된다.
     """
-    __tablename__ = "pending_entry_splits"
+    __tablename__ = "entries_pending_splits"
 
     split_id = Column(Integer, primary_key=True, autoincrement=True)
-    pending_id = Column(Integer, ForeignKey("pending_entries.entry_id", ondelete="CASCADE"), nullable=False)
+    pending_id = Column(Integer, ForeignKey("entries_pending.entry_id", ondelete="CASCADE"), nullable=False)
     amount = Column(Numeric(14, 2), nullable=False)
     split_type = Column(String(20), nullable=False, default="reimbursed")
     counterpart_id = Column(Integer, ForeignKey("counterparts.counterpart_id", ondelete="SET NULL"))
@@ -394,13 +394,13 @@ class PendingEntrySplit(Base):
 class ScheduledEntrySplit(Base):
     """
     스케줄에 거는 분할 템플릿.
-    스케줄러가 PendingEntry를 만들 때 pending_entry_splits로 복사된다.
+    스케줄러가 PendingEntry를 만들 때 entries_pending_splits로 복사된다.
     매월 나가는 지출의 N빵 설정을 한 번만 하면 계속 따라온다.
     """
-    __tablename__ = "scheduled_entry_splits"
+    __tablename__ = "entries_scheduled_splits"
 
     split_id = Column(Integer, primary_key=True, autoincrement=True)
-    schedule_id = Column(Integer, ForeignKey("scheduled_entries.schedule_id", ondelete="CASCADE"), nullable=False)
+    schedule_id = Column(Integer, ForeignKey("entries_scheduled.schedule_id", ondelete="CASCADE"), nullable=False)
     amount = Column(Numeric(14, 2), nullable=False)
     split_type = Column(String(20), nullable=False, default="reimbursed")
     counterpart_id = Column(Integer, ForeignKey("counterparts.counterpart_id", ondelete="SET NULL"))
@@ -425,7 +425,7 @@ class PaymentMethodCategory(Base):
     Categories의 중분류처럼 행으로 두어야 이모지를 그 행에 담고,
     나중에 구분별로 집계할 때 그대로 조인할 수 있다.
     """
-    __tablename__ = "payment_method_categories"
+    __tablename__ = "payment_methods_categories"
 
     category_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(40), nullable=False, unique=True)
@@ -452,7 +452,7 @@ class CounterpartCategory(Base):
     color는 헥사값이 아니라 팔레트 토큰 이름('indigo' 등)이다.
     화면의 색을 조정할 때 DB를 건드리지 않기 위해서다.
     """
-    __tablename__ = "counterpart_categories"
+    __tablename__ = "counterparts_categories"
 
     category_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(40), nullable=False, unique=True)
@@ -476,10 +476,10 @@ class CardTier(Base):
     """
     카드 실적 구간.
 
-    구간 하나에 혜택이 여럿 붙으므로 혜택은 card_benefits로 따로 뺐다.
+    구간 하나에 혜택이 여럿 붙으므로 혜택은 cards_benefits로 따로 뺐다.
     한 행에 몰아 담으면 나중에 하나만 고치거나 순서를 바꿀 수가 없다.
     """
-    __tablename__ = "card_tiers"
+    __tablename__ = "cards_tiers"
 
     tier_id = Column(Integer, primary_key=True, autoincrement=True)
     method_id = Column(Integer, ForeignKey("payment_methods.method_id", ondelete="CASCADE"), nullable=False)
@@ -495,10 +495,10 @@ class CardBenefit(Base):
     content는 항목 이름, description은 그 밑에 적는 설명이다.
     "커피 할인" 만으로는 어느 가게에서 얼마인지가 남지 않는다.
     """
-    __tablename__ = "card_benefits"
+    __tablename__ = "cards_benefits"
 
     benefit_id = Column(Integer, primary_key=True, autoincrement=True)
-    tier_id = Column(Integer, ForeignKey("card_tiers.tier_id", ondelete="CASCADE"), nullable=False)
+    tier_id = Column(Integer, ForeignKey("cards_tiers.tier_id", ondelete="CASCADE"), nullable=False)
     content = Column(String(200), nullable=False)
     description = Column(String(200))
     # 월간 통합 할인한도. 없는 혜택도 있어 비울 수 있다.
@@ -516,10 +516,10 @@ class CardBenefitTarget(Base):
     아니라 요금 종류나 결제 방식까지 담는다. `아파트 관리비, 도시가스`처럼.
     영역 구분이 없는 혜택도 있어 area는 비울 수 있다.
     """
-    __tablename__ = "card_benefit_targets"
+    __tablename__ = "cards_benefits_targets"
 
     target_id = Column(Integer, primary_key=True, autoincrement=True)
-    benefit_id = Column(Integer, ForeignKey("card_benefits.benefit_id", ondelete="CASCADE"), nullable=False)
+    benefit_id = Column(Integer, ForeignKey("cards_benefits.benefit_id", ondelete="CASCADE"), nullable=False)
     area = Column(String(60))
     detail = Column(String(400), nullable=False)
     sort_order = Column(Integer, nullable=False, default=0)
@@ -534,7 +534,7 @@ class CategoryGoal(Base):
     걸 수 있고, 채운 것 중 가장 깊은 단이 그 목표의 대상이다.
     겹쳐 걸어도 된다. 그때는 서로 나누지 않고 저마다 제 가지 아래를 통째로 센다.
     """
-    __tablename__ = "category_goals"
+    __tablename__ = "categories_goals"
 
     goal_id = Column(Integer, primary_key=True, autoincrement=True)
     cat1_id = Column(Integer, ForeignKey("categories_lvl1.cat1_id", ondelete="CASCADE"), nullable=False)
@@ -554,7 +554,7 @@ class ChartCard(Base):
     그림 자체는 코드가 들고 있고 테이블에는 열쇠와 차례만 담는다. 그래야 그림을
     새로 만들거나 고쳐도 테이블을 건드릴 일이 없다.
     """
-    __tablename__ = "chart_cards"
+    __tablename__ = "charts_cards"
 
     card_key = Column(String(40), primary_key=True)
     sort_order = Column(Integer, nullable=False, default=0)
@@ -571,7 +571,7 @@ class Profile(Base):
     지금은 혼자 쓰는 앱이라 로우가 하나뿐이다. 그래도 컬럼은 바깥 인증(구글과 카카오)이
     돌려주는 것에 맞췄다. provider가 비어 있으면 손으로 적어 넣은 것이다.
     """
-    __tablename__ = "profile"
+    __tablename__ = "profiles"
 
     profile_id = Column(Integer, primary_key=True, default=1)
     display_name = Column(String(60))
@@ -592,7 +592,7 @@ class AppPref(Base):
     화면마다 흩어져 매번 다시 눌러야 하던 것들을 한자리에 모은다.
     값은 모두 글자로 담는다. 하나 더 늘려도 테이블을 고칠 일이 없다.
     """
-    __tablename__ = "app_prefs"
+    __tablename__ = "prefs_app"
 
     pref_key = Column(String(40), primary_key=True)
     pref_value = Column(String(200), nullable=False)
@@ -607,7 +607,7 @@ class SitePref(Base):
     "운영하는 사람의 설정"을 같은 코드로 다룰 수 있다. 받는 열쇠는 라우터가
     SITE_KEYS로 가려 받는다. 거기 없는 열쇠는 들어오지 않는다.
     """
-    __tablename__ = "site_prefs"
+    __tablename__ = "prefs_site"
 
     pref_key = Column(String(40), primary_key=True)
     pref_value = Column(String(200), nullable=False)
@@ -621,7 +621,7 @@ class Notice(Base):
     공지사항.
 
     홈 맨 위에 한 줄 띠로 뜨고, 누르면 본문이 펼쳐진다. 읽은 표시는
-    돈쓴이의 설정(app_prefs)에 마지막으로 읽은 번호로 담는다.
+    돈쓴이의 설정(prefs_app)에 마지막으로 읽은 번호로 담는다.
     """
     __tablename__ = "notices"
 
@@ -649,7 +649,7 @@ class DoodleItem(Base):
     확률은 켜진 줄을 전부 늘어놓고 1/전체로 뽑는다. 갈래로 먼저 나누면
     그림 하나하나가 글자보다 여덟 배 드물어진다.
     """
-    __tablename__ = "doodle_items"
+    __tablename__ = "doodles"
 
     item_key = Column(String(40), primary_key=True)
     kind = Column(String(20), nullable=False)
@@ -672,7 +672,7 @@ class ActionLog(Base):
 
     90일이 지난 줄은 월례 청소가 지운다(app/scheduler/cleanup_job.py).
     """
-    __tablename__ = "action_logs"
+    __tablename__ = "logs_action"
 
     log_id = Column(Integer, primary_key=True)
     kind = Column(String(20), nullable=False)
@@ -682,7 +682,7 @@ class ActionLog(Base):
     elapsed_ms = Column(Integer)
     status = Column(SmallInteger)
     # 요청 방식과 주소는 api 갈래에만 들어간다. 주소에서 열쇠가 든 값은
-    # 걷힌다(routers/action_logs.py의 주소다듬기).
+    # 걷힌다(routers/logs_action.py의 주소다듬기).
     method = Column(String(10))
     url = Column(String(300))
     user_id = Column(Integer, nullable=False, default=1)
@@ -699,7 +699,7 @@ class AdminSession(Base):
     이것은 자물쇠지 인증이 아니다. 주소를 숨기고 암호 한 겹 두는 정도이고,
     여럿이 쓰게 될 때 제대로 된 로그인으로 바꿔야 한다.
     """
-    __tablename__ = "admin_sessions"
+    __tablename__ = "sessions_admin"
 
     token = Column(String(64), primary_key=True)
     expires_at = Column(TIMESTAMP, nullable=False)

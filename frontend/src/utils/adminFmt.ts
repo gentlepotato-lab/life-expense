@@ -50,7 +50,7 @@ export function 걸린빛(ms: number | null | undefined): string {
 /**
  * 보고 있는 기간. "2026-10-01", "2026-10-23" → "10. 1. ~ 10. 23."
  *
- * 사용자 사이트의 기간 상세가 적는 그 꼴이다(pages/CalendarDetail.tsx의
+ * 사용자 사이트의 기간 상세가 적는 그 꼴이다(pages/PeriodDetail.tsx의
  * shortDate). 해와 요일까지 적던 꼴(formatRangeLabel)은 230px이 들어, 상세
  * 쪽의 한 줄에 되돌아가는 단추와 펼치개와 필터가 함께 서면 필터가 다음
  * 줄로 밀렸다. 이 꼴은 85px이다.

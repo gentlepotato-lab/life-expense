@@ -145,8 +145,8 @@ export default function Calendar() {
 
     Promise.all([
       axios.get("/entries/month", { params: { ym: yearMonth } }).then((r) => r.data).catch(() => []),
-      axios.get("/pending-entries").then((r) => r.data).catch(() => []),
-      axios.get("/scheduled-entries").then((r) => r.data).catch(() => []),
+      axios.get("/entries-pending").then((r) => r.data).catch(() => []),
+      axios.get("/entries-scheduled").then((r) => r.data).catch(() => []),
     ]).then(([ex, pe, sc]) => {
       if (!alive) return;
       const out: Row[] = [];

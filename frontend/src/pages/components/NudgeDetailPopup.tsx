@@ -48,8 +48,8 @@ function DetailRow({ item }: { item: NudgeItem }) {
 /** 어느 잔소리가 어느 화면으로 이어지는지 */
 const GO: Record<NudgeLink, { label: string; path: string }> = {
   expense: { label: "지출 내역", path: "/entries" },
-  pending: { label: "대기 내역", path: "/pending-entries" },
-  scheduled: { label: "정기 내역", path: "/scheduled-entries" },
+  pending: { label: "대기 내역", path: "/entries-pending" },
+  scheduled: { label: "정기 내역", path: "/entries-scheduled" },
 };
 
 export default function NudgeDetailPopup({

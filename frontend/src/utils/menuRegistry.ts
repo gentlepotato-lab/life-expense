@@ -5,7 +5,7 @@
  * 곳에 적어야 한다. 그 한 곳이 여기다. 여기 한 줄 더하면 관리자 페이지에
  * 저절로 스위치가 하나 늘어난다.
  *
- * 서버는 **꺼진 열쇠만** 든다(site_prefs의 menu_off). 켜진 것을 적지 않는
+ * 서버는 **꺼진 열쇠만** 든다(prefs_site의 menu_off). 켜진 것을 적지 않는
  * 까닭은, 새 기능을 더했을 때 목록에 없다고 꺼져 버리면 안 되기 때문이다.
  * 아무것도 적혀 있지 않으면 전부 켜짐이고, 그것이 지금 화면과 같은 상태다.
  *
@@ -44,10 +44,10 @@ export type MenuEntry = {
  */
 export const MENU_REGISTRY: MenuEntry[] = [
   { key: "entries", path: "/entries", group: "내역" },
-  { key: "pending-entries", path: "/pending-entries", group: "내역" },
-  { key: "scheduled-entries", path: "/scheduled-entries", group: "내역" },
+  { key: "entries-pending", path: "/entries-pending", group: "내역" },
+  { key: "entries-scheduled", path: "/entries-scheduled", group: "내역" },
   { key: "calendar", path: "/calendar", group: "내역", sidePaths: ["/calendar/detail"] },
-  { key: "entry-groups", path: "/entry-groups", group: "내역" },
+  { key: "entries-groups", path: "/entries-groups", group: "내역" },
   { key: "categories", path: "/categories", group: "설정" },
   { key: "payment-methods", path: "/payment-methods", group: "설정" },
   { key: "counterparts", path: "/counterparts", group: "설정" },

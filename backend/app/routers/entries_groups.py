@@ -78,7 +78,7 @@ _ITEM_SQL = """
 
 _TABLES = {
     "entry": {"table": "entries", "pk": "entry_id", "net_view": "v_entries_net"},
-    "pending": {"table": "pending_entries", "pk": "entry_id", "net_view": "v_pending_entries_net"},
+    "pending": {"table": "entries_pending", "pk": "entry_id", "net_view": "v_entries_pending_net"},
 }
 
 
@@ -182,7 +182,7 @@ def _summarize(items: list[dict]) -> dict:
 
 
 @router.get("")
-def list_entry_groups(
+def list_entries_groups(
     kind: str = Query("entry"),
     ym: str | None = Query(None),
     date_from: str | None = Query(None),
@@ -348,7 +348,7 @@ def create_entry_group(payload: EntryGroupIn, db: SessionDep = Depends()):
     return {"status": "ok", "group_id": group.group_id, "moved": moved}
 
 
-@router.patch("/{group_id}")
+@router.put("/{group_id}")
 def update_entry_group(group_id: int, payload: EntryGroupUpdate, db: SessionDep = Depends()):
     """이름과 메모를 고친다."""
     group = db.get(EntryGroup, group_id)
@@ -407,7 +407,7 @@ def add_items(group_id: int, payload: EntryGroupItems, db: SessionDep = Depends(
     return {"status": "ok", "moved": moved}
 
 
-@router.post("/{group_id}/items/remove")
+@router.delete("/{group_id}/items")
 def remove_items(group_id: int, payload: EntryGroupItems, db: SessionDep = Depends()):
     """
     묶음에서 빼기.

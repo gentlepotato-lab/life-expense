@@ -4,10 +4,10 @@
 전에는 모듈마다 BackgroundScheduler를 따로 세웠다. 셋이 저마다 제 안에서
 만들고 쥐고 있어서, 도는 때를 바깥에서 고칠 길이 없었다. 하나로 모은다.
 
-도는 때는 테이블에 담긴다(life_expense.job_schedules). 테이블이 비어 있거나 읽지
+도는 때는 테이블에 담긴다(life_expense.jobs_schedules). 테이블이 비어 있거나 읽지
 못하면 아래 기본때를 쓴다. 테이블을 걷어도 일은 그대로 돈다.
 
-바퀴마다 한 줄씩 적는다(life_expense.job_runs). 전에는 print로
+바퀴마다 한 줄씩 적는다(life_expense.jobs_runs). 전에는 print로
 흘려보내서, "어제 공휴일을 받아 왔나"를 알 길이 서버 로그를 뒤지는 것뿐이었다.
 
 일을 하나 더하려면 아래 일들에 한 줄을 더하고 테이블에 때를 한 로우 넣으면 된다.
@@ -35,7 +35,7 @@ def _일들():
     """
     from app.scheduler.cleanup_job import run_monthly_cleanup
     from app.scheduler.holiday_job import run_holiday_update
-    from app.scheduler.scheduled_entry_job import run_scheduled_entries
+    from app.scheduler.entries_scheduled_job import run_entries_scheduled
 
     return [
         {
@@ -43,7 +43,7 @@ def _일들():
             # 이름은 사용자 사이트가 쓰는 화면 이름을 따른다. 정기 내역을
             # 대기 내역으로 보내는 일이다.
             "name": "정기 내역 보내기",
-            "run": run_scheduled_entries,
+            "run": run_entries_scheduled,
             "기본때": {"kind": "minute", "day_of_month": None, "hour": None, "minute": None},
             # 한 바퀴를 놓쳐도 60초까지는 늦게라도 돈다. 매분 도는 일이라
             # 이것이 없으면 늦은 바퀴마다 경고가 쌓인다.
@@ -81,7 +81,7 @@ def 때들() -> dict:
         try:
             rows = db.execute(text("""
                 SELECT job_key, kind, day_of_month, hour, minute, is_active
-                  FROM life_expense.job_schedules
+                  FROM life_expense.jobs_schedules
             """)).mappings().all()
             return {r["job_key"]: dict(r) for r in rows}
         finally:
@@ -113,7 +113,7 @@ def _적기(job_key: str, ok: bool, note: str, ms: int | None = None) -> None:
         db = SessionLocal()
         try:
             db.execute(text("""
-                INSERT INTO life_expense.job_runs (job_key, ok, note, elapsed_ms)
+                INSERT INTO life_expense.jobs_runs (job_key, ok, note, elapsed_ms)
                 VALUES (:k, :ok, :note, :ms)
             """), {
                 "k": job_key,
@@ -234,7 +234,7 @@ def 지금모습() -> list[dict]:
     관리자 사이트가 읽을 모습.
 
     등록부의 이름과 테이블에 담긴 때, 그리고 다음에 돌 때를 함께 돌려준다.
-    마지막으로 돈 때는 부르는 쪽이 job_runs에서 따로 꺼낸다.
+    마지막으로 돈 때는 부르는 쪽이 jobs_runs에서 따로 꺼낸다.
     """
     담긴때 = 때들()
     out = []

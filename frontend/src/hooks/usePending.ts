@@ -46,7 +46,7 @@ let inflight: Promise<Loaded | null> | null = null;
 
 async function load(): Promise<Loaded> {
   const [rows, cat1List, cat2List, cat3List, pay] = await Promise.all([
-    axios.get("/pending-entries").then((r) => r.data).catch(() => []),
+    axios.get("/entries-pending").then((r) => r.data).catch(() => []),
     axios.get("/categories/lvl1").then((r) => r.data).catch(() => []),
     axios.get("/categories/lvl2").then((r) => r.data).catch(() => []),
     axios.get("/categories/lvl3").then((r) => r.data).catch(() => []),

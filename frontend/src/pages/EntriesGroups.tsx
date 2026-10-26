@@ -65,7 +65,7 @@ function 걸친기간(group: EntryGroup): string {
   return `${formatDateLabel(group.date_from)} ~ ${formatDateLabel(group.date_to!)}`;
 }
 
-export default function EntryGroups() {
+export default function EntriesGroups() {
   const [yearMonth, setYearMonth] = useState(ymNow);
   const [groups, setGroups] = useState<EntryGroup[]>([]);
   const [ready, setReady] = useState(false);
@@ -153,9 +153,9 @@ export default function EntryGroups() {
       : { ym: yearMonth };
     /* 세 갈래를 함께 받는다. 보는 자리가 하나라 한 번에 다 있어야 한다. */
     Promise.all([
-      axios.get("/entry-groups", { params: { kind: "entry", ...공통 } }),
-      axios.get("/entry-groups", { params: { kind: "pending", ...공통 } }),
-      axios.get("/entry-groups", { params: { kind: "scheduled", ...공통 } }),
+      axios.get("/entries-groups", { params: { kind: "entry", ...공통 } }),
+      axios.get("/entries-groups", { params: { kind: "pending", ...공통 } }),
+      axios.get("/entries-groups", { params: { kind: "scheduled", ...공통 } }),
     ])
       .then(([a, b, c]) => setGroups([...a.data, ...b.data, ...c.data]))
       .catch((err: unknown) => {

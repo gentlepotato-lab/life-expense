@@ -18,7 +18,7 @@ import type useAdminPeriod from "../../hooks/useAdminPeriod";
  * 펼치개, 필터)가 서서 412px 화면에서 필터가 다음 줄로 밀렸다. 넘기개가
  * 157px, 기간 글이 85px이다.
  *
- * 글꼴과 자리는 사용자 사이트의 기간 상세와 같다(pages/CalendarDetail.tsx의
+ * 글꼴과 자리는 사용자 사이트의 기간 상세와 같다(pages/PeriodDetail.tsx의
  * .cal-back__range). 달 단위로 보는 동안 달 넘기개 옆에는 적지 않는다. 그
  * 넘기개가 이미 어느 달인지 말하고 있어, 옆에 날짜를 또 적으면 같은 말이
  * 두 번 선다.

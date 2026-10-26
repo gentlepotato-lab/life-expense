@@ -14,7 +14,7 @@ import AdminBatchPopup, { type 초안 } from "./AdminBatchPopup";
  *
  * 저 혼자 도는 일 셋을 늘어놓고, 도는 때를 고친다.
  *
- * 카드 꼴은 정기 내역과 같다(pages/ScheduledEntries.tsx). 클래스까지 같은
+ * 카드 꼴은 정기 내역과 같다(pages/EntriesScheduled.tsx). 클래스까지 같은
  * 것을 쓴다. 첫 줄에 이름과 마지막 결과, 둘째 줄에 「언제 | 몇 시」 딱지와
  * 상세 이력으로 들어가는 단추, 셋째 줄 오른쪽 끝에 마지막 실행과 다음 실행
  * 딱지가 나란히 선다. 거기도 정기적으로 되풀이되는 것을 늘어놓는 자리라,
@@ -105,7 +105,7 @@ function BatchCard({
       {...handlers}
     >
       {/* 왼쪽 위에 끼운 책갈피와, 뜯을 때 비는 자리와 접혀 넘어오는 조각.
-          내역 카드와 같은 겹을 같은 차례로 세운다(pages/ScheduledEntries.tsx).
+          내역 카드와 같은 겹을 같은 차례로 세운다(pages/EntriesScheduled.tsx).
           책갈피 빛깔만 이 쪽 잉크를 쓴다 — 수입도 지출도 아닌 자리라
           풀빛이나 벽돌빛이 설 까닭이 없다. */}
       <div className="inout-bar" />

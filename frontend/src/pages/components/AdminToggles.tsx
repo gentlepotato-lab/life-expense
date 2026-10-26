@@ -194,7 +194,7 @@ export function AdminDoodle() {
 
   const 받기 = useCallback(() => {
     axios
-      .get("/admin/doodle-items", { headers: 머리() })
+      .get("/admin/doodles", { headers: 머리() })
       .then((r) => set목록(r.data as 문구[]))
       .catch(() => set목록([]));
   }, []);
@@ -230,7 +230,7 @@ export function AdminDoodle() {
     try {
       for (const x of 보낼것) {
         await axios.put(
-          `/admin/doodle-items/${x.item_key}`,
+          `/admin/doodles/${x.item_key}`,
           { label: x.label.trim(), is_active: x.is_active },
           { headers: 머리() },
         );
@@ -251,7 +251,7 @@ export function AdminDoodle() {
       return;
     }
     try {
-      await axios.post("/admin/doodle-items", { label: 글 }, { headers: 머리() });
+      await axios.post("/admin/doodles", { label: 글 }, { headers: 머리() });
       say.ok("추가 완료-!! ;-)");
       set새글("");
       set담는중(false);
@@ -272,7 +272,7 @@ export function AdminDoodle() {
     });
     if (!할까) return;
     try {
-      await axios.delete(`/admin/doodle-items/${it.item_key}`, { headers: 머리() });
+      await axios.delete(`/admin/doodles/${it.item_key}`, { headers: 머리() });
       say.ok("제거 완료-!! ;-)");
       받기();
       다시읽히기();

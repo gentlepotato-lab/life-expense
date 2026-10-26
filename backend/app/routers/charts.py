@@ -16,7 +16,7 @@ def list_cards(db: SessionDep = Depends()):
     """
     rows = db.execute(text("""
         SELECT card_key, sort_order, is_active, span
-          FROM life_expense.chart_cards
+          FROM life_expense.charts_cards
       ORDER BY sort_order ASC, card_key ASC
     """)).mappings().all()
     return [dict(r) for r in rows]
@@ -31,13 +31,13 @@ def save_cards(payload: list[dict], db: SessionDep = Depends()):
     없어 지우고 다시 넣어도 잃을 것이 없다.
     """
     try:
-        db.execute(text("DELETE FROM life_expense.chart_cards"))
+        db.execute(text("DELETE FROM life_expense.charts_cards"))
         for i, card in enumerate(payload):
             key = (card.get("card_key") or "").strip()
             if not key:
                 raise HTTPException(status_code=400, detail="카드 열쇠가 비어 있습니다.")
             db.execute(text("""
-                INSERT INTO life_expense.chart_cards (card_key, sort_order, is_active, span)
+                INSERT INTO life_expense.charts_cards (card_key, sort_order, is_active, span)
                      VALUES (:key, :sort, :on, :span)
             """), {"key": key, "sort": i + 1,
                     "on": 1 if card.get("is_active", 1) else 0,

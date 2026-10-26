@@ -111,7 +111,7 @@ _뼈대 = """
       LEFT JOIN life_expense.categories_lvl3 c3 ON c3.cat3_id = e.cat3_id
       LEFT JOIN life_expense.payment_methods pm ON pm.method_id = e.pay_method
       LEFT JOIN life_expense.places p ON p.place_id = e.place_id
-      LEFT JOIN life_expense.entry_groups eg ON eg.group_id = e.group_id
+      LEFT JOIN life_expense.entries_groups eg ON eg.group_id = e.group_id
       LEFT JOIN (SELECT {쪽열쇠} AS 열쇠, SUM(amount) AS split_sum
                    FROM life_expense.{쪽표} GROUP BY {쪽열쇠}) vs
              ON vs.열쇠 = e.{열쇠}
@@ -121,9 +121,9 @@ _뼈대 = """
 # 테이블 이름, 쪽 테이블 이름, 본 테이블의 열쇠, 쪽 테이블이 가리키는 열쇠, 날짜로 볼 컬럼.
 # 정기는 적은 날이 없다. 화면이 다음에 생길 날로 자리를 잡으므로 여기도 같다.
 _표정보 = {
-    "expense": ("entries", "entry_splits", "entry_id", "entry_id", "e.tx_date"),
-    "pending": ("pending_entries", "pending_entry_splits", "entry_id", "pending_id", "e.tx_date"),
-    "scheduled": ("scheduled_entries", "scheduled_entry_splits", "schedule_id", "schedule_id",
+    "expense": ("entries", "entries_splits", "entry_id", "entry_id", "e.tx_date"),
+    "pending": ("entries_pending", "entries_pending_splits", "entry_id", "pending_id", "e.tx_date"),
+    "scheduled": ("entries_scheduled", "entries_scheduled_splits", "schedule_id", "schedule_id",
                   "e.next_run_at::date"),
 }
 
@@ -184,7 +184,7 @@ def _거름(조건: dict) -> tuple[str, dict]:
         p["place"] = f"%{조건['place']}%"
     cp = _목록(조건.get("counterpart")) if 조건.get("_상대가능", True) else []
     if cp:
-        sql += (" AND EXISTS (SELECT 1 FROM life_expense.entry_splits s"
+        sql += (" AND EXISTS (SELECT 1 FROM life_expense.entries_splits s"
                 " WHERE s.entry_id = e.entry_id AND s.counterpart_id = ANY(:cp_list))")
         p["cp_list"] = cp
     return sql, p
@@ -209,13 +209,13 @@ def _정기줄들(db) -> list[dict]:
              , 0 AS split_sum
              , s.day_of_month, s.interval_months, s.is_active
              , s.anchor_ym, s.end_ym, s.holiday_handling
-          FROM life_expense.scheduled_entries s
+          FROM life_expense.entries_scheduled s
           LEFT JOIN life_expense.categories_lvl1 c1 ON c1.cat1_id = s.cat1_id
           LEFT JOIN life_expense.categories_lvl2 c2 ON c2.cat2_id = s.cat2_id
           LEFT JOIN life_expense.categories_lvl3 c3 ON c3.cat3_id = s.cat3_id
           LEFT JOIN life_expense.payment_methods pm ON pm.method_id = s.pay_method
           LEFT JOIN life_expense.places p ON p.place_id = s.place_id
-          LEFT JOIN life_expense.entry_groups eg ON eg.group_id = s.group_id
+          LEFT JOIN life_expense.entries_groups eg ON eg.group_id = s.group_id
          ORDER BY s.is_active DESC, s.next_run_at, s.schedule_id
     """
     return [dict(r) for r in db.execute(text(sql)).mappings().all()]
@@ -308,7 +308,7 @@ def _도전과잔소리(db, 줄들: list[dict], s: dict) -> tuple[list[dict], li
         return [], []
     목표들 = db.execute(text("""
         SELECT g.amount, g.memo, g.start_ym, g.end_ym, c1.cat1_name, c2.cat2_name
-          FROM life_expense.category_goals g
+          FROM life_expense.categories_goals g
           LEFT JOIN life_expense.categories_lvl1 c1 ON c1.cat1_id = g.cat1_id
           LEFT JOIN life_expense.categories_lvl2 c2 ON c2.cat2_id = g.cat2_id
          ORDER BY g.sort_order

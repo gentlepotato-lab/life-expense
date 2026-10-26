@@ -107,8 +107,8 @@ async function load(): Promise<Loaded> {
     ...months.map((ym) =>
       axios.get("/entries/month", { params: { ym } }).then((r) => r.data).catch(() => [])
     ),
-    axios.get("/pending-entries").then((r) => r.data).catch(() => []),
-    axios.get("/scheduled-entries").then((r) => r.data).catch(() => []),
+    axios.get("/entries-pending").then((r) => r.data).catch(() => []),
+    axios.get("/entries-scheduled").then((r) => r.data).catch(() => []),
     axios.get("/categories/lvl1").then((r) => r.data).catch(() => []),
     axios.get("/categories/lvl2").then((r) => r.data).catch(() => []),
     axios.get("/categories/lvl3").then((r) => r.data).catch(() => []),

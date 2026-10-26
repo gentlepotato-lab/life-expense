@@ -84,7 +84,7 @@ export default function AdminDb() {
   const [필터열림, set필터열림] = useState(false);
   const [집계, set집계] = useState<집계 | null>(null);
   /* 차지한 자리는 따로 묻는다. 그 한 질의가 400ms를 먹어, 함께 물으면 쪽
-     전체가 그만큼 늦게 떴다(app/routers/admin.py의 /admin/db-size). */
+     전체가 그만큼 늦게 떴다(app/routers/admin.py의 /admin/db/size). */
   const [크기, set크기] = useState<string | null>(null);
   const [탈, set탈] = useState(false);
 
@@ -112,7 +112,7 @@ export default function AdminDb() {
   useEffect(() => {
     let 살아있나 = true;
     axios
-      .get("/admin/db-size", { headers: 머리() })
+      .get("/admin/db/size", { headers: 머리() })
       .then((r) => {
         if (살아있나) set크기((r.data as { size: string }).size);
       })

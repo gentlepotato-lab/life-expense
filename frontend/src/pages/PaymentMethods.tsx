@@ -83,7 +83,7 @@ function SortableItem({ id, children, dragHandle = false }: any) {
 
 /**
  * 구분(분류).
- * 코드에 박지 않고 payment_method_categories 표에서 읽어 온다.
+ * 코드에 박지 않고 payment_methods_categories 테이블에서 읽어 온다.
  * 이모지도 그 행에 들어 있어, 나중에 구분별로 집계할 때 그대로 조인된다.
  */
 type Category = {
@@ -473,7 +473,7 @@ export default function PaymentMethods() {
     if (exist) return say.warn("이미 있는 항목입니다.");
 
     try {
-      await axios.post("/payment-methods/add", null, {
+      await axios.post("/payment-methods", null, {
         params: { name, category_id: addCategoryId ?? undefined }
       });
     } catch {
@@ -516,10 +516,10 @@ export default function PaymentMethods() {
     }));
 
     try {
-      await axios.post("/payment-methods/save", payload);
+      await axios.put("/payment-methods", payload);
       // 이모지는 분류 행에 저장한다.
-      await axios.post(
-        "/payment-methods/categories/save",
+      await axios.put(
+        "/payment-methods/categories",
         categories.map((c, i) => ({
           category_id: c.category_id,
           emoji: c.emoji,
@@ -553,7 +553,7 @@ export default function PaymentMethods() {
 
     let r;
     try {
-      r = await axios.delete("/payment-methods/delete", {
+      r = await axios.delete("/payment-methods", {
         params: { method_id: id }
       });
     } catch {

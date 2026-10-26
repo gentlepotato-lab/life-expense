@@ -96,7 +96,7 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
     if (!지금 || sending) return;
     setSending(true);
     try {
-      await api.post(`/pending-entries/send/${지금.entry_id}`);
+      await api.post(`/entries-pending/${지금.entry_id}/send`);
       say.ok("전송 완료-!! ;-)");
       invalidatePending();
       invalidateNudges();
@@ -325,13 +325,13 @@ export default function PendingDeckPopup({ onClose }: { onClose: () => void }) {
             className="ui-btn nudge-detail__go"
             onClick={() => {
               onClose();
-              window.setTimeout(() => navigate("/pending-entries"), 0);
+              window.setTimeout(() => navigate("/entries-pending"), 0);
             }}
             aria-label="대기 내역 화면으로 가기"
             title="대기 내역"
           >
             <span className="nudge-detail__go-icon" aria-hidden="true">
-              {PAGE_ICON["/pending-entries"]}
+              {PAGE_ICON["/entries-pending"]}
             </span>
             <span className="nudge-detail__go-arrow" aria-hidden="true">
               <svg

@@ -5,7 +5,7 @@ from datetime import date
 from calendar import monthrange
 from app.deps import get_db
 from app.models import Holiday
-from app.routers.action_logs import 바깥적기
+from app.routers.logs_action import 바깥적기
 import os
 import time
 import xml.etree.ElementTree as ET
@@ -31,7 +31,7 @@ def 특일정보URL(year: int, month: int, 열쇠: str | None) -> str:
     그 달을 묻는 주소.
 
     열쇠를 주면 붙이고 주지 않으면 뺀 채로 만든다. 기록에 적는 쪽이 뺀 것을
-    쓴다(app/routers/action_logs.py의 바깥적기). 주소를 두 번 적지 않으려고
+    쓴다(app/routers/logs_action.py의 바깥적기). 주소를 두 번 적지 않으려고
     한 곳에서 짓는다. 두 곳에 적으면 물음표 뒤가 언젠가 어긋난다.
     """
     묶음 = [
@@ -120,7 +120,7 @@ def update_holidays_core(db: Session, year: int, month: int) -> bool:
     days = monthrange(year, month)[1]
 
     # 바깥에 묻는 자리라 걸린 시간과 결과를 적는다. 관리자 사이트의 외부 API가
-    # 이것을 센다(app/routers/action_logs.py의 바깥적기). 적는 일은 탈을
+    # 이것을 센다(app/routers/logs_action.py의 바깥적기). 적는 일은 탈을
     # 삼키므로 여기서 더 살필 것이 없다.
     잰때 = time.monotonic()
     ok, items = fetch_kasi_holidays(year, month)
@@ -230,7 +230,7 @@ def get_holidays(year: int, month: int, db: Session = Depends(get_db)):
 # ----------------------------
 # 수동 실행용 엔드포인트
 # ----------------------------
-@router.get("/update")
+@router.post("/update")
 def update_holidays(year: int, month: int, db: Session = Depends(get_db)):
     ok = update_holidays_core(db, year, month)
     # 조회가 안 되면 알려 준다. ok로만 돌려주면 공휴일이 빠진 채로

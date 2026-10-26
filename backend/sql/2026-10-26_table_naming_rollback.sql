@@ -1,0 +1,139 @@
+-- 2026-10-26_table_naming.sql 되돌리기.
+--
+-- 이름만 되돌린다. 담긴 것은 한 로우도 움직이지 않는다. 딸린 것을 먼저
+-- 되돌리고 테이블을 마지막에 되돌린다.
+
+BEGIN;
+ALTER INDEX life_expense.ix_entries_pending_group RENAME TO ix_pending_group;
+ALTER INDEX life_expense.ix_entries_pending_schedule RENAME TO ix_pending_schedule;
+ALTER INDEX life_expense.ix_entries_pending_sended RENAME TO ix_pending_sended;
+ALTER INDEX life_expense.ix_entries_scheduled_group RENAME TO ix_scheduled_group;
+ALTER INDEX life_expense.ix_entries_scheduled_next_run RENAME TO ix_scheduled_next_run;
+ALTER TABLE life_expense.entries_pending RENAME CONSTRAINT fk_entries_pending_group TO fk_pending_group;
+ALTER TABLE life_expense.entries_scheduled RENAME CONSTRAINT fk_entries_scheduled_group TO fk_scheduled_group;
+ALTER TABLE life_expense.payment_methods RENAME CONSTRAINT uq_payment_methods_name TO uq_payment_method_name;
+ALTER TABLE life_expense.places RENAME CONSTRAINT uniq_places_lat_lng TO uniq_place_lat_lng;
+
+-- 제약
+ALTER TABLE life_expense.logs_action RENAME CONSTRAINT logs_action_kind_chk TO action_logs_kind_chk;
+ALTER TABLE life_expense.logs_action RENAME CONSTRAINT logs_action_pkey TO action_logs_pkey;
+ALTER TABLE life_expense.sessions_admin RENAME CONSTRAINT sessions_admin_pkey TO admin_sessions_pkey;
+ALTER TABLE life_expense.prefs_app RENAME CONSTRAINT prefs_app_pkey TO app_prefs_pkey;
+ALTER TABLE life_expense.cards_benefits_targets RENAME CONSTRAINT cards_benefits_targets_benefit_id_fkey TO card_benefit_targets_benefit_id_fkey;
+ALTER TABLE life_expense.cards_benefits_targets RENAME CONSTRAINT cards_benefits_targets_pkey TO card_benefit_targets_pkey;
+ALTER TABLE life_expense.cards_benefits RENAME CONSTRAINT cards_benefits_pkey TO card_benefits_pkey;
+ALTER TABLE life_expense.cards_benefits RENAME CONSTRAINT cards_benefits_tier_id_fkey TO card_benefits_tier_id_fkey;
+ALTER TABLE life_expense.cards_tiers RENAME CONSTRAINT cards_tiers_method_id_fkey TO card_tiers_method_id_fkey;
+ALTER TABLE life_expense.cards_tiers RENAME CONSTRAINT cards_tiers_pkey TO card_tiers_pkey;
+ALTER TABLE life_expense.categories_goals RENAME CONSTRAINT categories_goals_cat1_id_fkey TO category_goals_cat1_id_fkey;
+ALTER TABLE life_expense.categories_goals RENAME CONSTRAINT categories_goals_cat2_id_fkey TO category_goals_cat2_id_fkey;
+ALTER TABLE life_expense.categories_goals RENAME CONSTRAINT categories_goals_cat3_id_fkey TO category_goals_cat3_id_fkey;
+ALTER TABLE life_expense.categories_goals RENAME CONSTRAINT categories_goals_end_ym_chk TO category_goals_end_ym_chk;
+ALTER TABLE life_expense.categories_goals RENAME CONSTRAINT categories_goals_pkey TO category_goals_pkey;
+ALTER TABLE life_expense.categories_goals RENAME CONSTRAINT categories_goals_start_ym_chk TO category_goals_start_ym_chk;
+ALTER TABLE life_expense.categories_goals RENAME CONSTRAINT categories_goals_ym_order_chk TO category_goals_ym_order_chk;
+ALTER TABLE life_expense.categories_goals RENAME CONSTRAINT ck_categories_goals_path TO ck_category_goals_path;
+ALTER TABLE life_expense.charts_cards RENAME CONSTRAINT charts_cards_pkey TO chart_cards_pkey;
+ALTER TABLE life_expense.counterparts_categories RENAME CONSTRAINT counterparts_categories_pkey TO counterpart_categories_pkey;
+ALTER TABLE life_expense.doodles RENAME CONSTRAINT doodles_kind_chk TO doodle_items_kind_chk;
+ALTER TABLE life_expense.doodles RENAME CONSTRAINT doodles_pkey TO doodle_items_pkey;
+ALTER TABLE life_expense.entries_groups RENAME CONSTRAINT entries_groups_pkey TO entry_groups_pkey;
+ALTER TABLE life_expense.entries_splits RENAME CONSTRAINT entries_splits_amount_positive TO entry_splits_amount_positive;
+ALTER TABLE life_expense.entries_splits RENAME CONSTRAINT entries_splits_counterpart_fk TO entry_splits_counterpart_fk;
+ALTER TABLE life_expense.entries_splits RENAME CONSTRAINT entries_splits_entry_fk TO entry_splits_entry_fk;
+ALTER TABLE life_expense.entries_splits RENAME CONSTRAINT entries_splits_pkey TO entry_splits_pkey;
+ALTER TABLE life_expense.entries_splits RENAME CONSTRAINT entries_splits_type_valid TO entry_splits_type_valid;
+ALTER TABLE life_expense.jobs_runs RENAME CONSTRAINT jobs_runs_pkey TO job_runs_pkey;
+ALTER TABLE life_expense.jobs_schedules RENAME CONSTRAINT jobs_schedules_kind_chk TO job_schedules_kind_chk;
+ALTER TABLE life_expense.jobs_schedules RENAME CONSTRAINT jobs_schedules_pkey TO job_schedules_pkey;
+ALTER TABLE life_expense.jobs_schedules RENAME CONSTRAINT jobs_schedules_time_chk TO job_schedules_time_chk;
+ALTER TABLE life_expense.payment_methods_categories RENAME CONSTRAINT payment_methods_categories_pkey TO payment_method_categories_pkey;
+ALTER TABLE life_expense.entries_pending RENAME CONSTRAINT entries_pending_pkey TO pending_entries_pkey;
+ALTER TABLE life_expense.entries_pending RENAME CONSTRAINT entries_pending_schedule_id_fkey TO pending_entries_schedule_id_fkey;
+ALTER TABLE life_expense.entries_pending_splits RENAME CONSTRAINT entries_pending_splits_amount_positive TO pending_entry_splits_amount_positive;
+ALTER TABLE life_expense.entries_pending_splits RENAME CONSTRAINT entries_pending_splits_counterpart_fk TO pending_entry_splits_counterpart_fk;
+ALTER TABLE life_expense.entries_pending_splits RENAME CONSTRAINT entries_pending_splits_pending_fk TO pending_entry_splits_pending_fk;
+ALTER TABLE life_expense.entries_pending_splits RENAME CONSTRAINT entries_pending_splits_pkey TO pending_entry_splits_pkey;
+ALTER TABLE life_expense.entries_pending_splits RENAME CONSTRAINT entries_pending_splits_type_valid TO pending_entry_splits_type_valid;
+ALTER TABLE life_expense.profiles RENAME CONSTRAINT ck_profiles_single TO ck_profile_single;
+ALTER TABLE life_expense.profiles RENAME CONSTRAINT profiles_pkey TO profile_pkey;
+ALTER TABLE life_expense.entries_scheduled RENAME CONSTRAINT entries_scheduled_cat1_id_fkey TO scheduled_entries_cat1_id_fkey;
+ALTER TABLE life_expense.entries_scheduled RENAME CONSTRAINT entries_scheduled_cat2_id_fkey TO scheduled_entries_cat2_id_fkey;
+ALTER TABLE life_expense.entries_scheduled RENAME CONSTRAINT entries_scheduled_cat3_id_fkey TO scheduled_entries_cat3_id_fkey;
+ALTER TABLE life_expense.entries_scheduled RENAME CONSTRAINT entries_scheduled_interval_chk TO scheduled_entries_interval_chk;
+ALTER TABLE life_expense.entries_scheduled RENAME CONSTRAINT entries_scheduled_pay_method_fkey TO scheduled_entries_pay_method_fkey;
+ALTER TABLE life_expense.entries_scheduled RENAME CONSTRAINT entries_scheduled_pkey TO scheduled_entries_pkey;
+ALTER TABLE life_expense.entries_scheduled RENAME CONSTRAINT entries_scheduled_place_id_fkey TO scheduled_entries_place_id_fkey;
+ALTER TABLE life_expense.entries_scheduled RENAME CONSTRAINT entries_scheduled_ym_chk TO scheduled_entries_ym_chk;
+ALTER TABLE life_expense.entries_scheduled_splits RENAME CONSTRAINT entries_scheduled_splits_amount_positive TO scheduled_entry_splits_amount_positive;
+ALTER TABLE life_expense.entries_scheduled_splits RENAME CONSTRAINT entries_scheduled_splits_counterpart_fk TO scheduled_entry_splits_counterpart_fk;
+ALTER TABLE life_expense.entries_scheduled_splits RENAME CONSTRAINT entries_scheduled_splits_pkey TO scheduled_entry_splits_pkey;
+ALTER TABLE life_expense.entries_scheduled_splits RENAME CONSTRAINT entries_scheduled_splits_schedule_fk TO scheduled_entry_splits_schedule_fk;
+ALTER TABLE life_expense.entries_scheduled_splits RENAME CONSTRAINT entries_scheduled_splits_type_valid TO scheduled_entry_splits_type_valid;
+ALTER TABLE life_expense.prefs_site RENAME CONSTRAINT prefs_site_pkey TO site_prefs_pkey;
+
+-- 인덱스(제약이 받치지 않는 것)
+ALTER INDEX life_expense.ix_logs_action_kind_name RENAME TO ix_action_logs_kind_name;
+ALTER INDEX life_expense.ix_logs_action_when RENAME TO ix_action_logs_when;
+ALTER INDEX life_expense.ix_sessions_admin_agent RENAME TO ix_admin_sessions_agent;
+ALTER INDEX life_expense.ix_sessions_admin_expires RENAME TO ix_admin_sessions_expires;
+ALTER INDEX life_expense.ix_cards_benefits_targets_benefit RENAME TO ix_card_benefit_targets_benefit;
+ALTER INDEX life_expense.ix_cards_benefits_tier RENAME TO ix_card_benefits_tier;
+ALTER INDEX life_expense.ix_cards_tiers_method RENAME TO ix_card_tiers_method;
+ALTER INDEX life_expense.ix_categories_goals_sort RENAME TO ix_category_goals_sort;
+ALTER INDEX life_expense.ux_categories_goals_target RENAME TO ux_category_goals_target;
+ALTER INDEX life_expense.ix_charts_cards_sort RENAME TO ix_chart_cards_sort;
+ALTER INDEX life_expense.counterparts_categories_name_uniq RENAME TO counterpart_categories_name_uniq;
+ALTER INDEX life_expense.ix_doodles_live RENAME TO ix_doodle_items_live;
+ALTER INDEX life_expense.entries_splits_entry_idx RENAME TO entry_splits_entry_idx;
+ALTER INDEX life_expense.ix_entries_splits_counterpart RENAME TO ix_entry_splits_counterpart;
+ALTER INDEX life_expense.ix_jobs_runs_key RENAME TO ix_job_runs_key;
+ALTER INDEX life_expense.payment_methods_categories_name_uniq RENAME TO payment_method_categories_name_uniq;
+ALTER INDEX life_expense.entries_pending_splits_pending_idx RENAME TO pending_entry_splits_pending_idx;
+ALTER INDEX life_expense.entries_scheduled_splits_schedule_idx RENAME TO scheduled_entry_splits_schedule_idx;
+
+-- 시퀀스
+ALTER SEQUENCE life_expense.logs_action_log_id_seq RENAME TO action_logs_log_id_seq;
+ALTER SEQUENCE life_expense.cards_benefits_targets_target_id_seq RENAME TO card_benefit_targets_target_id_seq;
+ALTER SEQUENCE life_expense.cards_benefits_benefit_id_seq RENAME TO card_benefits_benefit_id_seq;
+ALTER SEQUENCE life_expense.cards_tiers_tier_id_seq RENAME TO card_tiers_tier_id_seq;
+ALTER SEQUENCE life_expense.categories_goals_goal_id_seq RENAME TO category_goals_goal_id_seq;
+ALTER SEQUENCE life_expense.counterparts_categories_category_id_seq RENAME TO counterpart_categories_category_id_seq;
+ALTER SEQUENCE life_expense.entries_groups_group_id_seq RENAME TO entry_groups_group_id_seq;
+ALTER SEQUENCE life_expense.entries_splits_split_id_seq RENAME TO entry_splits_split_id_seq;
+ALTER SEQUENCE life_expense.jobs_runs_run_id_seq RENAME TO job_runs_run_id_seq;
+ALTER SEQUENCE life_expense.payment_methods_categories_category_id_seq RENAME TO payment_method_categories_category_id_seq;
+ALTER SEQUENCE life_expense.entries_pending_entry_id_seq RENAME TO pending_entries_entry_id_seq;
+ALTER SEQUENCE life_expense.entries_pending_splits_split_id_seq RENAME TO pending_entry_splits_split_id_seq;
+ALTER SEQUENCE life_expense.entries_scheduled_schedule_id_seq RENAME TO scheduled_entries_schedule_id_seq;
+ALTER SEQUENCE life_expense.entries_scheduled_splits_split_id_seq RENAME TO scheduled_entry_splits_split_id_seq;
+
+-- 뷰
+ALTER VIEW life_expense.v_entries_pending_net RENAME TO v_pending_entries_net;
+ALTER VIEW life_expense.v_entries_scheduled_net RENAME TO v_scheduled_entries_net;
+
+-- 테이블
+ALTER TABLE life_expense.entries_scheduled_splits RENAME TO scheduled_entry_splits;
+ALTER TABLE life_expense.entries_pending_splits RENAME TO pending_entry_splits;
+ALTER TABLE life_expense.payment_methods_categories RENAME TO payment_method_categories;
+ALTER TABLE life_expense.counterparts_categories RENAME TO counterpart_categories;
+ALTER TABLE life_expense.cards_benefits_targets RENAME TO card_benefit_targets;
+ALTER TABLE life_expense.entries_scheduled RENAME TO scheduled_entries;
+ALTER TABLE life_expense.entries_pending RENAME TO pending_entries;
+ALTER TABLE life_expense.categories_goals RENAME TO category_goals;
+ALTER TABLE life_expense.sessions_admin RENAME TO admin_sessions;
+ALTER TABLE life_expense.doodles RENAME TO doodle_items;
+ALTER TABLE life_expense.cards_benefits RENAME TO card_benefits;
+ALTER TABLE life_expense.entries_groups RENAME TO entry_groups;
+ALTER TABLE life_expense.entries_splits RENAME TO entry_splits;
+ALTER TABLE life_expense.logs_action RENAME TO action_logs;
+ALTER TABLE life_expense.jobs_schedules RENAME TO job_schedules;
+ALTER TABLE life_expense.charts_cards RENAME TO chart_cards;
+ALTER TABLE life_expense.cards_tiers RENAME TO card_tiers;
+ALTER TABLE life_expense.prefs_site RENAME TO site_prefs;
+ALTER TABLE life_expense.prefs_app RENAME TO app_prefs;
+ALTER TABLE life_expense.jobs_runs RENAME TO job_runs;
+ALTER TABLE life_expense.profiles RENAME TO profile;
+
+
+COMMIT;

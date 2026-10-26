@@ -6,7 +6,7 @@
  * 것을 다르게 부르는 일이 생긴다.
  *
  * 연월은 'YYYYMM' 여섯 자다. 글자로 담아도 대소 비교가 곧 시간 순서라
- * 계산이 간단하다. backend/app/routers/scheduled_entries.py와 같은 꼴이다.
+ * 계산이 간단하다. backend/app/routers/entries_scheduled.py와 같은 꼴이다.
  */
 
 /** 화면에 이름표가 있는 주기만 쓴다. DB의 CHECK와 같은 목록이다. */

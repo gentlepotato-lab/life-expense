@@ -147,7 +147,7 @@ export default function QuickActions({ onSaved }: { onSaved?: () => void }) {
           aria-label="대기 내역"
         >
           <span className="pend-trigger-button__icon" aria-hidden="true">
-            {PAGE_ICON["/pending-entries"]}
+            {PAGE_ICON["/entries-pending"]}
           </span>
           {pendReady && pendRows.length > 0 && (
             <span className="pend-badge">{pendRows.length > 9 ? "9+" : pendRows.length}</span>

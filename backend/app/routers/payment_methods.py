@@ -21,14 +21,14 @@ def list_methods(db: SessionDep = Depends()):
              , p.is_active
              , p.sort_order
           FROM life_expense.payment_methods p
-          LEFT JOIN life_expense.payment_method_categories c
+          LEFT JOIN life_expense.payment_methods_categories c
                  ON c.category_id = p.category_id
       ORDER BY p.sort_order ASC, p.method_id ASC
     """)).mappings().all()
     return [dict(r) for r in rows]
 
 # 단일 추가
-@router.post("/add")
+@router.post("")
 def add_method(
     name: str = Query(...),
     # 만들 때 바로 구분을 정할 수 있게 한다. 없으면 "구분 없음"으로 들어간다.
@@ -50,7 +50,7 @@ def add_method(
     return {"method_id": res.method_id}
 
 # 전체 저장 → 이름 수정 + 구분 지정 + 정렬 순서 변경
-@router.post("/save")
+@router.put("")
 def save_methods(payload: list[dict], db: SessionDep = Depends()):
     for item in payload:
         # "키가 없다"(그대로 두기)와 "빈 값이다"(구분 없음으로 지우기)는 다르다.
@@ -77,7 +77,7 @@ def save_methods(payload: list[dict], db: SessionDep = Depends()):
     return {"status": "ok"}
 
 # 삭제
-@router.delete("/delete")
+@router.delete("")
 def delete_method(method_id: int, db: SessionDep = Depends()):
     # 쓰는 곳이 있으면 막는다.
     # 지출 내역만 보면 모자란다. 대기 내역은 결제수단에 FK가 없어 지워도 DB가
@@ -85,9 +85,9 @@ def delete_method(method_id: int, db: SessionDep = Depends()):
     used = db.execute(text("""
         SELECT 1 FROM life_expense.entries           WHERE pay_method = :id LIMIT 1
     """), {"id": method_id}).fetchone() or db.execute(text("""
-        SELECT 1 FROM life_expense.pending_entries   WHERE pay_method = :id LIMIT 1
+        SELECT 1 FROM life_expense.entries_pending   WHERE pay_method = :id LIMIT 1
     """), {"id": method_id}).fetchone() or db.execute(text("""
-        SELECT 1 FROM life_expense.scheduled_entries WHERE pay_method = :id LIMIT 1
+        SELECT 1 FROM life_expense.entries_scheduled WHERE pay_method = :id LIMIT 1
     """), {"id": method_id}).fetchone()
 
     if used:
@@ -112,7 +112,7 @@ def list_categories(db: SessionDep = Depends()):
     """결제 수단의 구분 목록. 이모지도 이 행에 들어 있다."""
     rows = db.execute(text("""
         SELECT category_id, name, emoji, sort_order, is_active
-          FROM life_expense.payment_method_categories
+          FROM life_expense.payment_methods_categories
          WHERE is_active = 1
       ORDER BY sort_order ASC, category_id ASC
     """)).mappings().all()
@@ -128,7 +128,7 @@ def create_category(payload: dict, db: SessionDep = Depends()):
 
     row = db.execute(text("""
         SELECT category_id, name, emoji, sort_order, is_active
-          FROM life_expense.payment_method_categories
+          FROM life_expense.payment_methods_categories
          WHERE name = :name
     """), {"name": name}).mappings().first()
 
@@ -136,7 +136,7 @@ def create_category(payload: dict, db: SessionDep = Depends()):
         # 껐던 구분을 다시 쓰는 경우 되살린다.
         if not row["is_active"]:
             db.execute(text("""
-                UPDATE life_expense.payment_method_categories
+                UPDATE life_expense.payment_methods_categories
                    SET is_active = 1, updated_at = now()
                  WHERE category_id = :id
             """), {"id": row["category_id"]})
@@ -145,11 +145,11 @@ def create_category(payload: dict, db: SessionDep = Depends()):
 
     nxt = db.execute(text("""
         SELECT COALESCE(MAX(sort_order), 0) + 1
-          FROM life_expense.payment_method_categories
+          FROM life_expense.payment_methods_categories
     """)).scalar_one()
 
     created = db.execute(text("""
-        INSERT INTO life_expense.payment_method_categories (name, emoji, sort_order)
+        INSERT INTO life_expense.payment_methods_categories (name, emoji, sort_order)
              VALUES (:name, :emoji, :sort)
           RETURNING category_id, name, emoji, sort_order, is_active
     """), {
@@ -173,19 +173,19 @@ def delete_category(category_id: int, db: SessionDep = Depends()):
         return {"error": "IN_USE", "used_count": used}
 
     db.execute(text("""
-        DELETE FROM life_expense.payment_method_categories
+        DELETE FROM life_expense.payment_methods_categories
          WHERE category_id = :id
     """), {"id": category_id})
     db.commit()
     return {"status": "deleted"}
 
 
-@router.post("/categories/save")
+@router.put("/categories")
 def save_categories(payload: list[dict], db: SessionDep = Depends()):
     """구분의 이모지와 순서를 저장한다. 늘리고 줄이는 일은 다른 엔드포인트가 한다."""
     for i, item in enumerate(payload):
         db.execute(text("""
-            UPDATE life_expense.payment_method_categories
+            UPDATE life_expense.payment_methods_categories
                SET emoji = :emoji,
                    sort_order = :sort,
                    updated_at = now()
@@ -229,7 +229,7 @@ def list_tiers(method_id: int, db: SessionDep = Depends()):
     """구간과 그 구간의 혜택을 한 벌로 돌려준다."""
     tiers = db.execute(text("""
         SELECT tier_id, threshold, sort_order
-          FROM life_expense.card_tiers
+          FROM life_expense.cards_tiers
          WHERE method_id = :id
       ORDER BY threshold ASC, tier_id ASC
     """), {"id": method_id}).mappings().all()
@@ -240,7 +240,7 @@ def list_tiers(method_id: int, db: SessionDep = Depends()):
     ids = [t["tier_id"] for t in tiers]
     rows = db.execute(text("""
         SELECT benefit_id, tier_id, content, description, limit_amount, sort_order
-          FROM life_expense.card_benefits
+          FROM life_expense.cards_benefits
          WHERE tier_id = ANY(:ids)
       ORDER BY sort_order ASC, benefit_id ASC
     """), {"ids": ids}).mappings().all()
@@ -248,8 +248,8 @@ def list_tiers(method_id: int, db: SessionDep = Depends()):
     # 혜택에 걸린 대상까지 한 번에 모아 온다.
     targets = db.execute(text("""
         SELECT t.target_id, t.benefit_id, t.area, t.detail
-          FROM life_expense.card_benefit_targets t
-          JOIN life_expense.card_benefits b ON b.benefit_id = t.benefit_id
+          FROM life_expense.cards_benefits_targets t
+          JOIN life_expense.cards_benefits b ON b.benefit_id = t.benefit_id
          WHERE b.tier_id = ANY(:ids)
       ORDER BY t.sort_order ASC, t.target_id ASC
     """), {"ids": ids}).mappings().all()
@@ -296,7 +296,7 @@ def save_tiers(method_id: int, payload: list[dict], db: SessionDep = Depends()):
             raise HTTPException(status_code=404, detail="없는 결제 수단입니다.")
 
         db.execute(text("""
-            DELETE FROM life_expense.card_tiers WHERE method_id = :id
+            DELETE FROM life_expense.cards_tiers WHERE method_id = :id
         """), {"id": method_id})
 
         for i, tier in enumerate(payload):
@@ -304,7 +304,7 @@ def save_tiers(method_id: int, payload: list[dict], db: SessionDep = Depends()):
             if raw in (None, ""):
                 raise HTTPException(status_code=400, detail="구간 금액을 적어 주세요.")
             tier_id = db.execute(text("""
-                INSERT INTO life_expense.card_tiers (method_id, threshold, sort_order)
+                INSERT INTO life_expense.cards_tiers (method_id, threshold, sort_order)
                      VALUES (:mid, :th, :sort)
                   RETURNING tier_id
             """), {"mid": method_id, "th": raw, "sort": i + 1}).scalar()
@@ -317,7 +317,7 @@ def save_tiers(method_id: int, payload: list[dict], db: SessionDep = Depends()):
                 desc = (b.get("description") or "").strip()
                 cap = b.get("limit")
                 benefit_id = db.execute(text("""
-                    INSERT INTO life_expense.card_benefits
+                    INSERT INTO life_expense.cards_benefits
                                 (tier_id, content, description, limit_amount, sort_order)
                          VALUES (:tid, :content, :desc, :cap, :sort)
                       RETURNING benefit_id
@@ -336,7 +336,7 @@ def save_tiers(method_id: int, payload: list[dict], db: SessionDep = Depends()):
                         continue
                     area = (t.get("area") or "").strip()
                     db.execute(text("""
-                        INSERT INTO life_expense.card_benefit_targets
+                        INSERT INTO life_expense.cards_benefits_targets
                                     (benefit_id, area, detail, sort_order)
                              VALUES (:bid, :area, :detail, :sort)
                     """), {

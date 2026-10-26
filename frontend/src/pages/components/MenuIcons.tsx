@@ -25,7 +25,7 @@ export const PAGE_ICON: Record<string, React.ReactNode> = {
   ),
 
   /* 모래시계. 아래에 모래가 조금 쌓였다. */
-  "/pending-entries": (
+  "/entries-pending": (
     <svg viewBox="0 0 32 32" {...stroke}>
       {/* 위아래 테 */}
       <path d="M9 5h14M9 27h14" />
@@ -40,7 +40,7 @@ export const PAGE_ICON: Record<string, React.ReactNode> = {
     </svg>
   ),
 
-  "/scheduled-entries": (
+  "/entries-scheduled": (
     <svg viewBox="0 0 32 32" {...stroke}>
       <path d="M6 9h20v18H6z" />
       <path d="M6 15h20M11 5v6M21 5v6" />
@@ -60,7 +60,7 @@ export const PAGE_ICON: Record<string, React.ReactNode> = {
      클립은 내역 카드의 그것과 같은 모양이다(ClipMark.tsx). 같은 것을
      가리키는데 그림이 다르면 한 식구로 읽히지 않는다. 제 상자에서 그린
      뒤 맨 앞 장의 왼쪽 위 귀퉁이로 옮겨 비스듬히 세운다. */
-  "/entry-groups": (
+  "/entries-groups": (
     <svg viewBox="0 0 32 32" {...stroke}>
       {/* 뒤로 비낀 장. 여럿을 모았다는 뜻 */}
       <path d="M12 7h12a2 2 0 0 1 2 2v13" />

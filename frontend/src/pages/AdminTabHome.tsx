@@ -10,7 +10,7 @@ import AdminMenuList from "./components/AdminMenuList";
  * 그린다(pages/components/AdminPageHead.tsx).
  *
  * 셋이 하는 일이 같아 조각 하나로 둔다. 어느 탭인지는 길로 가른다.
- * 메인 탭(사용)은 홈처럼 생겨 따로 있다(pages/AdminMain.tsx).
+ * 메인 탭(사용)은 홈처럼 생겨 따로 있다(pages/AdminTabUse.tsx).
  */
 export default function AdminTabHome() {
   const { pathname } = useLocation();

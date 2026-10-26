@@ -263,7 +263,7 @@ def search_places(q: str, db=Depends(get_db)):
                     WHERE place_id IS NOT NULL
                     UNION ALL
                     SELECT place_id, tx_date
-                    FROM life_expense.pending_entries
+                    FROM life_expense.entries_pending
                     WHERE place_id IS NOT NULL
                       AND sended = 0
                 ) x

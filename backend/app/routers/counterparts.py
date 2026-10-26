@@ -199,7 +199,7 @@ def create_category(payload: dict, db: SessionDep = Depends()):
     return row.to_dict()
 
 
-@router.post("/categories/save")
+@router.put("/categories")
 def save_categories(payload: list[dict], db: SessionDep = Depends()):
     """이모지, 색, 순서를 한 번에 반영한다."""
     for i, item in enumerate(payload):

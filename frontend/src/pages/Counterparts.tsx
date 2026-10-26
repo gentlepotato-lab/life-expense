@@ -43,7 +43,7 @@ type Counterpart = {
 
 /**
  * 구분(분류).
- * 코드에 박지 않고 counterpart_categories 표에서 읽어 온다.
+ * 코드에 박지 않고 counterparts_categories 테이블에서 읽어 온다.
  * 사용자가 늘릴 수 있고, 이모지와 색도 그 행에 함께 담긴다.
  */
 type Category = {
@@ -345,8 +345,8 @@ export default function Counterparts() {
         await axios.put(`/counterparts/${c.counterpart_id}`, body);
       }
       // 구분의 이모지와 색은 분류 행에 저장한다.
-      await axios.post(
-        "/counterparts/categories/save",
+      await axios.put(
+        "/counterparts/categories",
         categories.map((c, i) => ({
           category_id: c.category_id,
           emoji: c.emoji,

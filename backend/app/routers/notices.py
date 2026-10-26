@@ -5,7 +5,7 @@
 맡는다(app/routers/admin.py).
 
 읽은 표시도 여기서 맡는다. 어디까지 읽었는지는 쓰는 사람마다 다르므로
-app_prefs에 담는다. 브라우저에 담으면 기기마다 달라져서 폰에서 읽은 것이
+prefs_app에 담는다. 브라우저에 담으면 기기마다 달라져서 폰에서 읽은 것이
 PC에서 또 뜬다.
 
 /api/profile/prefs는 제 열쇠 목록(PREF_KEYS)만 받고 내려보내므로 이 열쇠는
@@ -30,7 +30,7 @@ READ_KEY = "notice_read"
 # 다시 안 읽음으로 돌린 공지 번호들. 읽은 자리는 "여기까지"라는 금 하나뿐이라
 # 한 건만 되돌릴 수가 없다. 그 금은 그대로 두고 예외만 여기 든다.
 #
-# 번호를 쉼표로 이어 담는다. JSON으로 담지 않는 까닭은 app_prefs가 글 한 줄을
+# 번호를 쉼표로 이어 담는다. JSON으로 담지 않는 까닭은 prefs_app이 글 한 줄을
 # 드는 자리이고, 여기 드는 것이 수 몇 개뿐이기 때문이다.
 UNREAD_KEY = "notice_unread"
 
@@ -38,7 +38,7 @@ UNREAD_KEY = "notice_unread"
 def _글꺼내기(db, 열쇠: str) -> str:
     row = db.execute(text("""
         SELECT pref_value
-          FROM life_expense.app_prefs
+          FROM life_expense.prefs_app
          WHERE pref_key = :k
     """), {"k": 열쇠}).scalar()
     return row or ""
@@ -46,7 +46,7 @@ def _글꺼내기(db, 열쇠: str) -> str:
 
 def _담기(db, 열쇠: str, 값: str) -> None:
     db.execute(text("""
-        INSERT INTO life_expense.app_prefs (pref_key, pref_value)
+        INSERT INTO life_expense.prefs_app (pref_key, pref_value)
              VALUES (:k, :v)
         ON CONFLICT (pref_key) DO UPDATE
                 SET pref_value = EXCLUDED.pref_value
@@ -176,11 +176,11 @@ def mark_read(payload: dict, db: SessionDep = Depends()):
         raise HTTPException(status_code=400, detail="읽은 공지 번호가 없습니다.")
 
     db.execute(text("""
-        INSERT INTO life_expense.app_prefs (pref_key, pref_value)
+        INSERT INTO life_expense.prefs_app (pref_key, pref_value)
              VALUES (:k, :v)
         ON CONFLICT (pref_key) DO UPDATE
                 SET pref_value = GREATEST(
-                        life_expense.app_prefs.pref_value::integer, EXCLUDED.pref_value::integer
+                        life_expense.prefs_app.pref_value::integer, EXCLUDED.pref_value::integer
                     )::text
                   , updated_at = now()
     """), {"k": READ_KEY, "v": str(번호)})

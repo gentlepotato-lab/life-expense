@@ -61,7 +61,7 @@ let 받는중: Promise<void> | null = null;
 export function loadDoodlePool(): Promise<void> {
   if (!받는중) {
     받는중 = axios
-      .get("/doodle-items")
+      .get("/doodles")
       .then((r) => {
         const 온것 = r.data as 들온것[];
         if (!Array.isArray(온것) || 온것.length === 0) return;

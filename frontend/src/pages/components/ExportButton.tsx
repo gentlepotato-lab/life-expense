@@ -19,7 +19,7 @@ import { drawReceipt, receiptMeta, type ReceiptRow } from "../../utils/receipt";
  */
 
 type Props = {
-  /** 서버의 어느 길로 물을지. /api/export/{길} */
+  /** 서버의 어느 길로 물을지. /api/exports/{길} */
   길: string;
   /** 그 길에 넘길 조건. 화면이 지금 걸고 있는 그대로다. */
   params?: Record<string, unknown>;
@@ -34,7 +34,7 @@ type Props = {
 /** 파일에 담길 줄을 그대로 받아 온다. 실패하면 영수증 없이 간다. */
 async function 영수증줄(길: string, params?: Record<string, unknown>): Promise<ReceiptRow[]> {
   try {
-    const r = await api.get(`/export/${길}`, { params: { ...params, rows: 1 } });
+    const r = await api.get(`/exports/${길}`, { params: { ...params, rows: 1 } });
     return Array.isArray(r.data) ? (r.data as ReceiptRow[]) : [];
   } catch {
     return [];
@@ -97,9 +97,9 @@ export default function ExportButton({ 길, params, 이름, 빔, 영수증 = tru
             /* 화면 이름을 붙이지 않는다. 붙이면 같은 기능이 화면 수만큼
                갈라져, 어느 것도 몇 번 쓰였는지 읽히지 않는다. */
             기능적기("엑셀 내보내기");
-            return api.post(`/export/${길}`, fd, { params, responseType: "blob" });
+            return api.post(`/exports/${길}`, fd, { params, responseType: "blob" });
           })()
-        : await api.get(`/export/${길}`, { params, responseType: "blob" });
+        : await api.get(`/exports/${길}`, { params, responseType: "blob" });
       const url = URL.createObjectURL(res.data as Blob);
       const a = document.createElement("a");
       a.href = url;

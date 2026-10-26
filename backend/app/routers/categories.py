@@ -72,7 +72,7 @@ def cat3(cat2_id: int | None = Query(None), db=Depends(get_db)):
         for i, n, c2, a, f, b in rows
     ]
 
-@router.post("/add/lvl3")
+@router.post("/lvl3")
 def add_cat3(cat2_id: int = Query(...), name: str = Query(...), db=Depends(get_db)):
     existing = db.query(CategoryL3).filter(
         CategoryL3.cat2_id == cat2_id,
@@ -94,7 +94,7 @@ def add_cat3(cat2_id: int = Query(...), name: str = Query(...), db=Depends(get_d
 
     return {"status": "ok", "cat3_id": new.cat3_id, "cat3_name": new.cat3_name}
 
-@router.post("/save")
+@router.put("")
 def save_categories(payload: dict, db: Session = Depends(get_db)):
     cat1_list = payload.get("cat1", [])
     cat2_list = payload.get("cat2", [])
@@ -191,7 +191,7 @@ def save_categories(payload: dict, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "ok"}
 
-@router.post("/add/lvl1")
+@router.post("/lvl1")
 def add_cat1(
     name: str = Query(...),
     db: Session = Depends(get_db)
@@ -209,7 +209,7 @@ def add_cat1(
         "cat1_name": new_item.cat1_name
     }
 
-@router.post("/add/lvl2")
+@router.post("/lvl2")
 def add_cat2(
     cat1_id: int = Query(...),
     name: str = Query(...),
@@ -244,11 +244,11 @@ def add_cat2(
         "cat1_id": new_item.cat1_id
     }
 
-@router.delete("/delete/lvl1")
+@router.delete("/lvl1")
 def delete_cat1(cat1_id: int, db: Session = Depends(get_db)):
     # 대기 내역은 분류에 FK가 없어 DB가 막아 주지 않는다. 먼저 확인한다.
     used = db.execute(text("""
-        SELECT 1 FROM life_expense.pending_entries WHERE cat1_id = :cid LIMIT 1
+        SELECT 1 FROM life_expense.entries_pending WHERE cat1_id = :cid LIMIT 1
     """), {"cid": cat1_id}).fetchone()
     if used:
         raise HTTPException(status_code=409, detail="USED_CATEGORY")
@@ -265,7 +265,7 @@ def delete_cat1(cat1_id: int, db: Session = Depends(get_db)):
 
     return {"status": "ok"}
 
-@router.delete("/delete/lvl2")
+@router.delete("/lvl2")
 def delete_cat2(cat2_id: int, db: Session = Depends(get_db)):
     # 1) 쓰는 곳이 있는지 확인
     #    지출 내역만 보면 모자란다. 대기 내역은 분류에 FK가 없어 지워도 DB가
@@ -274,9 +274,9 @@ def delete_cat2(cat2_id: int, db: Session = Depends(get_db)):
     used = db.execute(text("""
         SELECT 1 FROM life_expense.entries           WHERE cat2_id = :cid LIMIT 1
     """), {"cid": cat2_id}).fetchone() or db.execute(text("""
-        SELECT 1 FROM life_expense.pending_entries   WHERE cat2_id = :cid LIMIT 1
+        SELECT 1 FROM life_expense.entries_pending   WHERE cat2_id = :cid LIMIT 1
     """), {"cid": cat2_id}).fetchone() or db.execute(text("""
-        SELECT 1 FROM life_expense.scheduled_entries WHERE cat2_id = :cid LIMIT 1
+        SELECT 1 FROM life_expense.entries_scheduled WHERE cat2_id = :cid LIMIT 1
     """), {"cid": cat2_id}).fetchone()
 
     if used:
@@ -296,14 +296,14 @@ def delete_cat2(cat2_id: int, db: Session = Depends(get_db)):
 
     return {"status": "ok"}
 
-@router.delete("/delete/lvl3")
+@router.delete("/lvl3")
 def delete_cat3(cat3_id: int, db: Session = Depends(get_db)):
     used = db.execute(text("""
         SELECT 1 FROM life_expense.entries           WHERE cat3_id = :cid LIMIT 1
     """), {"cid": cat3_id}).fetchone() or db.execute(text("""
-        SELECT 1 FROM life_expense.pending_entries   WHERE cat3_id = :cid LIMIT 1
+        SELECT 1 FROM life_expense.entries_pending   WHERE cat3_id = :cid LIMIT 1
     """), {"cid": cat3_id}).fetchone() or db.execute(text("""
-        SELECT 1 FROM life_expense.scheduled_entries WHERE cat3_id = :cid LIMIT 1
+        SELECT 1 FROM life_expense.entries_scheduled WHERE cat3_id = :cid LIMIT 1
     """), {"cid": cat3_id}).fetchone()
 
     if used:
@@ -317,7 +317,7 @@ def delete_cat3(cat3_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=409, detail="USED_CATEGORY")
     return {"status": "ok"}
 
-@router.post("/blur/set")
+@router.put("/blur")
 def set_blur(
     cat1_id: int = Query(...),
     cat2_id: int = Query(...),

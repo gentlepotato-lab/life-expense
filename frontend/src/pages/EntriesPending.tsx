@@ -71,7 +71,7 @@ function hasCondition(f: typeof EMPTY_FILTER): boolean {
   );
 }
 
-export default function PendingEntries() {
+export default function EntriesPending() {
   const [rows, setRows] = useState<any[]>([]);
   const [allRows, setAllRows] = useState<any[]>([]); // 필터용 원본
 
@@ -194,7 +194,7 @@ export default function PendingEntries() {
 
   // Pending 데이터 전체 조회 → sended = FALSE
   const loadData = async () => {
-    const res = await api.get("/pending-entries");
+    const res = await api.get("/entries-pending");
     const mapped = res.data.map((r: any) => ({
       ...r,
       editable: false,
@@ -239,7 +239,7 @@ export default function PendingEntries() {
     };
     stamp(after);
     try {
-      await api.put(`/pending-entries/${id}/perf-exclude`, null, { params: { value: after } });
+      await api.put(`/entries-pending/${id}/perf-exclude`, null, { params: { value: after } });
     } catch (err) {
       console.error(err);
       stamp(before);
@@ -269,7 +269,7 @@ export default function PendingEntries() {
     };
     stamp(after);
     try {
-      await api.put(`/pending-entries/${id}/fixed`, null, { params: { value: String(after) } });
+      await api.put(`/entries-pending/${id}/fixed`, null, { params: { value: String(after) } });
     } catch (err) {
       console.error(err);
       stamp(before);
@@ -295,7 +295,7 @@ export default function PendingEntries() {
     setSplits([]);
     if (row.split_count > 0) {
       api
-        .get(`/pending-entries/${row.entry_id}/splits`)
+        .get(`/entries-pending/${row.entry_id}/splits`)
         .then((r) =>
           setSplits(
             r.data.map((x: SplitDraft) => ({
@@ -400,9 +400,9 @@ export default function PendingEntries() {
     }];
 
     try {
-      await api.put("/pending-entries/bulk", clean);
+      await api.put("/entries-pending/bulk", clean);
       // 분할은 별도 엔드포인트다. 비어 있어도 보내야 기존 분할이 지워진다.
-      await api.put(`/pending-entries/${draft.entry_id}/splits`, cleanSplits);
+      await api.put(`/entries-pending/${draft.entry_id}/splits`, cleanSplits);
       closeEditor();
       say.ok("저장 완료-!! ;-)");
       await loadData();
@@ -430,7 +430,7 @@ export default function PendingEntries() {
       return;
 
     try {
-      await api.delete(`/pending-entries/${id}`);
+      await api.delete(`/entries-pending/${id}`);
       setRows(prev => prev.filter(r => r.entry_id !== id));
       closeEditor();
       say.ok("제거 완료-!! ;-)");
@@ -465,7 +465,7 @@ export default function PendingEntries() {
       return;
 
     try {
-      // 1) pending_entries 내용 업데이트
+      // 1) entries_pending 내용 업데이트
       const payload = {
         tx_date: row.tx_date.substring(0, 10),
         cat1_id: row.cat1_id,
@@ -492,10 +492,10 @@ export default function PendingEntries() {
       };
 
       setSending(true);
-      await api.put(`/pending-entries/${row.entry_id}`, payload);
+      await api.put(`/entries-pending/${row.entry_id}`, payload);
 
       // 2) entries로 전송 + sended=TRUE
-      await api.post(`/pending-entries/send/${row.entry_id}`);
+      await api.post(`/entries-pending/${row.entry_id}/send`);
 
       say.ok("전송 완료-!! ;-)");
       setRows((prev) => prev.filter((r) => r.entry_id !== row.entry_id));
@@ -536,7 +536,7 @@ export default function PendingEntries() {
     try {
       setSending(true);
       const entryIds = 보낼것.map((r) => r.entry_id);
-      const res = await api.post("/pending-entries/send-filtered", {
+      const res = await api.post("/entries-pending/send/filtered", {
         entry_ids: entryIds
       });
       const sentCount = res.data.sent_count ?? 0;
@@ -1065,7 +1065,7 @@ export default function PendingEntries() {
           });
           if (!예) return;
           const { 성공, 실패 } = await 선택제거(
-            "/pending-entries",
+            "/entries-pending",
             picked.map((r) => r.entry_id)
           );
           setPickedIds(new Set());
@@ -1708,7 +1708,7 @@ export function PendingCard({
             <span className="amount-split__caret" aria-hidden="true">›</span>
           </span>
           <Collapse open={open}>
-            <SplitRows base="/pending-entries" ownerId={row.entry_id} />
+            <SplitRows base="/entries-pending" ownerId={row.entry_id} />
           </Collapse>
         </div>
       )}

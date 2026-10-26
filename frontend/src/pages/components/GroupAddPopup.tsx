@@ -56,7 +56,7 @@ export default function GroupAddPopup({
   const load = useCallback(() => {
     setReady(false);
     axios
-      .get("/entry-groups/candidates", {
+      .get("/entries-groups/candidates", {
         params: { kind, ym: byMonth ? month : undefined, q: find || undefined },
       })
       .then((r) => setRows(r.data))
@@ -86,7 +86,7 @@ export default function GroupAddPopup({
     }
     setSaving(true);
     try {
-      await axios.post(`/entry-groups/${groupId}/items`, { ids: [...picked] });
+      await axios.post(`/entries-groups/${groupId}/items`, { ids: [...picked] });
       say.ok(`${picked.size}건을 추가했습니다.`);
       onDone();
     } catch (err: unknown) {

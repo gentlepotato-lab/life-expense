@@ -48,7 +48,7 @@ def get_profile(db: SessionDep = Depends()):
     row = db.execute(text("""
         SELECT profile_id, display_name, email, avatar_url, provider, provider_id,
                emoji, bio, joined_on
-          FROM life_expense.profile
+          FROM life_expense.profiles
          WHERE profile_id = 1
     """)).mappings().first()
     if not row:
@@ -75,7 +75,7 @@ def save_profile(payload: dict, db: SessionDep = Depends()):
 
     try:
         db.execute(text("""
-            INSERT INTO life_expense.profile
+            INSERT INTO life_expense.profiles
                         (profile_id, display_name, email, avatar_url, emoji, bio, joined_on)
                  VALUES (1, :name, :email, :avatar, :emoji, :bio, :joined)
             ON CONFLICT (profile_id) DO UPDATE
@@ -107,7 +107,7 @@ def save_profile(payload: dict, db: SessionDep = Depends()):
 def get_prefs(db: SessionDep = Depends()):
     """앱 설정. 담은 것이 없으면 기본값을 돌려준다."""
     rows = db.execute(text("""
-        SELECT pref_key, pref_value FROM life_expense.app_prefs
+        SELECT pref_key, pref_value FROM life_expense.prefs_app
     """)).mappings().all()
     out = dict(PREF_KEYS)
     for r in rows:
@@ -123,7 +123,7 @@ def save_prefs(payload: dict, db: SessionDep = Depends()):
             if key not in PREF_KEYS:
                 continue
             db.execute(text("""
-                INSERT INTO life_expense.app_prefs (pref_key, pref_value, updated_at)
+                INSERT INTO life_expense.prefs_app (pref_key, pref_value, updated_at)
                      VALUES (:k, :v, now())
                 ON CONFLICT (pref_key) DO UPDATE
                         SET pref_value = EXCLUDED.pref_value
@@ -163,7 +163,7 @@ def get_summary(db: SessionDep = Depends()):
     # 곳간에 무엇이 얼마나 쌓였는지
     counts = {}
     for name, table in (
-        ("pending", "pending_entries"), ("scheduled", "scheduled_entries"),
+        ("pending", "entries_pending"), ("scheduled", "entries_scheduled"),
         ("counterpart", "counterparts"), ("place", "places"),
         ("cat1", "categories_lvl1"), ("cat2", "categories_lvl2"),
         ("cat3", "categories_lvl3"), ("method", "payment_methods"),
@@ -259,17 +259,17 @@ def get_summary(db: SessionDep = Depends()):
 # 내보낼 표. 적은 차례대로 담는다. 되살릴 때 가리키는 쪽이 뒤에 오도록.
 EXPORT_TABLES = [
     "categories_lvl1", "categories_lvl2", "categories_lvl3",
-    "payment_method_categories", "payment_methods",
-    "counterpart_categories", "counterparts",
+    "payment_methods_categories", "payment_methods",
+    "counterparts_categories", "counterparts",
     "places", "holidays",
-    "entries", "pending_entries", "scheduled_entries",
-    "entry_splits", "pending_entry_splits", "scheduled_entry_splits",
-    "card_tiers", "card_benefits", "card_benefit_targets",
-    "category_goals", "chart_cards", "app_prefs", "profile",
+    "entries", "entries_pending", "entries_scheduled",
+    "entries_splits", "entries_pending_splits", "entries_scheduled_splits",
+    "cards_tiers", "cards_benefits", "cards_benefits_targets",
+    "categories_goals", "charts_cards", "prefs_app", "profiles",
 ]
 
 
-@router.get("/export")
+@router.get("/exports")
 def export_all(db: SessionDep = Depends()):
     """
     적어 온 것을 통째로 파일 하나에 담는다.
@@ -337,7 +337,7 @@ def entry_rows(db) -> list[list]:
     ]
 
 
-@router.get("/export/entries.csv")
+@router.get("/exports/entries.csv")
 def export_entries_csv(db: SessionDep = Depends()):
     """지출 내역만 CSV로. 표 프로그램에서 바로 열어 보려는 자리다."""
     import csv
@@ -359,7 +359,7 @@ def export_entries_csv(db: SessionDep = Depends()):
     )
 
 
-@router.get("/export/entries.xlsx")
+@router.get("/exports/entries.xlsx")
 def export_entries_xlsx(db: SessionDep = Depends()):
     """
     지출 내역을 엑셀로.

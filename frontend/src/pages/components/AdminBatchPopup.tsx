@@ -11,7 +11,7 @@ import { EditField, EditDivider } from "./CardEditModal";
  * .btn-row.popup-foot이다. 관리자 쪽에서 무엇을 고치든 판 하나로 열어야
  * 손이 헷갈리지 않는다.
  *
- * 묻는 칸은 정기 내역이 묻는 것과 같은 꼴로 둔다(pages/ScheduledEntries.tsx).
+ * 묻는 칸은 정기 내역이 묻는 것과 같은 꼴로 둔다(pages/EntriesScheduled.tsx).
  * 날짜는 사용자 사이트의 DayPicker로, 시각은 type="time" 칸으로 받는다. 거기도 「매월 몇 일
  * 몇 시」를 묻는 자리라, 다른 꼴로 물으면 같은 앱으로 읽히지 않는다.
  */

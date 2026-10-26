@@ -28,7 +28,7 @@ def day_in_month(year: int, month: int, day_of_month: int) -> int:
     return day_of_month
 
 @router.get("")
-def list_scheduled_entries(
+def list_entries_scheduled(
     include_hidden: int = Query(0),
     db: SessionDep = Depends(),
 ):
@@ -177,7 +177,7 @@ def set_perf_exclude(schedule_id: int, value: int = Query(...), db: SessionDep =
     여기서 켜면 이 스케줄이 대기 내역으로 나갈 때마다 표가 따라간다.
     """
     result = db.execute(text("""
-        UPDATE life_expense.scheduled_entries
+        UPDATE life_expense.entries_scheduled
            SET perf_exclude = :v
          WHERE schedule_id = :id
     """), {"v": 1 if value else 0, "id": schedule_id})
@@ -189,7 +189,7 @@ def set_fixed(schedule_id: int, value: str = Query(...), db: SessionDep = Depend
     """이 건이 고정인지 변동인지를 손으로 정한다. 지출 내역과 같은 자리다."""
     v = None if value == "" else (1 if value in ("1", "true", "fixed") else 0)
     result = db.execute(text("""
-        UPDATE life_expense.scheduled_entries
+        UPDATE life_expense.entries_scheduled
            SET fixed_flag = :v
          WHERE schedule_id = :id
     """), {"v": v, "id": schedule_id})
@@ -284,7 +284,7 @@ def delete_scheduled_entry(schedule_id: int, db: SessionDep = Depends()):
     is_active 0은 "감춤"이라는 다른 뜻을 지니므로, 지우는 일은 여기서 끝낸다.
     되돌릴 수 없다. 잠시 치우려는 것이라면 감추기를 쓴다.
 
-    함께 걸린 몫(scheduled_entry_splits)은 FK가 ON DELETE CASCADE라 따라
+    함께 걸린 몫(entries_scheduled_splits)은 FK가 ON DELETE CASCADE라 따라
     지워진다. 이미 대기와 지출로 나간 내역은 이 테이블을 가리키지 않으므로
     그대로 남는다. 지난 기록이 사라지지는 않는다.
     """
@@ -597,8 +597,8 @@ def _advance(schedule: ScheduledEntry, db: Session) -> datetime | None:
     )
 
 
-def process_scheduled_entries(db: Session):
-    """스케줄된 항목들을 처리하여 PendingEntries에 등록"""
+def process_entries_scheduled(db: Session):
+    """스케줄된 항목들을 처리하여 entries_pending에 등록"""
     now = datetime.now()
 
     # 활성화된 스케줄 중 next_run_at이 현재 시간 이하인 것 모두 조회

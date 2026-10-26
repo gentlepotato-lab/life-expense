@@ -107,7 +107,7 @@ export default function GroupPopup({
     }
     setBusy(true);
     try {
-      await axios.patch(`/entry-groups/${group.group_id}`, {
+      await axios.put(`/entries-groups/${group.group_id}`, {
         name: name.trim(),
         memo: memo.trim(),
       });
@@ -132,7 +132,7 @@ export default function GroupPopup({
     if (!yes) return;
     setBusy(true);
     try {
-      await axios.delete(`/entry-groups/${group.group_id}`);
+      await axios.delete(`/entries-groups/${group.group_id}`);
       say.ok("묶음을 풀었습니다.");
       onChanged();
       onClose();
@@ -151,7 +151,7 @@ export default function GroupPopup({
     }
     setBusy(true);
     try {
-      await axios.post(`/entry-groups/${group.group_id}/items/remove`, { ids: [...picked] });
+      await axios.delete(`/entries-groups/${group.group_id}/items`, { data: { ids: [...picked] } });
       say.ok(`${picked.size}건을 뺐습니다.`);
       setPicked(new Set());
       onChanged();

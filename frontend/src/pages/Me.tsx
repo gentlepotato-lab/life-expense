@@ -728,10 +728,10 @@ export default function Me() {
             <p className="me-note">지금까지 쓴 지출 내역을 파일로 받습니다.</p>
 
             <div className="btn-row me-export">
-              <a className="ui-btn" href="/api/profile/export/entries.xlsx">
+              <a className="ui-btn" href="/api/profile/exports/entries.xlsx">
                 Excel
               </a>
-              <a className="ui-btn" href="/api/profile/export/entries.csv">
+              <a className="ui-btn" href="/api/profile/exports/entries.csv">
                 CSV
               </a>
               <a className="ui-btn" href="/api/profile/export">

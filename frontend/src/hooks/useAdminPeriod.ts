@@ -17,7 +17,7 @@ import { say } from "../utils/notify";
  *
  * 상세 쪽으로 넘어갈 때는 이 셋을 그대로 실어 보내고(담기), 돌아올 때도
  * 그대로 받는다(처음). 사용자 사이트의 기간 상세가 거르기를 싣고 다니는
- * 것과 같은 잣대다(pages/CalendarDetail.tsx).
+ * 것과 같은 잣대다(pages/PeriodDetail.tsx).
  */
 
 export type 기간 = { frm: string; to: string };

@@ -41,7 +41,7 @@ import { 먼저펼칠줄, 스르륵한도 } from "./adminLogBits";
  * (app/routers/admin.py의 _기기이름).
  *
  * 실패한 줄에는 기기도 IP 주소도 시간도 없다. 그 줄은 요청 기록에서 가져오는데
- * (action_logs), 거기에는 담은 적이 없다.
+ * (logs_action), 거기에는 담은 적이 없다.
  */
 
 type 줄 = {

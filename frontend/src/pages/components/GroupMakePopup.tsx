@@ -53,7 +53,7 @@ export default function GroupMakePopup({
   const load = useCallback(() => {
     setReady(false);
     axios
-      .get("/entry-groups", {
+      .get("/entries-groups", {
         params: {
           kind,
           name: find || undefined,
@@ -95,7 +95,7 @@ export default function GroupMakePopup({
     }
     setSaving(true);
     try {
-      await axios.post("/entry-groups", {
+      await axios.post("/entries-groups", {
         name: name.trim(),
         memo: memo.trim() || null,
         kind,
@@ -124,7 +124,7 @@ export default function GroupMakePopup({
     }
     setSaving(true);
     try {
-      await axios.post(`/entry-groups/${선택묶음}/items`, {
+      await axios.post(`/entries-groups/${선택묶음}/items`, {
         ids: items.map((r) => r.entry_id),
       });
       say.ok(`${items.length}건을 추가했습니다.`);

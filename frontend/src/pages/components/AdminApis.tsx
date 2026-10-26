@@ -34,7 +34,7 @@ import { EditField } from "./CardEditModal";
  *
  * 호출한 기록은 두 곳에서 쌓인다. 브라우저가 바로 부르는 자리는 화면이 적어
  * 보내고(utils/track.ts의 바깥적기), 서버가 부르는 자리는 서버가 적는다
- * (app/routers/action_logs.py의 바깥적기). 둘이 같은 갈래로 같은 표에 쌓여
+ * (app/routers/logs_action.py의 바깥적기). 둘이 같은 갈래로 같은 표에 쌓여
  * 여기서 한자리에 센다.
  */
 

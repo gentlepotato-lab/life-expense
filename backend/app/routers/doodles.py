@@ -13,12 +13,12 @@ from sqlalchemy import text
 
 from app.deps import SessionDep
 
-# 자리는 main.py에서 /api/doodle-items로 붙인다.
+# 자리는 main.py에서 /api/doodles로 붙인다.
 router = APIRouter()
 
 
 @router.get("")
-def list_doodle_items(db: SessionDep = Depends()):
+def list_doodles(db: SessionDep = Depends()):
     """
     켜진 문구를 차례대로 돌려준다.
 
@@ -30,7 +30,7 @@ def list_doodle_items(db: SessionDep = Depends()):
         SELECT d.item_key
              , d.kind
              , d.label
-          FROM life_expense.doodle_items d
+          FROM life_expense.doodles d
          WHERE d.is_active = 1
       ORDER BY d.sort_order ASC, d.item_key ASC
     """)).mappings().all()

@@ -26,7 +26,7 @@ from sqlalchemy import text
 
 from app.deps import SessionDep
 
-# 자리는 main.py에서 /api/action-logs로 붙인다.
+# 자리는 main.py에서 /api/logs-action로 붙인다.
 router = APIRouter()
 
 # 받는 갈래. 여기 없는 것은 조용히 버린다. 테이블의 제약과 같은 목록이다.
@@ -93,7 +93,7 @@ def 바깥적기(
     """
     try:
         db.execute(text("""
-            INSERT INTO life_expense.action_logs
+            INSERT INTO life_expense.logs_action
                         (kind, name, path, elapsed_ms, status, method, url)
                  VALUES ('api', :n, :p, :e, :s, :m, :u)
         """), {
@@ -143,7 +143,7 @@ def _다듬기(줄: dict) -> dict | None:
 
 
 @router.post("")
-def add_action_logs(payload: dict, db: SessionDep = Depends()):
+def add_logs_action(payload: dict, db: SessionDep = Depends()):
     """
     모아 보낸 줄을 적는다.
 
@@ -159,7 +159,7 @@ def add_action_logs(payload: dict, db: SessionDep = Depends()):
         return {"added": 0}
 
     db.execute(text("""
-        INSERT INTO life_expense.action_logs
+        INSERT INTO life_expense.logs_action
                     (kind, name, path, elapsed_ms, status, method, url)
              VALUES (:kind, :name, :path, :elapsed_ms, :status, :method, :url)
     """), 쓸것)

@@ -23,8 +23,8 @@ import { EntryCard } from "./Entries";
 import PickBar from "./components/PickBar";
 import ReceiptPopup from "./components/ReceiptPopup";
 import type { ReceiptRow } from "../utils/receipt";
-import { PendingCard } from "./PendingEntries";
-import { ScheduleCard, type CategoryL2Meta, type CategoryL3Meta } from "./ScheduledEntries";
+import { PendingCard } from "./EntriesPending";
+import { ScheduleCard, type CategoryL2Meta, type CategoryL3Meta } from "./EntriesScheduled";
 import QuickActions from "./components/QuickActions";
 import ExportButton from "./components/ExportButton";
 import { 내보낼조건 } from "../utils/exportParams";
@@ -77,7 +77,7 @@ function dateOnly(v: unknown): string {
   return v ? String(v).substring(0, 10) : "";
 }
 
-export default function CalendarDetail() {
+export default function PeriodDetail() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -198,8 +198,8 @@ export default function CalendarDetail() {
 
     Promise.all([
       axios.get("/entries/month", { params: { ym } }).then((r) => r.data).catch(() => []),
-      axios.get("/pending-entries").then((r) => r.data).catch(() => []),
-      axios.get("/scheduled-entries").then((r) => r.data).catch(() => []),
+      axios.get("/entries-pending").then((r) => r.data).catch(() => []),
+      axios.get("/entries-scheduled").then((r) => r.data).catch(() => []),
     ]).then(([ex, pe, sc]: Record<string, unknown>[][]) => {
       if (!alive) return;
       setExRows(

@@ -28,7 +28,7 @@ def list_goals(db: SessionDep = Depends()):
              , c1.emoji     AS cat1_emoji
              , c2.cat2_name AS cat2_name
              , c3.cat3_name AS cat3_name
-          FROM life_expense.category_goals g
+          FROM life_expense.categories_goals g
           JOIN life_expense.categories_lvl1 c1 ON c1.cat1_id = g.cat1_id
           LEFT JOIN life_expense.categories_lvl2 c2 ON c2.cat2_id = g.cat2_id
           LEFT JOIN life_expense.categories_lvl3 c3 ON c3.cat3_id = g.cat3_id
@@ -114,7 +114,7 @@ def add_goal(payload: dict, db: SessionDep = Depends()):
     try:
         dup = db.execute(text("""
             SELECT 1
-              FROM life_expense.category_goals
+              FROM life_expense.categories_goals
              WHERE cat1_id = :c1
                AND COALESCE(cat2_id, 0) = COALESCE(:c2, 0)
                AND COALESCE(cat3_id, 0) = COALESCE(:c3, 0)
@@ -124,12 +124,12 @@ def add_goal(payload: dict, db: SessionDep = Depends()):
 
         # 새 도전은 맨 뒤에 선다.
         nxt = db.execute(text("""
-            SELECT COALESCE(MAX(sort_order), 0) + 1 FROM life_expense.category_goals
+            SELECT COALESCE(MAX(sort_order), 0) + 1 FROM life_expense.categories_goals
         """)).scalar()
 
         memo = (payload.get("memo") or "").strip() or None
         goal_id = db.execute(text("""
-            INSERT INTO life_expense.category_goals
+            INSERT INTO life_expense.categories_goals
                         (cat1_id, cat2_id, cat3_id, amount, memo, sort_order,
                          start_ym, end_ym)
                  VALUES (:c1, :c2, :c3, :amt, :memo, :sort,
@@ -147,13 +147,13 @@ def add_goal(payload: dict, db: SessionDep = Depends()):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.post("/{goal_id}/amount")
+@router.put("/{goal_id}/amount")
 def save_amount(goal_id: int, payload: dict, db: SessionDep = Depends()):
     """금액만 고친다. 칸을 떠날 때 그 줄만 저장한다."""
     amount = _amount(payload)
     try:
         done = db.execute(text("""
-            UPDATE life_expense.category_goals
+            UPDATE life_expense.categories_goals
                SET amount = :amt
              WHERE goal_id = :id
         """), {"amt": amount, "id": goal_id}).rowcount
@@ -169,7 +169,7 @@ def save_amount(goal_id: int, payload: dict, db: SessionDep = Depends()):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.post("/{goal_id}/start")
+@router.put("/{goal_id}/start")
 def save_start(goal_id: int, payload: dict, db: SessionDep = Depends()):
     """
     언제부터 언제까지 센 도전인지를 고친다. 금액과 한마디와 같은 방식이다.
@@ -185,7 +185,7 @@ def save_start(goal_id: int, payload: dict, db: SessionDep = Depends()):
         raise HTTPException(status_code=400, detail="종료 연월이 시작 연월보다 앞섭니다.")
     try:
         done = db.execute(text("""
-            UPDATE life_expense.category_goals
+            UPDATE life_expense.categories_goals
                SET start_ym = :start
                  , end_ym   = :end
              WHERE goal_id = :id
@@ -202,13 +202,13 @@ def save_start(goal_id: int, payload: dict, db: SessionDep = Depends()):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.post("/{goal_id}/memo")
+@router.put("/{goal_id}/memo")
 def save_memo(goal_id: int, payload: dict, db: SessionDep = Depends()):
     """한마디만 고친다. 금액과 같은 방식으로, 칸을 떠날 때 그 줄만 저장한다."""
     memo = (payload.get("memo") or "").strip() or None
     try:
         done = db.execute(text("""
-            UPDATE life_expense.category_goals
+            UPDATE life_expense.categories_goals
                SET memo = :memo
              WHERE goal_id = :id
         """), {"memo": memo, "id": goal_id}).rowcount
@@ -228,7 +228,7 @@ def save_memo(goal_id: int, payload: dict, db: SessionDep = Depends()):
 def remove_goal(goal_id: int, db: SessionDep = Depends()):
     try:
         done = db.execute(text("""
-            DELETE FROM life_expense.category_goals WHERE goal_id = :id
+            DELETE FROM life_expense.categories_goals WHERE goal_id = :id
         """), {"id": goal_id}).rowcount
         if not done:
             raise HTTPException(status_code=404, detail="없는 도전입니다.")

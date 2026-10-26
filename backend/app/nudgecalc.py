@@ -113,11 +113,11 @@ _대기SQL = text(
            e.pay_method, e.memo, e.fixed_flag, e.perf_exclude, e.sended,
            p.place_name,
            COALESCE(vn.net_amount, e.amount) AS net_amount
-      FROM life_expense.pending_entries e
+      FROM life_expense.entries_pending e
       LEFT JOIN life_expense.places p ON p.place_id = e.place_id
-      LEFT JOIN life_expense.v_pending_entries_net vn ON vn.entry_id = e.entry_id
+      LEFT JOIN life_expense.v_entries_pending_net vn ON vn.entry_id = e.entry_id
      -- 보낸 것은 지출로 넘어가 행이 따로 남는다. 함께 세면 그 달이 두 번
-     -- 세어져 모든 집계가 부푼다. 화면이 부르던 /pending-entries도 같다.
+     -- 세어져 모든 집계가 부푼다. 화면이 부르던 /entries-pending도 같다.
      WHERE e.sended = 0
     """
 )
@@ -130,10 +130,10 @@ _정기SQL = text(
            -- 정기도 N빵으로 돌려받는다. 전액을 돌려받으면 실지출이 0이라,
            -- amount만 보면 쓰지도 않은 돈이 집계에 든다.
            COALESCE(vn.net_amount, s.amount) AS net_amount
-      FROM life_expense.scheduled_entries s
+      FROM life_expense.entries_scheduled s
       LEFT JOIN life_expense.places p ON p.place_id = s.place_id
-      LEFT JOIN life_expense.v_scheduled_entries_net vn ON vn.schedule_id = s.schedule_id
-     -- 쉬게 한 것은 빼야 한다. 화면이 부르던 /scheduled-entries도 그렇다.
+      LEFT JOIN life_expense.v_entries_scheduled_net vn ON vn.schedule_id = s.schedule_id
+     -- 쉬게 한 것은 빼야 한다. 화면이 부르던 /entries-scheduled도 그렇다.
      -- 감춘 정기가 집계에 끼면 쓰지도 않을 돈을 센다.
      WHERE s.is_active = 1
     """
@@ -149,7 +149,7 @@ _카드SQL = text(
     """
     SELECT p.method_id, p.method_name
       FROM life_expense.payment_methods p
-      JOIN life_expense.payment_method_categories c ON c.category_id = p.category_id
+      JOIN life_expense.payment_methods_categories c ON c.category_id = p.category_id
      WHERE c.name = '카드' AND p.is_active = 1
     """
 )
@@ -157,7 +157,7 @@ _카드SQL = text(
 _구간SQL = text(
     """
     SELECT tier_id, method_id, threshold
-      FROM life_expense.card_tiers
+      FROM life_expense.cards_tiers
      WHERE method_id = ANY(:ids)
     """
 )
@@ -165,7 +165,7 @@ _구간SQL = text(
 _목표SQL = text(
     """
     SELECT goal_id, cat1_id, cat2_id, cat3_id, amount, start_ym, end_ym
-      FROM life_expense.category_goals
+      FROM life_expense.categories_goals
      ORDER BY sort_order
     """
 )

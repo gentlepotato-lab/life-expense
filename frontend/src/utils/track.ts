@@ -15,7 +15,7 @@
  * 거기로 보내면 제 요청을 제가 재게 된다.
  */
 
-/** 적는 갈래. 서버가 받는 것과 같은 목록이다(app/routers/action_logs.py). */
+/** 적는 갈래. 서버가 받는 것과 같은 목록이다(app/routers/logs_action.py). */
 export type 갈래 = "view" | "feature" | "error" | "api";
 
 type 줄 = {
@@ -41,7 +41,7 @@ const 기다림 = 5000;
 /** 이보다 오래 걸린 요청을 느린 것으로 본다. */
 export const 느린참 = 1000;
 
-const 보낼곳 = "/api/action-logs";
+const 보낼곳 = "/api/logs-action";
 
 let 타이머: number | null = null;
 
@@ -121,7 +121,7 @@ export function 기능적기(name: string): void {
  * **주소에서 열쇠만 걷는다.** 물음표 뒤를 통째로 자르던 때는 「무엇을
  * 찾았는가」(query)까지 함께 사라졌다. 이름에 열쇠나 비밀이 든 값만 빼고
  * 나머지는 그대로 둔다(주소다듬기). 받는 쪽에서도 한 번 더 걷지만
- * (app/routers/action_logs.py의 주소다듬기) 보내지 않는 것이 먼저다.
+ * (app/routers/logs_action.py의 주소다듬기) 보내지 않는 것이 먼저다.
  * 떠난 뒤에는 지울 수 없다.
  */
 export function 바깥적기(

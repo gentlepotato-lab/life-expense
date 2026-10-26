@@ -17,7 +17,7 @@ import { useEffect } from "react";
  * 표가 없으므로 굳을 자리가 없다.
  *
  * 칸마다 거는 대신 몸통에서 한 번만 듣는다. 칸은 네 곳에서 그려지고
- * (Home.tsx, MenuList.tsx, AdminMain.tsx, AdminMenuList.tsx) 모두 map 안이라,
+ * (Home.tsx, MenuList.tsx, AdminTabUse.tsx, AdminMenuList.tsx) 모두 map 안이라,
  * 조각마다 훅을 걸려면 네 곳을 다 부품으로 떼어야 한다.
  *
  * 떼는 자리가 여럿인 까닭:

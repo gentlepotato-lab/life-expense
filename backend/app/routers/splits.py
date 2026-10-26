@@ -73,7 +73,7 @@ def _clean(payload: list[dict]) -> tuple[list[dict], Decimal]:
 
 def make_split_router(owner_model, owner_pk, split_model, split_fk):
     """
-    한 단계(entries / pending_entries / scheduled_entries)의 분할 라우터를 만든다.
+    한 단계(entries / entries_pending / entries_scheduled)의 분할 라우터를 만든다.
 
     owner_model / owner_pk : 원본 테이블과 그 기본키 컬럼명
     split_model / split_fk : 분할 테이블과 원본을 가리키는 컬럼명
@@ -136,7 +136,7 @@ def make_split_router(owner_model, owner_pk, split_model, split_fk):
     return router
 
 
-# main.py가 각각 /entries, /pending-entries, /scheduled-entries 아래에 붙인다.
+# main.py가 각각 /entries, /entries-pending, /entries-scheduled 아래에 붙인다.
 router = make_split_router(Entry, "entry_id", EntrySplit, "entry_id")
 pending_router = make_split_router(
     PendingEntry, "entry_id", PendingEntrySplit, "pending_id"

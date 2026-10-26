@@ -13,7 +13,7 @@ import useHeadPin from "../hooks/useHeadPin";
    때마다 기다리는 자리가 한 번 뜨고, 그러면 React 가 알맹이를 300ms 뒤에야
    보여 준다. 관리자 쪽은 들어오는 사람이 하나뿐이라 한 묶음으로 받는 편이
    낫다(App.tsx). */
-import AdminMain from "./AdminMain";
+import AdminTabUse from "./AdminTabUse";
 import AdminTabHome from "./AdminTabHome";
 import AdminDash from "./components/AdminDash";
 import AdminLogs from "./components/AdminLogs";
@@ -185,7 +185,7 @@ export default function Admin() {
       <div className="admin-pane" key={pathname}>
         <Routes>
           {/* 메인 탭(사용)의 첫 쪽. 홈처럼 생겼고 서비스 이름이 제목으로 선다. */}
-          <Route path="/" element={<AdminMain />} />
+          <Route path="/" element={<AdminTabUse />} />
           <Route path="dash" element={<AdminDash />} />
           <Route path="logs" element={<AdminLogs />} />
           {/* 줄을 눌러 들어가는 곁가지. 갈래 알약에는 서지 않는다

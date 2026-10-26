@@ -27,8 +27,8 @@ export type EditMeta = {
 /** 갈래마다 자리와 열쇠 칸이 다르다. 분기를 여기 한 곳에만 둔다. */
 const 자리: Record<GroupKind, { base: string; pk: string }> = {
   entry: { base: "/entries", pk: "entry_id" },
-  pending: { base: "/pending-entries", pk: "entry_id" },
-  scheduled: { base: "/scheduled-entries", pk: "schedule_id" },
+  pending: { base: "/entries-pending", pk: "entry_id" },
+  scheduled: { base: "/entries-scheduled", pk: "schedule_id" },
 };
 
 /**

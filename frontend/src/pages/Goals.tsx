@@ -466,7 +466,7 @@ export default function Goals() {
     const before = goals.find((g) => g.goal_id === goalId);
     if (!before || String(before.amount) === value.trim()) return;
     try {
-      await axios.post(`/goals/${goalId}/amount`, { amount: value });
+      await axios.put(`/goals/${goalId}/amount`, { amount: value });
       again();
     } catch (err) {
       say.bad(apiErrorMessage(err));
@@ -481,7 +481,7 @@ export default function Goals() {
     if (!before) return;
     if (before.start_ym === from && (before.end_ym ?? "") === to) return;
     try {
-      await axios.post(`/goals/${goalId}/start`, { start_ym: from, end_ym: to });
+      await axios.put(`/goals/${goalId}/start`, { start_ym: from, end_ym: to });
       again();
     } catch (err) {
       say.bad(apiErrorMessage(err));
@@ -494,7 +494,7 @@ export default function Goals() {
     const before = goals.find((g) => g.goal_id === goalId);
     if (!before || (before.memo ?? "") === value.trim()) return;
     try {
-      await axios.post(`/goals/${goalId}/memo`, { memo: value });
+      await axios.put(`/goals/${goalId}/memo`, { memo: value });
       again();
     } catch (err) {
       say.bad(apiErrorMessage(err));

@@ -1,7 +1,7 @@
 """
 관리자 사이트가 쓰는 자리.
 
-site_prefs를 읽고 적고, 대시보드가 볼 집계를 돌려준다. 읽는 길 하나만 암호
+prefs_site를 읽고 적고, 대시보드가 볼 집계를 돌려준다. 읽는 길 하나만 암호
 없이 연다. 아래 GET /prefs가 그것이고, 공개 열쇠만 돌려준다. 꺼 놓은 메뉴
 목록을 사용자 화면이 알아야 메뉴를 거를 수 있기 때문이다.
 
@@ -27,7 +27,7 @@ from app.deps import SessionDep
 # 자리는 main.py에서 /api/admin으로 붙인다.
 router = APIRouter()
 
-# 담는 설정. app_prefs의 PREF_KEYS와 같은 방식이다. 여기 없는 열쇠는
+# 담는 설정. prefs_app의 PREF_KEYS와 같은 방식이다. 여기 없는 열쇠는
 # 받지 않는다. 화면이 잘못 보내도 테이블이 지저분해지지 않게 한다.
 SITE_KEYS = {
     # 꺼 놓은 메뉴의 열쇠를 JSON 배열로 담는다. 켜진 것은 적지 않는다.
@@ -74,7 +74,7 @@ def _값들(db, 열쇠들: set) -> dict:
     """적힌 값을 읽고, 없는 것은 기본값으로 채운다."""
     rows = db.execute(text("""
         SELECT pref_key, pref_value
-          FROM life_expense.site_prefs
+          FROM life_expense.prefs_site
          WHERE pref_key = ANY(:keys)
     """), {"keys": list(열쇠들)}).mappings().all()
     적힌것 = {r["pref_key"]: r["pref_value"] for r in rows}
@@ -83,7 +83,7 @@ def _값들(db, 열쇠들: set) -> dict:
 
 def _적기(db, 열쇠: str, 값: str) -> None:
     db.execute(text("""
-        INSERT INTO life_expense.site_prefs (pref_key, pref_value)
+        INSERT INTO life_expense.prefs_site (pref_key, pref_value)
              VALUES (:k, :v)
         ON CONFLICT (pref_key) DO UPDATE
                 SET pref_value = EXCLUDED.pref_value
@@ -97,7 +97,7 @@ def 문지기(db, token: str | None) -> None:
         raise HTTPException(status_code=401, detail="관리자 비밀번호가 필요합니다.")
     산것 = db.execute(text("""
         SELECT 1
-          FROM life_expense.admin_sessions
+          FROM life_expense.sessions_admin
          WHERE token = :t AND expires_at > now()
     """), {"t": token}).scalar()
     if not 산것:
@@ -111,7 +111,7 @@ def 토큰(x_admin_token: str | None = Header(default=None), db: SessionDep = De
 
 
 @router.get("/prefs")
-def get_site_prefs(db: SessionDep = Depends()):
+def get_prefs_site(db: SessionDep = Depends()):
     """
     공개 열쇠만 돌려준다. 암호를 받지 않는다.
 
@@ -233,7 +233,7 @@ def admin_login(
     # 하나로 다른 기기까지 함께 닫히기 때문이다.
     if 기기:
         db.execute(text("""
-            UPDATE life_expense.admin_sessions
+            UPDATE life_expense.sessions_admin
                SET expires_at = now()
              WHERE agent = :a
                AND expires_at > now()
@@ -241,7 +241,7 @@ def admin_login(
 
     새토큰 = secrets.token_urlsafe(32)[:64]
     db.execute(text("""
-        INSERT INTO life_expense.admin_sessions (token, expires_at, agent, ip)
+        INSERT INTO life_expense.sessions_admin (token, expires_at, agent, ip)
              VALUES (:t, :e, :a, :ip)
     """), {
         "t": 새토큰,
@@ -260,7 +260,7 @@ def admin_login(
 def admin_logout(x_admin_token: str | None = Header(default=None), db: SessionDep = Depends()):
     """토큰을 걷는다. 없는 토큰이 와도 탈이 아니다."""
     if x_admin_token:
-        db.execute(text("DELETE FROM life_expense.admin_sessions WHERE token = :t"), {"t": x_admin_token})
+        db.execute(text("DELETE FROM life_expense.sessions_admin WHERE token = :t"), {"t": x_admin_token})
         db.commit()
     return {"ok": True}
 
@@ -279,7 +279,7 @@ def set_admin_password(payload: dict, _: str = Depends(토큰), db: SessionDep =
     _적기(db, "admin_pw", _해시(새것, secrets.token_hex(16)))
     # 암호를 바꾸면 들어와 있던 자리를 모두 걷는다. 남의 기기에 열린 채로
     # 두지 않으려는 가름이다.
-    db.execute(text("DELETE FROM life_expense.admin_sessions"))
+    db.execute(text("DELETE FROM life_expense.sessions_admin"))
     db.commit()
     return {"ok": True}
 
@@ -306,7 +306,7 @@ def admin_stats(
     days도 그대로 받는다. 아직 날짜를 안 보내는 쪽이 있을 때를 위해서다. 둘 다
     없으면 이번 달이다.
 
-    쓰고 수정한 건수(write)만 action_logs가 아니라 entries에서 센다. 날짜 컬럼이
+    쓰고 수정한 건수(write)만 logs_action이 아니라 entries에서 센다. 날짜 컬럼이
     있어 거기서 세면 지난 것까지 소급해서 보인다.
     """
     오늘 = date.today()
@@ -334,7 +334,7 @@ def admin_stats(
 
     화면 = db.execute(text("""
         SELECT name, count(*) AS n
-          FROM life_expense.action_logs
+          FROM life_expense.logs_action
          WHERE kind = 'view'
            AND created_at >= CAST(:frm AS date)
            AND created_at < CAST(:to AS date)
@@ -345,7 +345,7 @@ def admin_stats(
 
     기능 = db.execute(text("""
         SELECT name, count(*) AS n
-          FROM life_expense.action_logs
+          FROM life_expense.logs_action
          WHERE kind = 'feature'
            AND created_at >= CAST(:frm AS date)
            AND created_at < CAST(:to AS date)
@@ -372,7 +372,7 @@ def admin_stats(
                  , count(*) AS n
                  , max(elapsed_ms) AS worst
                  , max(status) AS status
-              FROM life_expense.action_logs
+              FROM life_expense.logs_action
              WHERE kind = 'error'
                AND ({조건})
                AND created_at >= CAST(:frm AS date)
@@ -399,7 +399,7 @@ def admin_stats(
     # 날짜별 조회. 꺾은선이 날마다 한 점씩 찍는다.
     날별 = db.execute(text("""
         SELECT created_at::date AS d, count(*) AS n
-          FROM life_expense.action_logs
+          FROM life_expense.logs_action
          WHERE kind = 'view'
            AND created_at >= CAST(:frm AS date)
            AND created_at < CAST(:to AS date)
@@ -410,7 +410,7 @@ def admin_stats(
     # 요일별 조회. 0이 일요일이다(PostgreSQL의 dow).
     요일 = db.execute(text("""
         SELECT extract(dow from created_at)::int AS d, count(*) AS n
-          FROM life_expense.action_logs
+          FROM life_expense.logs_action
          WHERE kind = 'view'
            AND created_at >= CAST(:frm AS date)
            AND created_at < CAST(:to AS date)
@@ -421,7 +421,7 @@ def admin_stats(
     # 시간대별 조회. 스물넉 점은 손전화에서 너무 촘촘해 세 시간씩 묶는다.
     시간 = db.execute(text("""
         SELECT (extract(hour from created_at)::int / 3) * 3 AS h, count(*) AS n
-          FROM life_expense.action_logs
+          FROM life_expense.logs_action
          WHERE kind = 'view'
            AND created_at >= CAST(:frm AS date)
            AND created_at < CAST(:to AS date)
@@ -432,7 +432,7 @@ def admin_stats(
     # 갈래별 합계. 맨 위 칸이 이 수를 적는다.
     갈래 = dict(db.execute(text("""
         SELECT kind, count(*) AS n
-          FROM life_expense.action_logs
+          FROM life_expense.logs_action
          WHERE created_at >= CAST(:frm AS date)
            AND created_at < CAST(:to AS date)
       GROUP BY kind
@@ -591,7 +591,7 @@ def admin_logs(
                      PARTITION BY a.created_at::date
                          ORDER BY a.log_id DESC
                    ) AS 차례
-              FROM life_expense.action_logs a
+              FROM life_expense.logs_action a
              WHERE {' AND '.join(조건)}
           ) t
          WHERE 차례 <= :한도
@@ -604,7 +604,7 @@ def admin_logs(
     날들 = db.execute(text(f"""
         SELECT to_char(a.created_at, 'YYYY-MM-DD') AS on_day
              , count(*) AS n
-          FROM life_expense.action_logs a
+          FROM life_expense.logs_action a
          WHERE {' AND '.join(조건)}
       GROUP BY 1
     """), 값).mappings().all()
@@ -638,19 +638,19 @@ def admin_logs(
 # 더해졌는지 셀 수 없으므로 화면이 그 자리를 비운다.
 테이블들 = [
     ("entries", "지출 내역", "user", "created_at"),
-    ("pending_entries", "대기 내역", "user", "created_at"),
-    ("scheduled_entries", "정기 내역", "user", "created_at"),
-    ("entry_groups", "묶음 내역", "user", "created_at"),
+    ("entries_pending", "대기 내역", "user", "created_at"),
+    ("entries_scheduled", "정기 내역", "user", "created_at"),
+    ("entries_groups", "묶음 내역", "user", "created_at"),
     ("places", "장소/가게", "user", "created_at"),
     ("counterparts", "함께한 상대", "user", "created_at"),
     ("payment_methods", "결제 수단", "user", None),
     ("holidays", "공휴일", "user", "created_at"),
     ("notices", "공지", "admin", "created_at"),
-    ("doodle_items", "문구", "admin", "created_at"),
-    ("action_logs", "액션 기록", "admin", "created_at"),
-    ("admin_sessions", "로그인 기록", "admin", "created_at"),
-    ("job_schedules", "배치", "admin", "updated_at"),
-    ("job_runs", "배치 이력", "admin", "started_at"),
+    ("doodles", "문구", "admin", "created_at"),
+    ("logs_action", "액션 기록", "admin", "created_at"),
+    ("sessions_admin", "로그인 기록", "admin", "created_at"),
+    ("jobs_schedules", "배치", "admin", "updated_at"),
+    ("jobs_runs", "배치 이력", "admin", "started_at"),
 ]
 
 
@@ -668,7 +668,7 @@ def admin_db(
     않는다(app/deps.py가 .env에서 읽어 쓴다).
 
     차지한 자리는 여기서 재지 않는다. 그 한 질의가 400ms를 먹어 쪽 전체가
-    그만큼 늦게 떴다. 따로 묻는 길을 냈다(/admin/db-size).
+    그만큼 늦게 떴다. 따로 묻는 길을 냈다(/admin/db/size).
     """
     판 = db.execute(text("SHOW server_version")).scalar() or ""
 
@@ -825,8 +825,8 @@ def admin_apis(
     내보내면 그 뒤로는 어디에 남아 있는지 쫓을 길이 없다.
 
     호출한 기록은 두 곳에서 쌓인다. 배치가 부르는 자리는 바퀴 자국에서
-    (job_runs), 브라우저가 바로 부르는 자리는 화면이 적어 보낸 줄에서
-    (action_logs의 api 갈래) 읽는다.
+    (jobs_runs), 브라우저가 바로 부르는 자리는 화면이 적어 보낸 줄에서
+    (logs_action의 api 갈래) 읽는다.
 
     기간을 받으면 그 기간만 센다. 호출 수도 마지막 요청도 그 안에서 본다.
     묵은 기록은 달마다 지워지므로 아무리 거슬러도 90일 치뿐이다
@@ -853,7 +853,7 @@ def admin_apis(
              , to_char(r.started_at, 'HH24:MI')    AS at_time
              , r.ok
              , r.note
-          FROM life_expense.job_runs r
+          FROM life_expense.jobs_runs r
          WHERE {바퀴where}
       ORDER BY r.job_key, r.started_at DESC
     """), 값).mappings().all()
@@ -869,7 +869,7 @@ def admin_apis(
              , (a.status IS NULL OR a.status < 400) AS ok
              , a.path
              , a.elapsed_ms
-          FROM life_expense.action_logs a
+          FROM life_expense.logs_action a
          WHERE {적힌where}
       ORDER BY a.name, a.created_at DESC
     """), 값).mappings().all()
@@ -879,7 +879,7 @@ def admin_apis(
     센것 = db.execute(text(f"""
         SELECT a.name
              , count(*) AS n
-          FROM life_expense.action_logs a
+          FROM life_expense.logs_action a
          WHERE {적힌where}
       GROUP BY a.name
     """), 값).mappings().all()
@@ -939,7 +939,7 @@ def admin_api_runs(
     (frontend/src/pages/components/AdminApiDetail.tsx).
 
     브라우저가 적어 보낸 줄에서 읽는다. 배치가 부르는 자리도 같은 테이블에 쌓이므로
-    한자리에서 본다(action_logs의 api 갈래).
+    한자리에서 본다(logs_action의 api 갈래).
 
     줄만 내놓지 않고 그 API의 이름도 함께 싣는다. 상세 쪽은 주소에 실린 열쇠
     하나만 쥐고 들어오는데(?key=kasi), 그것만으로는 「kasi」라고밖에 적을 수
@@ -975,7 +975,7 @@ def admin_api_runs(
              , a.url
              , a.elapsed_ms
              , a.status
-          FROM life_expense.action_logs a
+          FROM life_expense.logs_action a
          WHERE {' AND '.join(조건)}
       ORDER BY a.log_id DESC
          LIMIT :한도
@@ -1015,7 +1015,7 @@ def admin_batch(_: str = Depends(토큰), db: SessionDep = Depends()):
              , to_char(r.started_at, 'HH24:MI')    AS at_time
              , r.ok
              , r.note
-          FROM life_expense.job_runs r
+          FROM life_expense.jobs_runs r
       ORDER BY r.job_key, r.started_at DESC
     """)).mappings().all()
     마지막 = {r["job_key"]: r for r in rows}
@@ -1064,7 +1064,7 @@ def admin_batch_runs(
              , r.ok
              , r.note
              , r.elapsed_ms
-          FROM life_expense.job_runs r
+          FROM life_expense.jobs_runs r
          WHERE {' AND '.join(조건)}
       ORDER BY r.started_at DESC
          LIMIT :한도
@@ -1096,7 +1096,7 @@ def admin_set_batch(job_key: str, payload: dict, _: str = Depends(토큰), db: S
     말이 되지 않는다.
 
     받는 값은 셋뿐이다. 그 밖의 꼴은 돌려보낸다. 테이블에도 같은 CHECK 제약이 걸려
-    있지만(job_schedules_kind_chk), 틀린 값으로 스케줄러를 건드리면 그 일이
+    있지만(jobs_schedules_kind_chk), 틀린 값으로 스케줄러를 건드리면 그 일이
     아예 안 돌게 된다.
     """
     kind = str(payload.get("kind") or "").strip()
@@ -1129,7 +1129,7 @@ def admin_set_batch(job_key: str, payload: dict, _: str = Depends(토큰), db: S
         시 = 분 = 날 = None
 
     낸것 = db.execute(text("""
-        UPDATE life_expense.job_schedules
+        UPDATE life_expense.jobs_schedules
            SET kind = :kind
              , day_of_month = :날
              , hour = :시
@@ -1191,7 +1191,7 @@ def admin_db_days(
     return [{"on_day": r["on_day"], "n": int(r["n"])} for r in rows]
 
 
-@router.get("/db-size")
+@router.get("/db/size")
 def admin_db_size(_: str = Depends(토큰), db: SessionDep = Depends()):
     """
     차지한 자리.
@@ -1210,7 +1210,7 @@ def admin_db_size(_: str = Depends(토큰), db: SessionDep = Depends()):
 
 
 @router.get("/sessions")
-def admin_sessions(
+def admin_list_sessions(
     frm: str | None = None,
     to: str | None = None,
     ok: str | None = None,
@@ -1224,8 +1224,8 @@ def admin_sessions(
     성공과 실패를 한 줄로 합쳐 내놓는다. 둘을 따로 두니 누가 자꾸
     들어오려 하는지 보려면 두 목록을 눈으로 맞춰 가며 읽어야 했다.
 
-    성공은 토큰이 생긴 때고(admin_sessions), 실패는 기록에 401로 남은
-    줄이다(action_logs). 아직 안 지난 토큰은 열려 있는 것으로 보고, 지금
+    성공은 토큰이 생긴 때고(sessions_admin), 실패는 기록에 401로 남은
+    줄이다(logs_action). 아직 안 지난 토큰은 열려 있는 것으로 보고, 지금
     보고 있는 기기의 것만 제 것으로 표시한다.
 
     어느 기기인지는 적지 않는다. 담아 본 적이 없다.
@@ -1255,7 +1255,7 @@ def admin_sessions(
                  -- 닫힌 때까지다. 둘을 한 가지로 적는 까닭은 뜻이 같기
                  -- 때문이다. 「이 자리가 쓸 수 있던 동안」이다.
                  , EXTRACT(EPOCH FROM (LEAST(s.expires_at, now()) - s.created_at)) AS held
-              FROM life_expense.admin_sessions s
+              FROM life_expense.sessions_admin s
              UNION ALL
             SELECT a.created_at                 AS at
                  , FALSE                        AS ok
@@ -1264,7 +1264,7 @@ def admin_sessions(
                  , NULL                         AS agent
                  , NULL                         AS ip
                  , NULL                         AS held
-              FROM life_expense.action_logs a
+              FROM life_expense.logs_action a
              WHERE a.kind = 'error'
                AND a.name = '/admin/login'
                AND a.status = 401
@@ -1288,7 +1288,7 @@ def admin_sessions(
     return {
         # 지금 열려 있는 기기 수. 거르기와 상관없이 늘 같은 값이라 따로 센다.
         "live": db.execute(text("""
-            SELECT count(*) FROM life_expense.admin_sessions WHERE expires_at > now()
+            SELECT count(*) FROM life_expense.sessions_admin WHERE expires_at > now()
         """)).scalar() or 0,
         "rows": [{
             "on_day": r["on_day"],
@@ -1424,18 +1424,18 @@ def admin_drop_notice(notice_id: int, _: str = Depends(토큰), db: SessionDep =
     return {"ok": True}
 
 
-@router.get("/doodle-items")
+@router.get("/doodles")
 def admin_list_doodle(_: str = Depends(토큰), db: SessionDep = Depends()):
     """애니메이션 문구를 전부 돌려준다. 꺼 놓은 것도 함께 보인다."""
     rows = db.execute(text("""
         SELECT item_key, kind, label, sort_order, is_active
-          FROM life_expense.doodle_items
+          FROM life_expense.doodles
       ORDER BY sort_order ASC, item_key ASC
     """)).mappings().all()
     return [dict(r) for r in rows]
 
 
-@router.put("/doodle-items/{item_key}")
+@router.put("/doodles/{item_key}")
 def admin_edit_doodle(item_key: str, payload: dict, _: str = Depends(토큰), db: SessionDep = Depends()):
     """
     문구 하나를 켜거나 끄거나, 이름을 고친다.
@@ -1468,7 +1468,7 @@ def admin_edit_doodle(item_key: str, payload: dict, _: str = Depends(토큰), db
         raise HTTPException(status_code=400, detail="고칠 것이 없습니다.")
 
     바뀜 = db.execute(text(
-        "UPDATE life_expense.doodle_items SET " + ", ".join(칸) + " WHERE item_key = :k"
+        "UPDATE life_expense.doodles SET " + ", ".join(칸) + " WHERE item_key = :k"
     ), 값).rowcount
     db.commit()
     if not 바뀜:
@@ -1476,7 +1476,7 @@ def admin_edit_doodle(item_key: str, payload: dict, _: str = Depends(토큰), db
     return {"ok": True}
 
 
-@router.post("/doodle-items")
+@router.post("/doodles")
 def admin_add_doodle(payload: dict, _: str = Depends(토큰), db: SessionDep = Depends()):
     """
     인사 문구를 하나 더한다.
@@ -1495,19 +1495,19 @@ def admin_add_doodle(payload: dict, _: str = Depends(토큰), db: SessionDep = D
 
     뒷자리 = db.execute(text("""
         SELECT coalesce(max(sort_order), 0) + 1 AS n
-          FROM life_expense.doodle_items
+          FROM life_expense.doodles
          WHERE kind = 'hello'
     """)).scalar_one()
     열쇠 = f"hello-{uuid.uuid4().hex[:8]}"
     db.execute(text("""
-        INSERT INTO life_expense.doodle_items (item_key, kind, label, sort_order, is_active)
+        INSERT INTO life_expense.doodles (item_key, kind, label, sort_order, is_active)
         VALUES (:k, 'hello', :l, :o, 1)
     """), {"k": 열쇠, "l": 글, "o": 뒷자리})
     db.commit()
     return {"item_key": 열쇠}
 
 
-@router.delete("/doodle-items/{item_key}")
+@router.delete("/doodles/{item_key}")
 def admin_del_doodle(item_key: str, _: str = Depends(토큰), db: SessionDep = Depends()):
     """
     인사 문구를 지운다.
@@ -1516,7 +1516,7 @@ def admin_del_doodle(item_key: str, _: str = Depends(토큰), db: SessionDep = D
     사라지면 그릴 수 없는 열쇠를 가리키게 된다. 쓰지 않으려면 끄면 된다.
     """
     갈래 = db.execute(text("""
-        SELECT kind FROM life_expense.doodle_items WHERE item_key = :k
+        SELECT kind FROM life_expense.doodles WHERE item_key = :k
     """), {"k": item_key}).scalar_one_or_none()
     if 갈래 is None:
         raise HTTPException(status_code=404, detail="그 문구가 없습니다.")
@@ -1524,7 +1524,7 @@ def admin_del_doodle(item_key: str, _: str = Depends(토큰), db: SessionDep = D
         raise HTTPException(status_code=400, detail="모양은 지울 수 없습니다. 끄면 안 쓰입니다.")
 
     db.execute(text("""
-        DELETE FROM life_expense.doodle_items WHERE item_key = :k
+        DELETE FROM life_expense.doodles WHERE item_key = :k
     """), {"k": item_key})
     db.commit()
     return {"ok": True}

@@ -64,7 +64,7 @@ TO-BE 구조(네임스페이스 분리, 네이티브 실행, `gp-lab`/`life_expe
 
 **예외**: 아래는 원문 표기를 그대로 둔다.
 
-- 테이블명, 컬럼명, 스키마명: `life_expense`, `pending_entries`, `cat1_id`
+- 테이블명, 컬럼명, 스키마명: `life_expense`, `entries_pending`, `cat1_id`
 - 코드, 명령어, 파일명: `lab.ps1`, `npm run build`, `vite.config.ts`
 - 환경변수와 설정 키: `DB_ECHO`, `basename`, `proxy_pass`
 - URL, 호스트명, 경로: `http://localhost:8101/`, `expense.life.localhost`
@@ -165,7 +165,7 @@ TO-BE 구조(네임스페이스 분리, 네이티브 실행, `gp-lab`/`life_expe
 ### 스케줄러
 
 - `main.py` 임포트 시점에 잡 3종이 기동된다. 그래서 **`--reload`로 띄우지 않는다**(중복 등록).
-- 백그라운드 잡은 라우터의 공유 함수를 호출한다(예: `process_scheduled_entries`).
+- 백그라운드 잡은 라우터의 공유 함수를 호출한다(예: `process_entries_scheduled`).
   로직을 복제하지 않는다.
 - 스케줄러는 자체 세션을 만든다. API 의존성 세션을 재사용하지 않는다.
 

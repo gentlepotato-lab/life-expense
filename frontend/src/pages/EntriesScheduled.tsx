@@ -54,7 +54,7 @@ export type CategoryL2Meta = { id: number; name: string; cat1_id?: number; blur?
 export type CategoryL3Meta = { id: number; name: string; cat2_id?: number; blur?: number; is_active?: number };
 
 /**
- * 다음 예정일시는 서버가 next_run_at에 들고 있다(scheduled_entries.next_run_at).
+ * 다음 예정일시는 서버가 next_run_at에 들고 있다(entries_scheduled.next_run_at).
  * 예전에는 화면에서도 같은 계산을 따로 했는데, 두 계산이 어긋나면 "보이는 날짜"와
  * "실제로 대기 내역으로 옮겨지는 시점"이 달라진다. 그래서 화면 계산은 걷어 내고
  * 서버 값 하나만 쓴다.
@@ -136,7 +136,7 @@ function emptyForm() {
   };
 }
 
-export default function ScheduledEntries() {
+export default function EntriesScheduled() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);  // 폼 표시 여부
@@ -391,7 +391,7 @@ export default function ScheduledEntries() {
       );
     stamp(after);
     try {
-      await axios.put(`/scheduled-entries/${id}/perf-exclude`, null, { params: { value: after } });
+      await axios.put(`/entries-scheduled/${id}/perf-exclude`, null, { params: { value: after } });
     } catch (err) {
       console.error(err);
       stamp(before);
@@ -421,7 +421,7 @@ export default function ScheduledEntries() {
       );
     stamp(after);
     try {
-      await axios.put(`/scheduled-entries/${id}/fixed`, null, {
+      await axios.put(`/entries-scheduled/${id}/fixed`, null, {
         params: { value: String(after) },
       });
     } catch (err) {
@@ -434,7 +434,7 @@ export default function ScheduledEntries() {
   // 스케줄 목록 로드
   const loadSchedules = useCallback(async (withHidden = showHidden) => {
     try {
-      const res = await axios.get("/scheduled-entries", {
+      const res = await axios.get("/entries-scheduled", {
         params: withHidden ? { include_hidden: 1 } : undefined,
       });
       const data = Array.isArray(res.data) ? res.data : [];
@@ -477,7 +477,7 @@ export default function ScheduledEntries() {
     setSplits([]);
     if (schedule.split_count > 0) {
       axios
-        .get(`/scheduled-entries/${schedule.schedule_id}/splits`)
+        .get(`/entries-scheduled/${schedule.schedule_id}/splits`)
         .then((r) =>
           setSplits(
             r.data.map((x: SplitDraft) => ({
@@ -689,12 +689,12 @@ export default function ScheduledEntries() {
     try {
       setIsSaving(true);
       const placeId = await ensurePlaceId(draftPlace, draft.place_id);
-      await axios.put(`/scheduled-entries/${draft.schedule_id}`, {
+      await axios.put(`/entries-scheduled/${draft.schedule_id}`, {
         ...buildSchedulePayload(draft),
         place_id: placeId,
       });
       // 분할은 별도 엔드포인트다. 비어 있어도 보내야 기존 분할이 지워진다.
-      await axios.put(`/scheduled-entries/${draft.schedule_id}/splits`, cleanSplits);
+      await axios.put(`/entries-scheduled/${draft.schedule_id}/splits`, cleanSplits);
       closeEditor();
       say.ok("저장 완료-!! ;-)");
       await loadSchedules();
@@ -754,7 +754,7 @@ export default function ScheduledEntries() {
     try {
       const placeId = await ensurePlaceId(formPlace, form.place_id);
 
-      const res = await axios.post("/scheduled-entries", {
+      const res = await axios.post("/entries-scheduled", {
         day_of_month: Number(form.day_of_month),
         hour: hour,
         minute: minute,
@@ -776,7 +776,7 @@ export default function ScheduledEntries() {
       // 몫은 스케줄이 생긴 뒤에야 붙일 수 있다. 빈 채로는 부르지 않는다.
       const newId = res.data?.schedule_id;
       if (newId && cleanSplits.length > 0) {
-        await axios.put(`/scheduled-entries/${newId}/splits`, cleanSplits);
+        await axios.put(`/entries-scheduled/${newId}/splits`, cleanSplits);
       }
 
       say.ok("등록 완료-!! ;-)");
@@ -810,7 +810,7 @@ export default function ScheduledEntries() {
       return;
 
     try {
-      await axios.delete(`/scheduled-entries/${scheduleId}`);
+      await axios.delete(`/entries-scheduled/${scheduleId}`);
       closeEditor();
       say.ok("제거 완료-!! ;-)");
       await loadSchedules();
@@ -1133,7 +1133,7 @@ export default function ScheduledEntries() {
           });
           if (!예) return;
           const { 성공, 실패 } = await 선택제거(
-            "/scheduled-entries",
+            "/entries-scheduled",
             picked.map((x) => x.schedule_id)
           );
           setPickedIds(new Set());
@@ -1735,7 +1735,7 @@ export function ScheduleCard({
               <span className="amount-split__caret" aria-hidden="true">›</span>
             </span>
             {splitOpen && (
-              <SplitRows base="/scheduled-entries" ownerId={s.schedule_id} />
+              <SplitRows base="/entries-scheduled" ownerId={s.schedule_id} />
             )}
           </div>
         )}

@@ -23,7 +23,7 @@ const 그림: Record<string, React.ReactNode> = {
   "/admin/users": <ArtUsers />,
 };
 
-export default function AdminMain() {
+export default function AdminTabUse() {
   const navigate = useNavigate();
   const 쪽들 = ADMIN_TABS[0].pages;
   /* 앞의 둘은 나란히, 나머지는 한 줄씩. 홈이 둘과 넷으로 나누는 것과 같은
