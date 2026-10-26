@@ -217,18 +217,11 @@ class PendingEntry(Base):
             "memo": self.memo,
 
             "place_id": self.place_id,
-            "place_name": self.place_name,
-            "kakao_id": self.kakao_id,
-            "address_name": self.address_name,
-            "road_address_name": self.road_address_name,
-            "phone": self.phone,
-            "category_name": self.category_name,
-            "category_group_code": self.category_group_code,
-            "category_group_name": self.category_group_name,
-            "place_url": self.place_url,
-            "place_lat": self.place_lat,
-            "place_lng": self.place_lng,
-
+            # 가게 이름과 주소와 좌표는 여기 없다. places에 있고 목록을 낼 때
+            # 조인해서 붙인다(routers/entries_pending.py). 한때 이 줄들이
+            # self.place_name과 self.place_lat을 읽고 있었는데, 그런 컬럼은
+            # entries_pending에 없어 부르는 순간 터질 자리였다. 부르는 데가
+            # 없어 드러나지 않았을 뿐이다.
             "sended": self.sended,
         }
 
