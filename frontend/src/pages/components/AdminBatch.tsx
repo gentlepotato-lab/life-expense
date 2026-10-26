@@ -250,8 +250,11 @@ export default function AdminBatch() {
             일={j}
             on열기={() => 열기(j)}
             on이력={() =>
+              /* 이름도 함께 실어 보낸다. 이력 쪽은 받은 줄에서 이름을
+                 꺼내는데, 0건을 숨겨 한 줄도 안 남으면 꺼낼 데가 없어
+                 딱지가 사라지고 그 옆 네모가 왼쪽으로 밀린다. */
               navigate(`/admin/batch-runs?key=${j.key}`, {
-                state: { back: "배치" },
+                state: { back: "배치", 이름: j.name },
               })
             }
           />

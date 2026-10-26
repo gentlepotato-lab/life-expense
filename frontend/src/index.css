@@ -4519,6 +4519,14 @@ button {
   flex: 0 0 auto;
 }
 
+/* 잠긴 네모. 다른 네모가 켜져 있어 이쪽은 눌러도 달라질 것이 없는 때다
+   (배치 이력에서 실패만 보기를 켜면 0건도 보기가 그렇다). 감추지 않고
+   옅게만 둔다. 사라지면 옆에 선 것들이 그 자리를 메우러 밀려든다. */
+.cp-toggle.readonly {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* ─── 목록 ─────────────────────────────────────────────────── */
 .cp-list {
   display: flex;
@@ -6202,6 +6210,13 @@ div:has(> .pm-item) .drag-handle {
 .cat-toolbar-btns > .btn-row > .cp-toggle,
 .pm-toolbar-row > .cp-toggle {
   margin-right: auto;
+}
+
+/* 배치 이력만 다르다. 네모가 줄 왼쪽을 혼자 잡는 것이 아니라 일 이름 딱지
+   바로 오른쪽에 붙어야 한다. 미는 일은 빈자리를 먹는 조각이 맡는다
+   (.admin-toolbar-row__gap). 둘이 함께 밀면 가운데로 몰린다. */
+.admin-toolbar-row > .cp-toggle {
+  margin-right: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -21551,7 +21566,11 @@ html:has(.note-pop) .add-btn {
 /* 상태 칸. 자물쇠 하나가 가운데 선다.
    안쪽 여백을 줄이고 기호를 조각으로 감싼다. 글자처럼 두면 줄간과 글자
    사이의 빈틈이 붙어 칸이 10px 더 넓어야 했다. */
-.admin-tbl__mark {
+/* 칸 이름만으로는 가운데로 못 간다. 위의 `.admin-tbl th, .admin-tbl td`가
+   왼쪽을 쥐고 있어 그쪽이 더 무겁다. 여태 기호가 칸 왼쪽에 붙어 있던 것이
+   그것이다. 칸 이름을 th, td에 붙여 같은 무게로 맞춘다. */
+.admin-tbl th.admin-tbl__mark,
+.admin-tbl td.admin-tbl__mark {
   padding-left: 4px;
   padding-right: 4px;
   text-align: center;
@@ -21569,13 +21588,41 @@ html:has(.note-pop) .add-btn {
   height: 16px;
 }
 
+/* 눌러서 남긴 글을 여는 기호(배치 이력). 전역 단추 규칙이 키와 여백을
+   쥐고 있어 여기서 모두 걷는다. 칸이 36px뿐이라 한 자리만 밀려도 넘친다.
+   빛깔은 칸이 쥔 것을 물려받는다(--open은 풀빛, --bad는 빨강). */
+.admin-tbl__mark-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.admin-tbl__mark-btn:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.admin-tbl__mark-btn:active {
+  transform: scale(0.92);
+}
+
 /* 열렸나 닫혔나 실패했나. 셋을 빛깔로도 가른다. */
 .admin-tbl td.admin-tbl__mark--open,
-.admin-legend .admin-tbl__mark--open { color: var(--color-success); }
+.admin-legend .admin-tbl__mark--open,
+.run-say .admin-tbl__mark--open { color: var(--color-success); }
 .admin-tbl td.admin-tbl__mark--shut,
 .admin-legend .admin-tbl__mark--shut { color: var(--color-text-tertiary); }
 .admin-tbl td.admin-tbl__mark--bad,
-.admin-legend .admin-tbl__mark--bad { color: var(--color-danger); }
+.admin-legend .admin-tbl__mark--bad,
+.run-say .admin-tbl__mark--bad { color: var(--color-danger); }
 
 /* 칸이 다섯인 로그인 기록은 못 박은 네 칸의 폭을 여기서 쥔다. 좁은 화면에서
    그 값을 줄여 다섯이 한 줄에 서게 한다.
@@ -21712,12 +21759,16 @@ html:has(.note-pop) .add-btn {
 /* ─── 카드에서 들어가는 단추 ──────────────────────────────────
    줄 오른쪽 끝에 선다. 딱지와 같은 키로 적어 한 줄에 선 것들과 결이 맞는다.
    화살 하나를 붙인다. 글만 두면 눌러 보라는 것인지 읽히지 않는다. */
+/* 적어 준 21px이 여태 안 먹었다. 전역 단추 규칙이 min-height로 32px을
+   쥐고 있는데 여기서 그것을 안 걷었다. 옆에 선 주기 상자도 아래 딱지들도
+   그만큼 낮은데 이것만 혼자 두꺼웠다. 키를 걷을 때는 둘을 함께 적는다. */
 .admin-go {
   display: inline-flex;
   align-items: center;
   gap: 1px;
   flex: 0 0 auto;
   height: 21px;
+  min-height: 21px;
   padding: 0 4px 0 8px;
   border: 1px solid var(--color-border);
   border-radius: 999px;
@@ -23499,3 +23550,52 @@ textarea.admin-area:focus {
 /* [지금]의 자리와 꼴은 날짜 선택기의 [오늘]과 한 벌로 적었다(위의 날짜
    선택기 절). 여기서 또 적지 않는다. */
 
+/* ─────────────────────────────────────────────
+   192. 배치 한 바퀴가 남긴 글(2026-10-26)
+   ───────────────────────────────────────────── */
+
+/* 표의 기호를 누르면 뜨는 판 안쪽(AdminBatchRunsPopup.tsx). 이름과 값이
+   마주 보는 표라 DB 쪽과 같은 틀을 쓴다(.admin-tbl--kv). 머리칸의 꼴도
+   값 칸의 쏠림도 거기서 물려받으므로 여기서 다시 적지 않는다.
+
+   딱지 하나만 든 칸은 가운데로 모이게 되어 있다. 가로로 선 표에서 딱지의
+   세로줄을 맞추려는 것인데, 이 표는 줄마다 값이 하나라 맞출 세로줄이 없다.
+   날짜와 시각이 왼쪽에 서 있는데 걸린 시간만 가운데로 가면 어긋나 보인다. */
+.run-say td:has(> .admin-tbl__chip) {
+  text-align: left;
+}
+
+/* 기호와 글을 한 줄에. 글이 여러 줄로 내려가도 기호는 첫 줄 옆에 선다. */
+.run-say__line {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.run-say__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  height: 20px;
+}
+
+.run-say__mark svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+/* 남긴 글. 탈난 바퀴는 파이썬이 던진 글이라 띄어쓰기 없이 길게 이어지는
+   때가 있다. 칸을 넘기지 않게 끊어 내린다. */
+.run-say__text {
+  min-width: 0;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* 탈난 바퀴의 글. 빛깔로도 가른다. 기호만으로는 굴려 보다 놓친다. */
+.run-say--bad .run-say__text {
+  color: var(--color-danger);
+}

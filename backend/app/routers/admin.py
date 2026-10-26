@@ -1035,6 +1035,9 @@ def admin_batch_runs(
     key: str = "",
     frm: str | None = None,
     to: str | None = None,
+    include_zero: bool = False,
+    only_failed: bool = False,
+    limit: int = 기록한도,
     _: str = Depends(토큰),
     db: SessionDep = Depends(),
 ):
@@ -1047,9 +1050,27 @@ def admin_batch_runs(
 
     열쇠를 주면 그 일만, 안 주면 모두 섞어 돌려준다. 바퀴 자국은 달마다
     치우므로(app/scheduler/cleanup_job.py) 아무리 거슬러도 90일 치뿐이다.
+
+    include_zero를 주지 않으면 아무것도 하지 않고 끝난 바퀴는 빼고 센다.
+    화면의 기본이 그쪽이다(AdminBatchRuns.tsx의 0건도 보기).
+
+    only_failed를 주면 탈난 바퀴만 센다. 며칠째 실패하는 중인지를 볼 때
+    쓴다. 그때는 include_zero가 있으나 없으나 같다. 0건은 잘 끝난 바퀴가
+    남기는 글이라 탈난 줄에는 없다.
+
+    **한도는 날마다 따로 센다.** 액션 기록과 같은 잣대다(admin_logs). 기간
+    전체에 한도를 걸면 매분 도는 일에서는 오늘 세 시간 치로 그 200줄이 꽉 차,
+    어제 것이 한 줄도 오지 않는다. 날마다 새것부터 자르므로 어느 날이든 그
+    날의 새것부터 볼 수 있다.
+
+    줄은 날마다 한도까지만 내놓고, 쌓인 전체 수는 따로 세어 함께 보낸다.
+    받은 줄 수를 그대로 띄우면 한도에 걸린 날은 늘 「200회」라 그것이 그날
+    돈 전부인 것처럼 읽힌다.
     """
     조건 = ["(:key = '' OR r.job_key = :key)"]
-    값: dict = {"key": key, "한도": 기록한도}
+    값: dict = {"key": key, "한도": max(기록한도, min(limit, 기록천장))}
+    if only_failed:
+        조건.append("r.ok = 0")
     if frm:
         조건.append("r.started_at >= CAST(:frm AS date)")
         값["frm"] = frm
@@ -1057,34 +1078,91 @@ def admin_batch_runs(
         조건.append("r.started_at < CAST(:to AS date) + INTERVAL '1 day'")
         값["to"] = to
 
-    rows = db.execute(text(f"""
-        SELECT r.job_key
-             , to_char(r.started_at, 'YYYY-MM-DD') AS on_day
-             , to_char(r.started_at, 'HH24:MI:SS') AS at_time
-             , r.ok
-             , r.note
-             , r.elapsed_ms
+    # 아무것도 하지 않고 끝난 바퀴.
+    #
+    # 지금 도는 일들이 남기는 글은 「0건」과 「0건 지움」뿐이고, 공휴일 받기는
+    # 「12월까지」라 건수를 적지 않는다(app/scheduler/*.py). 다른 꼴로 적는
+    # 일이 생기면 그 일은 걸러지지 않고 그대로 선다. 안 보여도 될 줄이 보이는
+    # 쪽이, 봐야 할 줄이 숨는 쪽보다 낫다.
+    #
+    # 탈난 바퀴는 건수와 상관없이 남긴다. 그것이 이 쪽을 여는 까닭이다. note가
+    # 비어 있을 수 있어 COALESCE로 받는다. NULL이면 NOT (...)도 NULL이 되어 그
+    # 줄까지 함께 빠진다. ok는 참거짓이 아니라 smallint라 그냥 AND에 넣으면
+    # 터진다. 1인지를 묻는다.
+    영건 = "(r.ok = 1 AND COALESCE(r.note, '') LIKE '0건%')"
+
+    def 자른것(더볼것: str) -> str:
+        """날 안에서 새것부터 한도까지 자른 조각.
+
+        창 함수로 날짜 안에서 차례를 매기고 그 차례로 거른다. 날짜별로 따로
+        물으면 한 달이면 질의가 서른 번이다.
+        """
+        return f"""
+            SELECT job_key, started_at, on_day, at_time, ok, note, elapsed_ms
+              FROM (
+                SELECT r.job_key
+                     , r.started_at
+                     , to_char(r.started_at, 'YYYY-MM-DD') AS on_day
+                     , to_char(r.started_at, 'HH24:MI:SS') AS at_time
+                     , r.ok
+                     , r.note
+                     , r.elapsed_ms
+                     , row_number() OVER (
+                         -- 날을 가르는 잣대는 위의 on_day 와 같아야 한다.
+                         PARTITION BY r.started_at::date
+                             ORDER BY r.started_at DESC
+                       ) AS 차례
+                  FROM life_expense.jobs_runs r
+                 WHERE {' AND '.join(조건)} AND {더볼것}
+              ) t
+             WHERE 차례 <= :한도
+        """
+
+    if include_zero:
+        # 무언가를 한 바퀴와 0건을 따로 긷는다. 한 통으로 긷고 자르면, 매분 도는
+        # 일에서는 그 날의 한도가 0건으로 꽉 차 같은 날의 「1건」까지 밀려난다.
+        # 0건을 「도」 보자고 켠 것인데 켜는 순간 보이던 줄이 사라졌다.
+        #
+        # 뚜껑을 양쪽에 따로 씌운다. 무언가를 한 바퀴는 숨기던 때와 똑같이
+        # 남고, 0건이 그 위에 얹힌다. 켠다고 줄어드는 일이 없다.
+        글 = f"{자른것('NOT ' + 영건)} UNION ALL {자른것(영건)} ORDER BY started_at DESC"
+    else:
+        글 = f"{자른것('NOT ' + 영건)} ORDER BY started_at DESC"
+
+    rows = db.execute(text(글), 값).mappings().all()
+
+    # 날마다 쌓인 수와 기간 전체의 수. 줄과 따로 묻는 까닭은, 한 번에 세려면
+    # 한도에 걸린 줄까지 모두 들고 와야 하기 때문이다. 화면은 이 수로
+    # 「1,440회 중 200회」를 적고, 더 받을 것이 남았는지도 이것으로 안다.
+    센조건 = 조건 if include_zero else 조건 + [f"NOT {영건}"]
+    날들 = db.execute(text(f"""
+        SELECT to_char(r.started_at, 'YYYY-MM-DD') AS on_day
+             , count(*) AS n
           FROM life_expense.jobs_runs r
-         WHERE {' AND '.join(조건)}
-      ORDER BY r.started_at DESC
-         LIMIT :한도
+         WHERE {' AND '.join(센조건)}
+      GROUP BY 1
     """), 값).mappings().all()
 
     from app.scheduler.registry import 이름들
 
     이름 = 이름들()
-    return [
-        {
-            "job_key": r["job_key"],
-            "name": 이름.get(r["job_key"], r["job_key"]),
-            "on_day": r["on_day"],
-            "at_time": r["at_time"],
-            "ok": bool(r["ok"]),
-            "note": r["note"] or "",
-            "ms": r["elapsed_ms"],
-        }
-        for r in rows
-    ]
+    return {
+        "total": sum(int(d["n"]) for d in 날들),
+        "limit": 값["한도"],
+        "days": {d["on_day"]: int(d["n"]) for d in 날들},
+        "rows": [
+            {
+                "job_key": r["job_key"],
+                "name": 이름.get(r["job_key"], r["job_key"]),
+                "on_day": r["on_day"],
+                "at_time": r["at_time"],
+                "ok": bool(r["ok"]),
+                "note": r["note"] or "",
+                "ms": r["elapsed_ms"],
+            }
+            for r in rows
+        ],
+    }
 
 
 @router.put("/batch/{job_key}")
